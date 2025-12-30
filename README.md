@@ -1,73 +1,54 @@
-# React + TypeScript + Vite
+# 玄枢录（Orbis）- 八字排盘与案例管理
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+面向命理分析的前端应用，聚焦八字排盘与案例管理，提供大运/流年/流月与神煞解读展示，并预留奇门、六爻、紫微等入口。
 
-Currently, two official plugins are available:
+## 功能
+- 四柱盘面展示：天干地支、藏干、主星、星运、空亡、纳音
+- 大运/流年/流月面板联动展示
+- 神煞列表与解读面板
+- 案例列表与搜索（当前为本地存储）
+- 预留多盘型入口（奇门/六爻/紫微等）
+- 可选 Supabase 配置（用于后续云端数据）
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 技术栈
+- React 19 + TypeScript + Vite
+- Tailwind CSS
+- lunar-typescript（农历/八字计算）
+- Supabase JS（可选）
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 快速开始
+1) 安装依赖
+```bash
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+2) 配置环境变量（可选）
+```bash
+cp .env.example .env
 ```
+Windows 可用：
+```powershell
+Copy-Item .env.example .env
+```
+
+3) 启动开发
+```bash
+npm run dev
+```
+
+## 常用脚本
+- `npm run dev` 启动开发服务器
+- `npm run build` 生产构建
+- `npm run preview` 本地预览构建产物
+- `npm run lint` 代码检查
+
+## 目录速览
+- `src/components/Bazi` 八字盘面与相关面板
+- `src/components/Sidebar` 案例列表与筛选
+- `src/services/caseService.ts` 本地案例存储与迁移
+- `src/utils/baziUtils.ts` 八字计算与神煞逻辑
+- `src/lib/supabaseClient.ts` 可选 Supabase 客户端
+
+## 说明
+- 当前案例数据默认存储在 `localStorage`，并包含演示种子数据。
+- Supabase 仅在配置了 `VITE_SUPABASE_URL` 与 `VITE_SUPABASE_ANON_KEY` 后启用。
