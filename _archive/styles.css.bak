@@ -1,0 +1,1954 @@
+/* ==========================================
+   随心所欲 - 八字排盘系统样式表
+   ========================================== */
+
+/* CSS 变量 - 设计系统 */
+:root {
+    /* 五行颜色系统 */
+    --wood-color: #4ade80;
+    --wood-bg: rgba(74, 222, 128, 0.15);
+    --fire-color: #f87171;
+    --fire-bg: rgba(248, 113, 113, 0.15);
+    --earth-color: #fbbf24;
+    --earth-bg: rgba(251, 191, 36, 0.15);
+    --metal-color: #e5e7eb;
+    --metal-bg: rgba(229, 231, 235, 0.15);
+    --water-color: #60a5fa;
+    --water-bg: rgba(96, 165, 250, 0.15);
+
+    /* 主题色 */
+    --primary-color: #8b5cf6;
+    --primary-light: #a78bfa;
+    --primary-dark: #7c3aed;
+    --accent-color: #06b6d4;
+
+    /* 背景色 */
+    --bg-primary: #0f0f1a;
+    --bg-secondary: #1a1a2e;
+    --bg-tertiary: #252545;
+    --bg-card: rgba(30, 30, 60, 0.6);
+    --bg-hover: rgba(139, 92, 246, 0.1);
+
+    /* 文字颜色 */
+    --text-primary: #f1f5f9;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+
+    /* 边框 */
+    --border-color: rgba(148, 163, 184, 0.1);
+    --border-active: rgba(139, 92, 246, 0.5);
+
+    /* 阴影 */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.5);
+    --shadow-glow: 0 0 20px rgba(139, 92, 246, 0.3);
+
+    /* 圆角 */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+
+    /* 过渡 */
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.25s ease;
+    --transition-slow: 0.4s ease;
+
+    /* 布局 */
+    --navbar-height: 64px;
+    --sidebar-width: 280px;
+    --footer-height: 48px;
+}
+
+/* 重置样式 */
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* 背景装饰 */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+        radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(6, 182, 212, 0.06) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* ==========================================
+   顶部导航栏
+   ========================================== */
+.navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--navbar-height);
+    background: rgba(15, 15, 26, 0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    z-index: 1000;
+}
+
+.navbar-brand {
+    display: flex;
+    align-items: center;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo-icon {
+    font-size: 28px;
+    animation: rotate 20s linear infinite;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.logo-text {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 22px;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--primary-light), var(--accent-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.navbar-nav {
+    display: flex;
+    gap: 8px;
+}
+
+.nav-link {
+    padding: 8px 20px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+}
+
+.nav-link:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.nav-link.active {
+    color: var(--primary-light);
+    background: rgba(139, 92, 246, 0.15);
+}
+
+.navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* 按钮样式 */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    box-shadow: var(--shadow-md);
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-glow);
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 8px;
+}
+
+.btn-ghost:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.btn-icon {
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 6px;
+    font-size: 16px;
+}
+
+.btn-icon:hover {
+    color: var(--text-primary);
+    transform: scale(1.1);
+}
+
+/* ==========================================
+   主体布局
+   ========================================== */
+.main-container {
+    display: grid;
+    grid-template-columns: var(--sidebar-width) 1fr var(--sidebar-width);
+    gap: 0;
+    min-height: calc(100vh - var(--navbar-height) - var(--footer-height));
+    margin-top: var(--navbar-height);
+    padding-bottom: var(--footer-height);
+}
+
+/* ==========================================
+   左侧栏
+   ========================================== */
+.sidebar-left {
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    padding: 20px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    max-height: calc(100vh - var(--navbar-height) - var(--footer-height));
+}
+
+/* 搜索框 */
+.search-box {
+    position: relative;
+}
+
+.search-input {
+    width: 100%;
+    padding: 12px 16px;
+    padding-right: 40px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all var(--transition-fast);
+}
+
+.search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--border-active);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.search-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 16px;
+    color: var(--text-muted);
+}
+
+/* 案例列表 */
+.case-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+}
+
+.case-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.case-item:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-active);
+    transform: translateX(4px);
+}
+
+.case-item.active {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: var(--primary-color);
+}
+
+.case-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.case-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.case-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.case-gender {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+}
+
+.case-gender.female {
+    background: rgba(248, 113, 113, 0.2);
+    color: var(--fire-color);
+}
+
+.case-gender.male {
+    background: rgba(96, 165, 250, 0.2);
+    color: var(--water-color);
+}
+
+.case-date {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.case-pillars {
+    display: flex;
+    gap: 4px;
+}
+
+.pillar {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+}
+
+/* 五行颜色类 */
+.wood {
+    background: var(--wood-bg);
+    color: var(--wood-color);
+}
+
+.fire {
+    background: var(--fire-bg);
+    color: var(--fire-color);
+}
+
+.earth {
+    background: var(--earth-bg);
+    color: var(--earth-color);
+}
+
+.metal {
+    background: var(--metal-bg);
+    color: var(--metal-color);
+}
+
+.water {
+    background: var(--water-bg);
+    color: var(--water-color);
+}
+
+/* 添加按钮 */
+.btn-add {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: 2px dashed var(--border-color);
+    color: var(--text-muted);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+}
+
+.btn-add:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-light);
+    background: rgba(139, 92, 246, 0.05);
+}
+
+/* ==========================================
+   中间栏 - 八字排盘主区域
+   ========================================== */
+.content-main {
+    padding: 24px 32px;
+    overflow-y: auto;
+    max-height: calc(100vh - var(--navbar-height) - var(--footer-height));
+}
+
+/* 个人信息头部 */
+.profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 20px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    margin-bottom: 24px;
+}
+
+.profile-name {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.gender-tag {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+}
+
+.gender-tag.female {
+    background: rgba(248, 113, 113, 0.2);
+    color: var(--fire-color);
+}
+
+.gender-tag.male {
+    background: rgba(96, 165, 250, 0.2);
+    color: var(--water-color);
+}
+
+.profile-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-item {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.detail-item .label {
+    color: var(--text-muted);
+}
+
+.profile-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* 八字四柱主区域 */
+.bazi-main {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    margin-bottom: 24px;
+}
+
+.bazi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+}
+
+.pillar-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.pillar-column.day-pillar .pillar-label {
+    color: var(--primary-light);
+}
+
+.pillar-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.pillar-box {
+    width: 80px;
+    height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-lg);
+    border: 2px solid transparent;
+    transition: all var(--transition-fast);
+}
+
+.pillar-box.highlight {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-glow);
+}
+
+.pillar-box .character {
+    font-family: 'Noto Serif SC', serif;
+    font-size: 32px;
+    font-weight: 700;
+}
+
+.pillar-box .element-name {
+    font-size: 11px;
+    margin-top: 4px;
+    opacity: 0.8;
+}
+
+.hidden-stems {
+    display: flex;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.hidden-stem {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+}
+
+.shishen {
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 4px 12px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    margin-top: 4px;
+}
+
+/* 五行分析 */
+.wuxing-analysis {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-title::before {
+    content: '';
+    width: 3px;
+    height: 16px;
+    background: var(--primary-color);
+    border-radius: 2px;
+}
+
+.wuxing-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.wuxing-item {
+    display: grid;
+    grid-template-columns: 40px 1fr 50px;
+    align-items: center;
+    gap: 12px;
+}
+
+.wuxing-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: var(--radius-md);
+}
+
+.wuxing-item.wood .wuxing-icon {
+    background: var(--wood-bg);
+    color: var(--wood-color);
+}
+
+.wuxing-item.fire .wuxing-icon {
+    background: var(--fire-bg);
+    color: var(--fire-color);
+}
+
+.wuxing-item.earth .wuxing-icon {
+    background: var(--earth-bg);
+    color: var(--earth-color);
+}
+
+.wuxing-item.metal .wuxing-icon {
+    background: var(--metal-bg);
+    color: var(--metal-color);
+}
+
+.wuxing-item.water .wuxing-icon {
+    background: var(--water-bg);
+    color: var(--water-color);
+}
+
+.wuxing-bar {
+    height: 8px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.bar-fill {
+    height: 100%;
+    border-radius: var(--radius-sm);
+    transition: width var(--transition-slow);
+}
+
+.wuxing-item.wood .bar-fill {
+    background: linear-gradient(90deg, var(--wood-color), var(--wood-bg));
+}
+
+.wuxing-item.fire .bar-fill {
+    background: linear-gradient(90deg, var(--fire-color), var(--fire-bg));
+}
+
+.wuxing-item.earth .bar-fill {
+    background: linear-gradient(90deg, var(--earth-color), var(--earth-bg));
+}
+
+.wuxing-item.metal .bar-fill {
+    background: linear-gradient(90deg, var(--metal-color), var(--metal-bg));
+}
+
+.wuxing-item.water .bar-fill {
+    background: linear-gradient(90deg, var(--water-color), var(--water-bg));
+}
+
+.wuxing-count {
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-align: right;
+}
+
+/* 本命分析 */
+.benming-analysis {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.analysis-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.analysis-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.analysis-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.tag {
+    font-size: 12px;
+    padding: 2px 8px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+}
+
+.element-badge {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+}
+
+.element-badge.wood {
+    background: var(--wood-bg);
+    color: var(--wood-color);
+}
+
+.element-badge.fire {
+    background: var(--fire-bg);
+    color: var(--fire-color);
+}
+
+.element-badge.earth {
+    background: var(--earth-bg);
+    color: var(--earth-color);
+}
+
+.element-badge.metal {
+    background: var(--metal-bg);
+    color: var(--metal-color);
+}
+
+.element-badge.water {
+    background: var(--water-bg);
+    color: var(--water-color);
+}
+
+.btn-reminder {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    padding: 8px;
+    font-size: 18px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.btn-reminder:hover {
+    border-color: var(--primary-color);
+    transform: scale(1.05);
+}
+
+/* 大运流年 */
+.dayun-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+}
+
+.dayun-timeline {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+}
+
+.dayun-item {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 20px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+}
+
+.dayun-item:hover {
+    border-color: var(--border-active);
+    transform: translateY(-2px);
+}
+
+.dayun-item.active {
+    background: rgba(139, 92, 246, 0.15);
+    border-color: var(--primary-color);
+}
+
+.dayun-age {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.dayun-pillars {
+    display: flex;
+    gap: 4px;
+}
+
+.pillar-small {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+}
+
+.dayun-year {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* ==========================================
+   右侧栏
+   ========================================== */
+.sidebar-right {
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border-color);
+    padding: 20px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    max-height: calc(100vh - var(--navbar-height) - var(--footer-height));
+}
+
+/* 卡片通用样式 */
+.summary-card,
+.shenshu-card,
+.liunian-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+}
+
+.card-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* 命盘概要 */
+.summary-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.summary-label {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.summary-value {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+}
+
+.summary-value.earth {
+    background: var(--earth-bg);
+    color: var(--earth-color);
+}
+
+.summary-value.wood {
+    background: var(--wood-bg);
+    color: var(--wood-color);
+}
+
+.summary-value.water {
+    background: var(--water-bg);
+    color: var(--water-color);
+}
+
+.summary-value.highlight {
+    background: rgba(139, 92, 246, 0.2);
+    color: var(--primary-light);
+}
+
+/* 神煞 */
+.shenshu-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.shenshu-tag {
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+}
+
+.shenshu-tag.good {
+    background: var(--wood-bg);
+    color: var(--wood-color);
+}
+
+.shenshu-tag.neutral {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+}
+
+.shenshu-tag.bad {
+    background: var(--fire-bg);
+    color: var(--fire-color);
+}
+
+/* 流年运势 */
+.liunian-info {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.liunian-pillars {
+    display: flex;
+    gap: 4px;
+}
+
+.pillar-medium {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+}
+
+.liunian-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.liunian-rating {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.rating-label {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.rating-stars {
+    display: flex;
+    gap: 2px;
+}
+
+.star {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.star.filled {
+    color: var(--earth-color);
+}
+
+/* 快捷操作 */
+.quick-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.action-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-active);
+    color: var(--text-primary);
+    transform: translateX(4px);
+}
+
+.action-icon {
+    font-size: 18px;
+}
+
+.action-text {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* ==========================================
+   底部状态栏
+   ========================================== */
+.footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--footer-height);
+    background: rgba(15, 15, 26, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    z-index: 1000;
+}
+
+.footer-info {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.footer-links {
+    display: flex;
+    gap: 24px;
+}
+
+.footer-links a {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+.footer-links a:hover {
+    color: var(--text-primary);
+}
+
+/* ==========================================
+   响应式设计
+   ========================================== */
+@media (max-width: 1200px) {
+    .main-container {
+        grid-template-columns: var(--sidebar-width) 1fr;
+    }
+
+    .sidebar-right {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    :root {
+        --sidebar-width: 240px;
+    }
+
+    .navbar-nav {
+        display: none;
+    }
+
+    .bazi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+
+    .pillar-box {
+        width: 70px;
+        height: 70px;
+    }
+
+    .pillar-box .character {
+        font-size: 26px;
+    }
+}
+
+@media (max-width: 640px) {
+    .main-container {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar-left {
+        display: none;
+    }
+
+    .content-main {
+        padding: 16px;
+    }
+
+    .profile-header {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .profile-actions {
+        align-self: flex-end;
+    }
+}
+
+/* ==========================================
+   动画效果
+   ========================================== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.bazi-main,
+.wuxing-analysis,
+.benming-analysis,
+.dayun-section {
+    animation: fadeIn 0.5s ease forwards;
+}
+
+.wuxing-analysis {
+    animation-delay: 0.1s;
+}
+
+.benming-analysis {
+    animation-delay: 0.2s;
+}
+
+.dayun-section {
+    animation-delay: 0.3s;
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* ==========================================
+   Figma精确还原 - 个人信息头部 (node 1285-7)
+   背景: #000000
+   宽度: 1170px (100%)
+   高度: 105px
+   字体: PingFang SC
+   ========================================== */
+
+.figma-profile-header {
+    /* 精确尺寸和背景 */
+    width: 100%;
+    height: 105px;
+    background-color: #000000;
+    /* 布局 */
+    display: flex;
+    align-items: center;
+    padding: 0;
+    margin-bottom: 0;
+    position: relative;
+}
+
+/* 生肖头像区域 */
+.figma-avatar-container {
+    /* 左边距离: 4.45px + 43px padding-left = 约47.45px */
+    padding-left: 47px;
+    padding-right: 13px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.figma-avatar {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.figma-zodiac {
+    font-size: 40px;
+}
+
+/* 案例名称 - 精确还原 */
+.figma-case-name {
+    /* 位置: left 110.45px */
+    /* 字体: PingFang SC Semibold, 30px */
+    /* 颜色: #b2955d (金色) */
+    /* 行高: 34.5px */
+    font-family: 'PingFang SC', 'Noto Sans SC', sans-serif;
+    font-weight: 600;
+    font-size: 30px;
+    line-height: 34.5px;
+    color: #b2955d;
+    text-align: center;
+    white-space: nowrap;
+    min-width: 76.69px;
+}
+
+/* 日期信息区域 */
+.figma-date-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-left: 20px;
+}
+
+.figma-date-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+/* 日期标签 - 阳历:/农历: */
+.figma-date-label {
+    /* 字体: PingFang SC Regular, 14px */
+    /* 颜色: #999999 */
+    font-family: 'PingFang SC', 'Noto Sans SC', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    color: #999999;
+}
+
+/* 日期值 */
+.figma-date-value {
+    /* 字体: PingFang SC Regular, 14px */
+    /* 颜色: #cccccc */
+    font-family: 'PingFang SC', 'Noto Sans SC', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    color: #cccccc;
+}
+
+/* 时间值 */
+.figma-time-value {
+    /* 字体: PingFang SC Regular, 14px */
+    /* 颜色: #cccccc */
+    font-family: 'PingFang SC', 'Noto Sans SC', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 20px;
+    color: #cccccc;
+    margin-left: 8px;
+}
+
+/* 性别图标 */
+.figma-gender {
+    margin-left: 16px;
+}
+
+.figma-gender-icon {
+    font-size: 20px;
+}
+
+.figma-gender-icon.male {
+    /* 男性蓝色 */
+    color: #4a90d9;
+}
+
+.figma-gender-icon.female {
+    /* 女性粉色 */
+    color: #e75a7c;
+}
+
+/* 八字四柱区域 */
+.figma-bazi-pillars {
+    display: flex;
+    gap: 8px;
+    margin-left: 24px;
+}
+
+.figma-pillar-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+/* 天干样式 */
+.figma-tiangan {
+    /* 尺寸: 28x28px */
+    /* 字体: 16px */
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'PingFang SC', 'Noto Sans SC', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    border-radius: 4px;
+}
+
+/* 地支样式 */
+.figma-dizhi {
+    /* 尺寸: 28x28px */
+    /* 字体: 16px */
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'PingFang SC', 'Noto Sans SC', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+    border-radius: 4px;
+}
+
+/* 五行颜色 - Figma精确颜色 */
+.figma-tiangan.wood,
+.figma-dizhi.wood {
+    background-color: rgba(74, 222, 128, 0.2);
+    color: #4ade80;
+}
+
+.figma-tiangan.fire,
+.figma-dizhi.fire {
+    background-color: rgba(248, 113, 113, 0.2);
+    color: #f87171;
+}
+
+.figma-tiangan.earth,
+.figma-dizhi.earth {
+    background-color: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+}
+
+.figma-tiangan.metal,
+.figma-dizhi.metal {
+    background-color: rgba(229, 231, 235, 0.2);
+    color: #e5e7eb;
+}
+
+.figma-tiangan.water,
+.figma-dizhi.water {
+    background-color: rgba(96, 165, 250, 0.2);
+    color: #60a5fa;
+}
+
+/* 起运信息 */
+.figma-qiyun-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 24px;
+}
+
+.figma-qiyun-icon {
+    /* 三角形图标 */
+    font-size: 12px;
+    color: #b2955d;
+}
+
+.figma-qiyun-text {
+    /* 字体: PingFang SC Regular, 14px */
+    /* 颜色: #999999 */
+    font-family: 'PingFang SC', 'Noto Sans SC', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    color: #999999;
+}
+
+.figma-qiyun-value {
+    /* 字体: PingFang SC Regular, 14px */
+    /* 颜色: #cccccc */
+    font-family: 'PingFang SC', 'Noto Sans SC', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    color: #cccccc;
+}
+
+/* 操作按钮 */
+.figma-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+    padding-right: 16px;
+}
+
+.figma-action-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.figma-action-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.figma-action-icon {
+    font-size: 18px;
+}
+
+/* ==========================================
+   Figma精确还原 - 白色主题排盘系统
+   ========================================== */
+
+/* 主布局容器 */
+.figma-main {
+    display: flex;
+    gap: 0;
+    padding: 0;
+    background: #f5f5f5;
+    height: calc(100vh - var(--navbar-height) - var(--footer-height));
+}
+
+.figma-content {
+    flex: 1;
+    background: #f0f0f0;
+    padding: 0;
+    overflow-y: auto;
+}
+
+/* 顶部头部 - 黄色边框区域 */
+.figma-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+    background: linear-gradient(180deg, #fdf8e8 0%, #fef9ec 100%);
+    border: 1px solid #e8d9a0;
+    border-radius: 10px;
+    margin: 12px;
+}
+
+.figma-avatar-wrap {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border-radius: 50%;
+    border: 2px solid #d4a853;
+}
+
+.figma-zodiac-icon {
+    font-size: 30px;
+}
+
+.figma-name {
+    font-family: 'PingFang SC', 'Noto Sans SC', sans-serif;
+    font-weight: 600;
+    font-size: 24px;
+    color: #b2955d;
+}
+
+.figma-dates {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.figma-date-line {
+    font-size: 14px;
+    color: #333;
+}
+
+.figma-label {
+    color: #666;
+    margin-right: 4px;
+}
+
+.figma-value {
+    color: #333;
+}
+
+.figma-tag.kunzao {
+    color: #e75a7c;
+    font-weight: 500;
+}
+
+.figma-edit-btn {
+    padding: 8px 24px;
+    background: #fff;
+    border: 1px solid #d4a853;
+    border-radius: 6px;
+    color: #b2955d;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.figma-edit-btn:hover {
+    background: #d4a853;
+    color: #fff;
+}
+
+/* 两栏内容网格 */
+.figma-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 0 12px 12px;
+}
+
+/* 左侧排盘表格 */
+.figma-pan-table {
+    background: #fff;
+    border: 1px solid #f0f0f0;
+    border-radius: 10px;
+    padding: 16px;
+}
+
+.pan-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.pan-table th,
+.pan-table td {
+    padding: 10px 8px;
+    text-align: center;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
+    color: #333;
+}
+
+.pan-table th {
+    font-weight: 600;
+    color: #333;
+    background: #fafafa;
+}
+
+.pan-label-col,
+.pan-label {
+    color: #666;
+    font-weight: 500;
+    text-align: left;
+    width: 50px;
+}
+
+/* 天干地支盒子 - 无背景版 */
+.gan-box,
+.zhi-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+    font-weight: 700;
+    background: transparent;
+}
+
+.gan-box.wood,
+.zhi-box.wood {
+    color: #2e7d32;
+}
+
+.gan-box.fire,
+.zhi-box.fire {
+    color: #c62828;
+}
+
+.gan-box.earth,
+.zhi-box.earth {
+    color: #d4a853;
+}
+
+.gan-box.metal,
+.zhi-box.metal {
+    color: #455a64;
+}
+
+.gan-box.water,
+.zhi-box.water {
+    color: #1565c0;
+}
+
+/* 藏干行 - 居中对齐 */
+.pan-row-canggan td {
+    font-size: 12px;
+    line-height: 1.8;
+    text-align: center;
+    vertical-align: top;
+    padding: 8px 4px;
+}
+
+.cg {
+    font-weight: 700;
+    font-size: 14px;
+    margin-right: 2px;
+    background: transparent;
+}
+
+.cg.wood {
+    color: #2e7d32;
+}
+
+.cg.fire {
+    color: #c62828;
+}
+
+.cg.earth {
+    color: #d4a853;
+}
+
+.cg.metal {
+    color: #455a64;
+}
+
+.cg.water {
+    color: #1565c0;
+}
+
+.ss {
+    color: #666;
+    font-size: 11px;
+}
+
+/* 神煞区域 - 对齐表格列 */
+.pan-shenshu {
+    display: grid;
+    grid-template-columns: 50px repeat(6, 1fr);
+    gap: 0;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #f0f0f0;
+    align-items: start;
+}
+
+.shenshu-label {
+    color: #666;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 0 8px;
+}
+
+.shenshu-grid {
+    display: contents;
+}
+
+.shenshu-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    text-align: center;
+    padding: 0 4px;
+}
+
+.shenshu-col span {
+    font-size: 12px;
+    color: #333;
+}
+
+/* 右侧面板 */
+.figma-right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* 起运信息 */
+.dayun-info {
+    display: flex;
+    gap: 20px;
+    padding: 8px 12px;
+    background: #fff;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #666;
+}
+
+.dayun-info .right {
+    margin-left: auto;
+}
+
+/* 大运流年表格 - 增强可读性 */
+.dayun-table,
+.liunian-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.dayun-table th,
+.dayun-table td,
+.liunian-table th,
+.liunian-table td {
+    padding: 8px 6px;
+    text-align: center;
+    border: 1px solid #f0f0f0;
+    color: #333;
+}
+
+.dayun-table th,
+.liunian-table th {
+    background: #fafafa;
+    font-weight: 600;
+    color: #333;
+}
+
+.dayun-table th.active,
+.dayun-table td.active,
+.liunian-table th.active,
+.liunian-table td.active {
+    background: rgba(178, 149, 93, 0.15);
+    color: #b2955d;
+    font-weight: 600;
+}
+
+.row-label {
+    color: #666;
+    text-align: left;
+    font-weight: 500;
+}
+
+/* 迷你天干地支 */
+.gm,
+.zm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.gm.wood,
+.zm.wood {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.gm.fire,
+.zm.fire {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.gm.earth,
+.zm.earth {
+    background: #fff8e1;
+    color: #f57f17;
+}
+
+.gm.metal,
+.zm.metal {
+    background: #eceff1;
+    color: #455a64;
+}
+
+.gm.water,
+.zm.water {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+/* 小运和节气行 */
+.xiaoyun-row td,
+.jieqi-row td {
+    font-size: 11px;
+    color: #999;
+}
+
+.jieqi-row td {
+    line-height: 1.4;
+}
+
+/* 五行旺衰 - 隐藏，移入智能四柱图示内 */
+.wuxing-bar {
+    display: none;
+}
+
+.ws {
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.ws.tuwang {
+    background: #fbf0dc;
+    color: #d4a853;
+}
+
+.ws.jinxiang {
+    background: #eceff1;
+    color: #607d8b;
+}
+
+.ws.huoxiu {
+    background: #ffebee;
+    color: #e57373;
+}
+
+.ws.muqiu {
+    background: #e8f5e9;
+    color: #81c784;
+}
+
+.ws.shuisi {
+    background: #e3f2fd;
+    color: #64b5f6;
+}
+
+/* 智能四柱图示 */
+.sizhu-section {
+    background: #fff;
+    border: 1px solid #dfdfdf;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.sizhu-title {
+    text-align: center;
+    padding: 16px;
+    font-size: 17px;
+    font-weight: 600;
+    color: #101010;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.sizhu-content {
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sizhu-placeholder {
+    color: #ccc;
+    font-size: 14px;
+}
+
+.sizhu-footer {
+    display: flex;
+    justify-content: center;
+    padding: 12px;
+    border-top: 1px solid #e5e5e5;
+}
+
+.sizhu-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: #f5f5f5;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.sizhu-btn:hover {
+    background: #e0e0e0;
+}
+
+/* 左侧栏白色主题适配 */
+.figma-main .sidebar-left {
+    background: #fff;
+    border-right: 1px solid #e0e0e0;
+}
+
+.figma-main .search-input {
+    background: #f5f5f5;
+    border: 1px solid #e0e0e0;
+    color: #333;
+}
+
+.figma-main .case-item {
+    background: #fafafa;
+    border: 1px solid #e0e0e0;
+}
+
+.figma-main .case-item.active {
+    border-color: #d4a853;
+    background: #fef9ec;
+}
+
+.figma-main .case-name {
+    color: #333;
+}
+
+.figma-main .case-date {
+    color: #666;
+}
