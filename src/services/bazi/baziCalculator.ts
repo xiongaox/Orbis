@@ -172,6 +172,13 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
                 const endAge = getSafeResult(() => dayun.getEndAge()) || 0;
                 const xunKong = getSafeResult(() => dayun.getXunKong ? dayun.getXunKong() : '');
 
+                const tiangan = ganZhi ? ganZhi[0] : '';
+                const dizhi = ganZhi && ganZhi.length > 1 ? ganZhi[1] : '';
+
+                // 计算十二长生
+                const diShi = CHANG_SHENG_MAP[dayGan]?.[dizhi] || '';  // 星运
+                const ziZuo = CHANG_SHENG_MAP[tiangan]?.[dizhi] || ''; // 自坐
+
                 dayunList.push({
                     index,
                     startYear,
@@ -179,8 +186,10 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
                     startAge,
                     endAge,
                     ganZhi: ganZhi || '',
-                    tiangan: ganZhi ? ganZhi[0] : '',
-                    dizhi: ganZhi && ganZhi.length > 1 ? ganZhi[1] : '',
+                    tiangan,
+                    dizhi,
+                    diShi,
+                    ziZuo,
                     xunKong,
                 });
             } catch (e) {
@@ -247,6 +256,10 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
             nextGanZhi = nextGan + nextZhi;
         }
 
+        // 计算十二长生
+        const diShi = CHANG_SHENG_MAP[dayGan]?.[nextZhi] || '';
+        const ziZuo = CHANG_SHENG_MAP[nextGan]?.[nextZhi] || '';
+
         dayunList.push({
             index: last.index + 1,
             startYear: last.endYear + 1,
@@ -256,6 +269,8 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
             ganZhi: nextGanZhi,
             tiangan: nextGan,
             dizhi: nextZhi,
+            diShi,
+            ziZuo,
             xunKong: '',
         });
     }
@@ -304,6 +319,10 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
             const tiangan = ganZhi ? ganZhi[0] : '';
             const dizhi = ganZhi && ganZhi.length > 1 ? ganZhi[1] : '';
 
+            // 计算十二长生
+            const diShi = CHANG_SHENG_MAP[dayGan]?.[dizhi] || '';  // 星运：日主在该地支的长生
+            const ziZuo = CHANG_SHENG_MAP[tiangan]?.[dizhi] || ''; // 自坐：天干在自己地支的长生
+
             // 为该年生成流月 (Flowing Months)
 
             allLiuNian.push({
@@ -312,6 +331,8 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
                 ganZhi,
                 tiangan,
                 dizhi,
+                diShi,
+                ziZuo,
                 dayunIndex: dy.index,
                 liuYue: []
             });

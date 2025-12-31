@@ -1,5 +1,44 @@
-import type { PillarData, BaziApiResponse } from '../../../types/bazi';
-import { getElementColor } from '../../../utils/metaphysics';
+import { useMemo } from 'react';
+import type { PillarData, BaziApiResponse, HiddenStem } from '../../../types/bazi';
+import {
+  getElement,
+  getElementColor,
+  getXunKong,
+  SHI_SHEN_MAP,
+  ZANG_GAN_MAP,
+  NA_YIN_MAP,
+  CHANG_SHENG_MAP
+} from '../../../utils/metaphysics';
+
+/**
+ * 动态计算柱的详细信息
+ * 对于大运/流年：自坐使用日干查地支
+ */
+function computePillarDetails(ganZhi: string, dayGan: string) {
+  if (!ganZhi || ganZhi.length < 2) {
+    return { tianganShiShen: '', zanggan: [], diShi: '', ziZuo: '', kongWang: '', naYin: '' };
+  }
+
+  const tiangan = ganZhi[0];
+  const dizhi = ganZhi[1];
+
+  const tianganShiShen = SHI_SHEN_MAP[dayGan]?.[tiangan] || '';
+
+  const hideGans = ZANG_GAN_MAP[dizhi] || [];
+  const zanggan: HiddenStem[] = hideGans.map(gan => ({
+    gan,
+    shiShen: SHI_SHEN_MAP[dayGan]?.[gan] || '',
+    element: getElement(gan)
+  }));
+
+  const diShi = CHANG_SHENG_MAP[dayGan]?.[dizhi] || '';
+  // 自坐：用该柱天干查该柱地支的十二长生
+  const ziZuo = CHANG_SHENG_MAP[tiangan]?.[dizhi] || '';
+  const naYin = NA_YIN_MAP[ganZhi] || '';
+  const kongWang = getXunKong(ganZhi);
+
+  return { tianganShiShen, zanggan, diShi, ziZuo, kongWang, naYin };
+}
 
 interface DetailedPillarCardProps {
   pillar: PillarData;
@@ -68,6 +107,7 @@ interface YunPillarProps {
   zhuxing?: string;
   zanggan?: { gan: string; shiShen: string; element: string }[];
   xingyun?: string;
+  zizuo?: string;
   kongwang?: string;
   nayin?: string;
   isAccent?: boolean;
@@ -80,32 +120,31 @@ function YunPillar({
   zhuxing = '',
   zanggan = [],
   xingyun = '',
+  zizuo = '',
   kongwang = '',
   nayin = '',
   isAccent = false,
 }: YunPillarProps) {
-  const textColorClass = isAccent ? 'text-accent' : 'text-foreground';
-
   return (
-    <div className="flex-1 border-r border-border last:border-r-0">
+    <div className={`flex-1 border-r border-border last:border-r-0 ${isAccent ? 'bg-accent/5' : ''}`}>
       <div className="h-8 flex items-center justify-center border-b border-border bg-secondary/30">
-        <span className="text-xs text-muted-foreground">{label}</span>
+        <span className={`text-xs ${isAccent ? 'text-accent' : 'text-muted-foreground'}`}>{label}</span>
       </div>
       <div className="h-10 flex items-center justify-center border-b border-border">
         <span className="text-sm text-foreground">{zhuxing}</span>
       </div>
       <div className="h-14 flex items-center justify-center border-b border-border">
         <span
-          className={`text-3xl font-display ${isAccent ? textColorClass : ''}`}
-          style={{ color: isAccent ? undefined : getElementColor(tiangan) }}
+          className="text-3xl font-display font-semibold"
+          style={{ color: getElementColor(tiangan) }}
         >
           {tiangan}
         </span>
       </div>
       <div className="h-14 flex items-center justify-center border-b border-border">
         <span
-          className={`text-3xl font-display ${isAccent ? textColorClass : ''}`}
-          style={{ color: isAccent ? undefined : getElementColor(dizhi) }}
+          className="text-3xl font-display font-semibold"
+          style={{ color: getElementColor(dizhi) }}
         >
           {dizhi}
         </span>
@@ -127,7 +166,7 @@ function YunPillar({
         <span className="text-sm text-foreground">{xingyun}</span>
       </div>
       <div className="h-10 flex items-center justify-center border-b border-border">
-        <span className="text-sm text-foreground">{xingyun}</span>
+        <span className="text-sm text-foreground">{zizuo}</span>
       </div>
       <div className="h-10 flex items-center justify-center border-b border-border">
         <span className="text-sm text-muted-foreground">{kongwang}</span>
@@ -174,6 +213,12 @@ export default function BaziChart({
 
   const { pillars, daYun } = data;
 
+  // 获取日主天干
+  const dayGan = pillars[2]?.tiangan || '';
+
+  // 是否显示大运/流年列（当右侧有选中时才显示）
+  const showDaYunLiuNian = selectedDaYunIndex !== null || selectedLiuNianYear !== null;
+
   // 确定当前显示的大运：优先使用选中的，否则根据当前年份自动确定
   const activeDaYunIndex = selectedDaYunIndex ?? daYun.find(dy =>
     currentYear >= dy.startYear && currentYear <= dy.endYear
@@ -182,9 +227,20 @@ export default function BaziChart({
   // 确定当前显示的流年：优先使用选中的，否则使用当前年份
   const activeLiuNianYear = selectedLiuNianYear ?? currentYear;
 
-  // 获取当前流年和大运
-  const currentLiuNian = data.liuNian.find(ln => ln.year === activeLiuNianYear);
-  const currentDaYun = daYun.find(dy => dy.index === activeDaYunIndex);
+  // 获取当前流年和大运（仅在需要显示时计算）
+  const currentLiuNian = showDaYunLiuNian ? data.liuNian.find(ln => ln.year === activeLiuNianYear) : null;
+  const currentDaYun = showDaYunLiuNian ? daYun.find(dy => dy.index === activeDaYunIndex) : null;
+
+  // 动态计算流年和大运的详细信息
+  const liuNianDetails = useMemo(() => {
+    if (!currentLiuNian?.ganZhi) return null;
+    return computePillarDetails(currentLiuNian.ganZhi, dayGan);
+  }, [currentLiuNian?.ganZhi, dayGan]);
+
+  const daYunDetails = useMemo(() => {
+    if (!currentDaYun?.ganZhi) return null;
+    return computePillarDetails(currentDaYun.ganZhi, dayGan);
+  }, [currentDaYun?.ganZhi, dayGan]);
 
   return (
     <div className="min-h-0 min-w-0 overflow-y-auto">
@@ -223,31 +279,33 @@ export default function BaziChart({
           </div>
 
           {/* 流年柱 */}
-          {currentLiuNian && (
+          {currentLiuNian && liuNianDetails && (
             <YunPillar
               label="流年"
               tiangan={currentLiuNian.tiangan}
               dizhi={currentLiuNian.dizhi}
-              zhuxing={data.currentLiuNian?.tianganShiShen || ''}
-              zanggan={data.currentLiuNian?.zanggan || []}
-              xingyun={data.currentLiuNian?.diShi || ''}
-              kongwang={data.currentLiuNian?.kongWang || ''}
-              nayin={data.currentLiuNian?.naYin || ''}
+              zhuxing={liuNianDetails.tianganShiShen}
+              zanggan={liuNianDetails.zanggan}
+              xingyun={liuNianDetails.diShi}
+              zizuo={liuNianDetails.ziZuo}
+              kongwang={liuNianDetails.kongWang}
+              nayin={liuNianDetails.naYin}
               isAccent={true}
             />
           )}
 
           {/* 大运柱 */}
-          {currentDaYun && currentDaYun.index > 0 && (
+          {currentDaYun && currentDaYun.index > 0 && daYunDetails && (
             <YunPillar
               label="大运"
               tiangan={currentDaYun.tiangan}
               dizhi={currentDaYun.dizhi}
-              zhuxing={data.currentDaYun?.tianganShiShen || ''}
-              zanggan={data.currentDaYun?.zanggan || []}
-              xingyun={data.currentDaYun?.diShi || ''}
-              kongwang={data.currentDaYun?.kongWang || ''}
-              nayin={data.currentDaYun?.naYin || ''}
+              zhuxing={daYunDetails.tianganShiShen}
+              zanggan={daYunDetails.zanggan}
+              xingyun={daYunDetails.diShi}
+              zizuo={daYunDetails.ziZuo}
+              kongwang={daYunDetails.kongWang}
+              nayin={daYunDetails.naYin}
               isAccent={true}
             />
           )}

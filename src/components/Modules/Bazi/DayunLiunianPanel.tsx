@@ -1,71 +1,6 @@
 import { useState, useMemo } from 'react';
-import { getElementColor, ELEMENT_META as elementMeta } from '../../../utils/metaphysics';
+import { getElementColor, getShiShenAbbr } from '../../../utils/metaphysics';
 import type { BaziApiResponse } from '../../../types/bazi';
-
-const generates: Record<string, string> = {
-  wood: 'fire',
-  fire: 'earth',
-  earth: 'metal',
-  metal: 'water',
-  water: 'wood',
-};
-
-const controls: Record<string, string> = {
-  wood: 'earth',
-  earth: 'water',
-  water: 'fire',
-  fire: 'metal',
-  metal: 'wood',
-};
-
-const inverseMap = (map: Record<string, string>) =>
-  Object.entries(map).reduce<Record<string, string>>((acc, [key, value]) => {
-    acc[value] = key;
-    return acc;
-  }, {});
-
-const generatedBy = inverseMap(generates);
-const controlledBy = inverseMap(controls);
-
-const toTenGod = (dayMaster: string, target: string) => {
-  const day = elementMeta[dayMaster];
-  const meta = elementMeta[target];
-  if (!day || !meta) return '';
-
-  const samePolarity = day.polarity === meta.polarity;
-  if (meta.element === day.element) {
-    return samePolarity ? '比肩' : '劫财';
-  }
-  if (meta.element === generates[day.element]) {
-    return samePolarity ? '食神' : '伤官';
-  }
-  if (meta.element === controls[day.element]) {
-    return samePolarity ? '偏财' : '正财';
-  }
-  if (meta.element === generatedBy[day.element]) {
-    return samePolarity ? '偏印' : '正印';
-  }
-  if (meta.element === controlledBy[day.element]) {
-    return samePolarity ? '七杀' : '正官';
-  }
-  return '';
-};
-
-const tenGodAbbr: Record<string, string> = {
-  比肩: '比',
-  劫财: '劫',
-  食神: '食',
-  伤官: '伤',
-  正财: '财',
-  偏财: '才',
-  正印: '印',
-  偏印: '枭',
-  正官: '官',
-  七杀: '杀',
-};
-
-const toTenGodAbbr = (dayMaster: string, target: string) =>
-  tenGodAbbr[toTenGod(dayMaster, target)] ?? '';
 
 interface DayunLiunianPanelProps {
   data: BaziApiResponse | null;
@@ -262,7 +197,7 @@ export default function DayunLiunianPanel({
                               {item.tiangan}
                             </span>
                             <span className="text-base text-muted-foreground leading-none">
-                              {toTenGodAbbr(dayMaster, item.tiangan)}
+                              {getShiShenAbbr(dayMaster, item.tiangan)}
                             </span>
                           </div>
                           <div className="flex items-baseline justify-center gap-x-1">
@@ -273,7 +208,7 @@ export default function DayunLiunianPanel({
                               {item.dizhi}
                             </span>
                             <span className="text-base text-muted-foreground leading-none">
-                              {toTenGodAbbr(dayMaster, item.dizhi)}
+                              {getShiShenAbbr(dayMaster, item.dizhi)}
                             </span>
                           </div>
                         </div>
@@ -325,7 +260,7 @@ export default function DayunLiunianPanel({
                               {item.tiangan}
                             </span>
                             <span className="text-base text-muted-foreground leading-none">
-                              {toTenGodAbbr(dayMaster, item.tiangan)}
+                              {getShiShenAbbr(dayMaster, item.tiangan)}
                             </span>
                           </div>
                           <div className="flex items-baseline justify-center gap-x-1">
@@ -336,7 +271,7 @@ export default function DayunLiunianPanel({
                               {item.dizhi}
                             </span>
                             <span className="text-base text-muted-foreground leading-none">
-                              {toTenGodAbbr(dayMaster, item.dizhi)}
+                              {getShiShenAbbr(dayMaster, item.dizhi)}
                             </span>
                           </div>
                         </div>
@@ -384,7 +319,7 @@ export default function DayunLiunianPanel({
                               {item.tiangan || '-'}
                             </span>
                             <span className="text-base text-muted-foreground leading-none">
-                              {item.tiangan ? toTenGodAbbr(dayMaster, item.tiangan) : ''}
+                              {item.tiangan ? getShiShenAbbr(dayMaster, item.tiangan) : ''}
                             </span>
                           </div>
                           <div className="flex items-baseline justify-center gap-x-1">
@@ -395,7 +330,7 @@ export default function DayunLiunianPanel({
                               {item.dizhi || '-'}
                             </span>
                             <span className="text-base text-muted-foreground leading-none">
-                              {item.dizhi ? toTenGodAbbr(dayMaster, item.dizhi) : ''}
+                              {item.dizhi ? getShiShenAbbr(dayMaster, item.dizhi) : ''}
                             </span>
                           </div>
                         </div>

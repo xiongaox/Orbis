@@ -46,6 +46,8 @@ export interface DaYunPeriod {
     ganZhi: string;      // 干支
     tiangan: string;     // 天干
     dizhi: string;       // 地支
+    diShi?: string;      // 十二长生（星运）
+    ziZuo?: string;      // 自坐
     xunKong?: string;    // 空亡
 }
 
@@ -65,6 +67,8 @@ export interface LiuNian {
     ganZhi: string;
     tiangan: string;
     dizhi: string;
+    diShi?: string;       // 十二长生（星运）
+    ziZuo?: string;       // 自坐
     dayunIndex?: number;  // 所属大运索引
     liuYue?: LiuYue[];    // 流月列表
 }
