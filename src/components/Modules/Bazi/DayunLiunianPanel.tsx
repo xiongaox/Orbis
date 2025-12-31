@@ -1,30 +1,6 @@
 import { useState, useMemo } from 'react';
-import type { BaziApiResponse } from '../../types/bazi';
-
-const elementMeta: Record<string, { element: string; polarity: 'yang' | 'yin' }> = {
-  甲: { element: 'wood', polarity: 'yang' },
-  乙: { element: 'wood', polarity: 'yin' },
-  丙: { element: 'fire', polarity: 'yang' },
-  丁: { element: 'fire', polarity: 'yin' },
-  戊: { element: 'earth', polarity: 'yang' },
-  己: { element: 'earth', polarity: 'yin' },
-  庚: { element: 'metal', polarity: 'yang' },
-  辛: { element: 'metal', polarity: 'yin' },
-  壬: { element: 'water', polarity: 'yang' },
-  癸: { element: 'water', polarity: 'yin' },
-  子: { element: 'water', polarity: 'yang' },
-  丑: { element: 'earth', polarity: 'yin' },
-  寅: { element: 'wood', polarity: 'yang' },
-  卯: { element: 'wood', polarity: 'yin' },
-  辰: { element: 'earth', polarity: 'yang' },
-  巳: { element: 'fire', polarity: 'yin' },
-  午: { element: 'fire', polarity: 'yang' },
-  未: { element: 'earth', polarity: 'yin' },
-  申: { element: 'metal', polarity: 'yang' },
-  酉: { element: 'metal', polarity: 'yin' },
-  戌: { element: 'earth', polarity: 'yang' },
-  亥: { element: 'water', polarity: 'yin' },
-};
+import { getElementColor, ELEMENT_META as elementMeta } from '../../../utils/metaphysics';
+import type { BaziApiResponse } from '../../../types/bazi';
 
 const generates: Record<string, string> = {
   wood: 'fire',
@@ -127,9 +103,10 @@ export default function DayunLiunianPanel({
   // 获取日主（日柱天干）
   const dayMaster = pillars[2]?.tiangan || '丙';
 
-  // 过滤大运（排除 index=0 的出生年）但保留足够数量
+  // 过滤大运：现在我们利用 index=0（或我们手动插入的 index=-1）作为小运/起运前
+  // 所以不再过滤 index 0，直接使用全部大运数据，但只保留前10柱以保持界面整洁
   const displayDaYun = useMemo(() => {
-    return daYun.filter(dy => dy.index > 0);
+    return daYun.slice(0, 10);
   }, [daYun]);
 
   // 根据当前时间自动确定当前大运
@@ -212,11 +189,24 @@ export default function DayunLiunianPanel({
     } else {
       setInternalDaYunIndex(newIndex);
     }
-    // 切换大运时重置流年选择
-    if (onSelectLiuNian) {
-      onSelectLiuNian(null);
+
+    // 切换大运时，自动选中该大运的第一年
+    if (newIndex !== null) {
+      const targetDaYun = daYun.find(d => d.index === newIndex);
+      if (targetDaYun) {
+        if (onSelectLiuNian) {
+          onSelectLiuNian(targetDaYun.startYear);
+        } else {
+          setInternalLiuNianYear(targetDaYun.startYear);
+        }
+      }
     } else {
-      setInternalLiuNianYear(null);
+      // 取消选择大运时，重置流年（通常回退到当前年）
+      if (onSelectLiuNian) {
+        onSelectLiuNian(null);
+      } else {
+        setInternalLiuNianYear(null);
+      }
     }
   };
 
@@ -265,7 +255,10 @@ export default function DayunLiunianPanel({
                         </div>
                         <div className="mt-3 space-y-1">
                           <div className="flex items-baseline justify-center gap-x-1">
-                            <span className="font-display text-lg text-foreground leading-none">
+                            <span
+                              className="font-display text-lg text-foreground leading-none"
+                              style={{ color: getElementColor(item.tiangan) }}
+                            >
                               {item.tiangan}
                             </span>
                             <span className="text-base text-muted-foreground leading-none">
@@ -273,7 +266,10 @@ export default function DayunLiunianPanel({
                             </span>
                           </div>
                           <div className="flex items-baseline justify-center gap-x-1">
-                            <span className="font-display text-lg text-foreground leading-none">
+                            <span
+                              className="font-display text-lg text-foreground leading-none"
+                              style={{ color: getElementColor(item.dizhi) }}
+                            >
                               {item.dizhi}
                             </span>
                             <span className="text-base text-muted-foreground leading-none">
@@ -322,7 +318,10 @@ export default function DayunLiunianPanel({
                         <div className="text-sm text-foreground leading-snug">{item.year}</div>
                         <div className="mt-2 space-y-1">
                           <div className="flex items-baseline justify-center gap-x-1">
-                            <span className="font-display text-lg text-foreground leading-none">
+                            <span
+                              className="font-display text-lg text-foreground leading-none"
+                              style={{ color: getElementColor(item.tiangan) }}
+                            >
                               {item.tiangan}
                             </span>
                             <span className="text-base text-muted-foreground leading-none">
@@ -330,7 +329,10 @@ export default function DayunLiunianPanel({
                             </span>
                           </div>
                           <div className="flex items-baseline justify-center gap-x-1">
-                            <span className="font-display text-lg text-foreground leading-none">
+                            <span
+                              className="font-display text-lg text-foreground leading-none"
+                              style={{ color: getElementColor(item.dizhi) }}
+                            >
                               {item.dizhi}
                             </span>
                             <span className="text-base text-muted-foreground leading-none">
@@ -375,7 +377,10 @@ export default function DayunLiunianPanel({
                         </div>
                         <div className="mt-2 space-y-1">
                           <div className="flex items-baseline justify-center gap-x-1">
-                            <span className="font-display text-lg text-foreground leading-none">
+                            <span
+                              className="font-display text-lg text-foreground leading-none"
+                              style={{ color: item.tiangan ? getElementColor(item.tiangan) : 'inherit' }}
+                            >
                               {item.tiangan || '-'}
                             </span>
                             <span className="text-base text-muted-foreground leading-none">
@@ -383,7 +388,10 @@ export default function DayunLiunianPanel({
                             </span>
                           </div>
                           <div className="flex items-baseline justify-center gap-x-1">
-                            <span className="font-display text-lg text-foreground leading-none">
+                            <span
+                              className="font-display text-lg text-foreground leading-none"
+                              style={{ color: item.dizhi ? getElementColor(item.dizhi) : 'inherit' }}
+                            >
                               {item.dizhi || '-'}
                             </span>
                             <span className="text-base text-muted-foreground leading-none">

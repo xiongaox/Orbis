@@ -1,6 +1,6 @@
 import { Copy, Edit2, Share2 } from 'lucide-react';
-import type { Case } from '../../types';
-import type { BaziApiResponse } from '../../types/bazi';
+import type { Case } from '../../../types';
+import type { BaziApiResponse } from '../../../types/bazi';
 
 interface BaziCaseInfoProps {
   caseData: Case | null;

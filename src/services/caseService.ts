@@ -1,5 +1,5 @@
 import type { Case } from '../types';
-import { calculateBazi } from '../utils/baziUtils';
+import { calculateBazi } from './bazi/caseHelper';
 
 const STORAGE_KEY = 'reticle_cases';
 

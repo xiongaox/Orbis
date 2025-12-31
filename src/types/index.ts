@@ -38,3 +38,16 @@ export interface Case extends BaziChartData {
     lunar_date?: string;
     zodiac?: string; // Animal sign
 }
+
+// 排盘类型
+export type ChartType =
+    | 'bazi'
+    | 'qimen'
+    | 'liuyao'
+    | 'ziwei'
+    | 'daliuren'
+    | 'xiaoliuren'
+    | 'meihua'
+    | 'wannianli'
+    | 'sanyuan';
+

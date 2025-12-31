@@ -105,3 +105,100 @@ body {
 .auto-hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Modal 组件样式 */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.modal-title {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin-bottom: 1.5rem;
+}
+
+.modal-field {
+  margin-bottom: 1rem;
+}
+
+.modal-label {
+  display: block;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 0.5rem;
+}
+
+.modal-input,
+.modal-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: hsl(var(--secondary));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.5rem;
+  color: hsl(var(--foreground));
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.modal-input:focus,
+.modal-select:focus {
+  border-color: hsl(var(--primary));
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.modal-btn {
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--secondary));
+  color: hsl(var(--foreground));
+}
+
+.modal-btn:hover {
+  background: hsl(var(--secondary) / 0.8);
+}
+
+.modal-btn.primary {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: transparent;
+}
+
+.modal-btn.primary:hover {
+  opacity: 0.9;
+}
+
+.modal-btn.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

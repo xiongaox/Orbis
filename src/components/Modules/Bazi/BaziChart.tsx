@@ -1,12 +1,5 @@
-import type { PillarData, BaziApiResponse } from '../../types/bazi';
-
-const elementColors: Record<string, string> = {
-  wood: 'text-[#22c55e]',
-  fire: 'text-[#ef4444]',
-  earth: 'text-[#f59e0b]',
-  metal: 'text-[#e5e7eb]',
-  water: 'text-[#3b82f6]',
-};
+import type { PillarData, BaziApiResponse } from '../../../types/bazi';
+import { getElementColor } from '../../../utils/metaphysics';
 
 interface DetailedPillarCardProps {
   pillar: PillarData;
@@ -23,19 +16,30 @@ function DetailedPillarCard({ pillar, isDayMaster = false }: DetailedPillarCardP
         <span className="text-sm text-foreground">{pillar.tianganShiShen || '日主'}</span>
       </div>
       <div className="h-14 flex items-center justify-center border-b border-border">
-        <span className={`text-3xl font-display font-semibold ${elementColors[pillar.tianganElement] || ''}`}>
+        <span
+          className="text-3xl font-display font-semibold"
+          style={{ color: getElementColor(pillar.tiangan) }}
+        >
           {pillar.tiangan}
         </span>
       </div>
       <div className="h-14 flex items-center justify-center border-b border-border">
-        <span className={`text-3xl font-display font-semibold ${elementColors[pillar.dizhiElement] || ''}`}>
+        <span
+          className="text-3xl font-display font-semibold"
+          style={{ color: getElementColor(pillar.dizhi) }}
+        >
           {pillar.dizhi}
         </span>
       </div>
       <div className="min-h-[90px] p-2 border-b border-border flex flex-col justify-start gap-1">
         {pillar.zanggan.map((item, index) => (
           <div key={`${item.gan}-${index}`} className="flex items-center justify-center gap-1 text-sm">
-            <span className={`font-medium ${elementColors[item.element] || ''}`}>{item.gan}</span>
+            <span
+              className="font-medium"
+              style={{ color: getElementColor(item.gan) }}
+            >
+              {item.gan}
+            </span>
             <span className="text-muted-foreground">{item.shiShen}</span>
           </div>
         ))}
@@ -44,7 +48,7 @@ function DetailedPillarCard({ pillar, isDayMaster = false }: DetailedPillarCardP
         <span className="text-sm text-foreground">{pillar.diShi}</span>
       </div>
       <div className="h-10 flex items-center justify-center border-b border-border">
-        <span className="text-sm text-foreground">{pillar.diShi}</span>
+        <span className="text-sm text-foreground">{pillar.ziZuo}</span>
       </div>
       <div className="h-10 flex items-center justify-center border-b border-border">
         <span className="text-sm text-muted-foreground">{pillar.kongWang}</span>
@@ -91,15 +95,30 @@ function YunPillar({
         <span className="text-sm text-foreground">{zhuxing}</span>
       </div>
       <div className="h-14 flex items-center justify-center border-b border-border">
-        <span className={`text-3xl font-display ${textColorClass}`}>{tiangan}</span>
+        <span
+          className={`text-3xl font-display ${isAccent ? textColorClass : ''}`}
+          style={{ color: isAccent ? undefined : getElementColor(tiangan) }}
+        >
+          {tiangan}
+        </span>
       </div>
       <div className="h-14 flex items-center justify-center border-b border-border">
-        <span className={`text-3xl font-display ${textColorClass}`}>{dizhi}</span>
+        <span
+          className={`text-3xl font-display ${isAccent ? textColorClass : ''}`}
+          style={{ color: isAccent ? undefined : getElementColor(dizhi) }}
+        >
+          {dizhi}
+        </span>
       </div>
       <div className="min-h-[90px] p-2 border-b border-border flex flex-col justify-start gap-1">
         {zanggan.map((item, index) => (
           <div key={`${item.gan}-${index}`} className="flex items-center justify-center gap-1 text-sm">
-            <span className={`font-medium ${elementColors[item.element] || ''}`}>{item.gan}</span>
+            <span
+              className="font-medium"
+              style={{ color: getElementColor(item.gan) }}
+            >
+              {item.gan}
+            </span>
             <span className="text-muted-foreground">{item.shiShen}</span>
           </div>
         ))}
@@ -209,6 +228,11 @@ export default function BaziChart({
               label="流年"
               tiangan={currentLiuNian.tiangan}
               dizhi={currentLiuNian.dizhi}
+              zhuxing={data.currentLiuNian?.tianganShiShen || ''}
+              zanggan={data.currentLiuNian?.zanggan || []}
+              xingyun={data.currentLiuNian?.diShi || ''}
+              kongwang={data.currentLiuNian?.kongWang || ''}
+              nayin={data.currentLiuNian?.naYin || ''}
               isAccent={true}
             />
           )}
@@ -219,7 +243,11 @@ export default function BaziChart({
               label="大运"
               tiangan={currentDaYun.tiangan}
               dizhi={currentDaYun.dizhi}
-              kongwang={currentDaYun.xunKong}
+              zhuxing={data.currentDaYun?.tianganShiShen || ''}
+              zanggan={data.currentDaYun?.zanggan || []}
+              xingyun={data.currentDaYun?.diShi || ''}
+              kongwang={data.currentDaYun?.kongWang || ''}
+              nayin={data.currentDaYun?.naYin || ''}
               isAccent={true}
             />
           )}

@@ -21,6 +21,7 @@ export interface PillarData {
     dizhiShiShen: string[];   // 地支十神（藏干对应）
     zanggan: HiddenStem[];    // 藏干列表
     diShi: string;            // 十二长生（地势）
+    ziZuo?: string;           // 自坐
     naYin: string;            // 纳音
     kongWang: string;         // 空亡
 }
@@ -89,6 +90,23 @@ export interface ShenShaInfo {
     xiongSha: string[];  // 凶煞
 }
 
+// 动态柱（大运/流年）详细数据
+export interface DynamicYunPillar {
+    label: string;
+    ganZhi: string;
+    tiangan: string;
+    dizhi: string;
+    tianganElement: string;
+    dizhiElement: string;
+    tianganShiShen: string;
+    zanggan: HiddenStem[];
+    diShi: string;
+    ziZuo?: string;
+    naYin: string;
+    kongWang: string;
+    index?: number;
+}
+
 // API 完整响应
 export interface BaziApiResponse {
     // 日期信息
@@ -117,6 +135,10 @@ export interface BaziApiResponse {
 
     // 额外信息
     extra: ExtraInfo;
+
+    // 当前详细大运/流年 (用于填充详细列)
+    currentDaYun?: DynamicYunPillar;
+    currentLiuNian?: DynamicYunPillar;
 }
 
 // API 请求参数
