@@ -1,0 +1,3 @@
+fastapi
+lunar-python
+uvicorn

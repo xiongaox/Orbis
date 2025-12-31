@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { ComponentType } from 'react';
 import {
   BookOpen,
@@ -17,6 +17,10 @@ import BaziCaseInfo from './components/Bazi/BaziCaseInfo';
 import BaziChart from './components/Bazi/BaziChart';
 import DayunLiunianPanel from './components/Bazi/DayunLiunianPanel';
 import InsightPanel from './components/desktop/InsightPanel';
+import { caseService } from './services/caseService';
+import { fetchBazi, parseBirthDate } from './services/baziApi';
+import type { BaziApiResponse } from './types/bazi';
+import type { Case } from './types';
 
 type ChartType =
   | 'bazi'
@@ -63,25 +67,134 @@ function PlaceholderChart({ chart }: { chart: ChartType }) {
 function App() {
   const [activeChart, setActiveChart] = useState<ChartType>('bazi');
   const [selectedCaseId, setSelectedCaseId] = useState('1');
+  const [selectedCase, setSelectedCase] = useState<Case | null>(null);
+  const [baziData, setBaziData] = useState<BaziApiResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // 选中的大运和流年状态（用于联动显示）
+  const [selectedDaYunIndex, setSelectedDaYunIndex] = useState<number | null>(null);
+  const [selectedLiuNianYear, setSelectedLiuNianYear] = useState<number | null>(null);
+
   const showSidebar = activeChart !== 'wannianli';
   const showInsights = activeChart !== 'wannianli';
   const showDayunPanel = activeChart === 'bazi';
+
+  // 加载案例数据
+  const loadCase = useCallback(async (caseId: string) => {
+    try {
+      const caseData = await caseService.getCaseById(caseId);
+      setSelectedCase(caseData);
+      return caseData;
+    } catch (err) {
+      console.error('加载案例失败:', err);
+      return null;
+    }
+  }, []);
+
+  // 获取八字数据（使用案例数据或当前时间）
+  const loadBaziData = useCallback(async (caseData?: Case | null) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      let params;
+
+      if (caseData?.birth_date) {
+        // 使用案例数据
+        params = {
+          ...parseBirthDate(caseData.birth_date),
+          gender: caseData.gender,
+        };
+      } else {
+        // 没有案例时，使用当前时间排盘
+        const now = new Date();
+        params = {
+          year: now.getFullYear(),
+          month: now.getMonth() + 1,
+          day: now.getDate(),
+          hour: now.getHours(),
+          minute: now.getMinutes(),
+          gender: 'male' as const,  // 默认男性
+        };
+      }
+
+      const data = await fetchBazi(params);
+      setBaziData(data);
+    } catch (err) {
+      console.error('获取八字数据失败:', err);
+      setError(err instanceof Error ? err.message : '获取数据失败');
+      setBaziData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // 初始化时加载当前时间的八字
+  useEffect(() => {
+    if (activeChart === 'bazi' && !baziData && !loading) {
+      loadBaziData();
+    }
+  }, [activeChart]);
+
+  // 监听案例选择变化
+  useEffect(() => {
+    const fetchData = async () => {
+      const caseData = await loadCase(selectedCaseId);
+      if (activeChart === 'bazi') {
+        await loadBaziData(caseData);
+      }
+    };
+
+    fetchData();
+  }, [selectedCaseId, activeChart, loadCase, loadBaziData]);
+
+  // 处理案例选择
+  const handleSelectCase = (caseId: string) => {
+    setSelectedCaseId(caseId);
+  };
 
   return (
     <div className="min-h-screen bg-background bg-noise flex flex-col">
       <Navbar activeChart={activeChart} onChartChange={setActiveChart} />
       <div className="flex flex-1 min-h-0 overflow-hidden">
         {showSidebar && (
-          <CaseList selectedCaseId={selectedCaseId} onSelectCase={setSelectedCaseId} />
+          <CaseList selectedCaseId={selectedCaseId} onSelectCase={handleSelectCase} />
         )}
         <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
           {activeChart === 'bazi' ? (
             <>
-              <BaziCaseInfo />
+              <BaziCaseInfo
+                caseData={selectedCase}
+                baziData={baziData}
+                selectedDaYunIndex={selectedDaYunIndex}
+                selectedLiuNianYear={selectedLiuNianYear}
+              />
               <div className="flex-1 min-h-0 min-w-0 grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-4 overflow-hidden px-6 pb-6">
-                <BaziChart />
-                {showDayunPanel && <DayunLiunianPanel />}
+                <BaziChart
+                  data={baziData}
+                  loading={loading}
+                  selectedDaYunIndex={selectedDaYunIndex}
+                  selectedLiuNianYear={selectedLiuNianYear}
+                />
+                {showDayunPanel && (
+                  <DayunLiunianPanel
+                    data={baziData}
+                    loading={loading}
+                    selectedDaYunIndex={selectedDaYunIndex}
+                    selectedLiuNianYear={selectedLiuNianYear}
+                    onSelectDaYun={setSelectedDaYunIndex}
+                    onSelectLiuNian={setSelectedLiuNianYear}
+                  />
+                )}
               </div>
+              {error && (
+                <div className="px-6 pb-4">
+                  <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+                    {error}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <PlaceholderChart chart={activeChart} />

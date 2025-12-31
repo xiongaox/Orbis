@@ -1,13 +1,30 @@
 import { Copy, Edit2, Share2 } from 'lucide-react';
+import type { Case } from '../../types';
+import type { BaziApiResponse } from '../../types/bazi';
 
-const caseInfo = {
-  name: '案例6',
-  gender: '坤造',
-  lunar: '八月廿八 子时',
-  solar: '1998年10月16日',
-};
+interface BaziCaseInfoProps {
+  caseData: Case | null;
+  baziData: BaziApiResponse | null;
+  selectedDaYunIndex?: number | null;
+  selectedLiuNianYear?: number | null;
+}
 
-export default function BaziCaseInfo() {
+export default function BaziCaseInfo({
+  caseData,
+  baziData,
+  selectedDaYunIndex,
+  selectedLiuNianYear,
+}: BaziCaseInfoProps) {
+  // 使用 API 返回的数据，如果没有则使用 case 数据
+  const displayName = caseData?.name || '当前时间';
+  const displayGender = baziData?.gender || (caseData?.gender === 'male' ? '乾造' : '坤造');
+  const displayLunar = baziData?.lunarDate || caseData?.lunar_date || '-';
+  const displaySolar = baziData?.solarDate || caseData?.solar_date || '-';
+
+  // 预留：选中的大运/流年可在未来用于显示更多详情
+  void selectedDaYunIndex;
+  void selectedLiuNianYear;
+
   return (
     <div className="bg-card rounded-xl border border-border p-4 mx-6 mt-6 mb-4 flex-shrink-0">
       <div className="flex items-center justify-between">
@@ -17,15 +34,28 @@ export default function BaziCaseInfo() {
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <h2 className="font-display text-lg font-medium text-foreground">{caseInfo.name}</h2>
+              <h2 className="font-display text-lg font-medium text-foreground">{displayName}</h2>
               <span className="text-xs px-2 py-0.5 bg-secondary rounded text-muted-foreground">
-                {caseInfo.gender}
+                {displayGender}
               </span>
+              {baziData?.zodiac && (
+                <span className="text-xs px-2 py-0.5 bg-secondary rounded text-muted-foreground">
+                  {baziData.zodiac}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <span>阴历：{caseInfo.lunar}</span>
-              <span>阳历：{caseInfo.solar}</span>
+              <span>阴历：{displayLunar}</span>
+              <span>阳历：{displaySolar}</span>
             </div>
+            {baziData?.yunInfo && (
+              <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
+                <span>
+                  起运：{baziData.yunInfo.startYear}年{baziData.yunInfo.startMonth}月{baziData.yunInfo.startDay}天后
+                </span>
+                <span>起运日期：{baziData.yunInfo.startSolarDate}</span>
+              </div>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
