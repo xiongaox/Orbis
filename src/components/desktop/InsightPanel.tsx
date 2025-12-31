@@ -44,7 +44,9 @@ export default function InsightPanel({ className = '' }: InsightPanelProps) {
   };
 
   return (
-    <aside className={`w-80 bg-card border-l border-border flex flex-col h-full ${className}`}>
+    <aside
+      className={`w-80 bg-card border-l border-border flex flex-col min-h-0 flex-shrink-0 ${className}`}
+    >
       <div className="p-4 border-b border-border">
         <h2 className="font-display text-base font-medium text-foreground flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-primary" />

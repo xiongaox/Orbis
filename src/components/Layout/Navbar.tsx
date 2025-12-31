@@ -52,7 +52,7 @@ export default function Navbar({ activeChart, onChartChange }: NavbarProps) {
         <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center">
           <Compass className="w-5 h-5 text-primary" />
         </div>
-        <span className="font-display text-lg font-semibold tracking-wide text-foreground">天机排盘</span>
+        <span className="font-display text-lg font-semibold tracking-wide text-foreground">玄枢录</span>
       </div>
       <nav className="flex items-center bg-secondary/50 rounded-lg p-1">
         {navItems.map((item) => {

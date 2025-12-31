@@ -39,9 +39,9 @@ export default function CaseList({ selectedCaseId, onSelectCase }: CaseListProps
   }, [search, filterType]);
 
   return (
-    <aside className="w-48 bg-sidebar border-r border-sidebar-border flex flex-col h-full">
-      <div className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center justify-between mb-3">
+    <aside className="w-56 bg-sidebar border-r border-sidebar-border flex flex-col min-h-0">
+      <div className="p-4 border-b border-sidebar-border space-y-3">
+        <div className="flex items-center justify-between">
           <h2 className="font-display text-base font-medium text-foreground">案例库</h2>
           <button
             type="button"
@@ -60,17 +60,16 @@ export default function CaseList({ selectedCaseId, onSelectCase }: CaseListProps
             className="w-full bg-secondary/50 border border-border rounded-lg pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
           />
         </div>
-      </div>
-      <div className="px-4 py-3">
         <button
           type="button"
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary/12 hover:bg-primary/18 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/40"
         >
           <Plus className="w-4 h-4" />
           新建案例
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto px-2">
+
+      <div className="flex-1 min-h-0 overflow-y-auto px-2 py-3">
         {filteredCases.map((item) => (
           <button
             key={item.id}
@@ -99,16 +98,12 @@ export default function CaseList({ selectedCaseId, onSelectCase }: CaseListProps
             </div>
           </button>
         ))}
-      </div>
-      <div className="p-4 border-t border-sidebar-border">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <button type="button" className="hover:text-foreground">
-            编辑
-          </button>
-          <button type="button" className="hover:text-destructive">
-            删除
-          </button>
-        </div>
+
+        {filteredCases.length === 0 && (
+          <div className="text-center text-xs text-muted-foreground py-6 rounded-lg border border-dashed border-sidebar-border/70 bg-sidebar-accent/40">
+            暂无匹配的案例
+          </div>
+        )}
       </div>
     </aside>
   );
