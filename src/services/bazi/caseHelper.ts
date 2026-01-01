@@ -1,11 +1,18 @@
 /**
  * 简化版八字计算，用于 Case 数据填充
  * (从废弃的 baziUtils.ts 迁移而来)
+ * 
+ * 使用 xuan-bazi 库作为底层计算引擎
  */
 
-// @ts-ignore
-import { Solar } from 'lunar-javascript';
-import { SHI_SHEN_MAP, ZANG_GAN_MAP, NA_YIN_MAP, CHANG_SHENG_MAP, getXunKong } from '../../utils/metaphysics';
+import { Solar } from 'lunar-typescript';
+import {
+    DI_ZHI_CANG_GAN,
+    SHI_SHEN,
+    NA_YIN,
+    SHI_ER_ZHANG_SHENG,
+    KONG_WANG,
+} from '../../lib/xuan-bazi';
 import type { BaziChartData } from '../../types';
 
 export function calculateBazi(birthDate: string, _gender: 'male' | 'female'): BaziChartData {
@@ -29,8 +36,8 @@ export function calculateBazi(birthDate: string, _gender: 'male' | 'female'): Ba
 
         const dayGan = bazi.getDayGan();
 
-        // 计算主星 (十神)
-        const getShiShen = (gan: string) => SHI_SHEN_MAP[dayGan]?.[gan] || '';
+        // 计算主星 (十神) - 使用 xuan-bazi 的 SHI_SHEN 映射
+        const getShiShen = (gan: string) => SHI_SHEN[dayGan + gan] || '';
         const mainStars = [
             getShiShen(bazi.getYearGan()),
             getShiShen(bazi.getMonthGan()),
@@ -38,12 +45,12 @@ export function calculateBazi(birthDate: string, _gender: 'male' | 'female'): Ba
             getShiShen(bazi.getTimeGan()),
         ];
 
-        // 计算藏干
+        // 计算藏干 - 使用 xuan-bazi 的 DI_ZHI_CANG_GAN 映射
         const getHiddenStems = (zhi: string) => {
-            const stems = ZANG_GAN_MAP[zhi] || [];
+            const stems = DI_ZHI_CANG_GAN[zhi] || [];
             return stems.map(stem => ({
                 stem,
-                god: SHI_SHEN_MAP[dayGan]?.[stem] || ''
+                god: SHI_SHEN[dayGan + stem] || ''
             }));
         };
 
@@ -54,8 +61,8 @@ export function calculateBazi(birthDate: string, _gender: 'male' | 'female'): Ba
             getHiddenStems(bazi.getTimeZhi()),
         ];
 
-        // 计算星运 (十二长生)
-        const getStarLuck = (zhi: string) => CHANG_SHENG_MAP[dayGan]?.[zhi] || '';
+        // 计算星运 (十二长生) - 使用 xuan-bazi 的 SHI_ER_ZHANG_SHENG 映射
+        const getStarLuck = (zhi: string) => SHI_ER_ZHANG_SHENG[dayGan + zhi] || '';
         const starLucks = [
             getStarLuck(bazi.getYearZhi()),
             getStarLuck(bazi.getMonthZhi()),
@@ -64,7 +71,7 @@ export function calculateBazi(birthDate: string, _gender: 'male' | 'female'): Ba
         ];
 
         // 计算自坐
-        const getSelfSitting = (gan: string, zhi: string) => CHANG_SHENG_MAP[gan]?.[zhi] || '';
+        const getSelfSitting = (gan: string, zhi: string) => SHI_ER_ZHANG_SHENG[gan + zhi] || '';
         const selfSitting = [
             getSelfSitting(bazi.getYearGan(), bazi.getYearZhi()),
             getSelfSitting(bazi.getMonthGan(), bazi.getMonthZhi()),
@@ -72,20 +79,20 @@ export function calculateBazi(birthDate: string, _gender: 'male' | 'female'): Ba
             getSelfSitting(bazi.getTimeGan(), bazi.getTimeZhi()),
         ];
 
-        // 纳音
+        // 纳音 - 使用 xuan-bazi 的 NA_YIN 映射
         const naYin = [
-            NA_YIN_MAP[yearPillar] || '',
-            NA_YIN_MAP[monthPillar] || '',
-            NA_YIN_MAP[dayPillar] || '',
-            NA_YIN_MAP[hourPillar] || '',
+            NA_YIN[yearPillar] || '',
+            NA_YIN[monthPillar] || '',
+            NA_YIN[dayPillar] || '',
+            NA_YIN[hourPillar] || '',
         ];
 
-        // 空亡
+        // 空亡 - 使用 xuan-bazi 的 KONG_WANG 映射
         const kongWang = [
-            getXunKong(yearPillar),
-            getXunKong(monthPillar),
-            getXunKong(dayPillar),
-            getXunKong(hourPillar),
+            KONG_WANG[yearPillar] || '',
+            KONG_WANG[monthPillar] || '',
+            KONG_WANG[dayPillar] || '',
+            KONG_WANG[hourPillar] || '',
         ];
 
         return {
@@ -106,3 +113,4 @@ export function calculateBazi(birthDate: string, _gender: 'male' | 'female'): Ba
         return {};
     }
 }
+

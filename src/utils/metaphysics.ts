@@ -1,4 +1,7 @@
 /**
+ * @deprecated 此文件已废弃，请使用 src/lib/xuan-bazi 库代替。
+ * 保留此文件仅供参考和向后兼容，新代码请勿引用。
+ * 
  * 术数通用工具库 (Metaphysics Shared Utilities)
  * 包含：天干、地支、五行、纳音、神煞、十二长生等通用定义
  */

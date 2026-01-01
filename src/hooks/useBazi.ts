@@ -2,13 +2,16 @@
  * 八字模块状态与逻辑 Hook
  */
 import { useState, useEffect, useCallback } from 'react';
-import { caseService } from '../services/caseService';
+import { useAuth } from '../contexts/AuthContext';
+import { baziCaseService } from '../services/baziCaseService';
 import { calculateBazi } from '../services/bazi/baziCalculator';
 import type { BaziApiResponse } from '../types/bazi';
 import type { Case } from '../types';
+import { BAZI_CASES_CHANGED_EVENT } from '../data/caseConstants';
 
 export function useBazi() {
-    const [selectedCaseId, setSelectedCaseId] = useState('1');
+    const { isAuthenticated } = useAuth();
+    const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
     const [selectedCase, setSelectedCase] = useState<Case | null>(null);
     const [baziData, setBaziData] = useState<BaziApiResponse | null>(null);
     const [loading, setLoading] = useState(false);
@@ -21,14 +24,30 @@ export function useBazi() {
     // 加载案例数据
     const loadCase = useCallback(async (caseId: string) => {
         try {
-            const caseData = await caseService.getCaseById(caseId);
-            setSelectedCase(caseData);
-            return caseData;
+            if (isAuthenticated) {
+                const remoteCase = await baziCaseService.getCaseById(caseId);
+                if (!remoteCase) {
+                    setSelectedCase(null);
+                    return null;
+                }
+                const mappedCase: Case = {
+                    id: remoteCase.id,
+                    name: remoteCase.name,
+                    gender: remoteCase.gender,
+                    birth_date: remoteCase.birth_date,
+                    created_at: remoteCase.created_at,
+                };
+                setSelectedCase(mappedCase);
+                return mappedCase;
+            }
+            setSelectedCase(null);
+            return null;
         } catch (err) {
             console.error('加载案例失败:', err);
+            setSelectedCase(null);
             return null;
         }
-    }, []);
+    }, [isAuthenticated]);
 
     // 获取八字数据（使用案例数据或当前时间）
     const loadBaziData = useCallback(async (caseData?: Case | null) => {
@@ -82,6 +101,12 @@ export function useBazi() {
 
     // 监听案例选择变化
     useEffect(() => {
+        if (selectedCaseId === null) {
+            setSelectedCase(null);
+            loadBaziData(null);
+            return;
+        }
+
         const fetchData = async () => {
             const caseData = await loadCase(selectedCaseId);
             await loadBaziData(caseData);
@@ -90,8 +115,22 @@ export function useBazi() {
         fetchData();
     }, [selectedCaseId, loadCase, loadBaziData]);
 
+    useEffect(() => {
+        const handleCasesChanged = () => {
+            if (!selectedCaseId) {
+                return;
+            }
+            loadCase(selectedCaseId).then(loadBaziData);
+        };
+
+        window.addEventListener(BAZI_CASES_CHANGED_EVENT, handleCasesChanged);
+        return () => {
+            window.removeEventListener(BAZI_CASES_CHANGED_EVENT, handleCasesChanged);
+        };
+    }, [selectedCaseId, loadCase, loadBaziData]);
+
     // 处理案例选择
-    const handleSelectCase = (caseId: string) => {
+    const handleSelectCase = (caseId: string | null) => {
         setSelectedCaseId(caseId);
     };
 

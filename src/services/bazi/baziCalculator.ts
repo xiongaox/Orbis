@@ -1,16 +1,26 @@
-// @ts-ignore
-import { Solar } from 'lunar-javascript';
+import { Solar } from 'lunar-typescript';
 import type { BaziApiResponse, PillarData, DynamicYunPillar, FetchBaziParams, ShenShaInfo, ExtraInfo, YunInfo, DaYunPeriod, LiuNian, XiaoYun } from '../../types/bazi';
 import {
-    getElement,
-    getXunKong,
     TIAN_GAN,
     DI_ZHI,
-    SHI_SHEN_MAP,
-    ZANG_GAN_MAP,
-    NA_YIN_MAP,
-    CHANG_SHENG_MAP
-} from '../../utils/metaphysics';
+    TIAN_GAN_WU_XING,
+    DI_ZHI_WU_XING,
+    DI_ZHI_CANG_GAN,
+    SHI_SHEN,
+    NA_YIN,
+    SHI_ER_ZHANG_SHENG,
+    KONG_WANG,
+} from '../../lib/xuan-bazi';
+
+// 获取五行的辅助函数
+function getElement(char: string): string {
+    return TIAN_GAN_WU_XING[char] || DI_ZHI_WU_XING[char] || '';
+}
+
+// 获取空亡的辅助函数
+function getXunKong(ganZhi: string): string {
+    return KONG_WANG[ganZhi] || '';
+}
 
 function buildPillar(bazi: any, pillarType: string): PillarData {
     const labelMap: Record<string, string> = { 'year': '年柱', 'month': '月柱', 'day': '日柱', 'time': '时柱' };
@@ -35,22 +45,22 @@ function buildPillar(bazi: any, pillarType: string): PillarData {
     if (pillarType === 'day') {
         tianganShiShen = '日主';
     } else {
-        tianganShiShen = SHI_SHEN_MAP[dayGan]?.[tiangan] || '';
+        tianganShiShen = SHI_SHEN[dayGan + tiangan] || '';
     }
 
-    const hideGans = ZANG_GAN_MAP[dizhi] || [];
-    const zanggan = hideGans.map(gan => ({
+    const hideGans = DI_ZHI_CANG_GAN[dizhi] || [];
+    const zanggan = hideGans.map((gan: string) => ({
         gan,
-        shiShen: SHI_SHEN_MAP[dayGan]?.[gan] || '',
+        shiShen: SHI_SHEN[dayGan + gan] || '',
         element: getElement(gan)
     }));
 
-    const dizhiShiShen = zanggan.map(zg => zg.shiShen);
+    const dizhiShiShen = zanggan.map((zg: { shiShen: string }) => zg.shiShen);
 
-    const naYin = safeCall(`get${capType}NaYin`) || NA_YIN_MAP[ganZhiStr] || '';
+    const naYin = safeCall(`get${capType}NaYin`) || NA_YIN[ganZhiStr] || '';
     const kongWang = safeCall(`get${capType}XunKong`) || getXunKong(ganZhiStr);
-    const diShi = safeCall(`get${capType}DiShi`) || CHANG_SHENG_MAP[dayGan]?.[dizhi] || '';
-    const ziZuo = CHANG_SHENG_MAP[tiangan]?.[dizhi] || '';
+    const diShi = safeCall(`get${capType}DiShi`) || SHI_ER_ZHANG_SHENG[dayGan + dizhi] || '';
+    const ziZuo = SHI_ER_ZHANG_SHENG[tiangan + dizhi] || '';
 
     return {
         label: labelMap[pillarType],
@@ -76,18 +86,18 @@ function buildDynamicPillarDetails(label: string, ganZhi: string, dayGan: string
     const gan = ganZhi[0];
     const zhi = ganZhi[1];
 
-    const tianganShiShen = SHI_SHEN_MAP[dayGan]?.[gan] || '';
+    const tianganShiShen = SHI_SHEN[dayGan + gan] || '';
 
-    const hideGans = ZANG_GAN_MAP[zhi] || [];
-    const zanggan = hideGans.map(hGan => ({
+    const hideGans = DI_ZHI_CANG_GAN[zhi] || [];
+    const zanggan = hideGans.map((hGan: string) => ({
         gan: hGan,
-        shiShen: SHI_SHEN_MAP[dayGan]?.[hGan] || '',
+        shiShen: SHI_SHEN[dayGan + hGan] || '',
         element: getElement(hGan)
     }));
 
-    const diShi = CHANG_SHENG_MAP[dayGan]?.[zhi] || '';
-    const ziZuo = CHANG_SHENG_MAP[gan]?.[zhi] || '';
-    const naYin = NA_YIN_MAP[ganZhi] || '';
+    const diShi = SHI_ER_ZHANG_SHENG[dayGan + zhi] || '';
+    const ziZuo = SHI_ER_ZHANG_SHENG[gan + zhi] || '';
+    const naYin = NA_YIN[ganZhi] || '';
     const kongWang = getXunKong(ganZhi);
 
     return {
@@ -176,8 +186,8 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
                 const dizhi = ganZhi && ganZhi.length > 1 ? ganZhi[1] : '';
 
                 // 计算十二长生
-                const diShi = CHANG_SHENG_MAP[dayGan]?.[dizhi] || '';  // 星运
-                const ziZuo = CHANG_SHENG_MAP[tiangan]?.[dizhi] || ''; // 自坐
+                const diShi = SHI_ER_ZHANG_SHENG[dayGan + dizhi] || '';  // 星运
+                const ziZuo = SHI_ER_ZHANG_SHENG[tiangan + dizhi] || ''; // 自坐
 
                 dayunList.push({
                     index,
@@ -243,8 +253,8 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
         let nextGan = '', nextZhi = '', nextGanZhi = '';
 
         if (lastGan && lastZhi) {
-            const ganIdx = ganList.indexOf(lastGan);
-            const zhiIdx = zhiList.indexOf(lastZhi);
+            const ganIdx = ganList.indexOf(lastGan as typeof TIAN_GAN[number]);
+            const zhiIdx = zhiList.indexOf(lastZhi as typeof DI_ZHI[number]);
 
             if (yun.isForward()) {
                 nextGan = ganList[(ganIdx + 1) % 10];
@@ -257,8 +267,8 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
         }
 
         // 计算十二长生
-        const diShi = CHANG_SHENG_MAP[dayGan]?.[nextZhi] || '';
-        const ziZuo = CHANG_SHENG_MAP[nextGan]?.[nextZhi] || '';
+        const diShi = SHI_ER_ZHANG_SHENG[dayGan + nextZhi] || '';
+        const ziZuo = SHI_ER_ZHANG_SHENG[nextGan + nextZhi] || '';
 
         dayunList.push({
             index: last.index + 1,
@@ -320,8 +330,8 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
             const dizhi = ganZhi && ganZhi.length > 1 ? ganZhi[1] : '';
 
             // 计算十二长生
-            const diShi = CHANG_SHENG_MAP[dayGan]?.[dizhi] || '';  // 星运：日主在该地支的长生
-            const ziZuo = CHANG_SHENG_MAP[tiangan]?.[dizhi] || ''; // 自坐：天干在自己地支的长生
+            const diShi = SHI_ER_ZHANG_SHENG[dayGan + dizhi] || '';  // 星运：日主在该地支的长生
+            const ziZuo = SHI_ER_ZHANG_SHENG[tiangan + dizhi] || ''; // 自坐：天干在自己地支的长生
 
             // 为该年生成流月 (Flowing Months)
 
@@ -364,7 +374,7 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
         const startGan = getStartMonthGan(yearGan);
         if (!startGan) return;
 
-        let startGanIdx = ganListSeq.indexOf(startGan);
+        let startGanIdx = ganListSeq.indexOf(startGan as typeof TIAN_GAN[number]);
         const lyList = [];
 
         for (let m = 0; m < 12; m++) {
@@ -404,10 +414,10 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
     const timePillarGan = bazi.getTimeGan();
     const timePillarZhi = bazi.getTimeZhi();
 
-    let xyGanIdx = ganListSeq.indexOf(timePillarGan);
+    let xyGanIdx = ganListSeq.indexOf(timePillarGan as typeof TIAN_GAN[number]);
     // 修正: 应该使用标准的 12 地支序列来查找索引
     const zhiListSeq = DI_ZHI;
-    let xyZhiIdx = zhiListSeq.indexOf(timePillarZhi);
+    let xyZhiIdx = zhiListSeq.indexOf(timePillarZhi as typeof DI_ZHI[number]);
 
 
     allLiuNian.forEach(ln => {
