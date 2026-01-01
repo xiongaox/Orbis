@@ -9,6 +9,8 @@ import {
   NA_YIN_MAP,
   CHANG_SHENG_MAP
 } from '../../../utils/metaphysics';
+import { calculateShenSha, calculateDynamicShenSha, getJiJie, type ShenShaContext } from '../../../lib/xuan-bazi/utils/baziShenShaUtil';
+import { createDefaultShenShaSetting } from '../../../lib/xuan-bazi/settings/baziShenShaSetting';
 
 /**
  * 动态计算柱的详细信息
@@ -43,11 +45,12 @@ function computePillarDetails(ganZhi: string, dayGan: string) {
 interface DetailedPillarCardProps {
   pillar: PillarData;
   isDayMaster?: boolean;
+  shensha?: string[];
 }
 
-function DetailedPillarCard({ pillar, isDayMaster = false }: DetailedPillarCardProps) {
+function DetailedPillarCard({ pillar, isDayMaster = false, shensha = [] }: DetailedPillarCardProps) {
   return (
-    <div className={`h-full ${isDayMaster ? 'bg-primary/5' : ''}`}>
+    <div className={`h-full flex flex-col ${isDayMaster ? 'bg-primary/5' : ''}`}>
       <div className="h-8 flex items-center justify-center border-b border-border bg-secondary/30">
         <span className="text-xs text-muted-foreground">{pillar.label}</span>
       </div>
@@ -92,8 +95,13 @@ function DetailedPillarCard({ pillar, isDayMaster = false }: DetailedPillarCardP
       <div className="h-10 flex items-center justify-center border-b border-border">
         <span className="text-sm text-muted-foreground">{pillar.kongWang}</span>
       </div>
-      <div className="h-10 flex items-center justify-center">
+      <div className="h-10 flex items-center justify-center border-b border-border">
         <span className="text-sm text-muted-foreground">{pillar.naYin}</span>
+      </div>
+      <div className="flex-1 p-2 flex flex-col items-center justify-start gap-2 min-h-[100px]">
+        {shensha.map((s, i) => (
+          <span key={i} className="text-xs text-foreground text-center">{s}</span>
+        ))}
       </div>
     </div>
   );
@@ -111,6 +119,7 @@ interface YunPillarProps {
   kongwang?: string;
   nayin?: string;
   isAccent?: boolean;
+  shensha?: string[];
 }
 
 function YunPillar({
@@ -124,9 +133,10 @@ function YunPillar({
   kongwang = '',
   nayin = '',
   isAccent = false,
+  shensha = [],
 }: YunPillarProps) {
   return (
-    <div className={`flex-1 border-r border-border last:border-r-0 ${isAccent ? 'bg-accent/5' : ''}`}>
+    <div className={`flex-1 border-r border-border last:border-r-0 flex flex-col ${isAccent ? 'bg-accent/5' : ''}`}>
       <div className="h-8 flex items-center justify-center border-b border-border bg-secondary/30">
         <span className={`text-xs ${isAccent ? 'text-accent' : 'text-muted-foreground'}`}>{label}</span>
       </div>
@@ -171,8 +181,13 @@ function YunPillar({
       <div className="h-10 flex items-center justify-center border-b border-border">
         <span className="text-sm text-muted-foreground">{kongwang}</span>
       </div>
-      <div className="h-10 flex items-center justify-center">
+      <div className="h-10 flex items-center justify-center border-b border-border">
         <span className="text-sm text-muted-foreground">{nayin}</span>
+      </div>
+      <div className="flex-1 p-2 flex flex-col items-center justify-start gap-2 min-h-[100px]">
+        {shensha.map((s, i) => (
+          <span key={i} className="text-xs text-foreground text-center">{s}</span>
+        ))}
       </div>
     </div>
   );
@@ -231,16 +246,61 @@ export default function BaziChart({
   const currentLiuNian = showDaYunLiuNian ? data.liuNian.find(ln => ln.year === activeLiuNianYear) : null;
   const currentDaYun = showDaYunLiuNian ? daYun.find(dy => dy.index === activeDaYunIndex) : null;
 
-  // 动态计算流年和大运的详细信息
+  // 准备神煞计算上下文
+  const shenShaContext = useMemo((): ShenShaContext | null => {
+    if (!pillars || pillars.length < 4) return null;
+
+    return {
+      sex: (data.gender === '男' || data.gender === 'male') ? 1 : 0,
+      jiJie: getJiJie(pillars[1]?.dizhi || ''),
+      yearNaYinWuXing: pillars[0]?.naYin || '', // 需要包含五行字符，如"海中金"
+      yearGan: pillars[0]?.tiangan || '',
+      yearZhi: pillars[0]?.dizhi || '',
+      monthGan: pillars[1]?.tiangan || '',
+      monthZhi: pillars[1]?.dizhi || '',
+      dayGan: pillars[2]?.tiangan || '',
+      dayZhi: pillars[2]?.dizhi || '',
+      hourGan: pillars[3]?.tiangan || '',
+      hourZhi: pillars[3]?.dizhi || '',
+      dayGanZhi: pillars[2]?.ganZhi || '',
+      hourGanZhi: pillars[3]?.ganZhi || '',
+    };
+  }, [pillars, data?.gender]);
+
+  const shenShaSetting = useMemo(() => createDefaultShenShaSetting(), []);
+
+  // 动态计算流年和大运的详细信息（含神煞）
   const liuNianDetails = useMemo(() => {
-    if (!currentLiuNian?.ganZhi) return null;
-    return computePillarDetails(currentLiuNian.ganZhi, dayGan);
-  }, [currentLiuNian?.ganZhi, dayGan]);
+    if (!currentLiuNian?.ganZhi || !shenShaContext) return null;
+    const details = computePillarDetails(currentLiuNian.ganZhi, dayGan);
+
+    // 计算流年神煞
+    const gan = currentLiuNian.ganZhi[0];
+    const zhi = currentLiuNian.ganZhi[1];
+    const shenshaResult = calculateDynamicShenSha(shenShaContext, shenShaSetting, gan, zhi, '流年');
+    const shensha = shenshaResult.map(r => r.name);
+
+    return { ...details, shensha };
+  }, [currentLiuNian?.ganZhi, dayGan, shenShaContext, shenShaSetting]);
 
   const daYunDetails = useMemo(() => {
-    if (!currentDaYun?.ganZhi) return null;
-    return computePillarDetails(currentDaYun.ganZhi, dayGan);
-  }, [currentDaYun?.ganZhi, dayGan]);
+    if (!currentDaYun?.ganZhi || !shenShaContext) return null;
+    const details = computePillarDetails(currentDaYun.ganZhi, dayGan);
+
+    // 计算大运神煞
+    const gan = currentDaYun.ganZhi[0];
+    const zhi = currentDaYun.ganZhi[1];
+    const shenshaResult = calculateDynamicShenSha(shenShaContext, shenShaSetting, gan, zhi, '大运');
+    const shensha = shenshaResult.map(r => r.name);
+
+    return { ...details, shensha };
+  }, [currentDaYun?.ganZhi, dayGan, shenShaContext, shenShaSetting]);
+
+  // 计算按柱的神煞（四柱）
+  const pillarShenSha = useMemo(() => {
+    if (!shenShaContext) return null;
+    return calculateShenSha(shenShaContext, shenShaSetting);
+  }, [shenShaContext, shenShaSetting]);
 
   return (
     <div className="min-h-0 min-w-0 overflow-y-auto">
@@ -248,7 +308,7 @@ export default function BaziChart({
       <div className="bg-card rounded-xl border border-border overflow-hidden mb-4 w-full">
         <div className="flex">
           {/* 行标题 */}
-          <div className="w-16 flex-shrink-0 border-r border-border">
+          <div className="w-16 flex-shrink-0 border-r border-border flex flex-col">
             <div className="h-8 flex items-center justify-center border-b border-border bg-secondary/30">
               <span className="text-xs text-muted-foreground">日期</span>
             </div>
@@ -273,8 +333,11 @@ export default function BaziChart({
             <div className="h-10 flex items-center justify-center border-b border-border bg-muted/30">
               <span className="text-xs text-muted-foreground">空亡</span>
             </div>
-            <div className="h-10 flex items-center justify-center bg-muted/30">
+            <div className="h-10 flex items-center justify-center border-b border-border bg-muted/30">
               <span className="text-xs text-muted-foreground">纳音</span>
+            </div>
+            <div className="flex-1 flex items-center justify-center min-h-[100px] border-t-0 bg-muted/30">
+              <span className="text-xs text-muted-foreground">神煞</span>
             </div>
           </div>
 
@@ -291,6 +354,7 @@ export default function BaziChart({
               kongwang={liuNianDetails.kongWang}
               nayin={liuNianDetails.naYin}
               isAccent={true}
+              shensha={liuNianDetails.shensha}
             />
           )}
 
@@ -307,59 +371,36 @@ export default function BaziChart({
               kongwang={daYunDetails.kongWang}
               nayin={daYunDetails.naYin}
               isAccent={true}
+              shensha={daYunDetails.shensha}
             />
           )}
 
           {/* 四柱 */}
-          {pillars.map((pillar, index) => (
-            <div
-              key={pillar.label}
-              className="flex-1 border-r border-border last:border-r-0"
-            >
-              <DetailedPillarCard pillar={pillar} isDayMaster={index === 2} />
-            </div>
-          ))}
+          {pillars.map((pillar, index) => {
+            const shenshaList = pillarShenSha ? (
+              index === 0 ? pillarShenSha.year :
+                index === 1 ? pillarShenSha.month :
+                  index === 2 ? pillarShenSha.day :
+                    index === 3 ? pillarShenSha.hour : []
+            ).map(s => s.name) : [];
+
+            return (
+              <div
+                key={pillar.label}
+                className="flex-1 border-r border-border last:border-r-0"
+              >
+                <DetailedPillarCard
+                  pillar={pillar}
+                  isDayMaster={index === 2}
+                  shensha={shenshaList}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* 神煞区域 */}
-      <div className="bg-card rounded-xl border border-border overflow-hidden w-full">
-        <div className="flex">
-          <div className="w-16 flex-shrink-0 border-r border-border bg-muted/30 flex items-center justify-center py-3">
-            <span className="text-xs text-muted-foreground">神煞</span>
-          </div>
-          <div className="flex-1 px-4 py-3">
-            {data.shenSha ? (
-              <div className="flex flex-col gap-2">
-                {/* 吉神 */}
-                {data.shenSha.jiShen && data.shenSha.jiShen.length > 0 && data.shenSha.jiShen[0] !== '无' && (
-                  <div className="flex items-start gap-2">
-                    <span className="text-xs text-green-500 shrink-0">吉神:</span>
-                    <div className="flex flex-wrap gap-x-3 gap-y-1">
-                      {data.shenSha.jiShen.map((s, i) => (
-                        <span key={`ji-${i}`} className="text-xs text-foreground">{s}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {/* 凶煞 */}
-                {data.shenSha.xiongSha && data.shenSha.xiongSha.length > 0 && data.shenSha.xiongSha[0] !== '无' && (
-                  <div className="flex items-start gap-2">
-                    <span className="text-xs text-red-500 shrink-0">凶煞:</span>
-                    <div className="flex flex-wrap gap-x-3 gap-y-1">
-                      {data.shenSha.xiongSha.map((s, i) => (
-                        <span key={`xiong-${i}`} className="text-xs text-foreground">{s}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <span className="text-xs text-muted-foreground">-</span>
-            )}
-          </div>
-        </div>
-      </div>
+
     </div>
   );
 }

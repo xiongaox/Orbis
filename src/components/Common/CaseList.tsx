@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ChevronRight, Plus, Search } from 'lucide-react';
+import { Solar } from 'lunar-typescript';
 
 type ChartType =
   | 'bazi'
@@ -13,16 +14,46 @@ type ChartType =
   | 'sanyuan';
 
 const cases = [
-  { id: '1', name: '案例1', tags: ['甲', '乙', '丙', '丁'], date: '1998年12月19日', type: 'bazi', gender: '女' },
-  { id: '2', name: '案例2', tags: ['戊', '己'], date: '1985年3月15日', type: 'bazi', gender: '女' },
-  { id: '3', name: '案例3', tags: ['庚', '辛', '壬'], date: '2000年7月8日', type: 'qimen', gender: '女' },
-  { id: '4', name: '案例4', tags: ['癸'], date: '1992年11月22日', type: 'ziwei', gender: '女' },
-  { id: '5', name: '案例5', tags: ['甲', '戊'], date: '1978年5月1日', type: 'liuyao', gender: '女' },
+  { id: '1', name: '案例1', date: '1998年12月19日', type: 'bazi', gender: '女' },
+  { id: '2', name: '案例2', date: '1985年3月15日', type: 'bazi', gender: '女' },
+  { id: '3', name: '案例3', date: '2000年7月8日', type: 'qimen', gender: '女' },
+  { id: '4', name: '案例4', date: '1992年11月22日', type: 'ziwei', gender: '女' },
+  { id: '5', name: '案例5', date: '1978年5月1日', type: 'liuyao', gender: '女' },
 ];
 
 interface CaseListProps {
   selectedCaseId?: string;
   onSelectCase?: (caseId: string) => void;
+}
+
+function getBaziPillars(dateStr: string): string[] {
+  try {
+    const match = dateStr.match(/(\d+)年(\d+)月(\d+)日/);
+    if (!match) return [];
+
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10);
+    const day = parseInt(match[3], 10);
+
+    const solar = Solar.fromYmd(year, month, day);
+    const lunar = solar.getLunar();
+    const eightChar = lunar.getEightChar();
+
+    // 显示年、月、日、时四柱，共8个字
+    return [
+      eightChar.getYearGan(),
+      eightChar.getYearZhi(),
+      eightChar.getMonthGan(),
+      eightChar.getMonthZhi(),
+      eightChar.getDayGan(),
+      eightChar.getDayZhi(),
+      eightChar.getTimeGan(),
+      eightChar.getTimeZhi()
+    ];
+  } catch (e) {
+    console.error('Bazi calculation error:', e);
+    return [];
+  }
 }
 
 export default function CaseList({ selectedCaseId, onSelectCase }: CaseListProps) {
@@ -31,8 +62,15 @@ export default function CaseList({ selectedCaseId, onSelectCase }: CaseListProps
 
   const filteredCases = useMemo(() => {
     return cases.filter((item) => {
+      // Calculate Bazi for search matching
+      const bazi = getBaziPillars(item.date);
+      const baziString = bazi.join('');
       const matchesSearch =
-        item.name.includes(search) || item.tags.some((tag) => tag.includes(search));
+        item.name.includes(search) ||
+        item.date.includes(search) ||
+        bazi.some(p => p.includes(search)) ||
+        baziString.includes(search);
+
       const matchesType = filterType === 'all' || item.type === filterType;
       return matchesSearch && matchesType;
     });
@@ -70,34 +108,42 @@ export default function CaseList({ selectedCaseId, onSelectCase }: CaseListProps
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-2 py-3">
-        {filteredCases.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            onClick={() => onSelectCase?.(item.id)}
-            className={`w-full text-left p-3 rounded-lg mb-1 transition-all ${
-              selectedCaseId === item.id
+        {filteredCases.map((item) => {
+          const pillars = getBaziPillars(item.date);
+          // Reorder for display: [YearGan, MonthGan, DayGan, HourGan, YearZhi, MonthZhi, DayZhi, HourZhi]
+          const displayPillars = pillars.length === 8 ? [
+            pillars[0], pillars[2], pillars[4], pillars[6],
+            pillars[1], pillars[3], pillars[5], pillars[7]
+          ] : pillars;
+
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onSelectCase?.(item.id)}
+              className={`w-full text-left p-3 rounded-lg mb-1 transition-all ${selectedCaseId === item.id
                 ? 'bg-sidebar-accent border border-primary/30'
                 : 'hover:bg-sidebar-accent/50'
-            }`}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm font-medium text-foreground">{item.name}</span>
-              <span className="text-xs text-muted-foreground">{item.gender}</span>
-            </div>
-            <div className="text-xs text-muted-foreground mb-2">{item.date}</div>
-            <div className="flex flex-wrap gap-1">
-              {item.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="px-1.5 py-0.5 text-xs bg-secondary rounded text-muted-foreground"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </button>
-        ))}
+                }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm font-medium text-foreground">{item.name}</span>
+                <span className="text-xs text-muted-foreground">{item.gender}</span>
+              </div>
+              <div className="text-xs text-muted-foreground mb-2">{item.date}</div>
+              <div className="grid grid-cols-4 gap-1 w-fit">
+                {displayPillars.map((pillar, index) => (
+                  <span
+                    key={index}
+                    className="w-6 h-6 flex items-center justify-center text-xs bg-sidebar-accent/80 border border-sidebar-border/50 rounded text-foreground/80 font-mono"
+                  >
+                    {pillar}
+                  </span>
+                ))}
+              </div>
+            </button>
+          );
+        })}
 
         {filteredCases.length === 0 && (
           <div className="text-center text-xs text-muted-foreground py-6 rounded-lg border border-dashed border-sidebar-border/70 bg-sidebar-accent/40">
@@ -108,3 +154,4 @@ export default function CaseList({ selectedCaseId, onSelectCase }: CaseListProps
     </aside>
   );
 }
+
