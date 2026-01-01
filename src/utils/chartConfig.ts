@@ -7,7 +7,6 @@ import {
     Calendar,
     Compass,
     Flower2,
-    Hexagon,
     Moon,
     Sparkles,
     Star,
@@ -22,7 +21,6 @@ export interface ChartMeta {
 
 export const chartMeta: Record<ChartType, ChartMeta> = {
     bazi: { title: '八字', icon: Compass },
-    qimen: { title: '奇门', icon: Hexagon },
     liuyao: { title: '六爻', icon: BookOpen },
     ziwei: { title: '紫薇', icon: Star },
     daliuren: { title: '大六壬', icon: Moon },

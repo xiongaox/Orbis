@@ -6,7 +6,6 @@
  * 注意：此版本为简化版，完整功能需要配合 lunar-typescript 库使用
  */
 
-import { BaziJichuSetting, createDefaultBaziJichuSetting } from './settings';
 import {
     getTianGanWuXing,
     getDiZhiWuXing,

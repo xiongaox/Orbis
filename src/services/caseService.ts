@@ -3,26 +3,36 @@ import { calculateBazi } from './bazi/caseHelper';
 
 const STORAGE_KEY = 'reticle_cases';
 
-// Initial seed data
-const SEED_DATA: Case[] = [
-    {
-        id: '1',
-        name: '案例6',
-        gender: 'female',
-        birth_date: '1998-10-16T00:08:00',
-        created_at: new Date().toISOString(),
-    },
-    {
-        id: '2',
-        name: '案例2',
-        gender: 'male',
-        birth_date: '1985-03-15T12:00:00', // Noon
-        created_at: new Date().toISOString(),
+// Initial seed data - with defensive initialization
+function initSeedData(): Case[] {
+    try {
+        const rawCases: Case[] = [
+            {
+                id: '1',
+                name: '案例6',
+                gender: 'female',
+                birth_date: '1998-10-16T00:08:00',
+                created_at: new Date().toISOString(),
+            },
+            {
+                id: '2',
+                name: '案例2',
+                gender: 'male',
+                birth_date: '1985-03-15T12:00:00', // Noon
+                created_at: new Date().toISOString(),
+            }
+        ];
+        return rawCases.map(c => ({
+            ...c,
+            ...calculateBazi(c.birth_date, c.gender as 'male' | 'female')
+        }) as Case);
+    } catch (e) {
+        console.error('Failed to initialize SEED_DATA:', e);
+        return [];
     }
-].map(c => ({
-    ...c,
-    ...calculateBazi(c.birth_date, c.gender as 'male' | 'female')
-}) as Case);
+}
+
+const SEED_DATA: Case[] = initSeedData();
 
 export const caseService = {
     getStoredCases(): Case[] {

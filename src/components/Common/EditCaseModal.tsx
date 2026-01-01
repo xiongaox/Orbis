@@ -1,24 +1,33 @@
 import { useState, useEffect } from 'react';
-import type { Case } from '../../types';
-import { caseService } from '../../services/caseService';
+import type { BaziCase } from '../../services/baziCaseService';
+import { baziCaseService } from '../../services/baziCaseService';
+import { calculateBazi } from '../../services/bazi/caseHelper';
+import { BAZI_CASES_CHANGED_EVENT } from '../../data/caseConstants';
 
 interface EditCaseModalProps {
     isOpen: boolean;
     onClose: () => void;
-    caseData: Case;
+    caseData: BaziCase;
     onSaved: () => void;
 }
 
 export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: EditCaseModalProps) {
-    const [formData, setFormData] = useState<Partial<Case>>({});
+    const [formData, setFormData] = useState<{
+        name: string;
+        gender: 'male' | 'female';
+        birth_date: string;
+    }>({ name: '', gender: 'male', birth_date: '' });
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (caseData) {
+            const date = new Date(caseData.birth_date);
+            const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
             setFormData({
                 name: caseData.name,
                 gender: caseData.gender,
-                birth_date: caseData.birth_date.split('T')[0], // Extract YYYY-MM-DD
+                birth_date: localDate.toISOString().slice(0, 16),
             });
         }
     }, [caseData]);
@@ -27,18 +36,26 @@ export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: Ed
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError(null);
+        if (!formData.name.trim() || !formData.birth_date) {
+            setError('请填写完整信息');
+            return;
+        }
         setLoading(true);
         try {
-            await caseService.updateCase({
-                ...caseData,
-                ...formData,
-                birth_date: new Date(formData.birth_date!).toISOString(), // Ensure ISO format
-            } as Case);
+            const baziData = calculateBazi(formData.birth_date, formData.gender);
+            await baziCaseService.updateCase(caseData.id, {
+                name: formData.name.trim(),
+                gender: formData.gender,
+                birth_date: new Date(formData.birth_date).toISOString(),
+                bazi_data: baziData as Record<string, unknown>,
+            });
+            window.dispatchEvent(new CustomEvent(BAZI_CASES_CHANGED_EVENT));
             onSaved();
             onClose();
         } catch (error) {
             console.error(error);
-            alert('Failed to save');
+            setError('保存失败');
         } finally {
             setLoading(false);
         }
@@ -53,7 +70,7 @@ export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: Ed
                         <label className="modal-label">姓名</label>
                         <input
                             type="text"
-                            value={formData.name || ''}
+                            value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             className="modal-input"
                             required
@@ -74,12 +91,17 @@ export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: Ed
                         <label className="modal-label">出生日期</label>
                         <input
                             type="datetime-local"
-                            value={formData.birth_date || ''}
+                            value={formData.birth_date}
                             onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
                             className="modal-input"
                             required
                         />
                     </div>
+                    {error && (
+                        <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2 mb-4">
+                            {error}
+                        </div>
+                    )}
                     <div className="modal-actions">
                         <button
                             type="button"
