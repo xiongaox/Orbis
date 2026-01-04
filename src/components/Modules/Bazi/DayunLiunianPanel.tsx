@@ -155,6 +155,8 @@ export default function DayunLiunianPanel({
     }
   };
 
+  const isFullLiuNianRow = displayLiuNian.length === 10;
+
   return (
     <div className="min-h-0 min-w-0 overflow-hidden">
       <div className="bg-card rounded-xl border border-border overflow-hidden h-fit flex flex-col">
@@ -245,7 +247,7 @@ export default function DayunLiunianPanel({
                   return (
                     <div
                       key={item.year}
-                      className={`min-w-0 p-3 border-r border-border last:border-r-0 cursor-pointer transition-colors hover:bg-primary/10 ${isSelected ? 'bg-primary/10' : isCurrentYear ? 'bg-primary/5' : ''
+                      className={`min-w-0 p-3 border-r border-border cursor-pointer transition-colors hover:bg-primary/10 ${isFullLiuNianRow ? 'last:border-r-0' : ''} ${isSelected ? 'bg-primary/10' : isCurrentYear ? 'bg-primary/5' : ''
                         }`}
                       onClick={() => handleLiuNianClick(item.year)}
                     >

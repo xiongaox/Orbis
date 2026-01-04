@@ -35,8 +35,8 @@ export default function TagSelector({ selectedTags, onChange, disabled }: TagSel
                             px-3 py-1.5 text-xs rounded-lg transition-all
                             border
                             ${isSelected
-                                ? 'bg-primary/20 border-primary/50 text-primary'
-                                : 'bg-secondary/50 border-border text-muted-foreground hover:text-foreground hover:border-primary/30'
+                                ? 'bg-[hsl(var(--accent-primary)/0.18)] border-[hsl(var(--accent-primary)/0.4)] text-[hsl(var(--accent-primary))] dark:bg-primary/20 dark:border-primary/50 dark:text-primary'
+                                : 'bg-[hsl(var(--muted))] border-[hsl(var(--muted-border))] text-[hsl(var(--text-secondary-light))] hover:text-[hsl(var(--text-primary-light))] hover:border-[hsl(var(--accent-primary)/0.35)] hover:bg-[hsl(var(--muted-hover))] dark:bg-secondary/50 dark:border-border dark:text-muted-foreground dark:hover:text-foreground dark:hover:border-primary/30'
                             }
                             ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                         `}

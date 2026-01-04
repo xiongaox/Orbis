@@ -25,11 +25,11 @@ export const ZHI_ELEMENT_MAP: Record<string, string> = {
 
 // 五行颜色定义 (Element Colors)
 export const ELEMENT_COLORS: Record<string, string> = {
-    wood: '#22c55e',
-    fire: '#ef4444',
-    earth: '#CD853F',
-    metal: '#d4af37',
-    water: '#3b82f6'
+    wood: 'var(--element-wood)',
+    fire: 'var(--element-fire)',
+    earth: 'var(--element-earth)',
+    metal: 'var(--element-metal)',
+    water: 'var(--element-water)'
 };
 
 // 综合元数据 (Element Metadata)
