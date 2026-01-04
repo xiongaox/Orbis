@@ -51,6 +51,10 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
   const { user, isAuthenticated, signOut, loading } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof document === 'undefined') return true;
+    return document.documentElement.classList.contains('dark');
+  });
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -65,6 +69,15 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
   const handleLoginClick = () => {
     setMenuOpen(false);
     onLoginClick?.();
+  };
+
+  const handleToggleTheme = () => {
+    setIsDark((prev) => {
+      const next = !prev;
+      document.documentElement.classList.toggle('dark', next);
+      localStorage.setItem('theme', next ? 'dark' : 'light');
+      return next;
+    });
   };
 
   // 获取显示名称
@@ -98,79 +111,93 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
           );
         })}
       </nav>
-      <div className="relative">
+      <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={() => setMenuOpen((prev) => !prev)}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-secondary/50 transition-colors"
-          disabled={loading}
+          onClick={handleToggleTheme}
+          className="p-2 rounded-lg hover:bg-secondary/50 transition-colors"
+          aria-label={isDark ? '切换到明亮主题' : '切换到暗黑主题'}
         >
-          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-            {loading ? (
-              <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
-            ) : isAuthenticated ? (
-              <span className="text-sm font-medium text-primary">
-                {displayName.charAt(0).toUpperCase()}
-              </span>
-            ) : (
-              <User className="w-4 h-4 text-muted-foreground" />
-            )}
-          </div>
-          <span className="text-sm text-muted-foreground hidden sm:inline">
-            {loading ? '加载中...' : isAuthenticated ? displayName : '未登录'}
-          </span>
+          {isDark ? (
+            <Sun className="w-4 h-4 text-muted-foreground" />
+          ) : (
+            <Moon className="w-4 h-4 text-muted-foreground" />
+          )}
         </button>
-        {menuOpen && (
-          <div className="absolute right-0 top-full mt-2 w-48 bg-card border border-border rounded-lg shadow-lg py-1 animate-fade-in">
-            {isAuthenticated ? (
-              <>
-                <div className="px-4 py-2 border-b border-border">
-                  <div className="text-sm font-medium text-foreground">{displayName}</div>
-                  <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
-                </div>
-                <button
-                  type="button"
-                  className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
-                >
-                  <Settings className="w-4 h-4" />
-                  设置
-                </button>
-                <div className="border-t border-border my-1" />
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  disabled={loggingOut}
-                  className="w-full px-4 py-2 text-left text-sm text-muted-foreground hover:bg-secondary/50 flex items-center gap-2"
-                >
-                  {loggingOut ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <LogOut className="w-4 h-4" />
-                  )}
-                  退出登录
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={handleLoginClick}
-                  className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
-                >
-                  <User className="w-4 h-4" />
-                  登录 / 注册
-                </button>
-                <button
-                  type="button"
-                  className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
-                >
-                  <Settings className="w-4 h-4" />
-                  设置
-                </button>
-              </>
-            )}
-          </div>
-        )}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((prev) => !prev)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-secondary/50 transition-colors"
+            disabled={loading}
+          >
+            <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+              {loading ? (
+                <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+              ) : isAuthenticated ? (
+                <span className="text-sm font-medium text-primary">
+                  {displayName.charAt(0).toUpperCase()}
+                </span>
+              ) : (
+                <User className="w-4 h-4 text-muted-foreground" />
+              )}
+            </div>
+            <span className="text-sm text-muted-foreground hidden sm:inline">
+              {loading ? '加载中...' : isAuthenticated ? displayName : '未登录'}
+            </span>
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-full mt-2 w-48 bg-card border border-border rounded-lg shadow-lg py-1 animate-fade-in">
+              {isAuthenticated ? (
+                <>
+                  <div className="px-4 py-2 border-b border-border">
+                    <div className="text-sm font-medium text-foreground">{displayName}</div>
+                    <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
+                  </div>
+                  <button
+                    type="button"
+                    className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
+                  >
+                    <Settings className="w-4 h-4" />
+                    设置
+                  </button>
+                  <div className="border-t border-border my-1" />
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    disabled={loggingOut}
+                    className="w-full px-4 py-2 text-left text-sm text-muted-foreground hover:bg-secondary/50 flex items-center gap-2"
+                  >
+                    {loggingOut ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <LogOut className="w-4 h-4" />
+                    )}
+                    退出登录
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleLoginClick}
+                    className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
+                  >
+                    <User className="w-4 h-4" />
+                    登录 / 注册
+                  </button>
+                  <button
+                    type="button"
+                    className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
+                  >
+                    <Settings className="w-4 h-4" />
+                    设置
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

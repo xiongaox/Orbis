@@ -84,7 +84,7 @@ export default function BaziCaseInfo({
   };
 
   return (
-    <div className="bg-card rounded-xl border border-border p-4 mx-6 mt-6 mb-4 flex-shrink-0">
+    <div className="bg-card rounded-xl border border-[hsl(var(--border-light))] dark:border-border p-4 mx-6 mt-6 mb-4 flex-shrink-0">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
@@ -92,22 +92,22 @@ export default function BaziCaseInfo({
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <h2 className="font-display text-lg font-medium text-foreground">{displayName}</h2>
-              <span className="text-xs px-2 py-0.5 bg-secondary rounded text-muted-foreground">
+              <h2 className="font-display text-lg font-medium text-[hsl(var(--card-title))] dark:text-foreground">{displayName}</h2>
+              <span className="text-xs px-2 py-0.5 bg-[hsl(var(--muted-hover))] border border-[hsl(var(--border-light))] dark:bg-secondary dark:border-border rounded text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground">
                 {displayGender}
               </span>
               {baziData?.zodiac && (
-                <span className="text-xs px-2 py-0.5 bg-secondary rounded text-muted-foreground">
+                <span className="text-xs px-2 py-0.5 bg-[hsl(var(--muted-hover))] border border-[hsl(var(--border-light))] dark:bg-secondary dark:border-border rounded text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground">
                   {baziData.zodiac}
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-4 text-sm text-[hsl(var(--card-time))] dark:text-muted-foreground">
               <span>阴历：{displayLunar}</span>
               <span>阳历：{displaySolar}</span>
             </div>
             {baziData?.yunInfo && (
-              <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
+              <div className="flex items-center gap-4 text-xs text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground mt-1">
                 <span>
                   起运：{baziData.yunInfo.startYear}年{baziData.yunInfo.startMonth}月{baziData.yunInfo.startDay}天后
                 </span>
@@ -122,28 +122,28 @@ export default function BaziCaseInfo({
               type="button"
               onClick={handleSaveCurrent}
               disabled={!baziData || saving}
-              className="px-3 py-2 text-sm rounded-lg border border-primary/40 text-primary hover:bg-primary/10 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="px-3 py-2 text-sm rounded-lg border border-[hsl(var(--accent-primary)/0.4)] text-[hsl(var(--accent-primary))] hover:bg-[hsl(var(--accent-primary)/0.1)] dark:border-primary/40 dark:text-primary dark:hover:bg-primary/10 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {saving ? '保存中...' : '保存当前排盘'}
             </button>
           )}
           <button
             type="button"
-            className="p-2 hover:bg-secondary rounded-lg transition-colors"
+            className="p-2 hover:bg-[hsl(var(--muted-hover))] dark:hover:bg-secondary rounded-lg transition-colors"
           >
-            <Edit2 className="w-4 h-4 text-muted-foreground" />
+            <Edit2 className="w-4 h-4 text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground" />
           </button>
           <button
             type="button"
-            className="p-2 hover:bg-secondary rounded-lg transition-colors"
+            className="p-2 hover:bg-[hsl(var(--muted-hover))] dark:hover:bg-secondary rounded-lg transition-colors"
           >
-            <Copy className="w-4 h-4 text-muted-foreground" />
+            <Copy className="w-4 h-4 text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground" />
           </button>
           <button
             type="button"
-            className="p-2 hover:bg-secondary rounded-lg transition-colors"
+            className="p-2 hover:bg-[hsl(var(--muted-hover))] dark:hover:bg-secondary rounded-lg transition-colors"
           >
-            <Share2 className="w-4 h-4 text-muted-foreground" />
+            <Share2 className="w-4 h-4 text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground" />
           </button>
         </div>
       </div>
