@@ -23,11 +23,24 @@ import {
 import { createDefaultGanZhiLiuYiSetting } from './lib/xuan-bazi/settings/baziGanZhiLiuYiSetting';
 import { getQiongtongEntry } from './lib/xuan-bazi/utils/qiongtongUtil';
 import { getDiZhiCangGan } from './lib/xuan-bazi/utils/baziJichuUtil';
+import { getDiTianSuiEntry, getDiTianSuiMonthlyEntry } from './lib/xuan-bazi/utils/ditiansuiUtil';
+import type { InsightBook } from './components/Common/InsightPanel';
 
 function AppContent() {
   const [activeChart, setActiveChart] = useState<ChartType>('bazi');
   const [showAuthModal, setShowAuthModal] = useState(false);
+  // 默认选中的经典书籍 ID
+  const [activeBookId, setActiveBookId] = useState<string>('qiongtong');
   const bazi = useBazi();
+
+  // 定义可用书籍列表
+  const books: InsightBook[] = [
+    { id: 'qiongtong', name: '穷通宝鉴', category: 'classic' },
+    { id: 'ditiansui', name: '滴天髓', category: 'classic' },
+    { id: 'sanming', name: '三命通会', category: 'classic' },
+    { id: 'bazi', name: '八字提要', category: 'analysis' },
+    { id: 'gezhi', name: '子平真诠', category: 'analysis' },
+  ];
 
   // 根据当前模块决定是否显示侧边栏
   const showSidebar = activeChart !== 'wannianli';
@@ -91,23 +104,78 @@ function AppContent() {
     };
   }, [bazi.baziData, bazi.selectedDaYunIndex, bazi.selectedLiuNianYear]);
 
-  // 计算穷通宝鉴数据（智能咨询参考内容）
+  // ... (keeping other hooks)
+
+  // 计算智能咨询参考内容（穷通宝鉴/滴天髓）
   const insightContent = useMemo<InsightContent | undefined>(() => {
     if (!bazi.baziData?.pillars || bazi.baziData.pillars.length < 4) {
       return undefined;
     }
 
     const pillars = bazi.baziData.pillars;
+    // 获取日主（日柱天干）
+    const riZhu = pillars[2]?.tiangan;
 
-    // 获取日主（日柱天干）和月份（月柱地支对应的月份）
-    const riZhu = pillars[2]?.tiangan; // 日柱天干
+    // 1) 滴天髓逻辑
+    if (activeBookId === 'ditiansui') {
+      if (!riZhu) return undefined;
+      const yueZhi = pillars[1]?.dizhi;  // 月柱地支
+
+      // 获取基础数据（原文+原注+任氏曰）
+      const basicEntry = getDiTianSuiEntry(riZhu);
+
+      // 尝试获取按月令的逻辑解析版数据
+      if (yueZhi) {
+        const monthlyEntry = getDiTianSuiMonthlyEntry(riZhu, yueZhi);
+        if (monthlyEntry) {
+          return {
+            hint: undefined,
+            subHint: undefined,
+            summary: monthlyEntry.poem,
+            summaryTitle: `${monthlyEntry.meta.stem} · ${monthlyEntry.meta.month}`,
+            // 逻辑解析标签使用结构化数据
+            keyPoints: monthlyEntry.analysis.map(a =>
+              `**${a.segment}**\n【${a.tags.join('、')}】\n${a.logic.reasoning}\n💡 ${a.modern_meaning}`
+            ),
+            keyPointsTitle: '逻辑解析',
+            // 原文标签使用基础数据
+            ditiansuiBasic: basicEntry,
+          };
+        }
+      }
+
+      // 回退：没有结构化数据时，只显示原文标签内容
+      if (!basicEntry) {
+        return {
+          hint: undefined,
+          subHint: undefined,
+          summary: `暂无 ${riZhu}日主 的滴天髓数据`,
+          summaryTitle: `${riZhu}干`,
+          keyPoints: [],
+          keyPointsTitle: '逻辑解析',
+          ditiansuiBasic: undefined,
+        };
+      }
+      return {
+        hint: undefined,
+        subHint: undefined,
+        summary: basicEntry.poem,
+        summaryTitle: `${riZhu}干`,
+        // 没有结构化数据时，逻辑解析标签无内容
+        keyPoints: [],
+        keyPointsTitle: '逻辑解析',
+        // 原文标签使用基础数据
+        ditiansuiBasic: basicEntry,
+      };
+    }
+
+    // 2) 穷通宝鉴逻辑 (默认)
+    // 获取月份
     const yueZhi = pillars[1]?.dizhi;  // 月柱地支
-
     if (!riZhu || !yueZhi) {
       return undefined;
     }
 
-    // 地支转月份（寅=1, 卯=2, ...）
     const zhiToMonth: Record<string, number> = {
       '寅': 1, '卯': 2, '辰': 3, '巳': 4, '午': 5, '未': 6,
       '申': 7, '酉': 8, '戌': 9, '亥': 10, '子': 11, '丑': 12,
@@ -118,23 +186,18 @@ function AppContent() {
       return undefined;
     }
 
-    // 从穷通宝鉴获取数据
     const entry = getQiongtongEntry(riZhu, month);
 
     // 计算透藏分析
-    // 透 = 四柱天干中出现的
     const touGans = new Set(pillars.map(p => p.tiangan));
-    // 藏 = 四柱地支藏干中出现但天干没透的
     const allCangGans = new Set<string>();
     pillars.forEach(p => {
       const cangGans = getDiZhiCangGan(p.dizhi);
       cangGans.forEach(g => allCangGans.add(g));
     });
 
-    // 如果有调候用神数据，分析透藏情况
     let touCangHint = '';
     if (entry?.tiaohou) {
-      // 提取调候用神中的天干（去重）
       const tiaohouGans = [...new Set(
         entry.tiaohou.split('').filter(c =>
           ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'].includes(c)
@@ -146,13 +209,10 @@ function AppContent() {
 
       tiaohouGans.forEach(gan => {
         if (touGans.has(gan)) {
-          // 天干中透出
           touList.push(gan);
         } else if (allCangGans.has(gan)) {
-          // 地支藏干中有，但天干没透
           cangList.push(gan);
         }
-        // 如果既没透也没藏，则不显示
       });
 
       const parts: string[] = [];
@@ -182,7 +242,7 @@ function AppContent() {
       keyPoints: entry.keyPoints,
       keyPointsTitle: '要点解析',
     };
-  }, [bazi.baziData]);
+  }, [bazi.baziData, activeBookId]); // Added activeBookId dependency
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -200,7 +260,16 @@ function AppContent() {
           />
         ) : undefined}
         liuYiPanel={showInsights ? <GanZhiLiuYiPanel data={ganZhiLiuYiData} /> : undefined}
-        insightPanel={showInsights ? <InsightPanel content={insightContent} /> : undefined}
+        insightPanel={
+          showInsights ? (
+            <InsightPanel
+              books={books}
+              activeBook={activeBookId}
+              onBookChange={setActiveBookId}
+              content={insightContent}
+            />
+          ) : undefined
+        }
       >
         {activeChart === 'bazi' ? (
           <BaziPage
