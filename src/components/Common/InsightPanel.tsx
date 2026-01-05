@@ -55,8 +55,6 @@ interface InsightPanelProps {
   title?: string;
   books?: InsightBook[];
   content?: InsightContent;
-  onExport?: () => void;
-  onDetail?: () => void;
 }
 
 export default function InsightPanel({
@@ -64,8 +62,6 @@ export default function InsightPanel({
   title = '智能咨询参考',
   books = defaultBooks,
   content = defaultContent,
-  onExport,
-  onDetail,
 }: InsightPanelProps) {
   const [activeBook, setActiveBook] = useState(books[0]?.id || '');
   const [openSections, setOpenSections] = useState(['summary', 'keyPoints']);
@@ -76,9 +72,73 @@ export default function InsightPanel({
     );
   };
 
+  // 天干列表
+  const tianGanList = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+
+  // 渲染调候用神文本（给天干加边框）
+  const renderTianGanText = (text: string) => {
+    const chars = text.split('');
+    return chars.map((char, index) => {
+      if (tianGanList.includes(char)) {
+        return (
+          <span
+            key={index}
+            className="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-md border border-primary/50 text-primary bg-primary/10"
+          >
+            {char}
+          </span>
+        );
+      }
+      return null; // 忽略非天干字符
+    });
+  };
+
+  // 渲染透藏文本（透和藏用不同样式）
+  const renderTouCangText = (text: string) => {
+    const parts = text.split(' ').filter(Boolean);
+    return parts.map((part, index) => {
+      if (part.startsWith('透')) {
+        const gans = part.slice(1).split('');
+        return (
+          <span key={index} className="inline-flex items-center gap-1">
+            <span className="text-xs font-bold text-foreground mr-0.5">
+              透
+            </span>
+            {gans.map((gan, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-md border border-primary/50 text-primary bg-primary/10"
+              >
+                {gan}
+              </span>
+            ))}
+          </span>
+        );
+      } else if (part.startsWith('藏')) {
+        const gans = part.slice(1).split('');
+        return (
+          <span key={index} className="inline-flex items-center gap-1 ml-3">
+            <span className="text-xs font-bold text-foreground mr-0.5">
+              藏
+            </span>
+            {gans.map((gan, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-medium rounded-md border border-primary/50 text-primary bg-primary/10"
+              >
+                {gan}
+              </span>
+            ))}
+          </span>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   return (
-    <aside
-      className={`w-80 bg-card border-l border-border flex flex-col min-h-0 flex-shrink-0 ${className}`}
+    <div
+      className={`flex flex-col flex-1 min-h-0 ${className}`}
     >
       <div className="p-4 border-b border-border">
         <h2 className="font-display text-base font-medium text-foreground flex items-center gap-2">
@@ -87,8 +147,18 @@ export default function InsightPanel({
         </h2>
       </div>
       <div className="p-4 border-b border-border">
-        {content.hint && <div className="text-xs text-muted-foreground mb-2">{content.hint}</div>}
-        {content.subHint && <div className="text-xs text-muted-foreground mb-3">{content.subHint}</div>}
+        {content.hint && (
+          <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1 flex-wrap">
+            <span>调候用神提示：</span>
+            {renderTianGanText(content.hint.replace('调候用神提示：', ''))}
+          </div>
+        )}
+        {content.subHint && (
+          <div className="text-xs text-muted-foreground mb-3 flex items-center gap-1 flex-wrap">
+            <span>本八字：</span>
+            {renderTouCangText(content.subHint.replace('本八字：', ''))}
+          </div>
+        )}
         <div className="flex flex-wrap gap-1.5">
           {books.map((item) => (
             <button
@@ -96,8 +166,8 @@ export default function InsightPanel({
               type="button"
               onClick={() => setActiveBook(item.id)}
               className={`px-3 py-1 text-xs rounded-full border transition-colors ${activeBook === item.id
-                  ? 'bg-primary/10 border-primary/30 text-primary'
-                  : 'border-border text-muted-foreground hover:text-foreground hover:border-border'
+                ? 'bg-primary/10 border-primary/30 text-primary'
+                : 'border-border text-muted-foreground hover:text-foreground hover:border-border'
                 }`}
             >
               {item.name}
@@ -150,13 +220,72 @@ export default function InsightPanel({
               )}
             </button>
             {openSections.includes('keyPoints') && (
-              <div className="px-3 pb-3 space-y-2">
-                {content.keyPoints.map((item) => (
-                  <div key={item} className="flex gap-2 text-sm text-muted-foreground">
-                    <span className="text-primary flex-shrink-0">•</span>
-                    <span className="leading-relaxed">{item}</span>
-                  </div>
-                ))}
+              <div className="px-3 pb-3 max-h-96 overflow-y-auto pr-1">
+                {content.keyPoints.map((item, index) => {
+                  // Markdown 渲染逻辑
+                  const renderMarkdownText = (text: string) => {
+                    const parts = text.split(/(\*\*.*?\*\*)/g);
+                    return parts.map((part, i) => {
+                      if (part.startsWith('**') && part.endsWith('**')) {
+                        return (
+                          <span key={i} className="font-bold text-foreground">
+                            {part.slice(2, -2)}
+                          </span>
+                        );
+                      }
+                      return <span key={i}>{part}</span>;
+                    });
+                  };
+
+                  // 检查是否为Markdown格式（以###开头）
+                  if (item.trim().startsWith('###')) {
+                    const lines = item.split('\n');
+                    return (
+                      <div
+                        key={index}
+                        className={`
+                          ${index !== 0 ? 'pt-4 border-t border-border/40 mt-4' : 'mb-4'}
+                        `}
+                      >
+                        {lines.map((line, lineIdx) => {
+                          if (line.trim().startsWith('###')) {
+                            return (
+                              <div key={lineIdx} className="font-medium text-foreground text-sm mb-2 flex items-start gap-1.5 border-l-2 border-primary/40 pl-2">
+                                {renderMarkdownText(line.trim().replace(/^###\s*/, ''))}
+                              </div>
+                            );
+                          }
+                          if (line.trim().startsWith('*')) {
+                            return (
+                              <div key={lineIdx} className="flex gap-2 text-xs text-muted-foreground ml-2 mb-1.5 last:mb-0">
+                                <span className="text-primary/60 mt-[3px] flex-shrink-0 text-[10px]">●</span>
+                                <span className="leading-relaxed">
+                                  {renderMarkdownText(line.trim().replace(/^\*\s*/, ''))}
+                                </span>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div key={lineIdx} className="text-xs text-muted-foreground ml-2 mb-1 last:mb-0">
+                              {renderMarkdownText(line)}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  }
+
+                  // 兼容旧格式（普通列表项）
+                  return (
+                    <div
+                      key={item}
+                      className={`flex gap-2 text-sm text-muted-foreground ${index !== 0 ? 'mt-2' : ''}`}
+                    >
+                      <span className="text-primary flex-shrink-0">•</span>
+                      <span className="leading-relaxed">{renderMarkdownText(item)}</span>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -186,24 +315,6 @@ export default function InsightPanel({
           </div>
         )}
       </div>
-      <div className="p-4 border-t border-border">
-        <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={onExport}
-            className="px-3 py-2 text-xs bg-secondary hover:bg-secondary/80 rounded-lg text-muted-foreground transition-colors"
-          >
-            导出报告
-          </button>
-          <button
-            type="button"
-            onClick={onDetail}
-            className="px-3 py-2 text-xs bg-primary/10 hover:bg-primary/20 rounded-lg text-primary transition-colors"
-          >
-            详细解读
-          </button>
-        </div>
-      </div>
-    </aside>
+    </div>
   );
 }

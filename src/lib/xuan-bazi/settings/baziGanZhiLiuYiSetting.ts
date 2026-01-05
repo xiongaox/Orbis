@@ -74,7 +74,7 @@ export interface BaZiGanZhiLiuYiSetting {
 export function createDefaultGanZhiLiuYiSetting(): BaZiGanZhiLiuYiSetting {
     return {
         // 天干关系开关（默认全部显示）
-        tianGanXiangSheng: 0,
+        tianGanXiangSheng: 1,
         tianGanXiangKe: 0,
         tianGanXiangHe: 0,
         tianGanXiangChong: 0,
