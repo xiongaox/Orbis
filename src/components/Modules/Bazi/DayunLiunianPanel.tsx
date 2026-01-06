@@ -247,7 +247,7 @@ export default function DayunLiunianPanel({
                   return (
                     <div
                       key={item.year}
-                      className={`min-w-0 p-3 border-r border-border cursor-pointer transition-colors hover:bg-primary/10 ${isFullLiuNianRow ? 'last:border-r-0' : ''} ${isSelected ? 'bg-primary/10' : isCurrentYear ? 'bg-primary/5' : ''
+                      className={`min-w-0 p-3 border-r border-border cursor-pointer transition-colors hover:bg-primary/10 ${isSelected ? 'bg-primary/10' : isCurrentYear ? 'bg-primary/5' : ''
                         }`}
                       onClick={() => handleLiuNianClick(item.year)}
                     >

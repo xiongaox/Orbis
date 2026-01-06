@@ -7,6 +7,8 @@ import DayunLiunianPanel from './DayunLiunianPanel';
 import type { BaziApiResponse } from '../../../types/bazi';
 import type { Case } from '../../../types';
 
+import BaziBasicInfoPanel from './BaziBasicInfoPanel';
+
 interface BaziPageProps {
     selectedCase: Case | null;
     baziData: BaziApiResponse | null;
@@ -43,14 +45,22 @@ export default function BaziPage({
                     selectedDaYunIndex={selectedDaYunIndex}
                     selectedLiuNianYear={selectedLiuNianYear}
                 />
-                <DayunLiunianPanel
-                    data={baziData}
-                    loading={loading}
-                    selectedDaYunIndex={selectedDaYunIndex}
-                    selectedLiuNianYear={selectedLiuNianYear}
-                    onSelectDaYun={setSelectedDaYunIndex}
-                    onSelectLiuNian={setSelectedLiuNianYear}
-                />
+                <div className="flex flex-col gap-4 min-h-0 overflow-y-auto">
+                    <div className="flex-shrink-0">
+                        <DayunLiunianPanel
+                            data={baziData}
+                            loading={loading}
+                            selectedDaYunIndex={selectedDaYunIndex}
+                            selectedLiuNianYear={selectedLiuNianYear}
+                            onSelectDaYun={setSelectedDaYunIndex}
+                            onSelectLiuNian={setSelectedLiuNianYear}
+                        />
+                    </div>
+
+                    <div className="flex-shrink-0">
+                        <BaziBasicInfoPanel baziData={baziData} />
+                    </div>
+                </div>
             </div>
             {error && (
                 <div className="px-6 pb-4">

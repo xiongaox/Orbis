@@ -24,6 +24,7 @@ import { createDefaultGanZhiLiuYiSetting } from './lib/xuan-bazi/settings/baziGa
 import { getQiongtongEntry } from './lib/xuan-bazi/utils/qiongtongUtil';
 import { getDiZhiCangGan } from './lib/xuan-bazi/utils/baziJichuUtil';
 import { getDiTianSuiEntry, getDiTianSuiMonthlyEntry } from './lib/xuan-bazi/utils/ditiansuiUtil';
+import { buildSanMingContent } from './lib/xuan-bazi/utils/sanmingUtil';
 import type { InsightBook } from './components/Common/InsightPanel';
 
 function AppContent() {
@@ -38,8 +39,6 @@ function AppContent() {
     { id: 'qiongtong', name: '穷通宝鉴', category: 'classic' },
     { id: 'ditiansui', name: '滴天髓', category: 'classic' },
     { id: 'sanming', name: '三命通会', category: 'classic' },
-    { id: 'bazi', name: '八字提要', category: 'analysis' },
-    { id: 'gezhi', name: '子平真诠', category: 'analysis' },
   ];
 
   // 根据当前模块决定是否显示侧边栏
@@ -169,7 +168,35 @@ function AppContent() {
       };
     }
 
-    // 2) 穷通宝鉴逻辑 (默认)
+    // 2) 三命通会逻辑
+    if (activeBookId === 'sanming') {
+      const dayGanZhi = pillars[2]?.ganZhi;  // 日柱干支
+      if (!dayGanZhi) {
+        return {
+          summary: '请先选择案例',
+          keyPoints: [],
+        };
+      }
+
+      const sanmingContent = buildSanMingContent(dayGanZhi);
+      if (!sanmingContent.found) {
+        return {
+          summary: sanmingContent.summary,
+          keyPoints: [],
+        };
+      }
+
+      return {
+        hint: undefined,
+        subHint: undefined,
+        summary: sanmingContent.summary,
+        summaryTitle: sanmingContent.nayinLabel,  // 如 "丙寅丁卯炉中火"
+        keyPoints: sanmingContent.keyPoints,
+        keyPointsTitle: '现代AI解析',
+      };
+    }
+
+    // 3) 穷通宝鉴逻辑 (默认)
     // 获取月份
     const yueZhi = pillars[1]?.dizhi;  // 月柱地支
     if (!riZhu || !yueZhi) {
