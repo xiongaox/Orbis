@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import type { PillarData, BaziApiResponse, HiddenStem } from '../../../types/bazi';
 import {
   getElement,
@@ -11,6 +11,7 @@ import {
 } from '../../../utils/metaphysics';
 import { calculateShenSha, calculateDynamicShenSha, getJiJie, type ShenShaContext } from '../../../lib/xuan-bazi/utils/baziShenShaUtil';
 import { createDefaultShenShaSetting } from '../../../lib/xuan-bazi/settings/baziShenShaSetting';
+import GanZhiDiagramModal from './GanZhiDiagramModal';
 
 /**
  * 动态计算柱的详细信息
@@ -46,16 +47,17 @@ interface DetailedPillarCardProps {
   pillar: PillarData;
   isDayMaster?: boolean;
   shensha?: string[];
+  genderLabel?: string; // 日主显示标签：元男/元女
 }
 
-function DetailedPillarCard({ pillar, isDayMaster = false, shensha = [] }: DetailedPillarCardProps) {
+function DetailedPillarCard({ pillar, isDayMaster = false, shensha = [], genderLabel = '日主' }: DetailedPillarCardProps) {
   return (
     <div className={`h-full flex flex-col ${isDayMaster ? 'bg-primary/5' : ''}`}>
       <div className="h-8 flex items-center justify-center border-b border-border bg-secondary/30">
         <span className="text-xs text-muted-foreground">{pillar.label}</span>
       </div>
       <div className="h-10 flex items-center justify-center border-b border-border">
-        <span className="text-sm text-foreground">{pillar.tianganShiShen || '日主'}</span>
+        <span className="text-sm text-foreground">{pillar.tianganShiShen || genderLabel}</span>
       </div>
       <div className="h-14 flex items-center justify-center border-b border-border">
         <span
@@ -208,6 +210,82 @@ export default function BaziChart({
   selectedDaYunIndex,
   selectedLiuNianYear,
 }: BaziChartProps) {
+  const [isDiagramOpen, setIsDiagramOpen] = useState(false);
+
+  // 提取数据（安全访问）
+  const pillars = data?.pillars || [];
+  const daYun = data?.daYun || [];
+  const dayGan = pillars[2]?.tiangan || '';
+
+  // 是否显示大运/流年列
+  const showDaYunLiuNian = selectedDaYunIndex !== null || selectedLiuNianYear !== null;
+
+  // 确定当前显示的大运
+  const activeDaYunIndex = selectedDaYunIndex ?? daYun.find(dy =>
+    currentYear >= dy.startYear && currentYear <= dy.endYear
+  )?.index ?? 1;
+
+  // 确定当前显示的流年
+  const activeLiuNianYear = selectedLiuNianYear ?? currentYear;
+
+  // 获取当前流年和大运
+  const currentLiuNian = (data && showDaYunLiuNian) ? data.liuNian.find(ln => ln.year === activeLiuNianYear) : null;
+  const currentDaYun = (data && showDaYunLiuNian) ? daYun.find(dy => dy.index === activeDaYunIndex) : null;
+
+  // 准备神煞计算上下文
+  const shenShaContext = useMemo((): ShenShaContext | null => {
+    if (!data || !pillars || pillars.length < 4) return null;
+
+    return {
+      sex: (data.gender === '男' || data.gender === 'male') ? 1 : 0,
+      jiJie: getJiJie(pillars[1]?.dizhi || ''),
+      yearNaYinWuXing: pillars[0]?.naYin || '',
+      yearGan: pillars[0]?.tiangan || '',
+      yearZhi: pillars[0]?.dizhi || '',
+      monthGan: pillars[1]?.tiangan || '',
+      monthZhi: pillars[1]?.dizhi || '',
+      dayGan: pillars[2]?.tiangan || '',
+      dayZhi: pillars[2]?.dizhi || '',
+      hourGan: pillars[3]?.tiangan || '',
+      hourZhi: pillars[3]?.dizhi || '',
+      dayGanZhi: pillars[2]?.ganZhi || '',
+      hourGanZhi: pillars[3]?.ganZhi || '',
+    };
+  }, [data, pillars]);
+
+  const shenShaSetting = useMemo(() => createDefaultShenShaSetting(), []);
+
+  // 动态计算流年和大运的详细信息
+  const liuNianDetails = useMemo(() => {
+    if (!currentLiuNian?.ganZhi || !shenShaContext) return null;
+    const details = computePillarDetails(currentLiuNian.ganZhi, dayGan);
+
+    const gan = currentLiuNian.ganZhi[0];
+    const zhi = currentLiuNian.ganZhi[1];
+    const shenshaResult = calculateDynamicShenSha(shenShaContext, shenShaSetting, gan, zhi, '流年');
+    const shensha = shenshaResult.map(r => r.name);
+
+    return { ...details, shensha };
+  }, [currentLiuNian?.ganZhi, dayGan, shenShaContext, shenShaSetting]);
+
+  const daYunDetails = useMemo(() => {
+    if (!currentDaYun?.ganZhi || !shenShaContext) return null;
+    const details = computePillarDetails(currentDaYun.ganZhi, dayGan);
+
+    const gan = currentDaYun.ganZhi[0];
+    const zhi = currentDaYun.ganZhi[1];
+    const shenshaResult = calculateDynamicShenSha(shenShaContext, shenShaSetting, gan, zhi, '大运');
+    const shensha = shenshaResult.map(r => r.name);
+
+    return { ...details, shensha };
+  }, [currentDaYun?.ganZhi, dayGan, shenShaContext, shenShaSetting]);
+
+  // 计算按柱的神煞
+  const pillarShenSha = useMemo(() => {
+    if (!shenShaContext) return null;
+    return calculateShenSha(shenShaContext, shenShaSetting);
+  }, [shenShaContext, shenShaSetting]);
+
   // Loading 状态
   if (loading) {
     return (
@@ -226,84 +304,10 @@ export default function BaziChart({
     );
   }
 
-  const { pillars, daYun } = data;
-
-  // 获取日主天干
-  const dayGan = pillars[2]?.tiangan || '';
-
-  // 是否显示大运/流年列（当右侧有选中时才显示）
-  const showDaYunLiuNian = selectedDaYunIndex !== null || selectedLiuNianYear !== null;
-
-  // 确定当前显示的大运：优先使用选中的，否则根据当前年份自动确定
-  const activeDaYunIndex = selectedDaYunIndex ?? daYun.find(dy =>
-    currentYear >= dy.startYear && currentYear <= dy.endYear
-  )?.index ?? 1;
-
-  // 确定当前显示的流年：优先使用选中的，否则使用当前年份
-  const activeLiuNianYear = selectedLiuNianYear ?? currentYear;
-
-  // 获取当前流年和大运（仅在需要显示时计算）
-  const currentLiuNian = showDaYunLiuNian ? data.liuNian.find(ln => ln.year === activeLiuNianYear) : null;
-  const currentDaYun = showDaYunLiuNian ? daYun.find(dy => dy.index === activeDaYunIndex) : null;
-
-  // 准备神煞计算上下文
-  const shenShaContext = useMemo((): ShenShaContext | null => {
-    if (!pillars || pillars.length < 4) return null;
-
-    return {
-      sex: (data.gender === '男' || data.gender === 'male') ? 1 : 0,
-      jiJie: getJiJie(pillars[1]?.dizhi || ''),
-      yearNaYinWuXing: pillars[0]?.naYin || '', // 需要包含五行字符，如"海中金"
-      yearGan: pillars[0]?.tiangan || '',
-      yearZhi: pillars[0]?.dizhi || '',
-      monthGan: pillars[1]?.tiangan || '',
-      monthZhi: pillars[1]?.dizhi || '',
-      dayGan: pillars[2]?.tiangan || '',
-      dayZhi: pillars[2]?.dizhi || '',
-      hourGan: pillars[3]?.tiangan || '',
-      hourZhi: pillars[3]?.dizhi || '',
-      dayGanZhi: pillars[2]?.ganZhi || '',
-      hourGanZhi: pillars[3]?.ganZhi || '',
-    };
-  }, [pillars, data?.gender]);
-
-  const shenShaSetting = useMemo(() => createDefaultShenShaSetting(), []);
-
-  // 动态计算流年和大运的详细信息（含神煞）
-  const liuNianDetails = useMemo(() => {
-    if (!currentLiuNian?.ganZhi || !shenShaContext) return null;
-    const details = computePillarDetails(currentLiuNian.ganZhi, dayGan);
-
-    // 计算流年神煞
-    const gan = currentLiuNian.ganZhi[0];
-    const zhi = currentLiuNian.ganZhi[1];
-    const shenshaResult = calculateDynamicShenSha(shenShaContext, shenShaSetting, gan, zhi, '流年');
-    const shensha = shenshaResult.map(r => r.name);
-
-    return { ...details, shensha };
-  }, [currentLiuNian?.ganZhi, dayGan, shenShaContext, shenShaSetting]);
-
-  const daYunDetails = useMemo(() => {
-    if (!currentDaYun?.ganZhi || !shenShaContext) return null;
-    const details = computePillarDetails(currentDaYun.ganZhi, dayGan);
-
-    // 计算大运神煞
-    const gan = currentDaYun.ganZhi[0];
-    const zhi = currentDaYun.ganZhi[1];
-    const shenshaResult = calculateDynamicShenSha(shenShaContext, shenShaSetting, gan, zhi, '大运');
-    const shensha = shenshaResult.map(r => r.name);
-
-    return { ...details, shensha };
-  }, [currentDaYun?.ganZhi, dayGan, shenShaContext, shenShaSetting]);
-
-  // 计算按柱的神煞（四柱）
-  const pillarShenSha = useMemo(() => {
-    if (!shenShaContext) return null;
-    return calculateShenSha(shenShaContext, shenShaSetting);
-  }, [shenShaContext, shenShaSetting]);
-
   return (
     <div className="min-h-0 min-w-0 overflow-y-auto">
+
+
       {/* 主排盘表格 */}
       <div className="bg-card rounded-xl border border-border overflow-hidden mb-4 w-full">
         <div className="flex">
@@ -384,6 +388,11 @@ export default function BaziChart({
                     index === 3 ? pillarShenSha.hour : []
             ).map(s => s.name) : [];
 
+            // 日柱显示：根据性别显示"元男"或"元女"
+            const genderLabel = (data.gender === '男' || data.gender === 'male' || data.gender === '乾造')
+              ? '元男'
+              : '元女';
+
             return (
               <div
                 key={pillar.label}
@@ -393,6 +402,7 @@ export default function BaziChart({
                   pillar={pillar}
                   isDayMaster={index === 2}
                   shensha={shenshaList}
+                  genderLabel={index === 2 ? genderLabel : undefined}
                 />
               </div>
             );
@@ -400,7 +410,15 @@ export default function BaziChart({
         </div>
       </div>
 
-
+      {/* 干支图解模态框 */}
+      <GanZhiDiagramModal
+        isOpen={isDiagramOpen}
+        onClose={() => setIsDiagramOpen(false)}
+        baziData={data}
+        selectedDaYunIndex={selectedDaYunIndex ?? null}
+        selectedLiuNianYear={selectedLiuNianYear ?? null}
+        currentYear={currentYear}
+      />
     </div>
   );
 }

@@ -22,7 +22,7 @@ function getXunKong(ganZhi: string): string {
     return KONG_WANG[ganZhi] || '';
 }
 
-function buildPillar(bazi: any, pillarType: string): PillarData {
+function buildPillar(bazi: any, pillarType: string, gender?: 'male' | 'female'): PillarData {
     const labelMap: Record<string, string> = { 'year': '年柱', 'month': '月柱', 'day': '日柱', 'time': '时柱' };
     const capType = pillarType.charAt(0).toUpperCase() + pillarType.slice(1);
 
@@ -43,7 +43,8 @@ function buildPillar(bazi: any, pillarType: string): PillarData {
 
     let tianganShiShen = '';
     if (pillarType === 'day') {
-        tianganShiShen = '日主';
+        // 根据性别显示"元男"或"元女"
+        tianganShiShen = gender === 'male' ? '元男' : '元女';
     } else {
         tianganShiShen = SHI_SHEN[dayGan + tiangan] || '';
     }
@@ -136,10 +137,10 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
 
     // 2. 构建四柱
     const pillars = [
-        buildPillar(bazi, 'year'),
-        buildPillar(bazi, 'month'),
-        buildPillar(bazi, 'day'),
-        buildPillar(bazi, 'time'),
+        buildPillar(bazi, 'year', gender),
+        buildPillar(bazi, 'month', gender),
+        buildPillar(bazi, 'day', gender),
+        buildPillar(bazi, 'time', gender),
     ];
 
     // 3. 构建起运信息

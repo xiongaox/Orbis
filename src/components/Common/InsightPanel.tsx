@@ -165,20 +165,7 @@ export default function InsightPanel({
         </h2>
       </div>
       <div className="p-4 border-b border-border">
-        {/* 仅穷通宝鉴显示调候提示 */}
-        {activeBook !== 'ditiansui' && content.hint && (
-          <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1 flex-wrap">
-            <span>调候用神提示：</span>
-            {renderTianGanText(content.hint.replace('调候用神提示：', ''))}
-          </div>
-        )}
-        {activeBook !== 'ditiansui' && content.subHint && (
-          <div className="text-xs text-muted-foreground mb-3 flex items-center gap-1 flex-wrap">
-            <span>本八字：</span>
-            {renderTouCangText(content.subHint.replace('本八字：', ''))}
-          </div>
-        )}
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5 mb-3">
           {books.map((item) => (
             <button
               key={item.id}
@@ -193,14 +180,28 @@ export default function InsightPanel({
             </button>
           ))}
         </div>
+        {/* 仅穷通宝鉴显示调候提示 */}
+        {activeBook !== 'ditiansui' && content.hint && (
+          <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1 flex-wrap">
+            <span>调候用神提示：</span>
+            {renderTianGanText(content.hint.replace('调候用神提示：', ''))}
+          </div>
+        )}
+        {activeBook !== 'ditiansui' && content.subHint && (
+          <div className="text-xs text-muted-foreground mb-3 flex items-center gap-1 flex-wrap">
+            <span>本八字：</span>
+            {renderTouCangText(content.subHint.replace('本八字：', ''))}
+          </div>
+        )}
+
         {/* 滴天髓子标签 */}
         {activeBook === 'ditiansui' && (
-          <div className="flex gap-2 mt-3 pt-3 border-t border-border/50">
+          <div className="flex mt-3 p-1 bg-secondary/50 rounded-lg border border-border/50">
             <button
               type="button"
               onClick={() => setDitiansuiSubTab('yuanwen')}
-              className={`px-3 py-1 text-xs rounded-md transition-colors ${ditiansuiSubTab === 'yuanwen'
-                ? 'bg-primary/20 text-primary font-medium'
+              className={`flex-1 px-3 py-1.5 text-xs rounded-md transition-all duration-200 ${ditiansuiSubTab === 'yuanwen'
+                ? 'bg-background text-foreground font-medium shadow-sm ring-1 ring-border/20'
                 : 'text-muted-foreground hover:text-foreground'
                 }`}
             >
@@ -209,8 +210,8 @@ export default function InsightPanel({
             <button
               type="button"
               onClick={() => setDitiansuiSubTab('logic')}
-              className={`px-3 py-1 text-xs rounded-md transition-colors ${ditiansuiSubTab === 'logic'
-                ? 'bg-primary/20 text-primary font-medium'
+              className={`flex-1 px-3 py-1.5 text-xs rounded-md transition-all duration-200 ${ditiansuiSubTab === 'logic'
+                ? 'bg-background text-foreground font-medium shadow-sm ring-1 ring-border/20'
                 : 'text-muted-foreground hover:text-foreground'
                 }`}
             >
@@ -334,7 +335,7 @@ export default function InsightPanel({
                   className="w-full flex items-center justify-between p-3 text-left"
                 >
                   <span className="text-sm font-medium text-foreground flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-accent" />
+                    <BookOpen className="w-4 h-4 text-primary" />
                     {content.keyPointsTitle || '要点解析'}
                   </span>
                   {openSections.includes('keyPoints') ? (
