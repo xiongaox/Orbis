@@ -25,6 +25,9 @@ export default function DayunLiunianPanel({
   const [internalDaYunIndex, setInternalDaYunIndex] = useState<number | null>(null);
   const [internalLiuNianYear, setInternalLiuNianYear] = useState<number | null>(null);
 
+  // 大运分页状态（每页显示10个大运）
+  const [daYunPage, setDaYunPage] = useState(0);
+
   // 使用外部状态或内部状态
   const selectedDaYunIndex = propDaYunIndex !== undefined ? propDaYunIndex : internalDaYunIndex;
   const selectedLiuNianYear = propLiuNianYear !== undefined ? propLiuNianYear : internalLiuNianYear;
@@ -39,9 +42,15 @@ export default function DayunLiunianPanel({
   const dayMaster = pillars[2]?.tiangan || '丙';
 
   // 过滤大运：现在我们利用 index=0（或我们手动插入的 index=-1）作为小运/起运前
-  // 所以不再过滤 index 0，直接使用全部大运数据，但只保留前10柱以保持界面整洁
+  // 每页显示10个大运，支持分页
   const displayDaYun = useMemo(() => {
-    return daYun.slice(0, 10);
+    const startIdx = daYunPage * 10;
+    return daYun.slice(startIdx, startIdx + 10);
+  }, [daYun, daYunPage]);
+
+  // 计算总页数
+  const totalDaYunPages = useMemo(() => {
+    return Math.ceil(daYun.length / 10);
   }, [daYun]);
 
   // 根据当前时间自动确定当前大运
@@ -155,28 +164,64 @@ export default function DayunLiunianPanel({
     }
   };
 
-  const isFullLiuNianRow = displayLiuNian.length === 10;
-
   return (
     <div className="min-h-0 min-w-0 overflow-hidden">
       <div className="bg-card rounded-xl border border-border overflow-hidden h-fit flex flex-col">
         {/* 大运行 */}
         <div className="border-b border-border">
-          <div className="flex">
-            <div className="w-10 bg-secondary/30 border-r border-border flex items-center justify-center">
-              <div className="text-base text-muted-foreground font-medium leading-none flex flex-col items-center gap-1">
+          <div className="flex items-stretch">
+            <div className="w-10 bg-secondary/30 border-r border-border flex flex-col items-center justify-center gap-0.5">
+              {/* 上一页按钮 */}
+              {totalDaYunPages > 1 && (
+                <button
+                  onClick={() => setDaYunPage(p => Math.max(0, p - 1))}
+                  disabled={daYunPage === 0}
+                  className={`w-5 h-4 flex items-center justify-center rounded text-[10px] transition-colors
+                    ${daYunPage === 0
+                      ? 'text-muted-foreground/30 cursor-not-allowed'
+                      : 'text-muted-foreground hover:bg-primary/20 hover:text-primary cursor-pointer'}`}
+                  title={daYunPage > 0 ? `上一页 (${daYunPage}/${totalDaYunPages})` : '已是第一页'}
+                >
+                  ▲
+                </button>
+              )}
+
+              {/* 大运标题 */}
+              <div className="text-base text-foreground/70 font-medium leading-none flex flex-col items-center gap-0.5">
                 <span>大</span>
                 <span>运</span>
               </div>
+
+              {/* 页码提示 */}
+              {totalDaYunPages > 1 && (
+                <div className="text-[9px] text-muted-foreground/60 leading-none">
+                  {daYunPage + 1}/{totalDaYunPages}
+                </div>
+              )}
+
+              {/* 下一页按钮 */}
+              {totalDaYunPages > 1 && (
+                <button
+                  onClick={() => setDaYunPage(p => Math.min(totalDaYunPages - 1, p + 1))}
+                  disabled={daYunPage >= totalDaYunPages - 1}
+                  className={`w-5 h-4 flex items-center justify-center rounded text-[10px] transition-colors
+                    ${daYunPage >= totalDaYunPages - 1
+                      ? 'text-muted-foreground/30 cursor-not-allowed'
+                      : 'text-muted-foreground hover:bg-primary/20 hover:text-primary cursor-pointer'}`}
+                  title={daYunPage < totalDaYunPages - 1 ? `下一页 (${daYunPage + 2}/${totalDaYunPages})` : '已是最后一页'}
+                >
+                  ▼
+                </button>
+              )}
             </div>
-            <div className="flex-1 min-w-0 overflow-x-auto">
-              <div className="grid grid-cols-10 min-w-0 w-full">
+            <div className="flex-1 min-w-0 overflow-x-auto flex flex-col">
+              <div className="grid grid-cols-10 min-w-0 w-full flex-1">
                 {displayDaYun.map((item) => {
                   const isActive = item.index === activeDaYunIndex;
                   return (
                     <div
                       key={`dayun-${item.index}`}
-                      className={`min-w-0 p-3 border-r border-border last:border-r-0 cursor-pointer transition-colors hover:bg-primary/10 ${isActive ? 'bg-primary/5' : ''
+                      className={`min-w-0 p-3 border-r border-border last:border-r-0 cursor-pointer transition-colors hover:bg-primary/10 h-full flex flex-col justify-center ${isActive ? 'bg-primary/5' : ''
                         }`}
                       onClick={() => handleDaYunClick(item.index)}
                     >
@@ -228,11 +273,11 @@ export default function DayunLiunianPanel({
           <div className="flex">
             <div className="w-10 bg-secondary/30 border-r border-border flex items-center justify-center">
               <div className="flex flex-col items-center justify-between h-full py-3">
-                <div className="text-base text-muted-foreground font-medium leading-none flex flex-col items-center gap-1">
+                <div className="text-base text-foreground/70 font-medium leading-none flex flex-col items-center gap-1">
                   <span>流</span>
                   <span>年</span>
                 </div>
-                <div className="text-base text-muted-foreground font-medium leading-none flex flex-col items-center gap-1">
+                <div className="text-base text-foreground/70 font-medium leading-none flex flex-col items-center gap-1">
                   <span>小</span>
                   <span>运</span>
                 </div>
@@ -244,10 +289,12 @@ export default function DayunLiunianPanel({
                   const xiaoyun = displayXiaoYun[idx];
                   const isCurrentYear = item.year === currentYear;
                   const isSelected = item.year === selectedLiuNianYear;
+                  // 只有当是第10个格子时才移除右边框
+                  const isLastColumn = idx === 9;
                   return (
                     <div
                       key={item.year}
-                      className={`min-w-0 p-3 border-r border-border cursor-pointer transition-colors hover:bg-primary/10 ${isSelected ? 'bg-primary/10' : isCurrentYear ? 'bg-primary/5' : ''
+                      className={`min-w-0 p-3 border-r border-border cursor-pointer transition-colors hover:bg-primary/10 ${isLastColumn ? '!border-r-0' : ''} ${isSelected ? 'bg-primary/10' : isCurrentYear ? 'bg-primary/5' : ''
                         }`}
                       onClick={() => handleLiuNianClick(item.year)}
                     >

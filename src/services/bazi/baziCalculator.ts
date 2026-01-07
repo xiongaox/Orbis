@@ -246,7 +246,8 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
         // 目前先保护 while 循环。
     }
 
-    while (dayunList.length < 11 && dayunList.length > 0) {
+    // 扩展大运到20个（支持更长寿命的查看需求）
+    while (dayunList.length < 20 && dayunList.length > 0) {
         const last = dayunList[dayunList.length - 1];
         const lastGan = last.tiangan;
         const lastZhi = last.dizhi;
