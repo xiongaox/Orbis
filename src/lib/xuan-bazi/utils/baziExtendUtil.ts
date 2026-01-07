@@ -4,6 +4,35 @@
  * 用于计算命卦、星座、缺失五行等额外信息
  */
 
+import { Solar } from 'lunar-typescript';
+
+/**
+ * 解析日期字符串（支持多种格式）
+ * 支持: "2026-01-07", "2026年1月7日", "2026年1月7日 09:28"
+ */
+function parseDateString(dateStr: string): Date | null {
+    if (!dateStr || dateStr === '-') return null;
+
+    // 尝试标准格式
+    let date = new Date(dateStr);
+    if (!isNaN(date.getTime())) return date;
+
+    // 尝试中文格式：2026年1月7日 或 2026年1月7日 09:28
+    const chineseMatch = dateStr.match(/(\d{4})年(\d{1,2})月(\d{1,2})日(?:\s*(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+    if (chineseMatch) {
+        const year = parseInt(chineseMatch[1]);
+        const month = parseInt(chineseMatch[2]) - 1; // JS月份从0开始
+        const day = parseInt(chineseMatch[3]);
+        const hour = chineseMatch[4] ? parseInt(chineseMatch[4]) : 0;
+        const minute = chineseMatch[5] ? parseInt(chineseMatch[5]) : 0;
+        const second = chineseMatch[6] ? parseInt(chineseMatch[6]) : 0;
+        date = new Date(year, month, day, hour, minute, second);
+        if (!isNaN(date.getTime())) return date;
+    }
+
+    return null;
+}
+
 // 命卦映射
 const GUA_MAP: Record<number, string> = {
     1: '坎卦 (东四命)',
@@ -28,14 +57,6 @@ const ZHI_WX_MAP: Record<string, string> = {
     '巳': '火', '午': '火', '未': '土', '申': '金', '酉': '金',
     '戌': '土', '亥': '水'
 };
-
-/**
- * 计算命卦
- * @param year 公历年份
- * @param gender 性别 (male/female)
- */
-
-import { Solar } from 'lunar-typescript';
 
 /**
  * 计算命卦
@@ -115,7 +136,9 @@ export function getWuXingStatistics(pillars: { tiangan: string; dizhi: string }[
  * @param solarDateStr 公历日期字符串
  */
 export function getSolarTerms(solarDateStr: string) {
-    const solar = Solar.fromDate(new Date(solarDateStr));
+    const dateObj = parseDateString(solarDateStr);
+    if (!dateObj) return { prev: { name: '-', date: '-', diff: '-' }, next: { name: '-', date: '-', diff: '-' } };
+    const solar = Solar.fromDate(dateObj);
     const lunar = solar.getLunar();
 
     // 获取当日前后节气
@@ -157,29 +180,56 @@ export function getSolarTerms(solarDateStr: string) {
  * 获取月相名称
  */
 export function getMoonPhase(solarDateStr: string): string {
-    const solar = Solar.fromDate(new Date(solarDateStr));
+    const dateObj = parseDateString(solarDateStr);
+    if (!dateObj) return '未知';
+    const solar = Solar.fromDate(dateObj);
     const lunar = solar.getLunar();
     return lunar.getYueXiang();
 }
 
 /**
  * 获取月将（月将神）
+ * 正确算法：根据中气换将
+ * 雨水后→亥(登明)、春分后→戌(河魁)、谷雨后→酉(从魁)、小满后→申(传送)
+ * 夏至后→未(小吉)、大暑后→午(胜光)、处暑后→巳(太乙)、秋分后→辰(天罡)
+ * 霜降后→卯(太冲)、小雪后→寅(功曹)、冬至后→丑(大吉)、大寒后→子(神后)
  */
 export function getYueJiang(solarDateStr: string): { jiang: string; shen: string } {
-    const solar = Solar.fromDate(new Date(solarDateStr));
+    const dateObj = parseDateString(solarDateStr);
+    if (!dateObj) return { jiang: '-', shen: '未知' };
+    const solar = Solar.fromDate(dateObj);
     const lunar = solar.getLunar();
 
-    // 手动计算月将
-    // 规则：雨水后用亥，春分后用戌... (实际通常以中气换将)
-    // 简化版：根据月份判断 (需更精确的节气逻辑，这里先做映射)
-    const yue = lunar.getMonth();
-    const map: string[] = ['丑', '子', '亥', '戌', '酉', '申', '未', '午', '巳', '辰', '卯', '寅'];
-    // 农历1月->亥(2), 2->戌... 偏移量处理
-    // 注意：月将比较复杂，涉及中气。暂时用简单月份映射代替
-    const _jiangIndex = (12 - (yue - 1) + 11) % 12; // 简易算法（仅留备用）
-    void _jiangIndex; // 显式标记为已使用
-    const yueJiang = map[(yue - 1) % 12]; // 仅做简单示例防止报错
+    // 中气与月将的对应关系
+    const QI_JIANG: Array<{ qi: string; jiang: string }> = [
+        { qi: '雨水', jiang: '亥' },
+        { qi: '春分', jiang: '戌' },
+        { qi: '谷雨', jiang: '酉' },
+        { qi: '小满', jiang: '申' },
+        { qi: '夏至', jiang: '未' },
+        { qi: '大暑', jiang: '午' },
+        { qi: '处暑', jiang: '巳' },
+        { qi: '秋分', jiang: '辰' },
+        { qi: '霜降', jiang: '卯' },
+        { qi: '小雪', jiang: '寅' },
+        { qi: '冬至', jiang: '丑' },
+        { qi: '大寒', jiang: '子' }
+    ];
 
+    // 获取当前日期之前最近的中气
+    const prevQi = lunar.getPrevQi();
+    const prevQiName = prevQi.getName();
+
+    // 根据中气找月将
+    let yueJiang = '丑'; // 默认冬至后
+    for (const item of QI_JIANG) {
+        if (item.qi === prevQiName) {
+            yueJiang = item.jiang;
+            break;
+        }
+    }
+
+    // 月将神名称映射
     const shenMap: Record<string, string> = {
         '亥': '登明', '戌': '河魁', '酉': '从魁', '申': '传送', '未': '小吉', '午': '胜光',
         '巳': '太乙', '辰': '天罡', '卯': '太冲', '寅': '功曹', '丑': '大吉', '子': '神后'
@@ -213,27 +263,240 @@ export function getPattern(_monthZhi: string, _dayGan: string): string {
 }
 
 /**
- * 获取喜用神（简易推荐）
- * @param missing 缺失的五行
+ * 获取喜用神（需要完整的旺衰和格局分析）
+ * 注意：真正的喜用神判断需要考虑日主强弱、格局等，"缺什么补什么"是错误的
+ * @param _missing 缺失的五行（暂未使用）
  */
-export function getJoyGods(missing: string): { gods: string; direction: string } {
-    // 简单逻辑：缺啥补啥
-    if (missing === '五行俱全') return { gods: '需综合判断', direction: '-' };
+export function getJoyGods(_missing: string): { gods: string; direction: string } {
+    // TODO: 实现完整的喜用神判断逻辑
+    // 1. 计算日主旺衰
+    // 2. 分析格局
+    // 3. 确定用神和喜神
+    void _missing;
+    return { gods: '暂未对接', direction: '暂未对接' };
+}
 
-    const gods = missing.split('、');
-    const directions: string[] = [];
+/**
+ * 获取星宿信息
+ * @param solarDateStr 公历日期字符串
+ */
+export function getXingXiu(solarDateStr: string): string {
+    try {
+        const dateObj = parseDateString(solarDateStr);
+        if (!dateObj) return '未知';
+        const solar = Solar.fromDate(dateObj);
+        const lunar = solar.getLunar();
+        // lunar-typescript 的 getXiu() 返回星宿名称
+        const xiu = lunar.getXiu();
+        const xiuLuck = lunar.getXiuLuck(); // 吉/凶
+        const animal = lunar.getAnimal(); // 导对应动物
+        return `${xiu}${animal ? '(' + animal + ')' : ''}${xiuLuck ? ' ' + xiuLuck : ''}`;
+    } catch {
+        return '未知';
+    }
+}
 
-    gods.forEach(g => {
-        if (g === '木') directions.push('东');
-        if (g === '火') directions.push('南');
-        if (g === '土') directions.push('中');
-        if (g === '金') directions.push('西');
-        if (g === '水') directions.push('北');
-    });
+/**
+ * 获取人元司令
+ * 根据日期在月令中的位置，判断当令之气
+ * @param solarDateStr 公历日期字符串
+ */
+export function getRenYuanSiLing(solarDateStr: string): string {
+    try {
+        const dateObj = parseDateString(solarDateStr);
+        if (!dateObj) return '未知';
+        const solar = Solar.fromDate(dateObj);
+        const lunar = solar.getLunar();
 
-    return {
-        gods: gods.join('、'),
-        direction: directions.join('、')
+        // 获取月支
+        const monthZhi = lunar.getMonthZhi();
+
+        // 地支藏干及其值令天数（简化版）
+        // 实际应根据节气后的天数精确计算
+        const ZANG_GAN_LING: Record<string, Array<{ gan: string; days: number }>> = {
+            '子': [{ gan: '癸', days: 30 }],
+            '丑': [{ gan: '癸', days: 9 }, { gan: '辛', days: 3 }, { gan: '己', days: 18 }],
+            '寅': [{ gan: '甲', days: 7 }, { gan: '丙', days: 7 }, { gan: '戊', days: 16 }],
+            '卯': [{ gan: '乙', days: 30 }],
+            '辰': [{ gan: '乙', days: 9 }, { gan: '癸', days: 3 }, { gan: '戊', days: 18 }],
+            '巳': [{ gan: '庚', days: 7 }, { gan: '丙', days: 11 }, { gan: '戊', days: 12 }],
+            '午': [{ gan: '丙', days: 10 }, { gan: '己', days: 10 }, { gan: '丁', days: 10 }],
+            '未': [{ gan: '丁', days: 9 }, { gan: '乙', days: 3 }, { gan: '己', days: 18 }],
+            '申': [{ gan: '戊', days: 7 }, { gan: '壬', days: 7 }, { gan: '庚', days: 16 }],
+            '酉': [{ gan: '辛', days: 30 }],
+            '戌': [{ gan: '辛', days: 9 }, { gan: '丁', days: 3 }, { gan: '戊', days: 18 }],
+            '亥': [{ gan: '甲', days: 7 }, { gan: '壬', days: 23 }]
+        };
+
+        // 获取节气后天数
+        const prevJieQi = lunar.getPrevJie();
+        const prevDate = prevJieQi.getSolar();
+        const d1 = new Date(solar.toYmdHms().replace(/-/g, '/'));
+        const d2 = new Date(prevDate.toYmdHms().replace(/-/g, '/'));
+        const daysPassed = Math.floor((d1.getTime() - d2.getTime()) / (1000 * 60 * 60 * 24));
+
+        const lings = ZANG_GAN_LING[monthZhi];
+        if (!lings) return '未知';
+
+        let accumulated = 0;
+        for (const ling of lings) {
+            accumulated += ling.days;
+            if (daysPassed < accumulated) {
+                const ganWx = GAN_WX_MAP[ling.gan] || '';
+                return `${ling.gan}${ganWx}值令`;
+            }
+        }
+
+        // 默认返回最后一个
+        const lastLing = lings[lings.length - 1];
+        const lastWx = GAN_WX_MAP[lastLing.gan] || '';
+        return `${lastLing.gan}${lastWx}值令`;
+    } catch {
+        return '未知';
+    }
+}
+
+/**
+ * 计算胎息（根据日干支推算）
+ * 正确算法：天干取五合，地支取六合
+ * 天干五合：甲己合、乙庚合、丙辛合、丁壬合、戊癸合
+ * 地支六合：子丑合、寅亥合、卯戌合、辰酉合、巳申合、午未合
+ * @param dayGanZhi 日柱干支
+ */
+export function getTaiXi(dayGanZhi: string): string {
+    if (!dayGanZhi || dayGanZhi.length !== 2) return '-';
+
+    // 天干五合映射
+    const GAN_HE: Record<string, string> = {
+        '甲': '己', '己': '甲',
+        '乙': '庚', '庚': '乙',
+        '丙': '辛', '辛': '丙',
+        '丁': '壬', '壬': '丁',
+        '戊': '癸', '癸': '戊'
     };
+
+    // 地支六合映射
+    const ZHI_HE: Record<string, string> = {
+        '子': '丑', '丑': '子',
+        '寅': '亥', '亥': '寅',
+        '卯': '戌', '戌': '卯',
+        '辰': '酉', '酉': '辰',
+        '巳': '申', '申': '巳',
+        '午': '未', '未': '午'
+    };
+
+    const dayGan = dayGanZhi[0];
+    const dayZhi = dayGanZhi[1];
+
+    const taiXiGan = GAN_HE[dayGan];
+    const taiXiZhi = ZHI_HE[dayZhi];
+
+    if (!taiXiGan || !taiXiZhi) return '-';
+
+    const taiXiGanZhi = taiXiGan + taiXiZhi;
+
+    // 获取胎息纳音
+    const NA_YIN_MAP: Record<string, string> = {
+        '甲子': '海中金', '乙丑': '海中金', '丙寅': '炉中火', '丁卯': '炉中火',
+        '戊辰': '大林木', '己巳': '大林木', '庚午': '路旁土', '辛未': '路旁土',
+        '壬申': '剑锋金', '癸酉': '剑锋金', '甲戌': '山头火', '乙亥': '山头火',
+        '丙子': '涧下水', '丁丑': '涧下水', '戊寅': '城头土', '己卯': '城头土',
+        '庚辰': '白蜡金', '辛巳': '白蜡金', '壬午': '杨柳木', '癸未': '杨柳木',
+        '甲申': '泉中水', '乙酉': '泉中水', '丙戌': '屋上土', '丁亥': '屋上土',
+        '戊子': '霹雳火', '己丑': '霹雳火', '庚寅': '松柏木', '辛卯': '松柏木',
+        '壬辰': '长流水', '癸巳': '长流水', '甲午': '沙中金', '乙未': '沙中金',
+        '丙申': '山下火', '丁酉': '山下火', '戊戌': '平地木', '己亥': '平地木',
+        '庚子': '壁上土', '辛丑': '壁上土', '壬寅': '金箔金', '癸卯': '金箔金',
+        '甲辰': '覆灯火', '乙巳': '覆灯火', '丙午': '天河水', '丁未': '天河水',
+        '戊申': '大驿土', '己酉': '大驿土', '庚戌': '钗钏金', '辛亥': '钗钏金',
+        '壬子': '桑柘木', '癸丑': '桑柘木', '甲寅': '大溪水', '乙卯': '大溪水',
+        '丙辰': '沙中土', '丁巳': '沙中土', '戊午': '天上火', '己未': '天上火',
+        '庚申': '石榴木', '辛酉': '石榴木', '壬戌': '大海水', '癸亥': '大海水'
+    };
+    const taiXiNaYin = NA_YIN_MAP[taiXiGanZhi] || '';
+
+    return `${taiXiGanZhi}${taiXiNaYin ? '（' + taiXiNaYin + '）' : ''}`
+}
+
+/**
+ * 获取详细节气信息（区分"节"和"气"）
+ * 节：立春、惊蛰、清明、立夏、芒种、小暑、立秋、白露、寒露、立冬、大雪、小寒
+ * 气：雨水、春分、谷雨、小满、夏至、大暑、处暑、秋分、霜降、小雪、冬至、大寒
+ */
+export function getDetailedSolarTerms(solarDateStr: string): {
+    prevJie: { name: string; date: string; diff: string };
+    nextJie: { name: string; date: string; diff: string };
+    prevQi: { name: string; date: string; diff: string };
+    nextQi: { name: string; date: string; diff: string };
+} {
+    // 默认返回值
+    const defaultResult = {
+        prevJie: { name: '-', date: '-', diff: '-' },
+        nextJie: { name: '-', date: '-', diff: '-' },
+        prevQi: { name: '-', date: '-', diff: '-' },
+        nextQi: { name: '-', date: '-', diff: '-' }
+    };
+
+    // 验证日期字符串
+    if (!solarDateStr || solarDateStr === '-') {
+        return defaultResult;
+    }
+
+    try {
+        const dateObj = parseDateString(solarDateStr);
+        if (!dateObj) {
+            return defaultResult;
+        }
+
+        const solar = Solar.fromDate(dateObj);
+        const lunar = solar.getLunar();
+
+        const formatTime = (s: { getYear: () => number; getMonth: () => number; getDay: () => number; getHour: () => number; getMinute: () => number; getSecond: () => number }) =>
+            `${s.getYear()}-${String(s.getMonth()).padStart(2, '0')}-${String(s.getDay()).padStart(2, '0')} ${String(s.getHour()).padStart(2, '0')}:${String(s.getMinute()).padStart(2, '0')}:${String(s.getSecond()).padStart(2, '0')}`;
+
+        const calcDiff = (target: Solar, current: Solar) => {
+            const d1 = new Date(target.toYmdHms().replace(/-/g, '/'));
+            const d2 = new Date(current.toYmdHms().replace(/-/g, '/'));
+            const diffMs = Math.abs(d1.getTime() - d2.getTime());
+            const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            const secs = Math.floor((diffMs % (1000 * 60)) / 1000);
+            return `${days}天${hours}小时${mins}分${secs}秒`;
+        };
+
+        // 获取前后"节"
+        const prevJie = lunar.getPrevJie();
+        const nextJie = lunar.getNextJie();
+
+        // 获取前后"气"
+        const prevQi = lunar.getPrevQi();
+        const nextQi = lunar.getNextQi();
+
+        return {
+            prevJie: {
+                name: prevJie.getName(),
+                date: formatTime(prevJie.getSolar()),
+                diff: calcDiff(prevJie.getSolar(), solar)
+            },
+            nextJie: {
+                name: nextJie.getName(),
+                date: formatTime(nextJie.getSolar()),
+                diff: calcDiff(nextJie.getSolar(), solar)
+            },
+            prevQi: {
+                name: prevQi.getName(),
+                date: formatTime(prevQi.getSolar()),
+                diff: calcDiff(prevQi.getSolar(), solar)
+            },
+            nextQi: {
+                name: nextQi.getName(),
+                date: formatTime(nextQi.getSolar()),
+                diff: calcDiff(nextQi.getSolar(), solar)
+            }
+        };
+    } catch {
+        return defaultResult;
+    }
 }
 

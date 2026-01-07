@@ -140,7 +140,7 @@ function YunPillar({
   return (
     <div className={`flex-1 border-r border-border last:border-r-0 flex flex-col ${isAccent ? 'bg-accent/5' : ''}`}>
       <div className="h-8 flex items-center justify-center border-b border-border bg-secondary/30">
-        <span className={`text-xs ${isAccent ? 'text-accent' : 'text-muted-foreground'}`}>{label}</span>
+        <span className={`text-xs ${isAccent ? 'text-foreground/70 font-medium' : 'text-muted-foreground'}`}>{label}</span>
       </div>
       <div className="h-10 flex items-center justify-center border-b border-border">
         <span className="text-sm text-foreground">{zhuxing}</span>
