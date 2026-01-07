@@ -6,13 +6,14 @@ import {
     getWuXingStatistics,
     getMoonPhase,
     getYueJiang,
-    getJoyGods,
+
     getXingXiu,
     getRenYuanSiLing,
     getTaiXi,
     getDetailedSolarTerms
 } from '../../../lib/xuan-bazi/utils/baziExtendUtil';
 import { getNaYin } from '../../../lib/xuan-bazi/utils/baziJichuUtil';
+import { calculateWangShuai } from '../../../lib/xuan-bazi/utils/wangShuaiUtil';
 
 
 interface BaziBasicInfoPanelProps {
@@ -66,6 +67,14 @@ export default function BaziBasicInfoPanel({ baziData }: BaziBasicInfoPanelProps
         const taiXi = getTaiXi(dayGanZhi);
         const solarTerms = getDetailedSolarTerms(solarDate);
 
+        // === ⚡️ 旺衰核心算法调用 ===
+        // 适配 Pillars 数据结构
+        const wangShuaiInput = pillars.map(p => ({
+            tiangan: p.tiangan,
+            dizhi: p.dizhi
+        }));
+        const wangShuaiResult = calculateWangShuai(wangShuaiInput);
+
         // 天干五行映射
         const tianganWuxing: Record<string, string> = {
             '甲': '木', '乙': '木', '丙': '火', '丁': '火', '戊': '土',
@@ -79,16 +88,22 @@ export default function BaziBasicInfoPanel({ baziData }: BaziBasicInfoPanelProps
             mingGua,
             zodiacConstellation: `${baziData.zodiac || '-'}、${constellation}`,
             xingXiu,
-            bodyStrength: "暂未对接", // 待实现旺衰计算
+            // 替换为真实数据
+            bodyStrength: wangShuaiResult.verdict,
             renYuanSiLing,
             taiYuan: `${taiYuan}（${taiYuanNaYin}）`,
             taiXi,
             mingShenGong: `${mingGong}（${mingGongNaYin}） ${shenGong}（${shenGongNaYin}）`,
             missing,
-            pattern: "暂未对接", // 待实现格局判断
+            // 替换为真实数据 (优先展示特殊格局，如果是普通格局则展示正官格等)
+            pattern: wangShuaiResult.patternCode === 'Normal' ? wangShuaiResult.formalPattern : wangShuaiResult.calcPattern,
+            joyGods: wangShuaiResult.joyGods.join('、'), // 使用算法计算的喜用
+            joyDirection: wangShuaiResult.luckyDirections.join('、'), // 吉利方位
             dayMasterProfile: dayGan + dayGanWx,
             dayMasterWuxing: dayGanWx, // 用于颜色判断
-            solarTerms
+            solarTerms,
+            // 附加深度调试日志到对象，方便Tooltip或其他组件使用
+            physicsLog: wangShuaiResult.physicsLog
         };
     }, [baziData]);
 
@@ -137,7 +152,7 @@ export default function BaziBasicInfoPanel({ baziData }: BaziBasicInfoPanelProps
     );
 
     const yueJiang = getYueJiang(baziData?.solarDate || '');
-    const joyGods = getJoyGods(info.missing);
+
 
     // 月将的五行颜色
     const yueJiangWx = dizhiWuxing[yueJiang.jiang] || '';
@@ -172,8 +187,8 @@ export default function BaziBasicInfoPanel({ baziData }: BaziBasicInfoPanelProps
 
             {/* 第五行 */}
             <div className="grid grid-cols-2 gap-x-4">
-                <Item label="喜用神" value={<WuxingText text={joyGods.gods} />} />
-                <Item label="喜用神位" value={joyGods.direction} />
+                <Item label="喜用神" value={<WuxingText text={info.joyGods} />} />
+                <Item label="喜用神位" value={info.joyDirection} />
                 <Item label="格局" value={info.pattern} />
                 <Item
                     label="日主属性"
