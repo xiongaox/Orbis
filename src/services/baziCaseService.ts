@@ -96,6 +96,38 @@ export const baziCaseService = {
     },
 
     /**
+     * 批量创建案例
+     */
+    async createCases(inputs: CreateCaseInput[]): Promise<BaziCase[]> {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+            throw new Error('请先登录');
+        }
+
+        if (inputs.length === 0) {
+            return [];
+        }
+
+        const records = inputs.map(input => ({
+            ...input,
+            user_id: user.id,
+        }));
+
+        const { data, error } = await supabase
+            .from('bazi_cases')
+            .insert(records)
+            .select();
+
+        if (error) {
+            console.error('Failed to create cases:', error);
+            throw new Error(error.message);
+        }
+
+        return data || [];
+    },
+
+    /**
      * 更新案例
      */
     async updateCase(id: string, input: UpdateCaseInput): Promise<BaziCase> {

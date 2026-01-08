@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import type { BaziCase } from '../../services/baziCaseService';
+import type { BaziCase, CaseTag } from '../../services/baziCaseService';
 import { baziCaseService } from '../../services/baziCaseService';
 import { calculateBazi } from '../../services/bazi/caseHelper';
 import { BAZI_CASES_CHANGED_EVENT } from '../../data/caseConstants';
+import TagSelector from './TagSelector';
 
 interface EditCaseModalProps {
     isOpen: boolean;
@@ -16,7 +17,9 @@ export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: Ed
         name: string;
         gender: 'male' | 'female';
         birth_date: string;
-    }>({ name: '', gender: 'male', birth_date: '' });
+        tags: CaseTag[];
+        notes: string;
+    }>({ name: '', gender: 'male', birth_date: '', tags: [], notes: '' });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -28,6 +31,8 @@ export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: Ed
                 name: caseData.name,
                 gender: caseData.gender,
                 birth_date: localDate.toISOString().slice(0, 16),
+                tags: caseData.tags || [],
+                notes: caseData.notes || '',
             });
         }
     }, [caseData]);
@@ -48,6 +53,8 @@ export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: Ed
                 name: formData.name.trim(),
                 gender: formData.gender,
                 birth_date: new Date(formData.birth_date).toISOString(),
+                tags: formData.tags,
+                notes: formData.notes.trim() || undefined,
                 bazi_data: baziData as Record<string, unknown>,
             });
             window.dispatchEvent(new CustomEvent(BAZI_CASES_CHANGED_EVENT));
@@ -97,6 +104,25 @@ export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: Ed
                             required
                         />
                     </div>
+                    <div className="modal-field">
+                        <label className="modal-label">标签分类</label>
+                        <TagSelector
+                            selectedTags={formData.tags}
+                            onChange={(tags) => setFormData({ ...formData, tags })}
+                            disabled={loading}
+                        />
+                    </div>
+                    <div className="modal-field">
+                        <label className="modal-label">备注</label>
+                        <textarea
+                            value={formData.notes}
+                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                            placeholder="可选，添加案例备注..."
+                            className="modal-input resize-none"
+                            rows={2}
+                            disabled={loading}
+                        />
+                    </div>
                     {error && (
                         <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2 mb-4">
                             {error}
@@ -123,3 +149,4 @@ export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: Ed
         </div>
     );
 }
+

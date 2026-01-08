@@ -465,8 +465,167 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
     let monthScore = 0;
     const monthMainQi = ZANG_GAN_ORDER[monthBranch][0];
     const monthMainEl = getElement(monthMainQi);
-    // 判断月令是否克日主 (Simplified: check if month main element controls day master)
-    const isMonthHostile = monthMainEl && CONTROLLING[monthMainEl] === dmEl;
+
+    // -------------------------------------------------------------------------
+    // 官印相生流通链检测 (Flow Chain Detection)
+    // 当月令克日主时，检测是否存在 官杀→印→身 的流通链
+    // 如果印星透干且得月令生助，则月令之克被化解，不判定为敌对
+    // -------------------------------------------------------------------------
+
+    // -------------------------------------------------------------------------
+    // 调候检测：判断印星是否因寒燥失衡而失效
+    // 五行生克在极端环境下会失效或反转
+    // -------------------------------------------------------------------------
+    const isResourceIneffective = (
+        dayMasterEl: Element,
+        resourceEl: Element,
+        monthBr: string,
+        allBranches: string[],
+        allStems: string[]
+    ): { ineffective: boolean; reason: string } => {
+        const FIRE_BRANCHES = ['巳', '午'];
+        const WATER_BRANCHES = ['亥', '子'];
+        const DRY_EARTH_BR = ['戌', '未'];
+        const WET_EARTH_BR = ['辰', '丑'];
+        const EARTH_BRANCHES = [...DRY_EARTH_BR, ...WET_EARTH_BR];
+
+        // 统计各类地支数量
+        const countBranches = (targetList: string[]): number =>
+            allBranches.filter(b => targetList.includes(b)).length;
+
+        // 检查天干是否有某五行
+        const hasStemElement = (targetEl: Element): boolean =>
+            allStems.some(s => STEMS_INFO[s]?.el === targetEl);
+
+        // =========================================================
+        // 场景1: 燥土不生金 (金日主 + 土印星 + 火旺燥土)
+        // 条件: 火月 + 地支多火/燥土(≥3) + 无水润
+        // =========================================================
+        if (dayMasterEl === 'Metal' && resourceEl === 'Earth') {
+            const isFireMonth = FIRE_BRANCHES.includes(monthBr);
+            const fireDryCount = countBranches([...FIRE_BRANCHES, ...DRY_EARTH_BR]);
+            const hasWater = countBranches(WATER_BRANCHES) > 0 || hasStemElement('Water');
+            const hasWetEarth = countBranches(WET_EARTH_BR) > 0;
+
+            if (isFireMonth && fireDryCount >= 3 && !hasWater && !hasWetEarth) {
+                return { ineffective: true, reason: "🔥 燥土不生金：火旺土燥，印星失效" };
+            }
+        }
+
+        // =========================================================
+        // 场景2: 寒水不生木 (木日主 + 水印星 + 水旺寒冷)
+        // 条件: 水月 + 地支多水/寒土(≥3) + 无火暖
+        // =========================================================
+        if (dayMasterEl === 'Wood' && resourceEl === 'Water') {
+            const isWaterMonth = WATER_BRANCHES.includes(monthBr);
+            // 丑为寒湿土
+            const waterColdCount = countBranches([...WATER_BRANCHES, '丑']);
+            const hasFire = countBranches(FIRE_BRANCHES) > 0 || hasStemElement('Fire');
+
+            if (isWaterMonth && waterColdCount >= 3 && !hasFire) {
+                return { ineffective: true, reason: "❄️ 寒水不生木：水寒木冻，印星失效" };
+            }
+        }
+
+        // =========================================================
+        // 场景3: 湿木不生火 (火日主 + 木印星 + 水旺木湿)
+        // 条件: 水月 + 地支多水(≥2) + 木无强根
+        // =========================================================
+        if (dayMasterEl === 'Fire' && resourceEl === 'Wood') {
+            const isWaterMonth = WATER_BRANCHES.includes(monthBr);
+            const waterCount = countBranches(WATER_BRANCHES);
+            // 检查木是否有强根（寅卯）
+            const hasWoodRoot = allBranches.includes('寅') || allBranches.includes('卯');
+
+            if (isWaterMonth && waterCount >= 2 && !hasWoodRoot) {
+                return { ineffective: true, reason: "💧 湿木不生火：水旺木湿，印星失效" };
+            }
+        }
+
+        // =========================================================
+        // 场景4: 土多金埋 (水日主 + 金印星 + 土重)
+        // 条件: 土月 + 地支多土(≥3) + 金无强根
+        // =========================================================
+        if (dayMasterEl === 'Water' && resourceEl === 'Metal') {
+            const isEarthMonth = EARTH_BRANCHES.includes(monthBr);
+            const earthCount = countBranches(EARTH_BRANCHES);
+            // 检查金是否有强根（申酉）
+            const hasMetalRoot = allBranches.includes('申') || allBranches.includes('酉');
+
+            if (isEarthMonth && earthCount >= 3 && !hasMetalRoot) {
+                return { ineffective: true, reason: "🪨 土多金埋：土重金沉，印星失效" };
+            }
+        }
+
+        // =========================================================
+        // 场景5: 火多土焦 (土日主 + 火印星 + 火势过烈)
+        // 条件: 火月 + 地支多火(≥3) + 土无水润
+        // 注意: 此场景较少见，因为火生土通常是正常的
+        // =========================================================
+        if (dayMasterEl === 'Earth' && resourceEl === 'Fire') {
+            const isFireMonth = FIRE_BRANCHES.includes(monthBr);
+            const fireCount = countBranches(FIRE_BRANCHES);
+            const hasWater = countBranches(WATER_BRANCHES) > 0 || hasStemElement('Water');
+            const hasWetEarth = countBranches(WET_EARTH_BR) > 0;
+
+            // 火多土焦需要非常极端的条件
+            if (isFireMonth && fireCount >= 3 && !hasWater && !hasWetEarth) {
+                return { ineffective: true, reason: "🔥🔥 火多土焦：火势过烈，土反被焦" };
+            }
+        }
+
+        return { ineffective: false, reason: "" };
+    };
+
+    const hasFlowChain = (monthEl: Element, dayMasterEl: Element, allStems: string[]): boolean => {
+        const flowCycle: Element[] = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
+        const monthIdx = flowCycle.indexOf(monthEl);
+        const dmIdx = flowCycle.indexOf(dayMasterEl);
+
+        // 月令所生的五行
+        const shengEl = flowCycle[(monthIdx + 1) % 5];
+        // 日主的印星五行（生日主的五行）
+        const resourceEl = flowCycle[(dmIdx + 4) % 5]; // (idx - 1 + 5) % 5 = (idx + 4) % 5
+
+        // 月令所生的五行必须是日主的印星
+        if (shengEl !== resourceEl) return false;
+
+        // 检查印星是否透干
+        let hasResourceStem = false;
+        for (const s of allStems) {
+            const sInfo = STEMS_INFO[s];
+            if (sInfo && sInfo.el === resourceEl) {
+                hasResourceStem = true;
+                break;
+            }
+        }
+        if (!hasResourceStem) return false;
+
+        // 调候检测：检查印星是否因寒燥失衡而失效
+        const { ineffective, reason } = isResourceIneffective(
+            dayMasterEl, resourceEl, monthBranch, branches, stems
+        );
+
+        if (ineffective) {
+            physicsLog.push(reason);
+            return false; // 印星失效，流通链不成立
+        }
+
+        return true; // 印星透干且有效，流通链成立
+    };
+
+    // 判断月令是否克日主
+    let isMonthHostile = false;
+
+    if (monthMainEl && CONTROLLING[monthMainEl] === dmEl) {
+        // 月令克日主，但检查是否有流通链
+        if (hasFlowChain(monthMainEl, dmEl, stems)) {
+            isMonthHostile = false; // 通关，不判敌对
+            physicsLog.push(`🔄 官印相生：${ELEMENT_CN[monthMainEl]}生${ELEMENT_CN[cycle[(cycle.indexOf(monthMainEl) + 1) % 5] as Element]}，印透干生身，月令之克被化解`);
+        } else {
+            isMonthHostile = true;
+        }
+    }
 
     Object.entries(monthRoots).forEach(([root, weight]) => {
         const rootEl = getElement(root);
@@ -600,8 +759,9 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
 
         const isYangStem = ['甲', '丙', '戊', '庚', '壬'].includes(dmStem);
 
-        // 3. 阳干比劫检测 (V32 Fix)
+        // 3. 阳干比劫检测 (V32 Fix) - 增加根气检测
         let hasBijieInStems = false;
+        let bijieHasRoot = false;  // 新增：比劫是否有根
         const bijieStems: string[] = [];
         stems.forEach((s, i) => {
             if (i !== 2) {
@@ -613,15 +773,32 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
             }
         });
 
-        if (hasBijieInStems && isYangStem) {
-            physicsLog.push(`🔥 天干透比劫[${bijieStems.join(', ')}]：阳干有帮身，不入从格`);
+        // 检测比劫是否有根气
+        if (hasBijieInStems) {
+            branches.forEach(b => {
+                const roots = RAW_HIDDEN_STEMS[b] || {};
+                Object.entries(roots).forEach(([hidden, weight]) => {
+                    const hInfo = STEMS_INFO[hidden];
+                    // 比劫五行在地支有藏干且权重>=9，视为有根
+                    if (hInfo && hInfo.el === dmEl && weight >= 9) {
+                        bijieHasRoot = true;
+                    }
+                });
+            });
+        }
+
+        // 阳干透比劫且**有根**时，才不入从格
+        if (hasBijieInStems && isYangStem && bijieHasRoot) {
+            physicsLog.push(`🔥 天干透比劫[${bijieStems.join(', ')}]且有根：阳干有帮身，不入从格`);
+        } else if (hasBijieInStems && isYangStem && !bijieHasRoot) {
+            physicsLog.push(`💨 天干透比劫[${bijieStems.join(', ')}]但无根：比劫虚浮，可入从格`);
         }
 
         const effectiveHasDryEarth = hasDryEarth && !dryEarthWeakened;
 
         // === 判定条件 ===
-        // 阳干有比劫透天干时，不能断从格
-        const canEnterCong = !hasStrongRoot && !effectiveHasDryEarth && !(hasBijieInStems && isYangStem);
+        // 只有阳干透比劫且**有根**时，才不能断从格
+        const canEnterCong = !hasStrongRoot && !effectiveHasDryEarth && !(hasBijieInStems && isYangStem && bijieHasRoot);
 
         if (canEnterCong) {
             // 细分从格类型
@@ -754,12 +931,188 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
         verdict = "身弱";
     }
 
-    // 8. 喜用神生成
-    let yongShen: string[] = []; // store keys like 'Wealth' or elements 'Water'
-    let jiShen: string[] = [];
+    // 8. 喜用神生成（精细筛选版）
+
+    // -------------------------------------------------------------------------
+    // 8.1 五行势力评估 (Element Power Evaluation)
+    // -------------------------------------------------------------------------
+    type PowerLevel = 'very_strong' | 'strong' | 'neutral' | 'weak' | 'very_weak';
+
+    const evaluateElementPower = (targetEl: Element): PowerLevel => {
+        let score = 0;
+
+        // 月令得令检测
+        const monthMainQiEl = getElement(ZANG_GAN_ORDER[monthBranch][0]);
+        if (monthMainQiEl === targetEl) {
+            score += 3; // 得令
+        } else {
+            // 检查月支中/余气
+            const monthHidden = ZANG_GAN_ORDER[monthBranch] || [];
+            for (let i = 1; i < monthHidden.length; i++) {
+                if (getElement(monthHidden[i]) === targetEl) {
+                    score += 1;
+                    break;
+                }
+            }
+        }
+
+        // 地支根气检测
+        for (const br of branches) {
+            if (br === monthBranch) continue; // 已计算过
+            const brHidden = RAW_HIDDEN_STEMS[br] || {};
+            for (const [hidden, weight] of Object.entries(brHidden)) {
+                if (getElement(hidden) === targetEl) {
+                    if (weight >= 18) score += 2; // 本气强根
+                    else if (weight >= 9) score += 1; // 中气
+                    // 余气 < 9 不加分
+                    break;
+                }
+            }
+        }
+
+        // 天干透出检测
+        for (const s of stems) {
+            if (getElement(s) === targetEl) {
+                score += 1;
+                break; // 只计一次
+            }
+        }
+
+        // 根据总分确定等级
+        if (score >= 6) return 'very_strong';
+        if (score >= 4) return 'strong';
+        if (score >= 2) return 'neutral';
+        if (score >= 1) return 'weak';
+        return 'very_weak';
+    };
+
+    // 评估所有五行的势力
+    const elementPowers: Record<Element, PowerLevel> = {
+        'Wood': evaluateElementPower('Wood'),
+        'Fire': evaluateElementPower('Fire'),
+        'Earth': evaluateElementPower('Earth'),
+        'Metal': evaluateElementPower('Metal'),
+        'Water': evaluateElementPower('Water')
+    };
+
+    // -------------------------------------------------------------------------
+    // 8.2 用神打分筛选 (Yong Shen Scoring & Filtering)
+    // -------------------------------------------------------------------------
+    const sheng = (a: Element, b: Element): boolean => {
+        const elCycle: Element[] = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
+        return elCycle[(elCycle.indexOf(a) + 1) % 5] === b;
+    };
+
+    const ke = (a: Element, b: Element): boolean => {
+        const elCycle: Element[] = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
+        return elCycle[(elCycle.indexOf(a) + 2) % 5] === b;
+    };
+
+    const checkTongguan = (yongEl: Element, jiList: Element[]): number => {
+        // 通关检测：若旺忌神克某五行，用神可以作为通关
+        const elCycle: Element[] = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
+        let bonus = 0;
+
+        for (const ji of jiList) {
+            const jiPower = elementPowers[ji];
+            if (jiPower === 'very_strong' || jiPower === 'strong') {
+                // 旺忌神克的目标
+                const keTarget = elCycle[(elCycle.indexOf(ji) + 2) % 5];
+                const keTargetPower = elementPowers[keTarget];
+
+                // 如果被克目标较弱，存在交战
+                if (keTargetPower === 'weak' || keTargetPower === 'very_weak' || keTargetPower === 'neutral') {
+                    // 通关用神需满足：ji → 生 → yong → 生 → keTarget
+                    const shengFromJi = elCycle[(elCycle.indexOf(ji) + 1) % 5];
+                    const shengToTarget = elCycle[(elCycle.indexOf(keTarget) + 4) % 5];
+
+                    if (yongEl === shengFromJi && yongEl === shengToTarget) {
+                        bonus += 12; // 完美通关
+                    }
+                }
+            }
+        }
+        return bonus;
+    };
+
+    const calculateYongShenScore = (yongEl: Element, jiList: Element[]): number => {
+        let score = 5; // 基础分
+
+        for (const ji of jiList) {
+            const jiPower = elementPowers[ji];
+
+            // 规则1-3: 用神克忌神
+            if (ke(yongEl, ji)) {
+                if (jiPower === 'very_strong' || jiPower === 'strong') {
+                    score += 15; // 克旺忌神
+                } else if (jiPower === 'neutral') {
+                    score += 8;
+                } else {
+                    score += 3;
+                }
+            }
+
+            // 规则4-6: 用神生忌神（助忌）
+            if (sheng(yongEl, ji)) {
+                if (jiPower === 'very_strong' || jiPower === 'strong') {
+                    score -= 20; // 生旺忌神，严重扣分
+                } else if (jiPower === 'neutral') {
+                    score -= 10;
+                } else {
+                    score -= 3; // 生弱忌神，轻微扣分
+                }
+            }
+
+            // 规则7-8: 用神被忌神克（受损）
+            // 日主五行（Self/比劫）不参与生克运算
+            // 因为日主是分析主体，"日主克用神"不应作为扣分依据
+            if (ke(ji, yongEl)) {
+                const isSelfElement = ji === relations['Self'];
+
+                if (isSelfElement) {
+                    // 日主五行不参与生克，跳过扣分
+                } else {
+                    if (jiPower === 'very_strong' || jiPower === 'strong') {
+                        score -= 15;
+                    } else if (jiPower === 'neutral') {
+                        score -= 8;
+                    }
+                }
+            }
+        }
+
+        // 规则9: 通关加分
+        score += checkTongguan(yongEl, jiList);
+
+        return score;
+    };
+
+    const filterYongShen = (initialYong: Element[], jiList: Element[]): Element[] => {
+        const scored: Array<{ el: Element; score: number }> = [];
+
+        for (const yong of initialYong) {
+            const s = calculateYongShenScore(yong, jiList);
+            scored.push({ el: yong, score: s });
+        }
+
+        // 按分数排序，剔除负分或零分
+        scored.sort((a, b) => b.score - a.score);
+        return scored.filter(s => s.score > 0).map(s => s.el);
+    };
+
+    // -------------------------------------------------------------------------
+    // 8.3 生成初步喜忌神并筛选
+    // -------------------------------------------------------------------------
+    let yongShen: Element[] = [];
+    let jiShen: Element[] = [];
 
     if (forcedYongShen.length > 0) {
-        yongShen = forcedYongShen;
+        // 特殊格局有强制用神
+        yongShen = forcedYongShen.map(s => {
+            const el = s.split('(')[0];
+            return (ELEMENT_CN[el] ? el : s) as Element;
+        }).filter(el => ['Wood', 'Fire', 'Earth', 'Metal', 'Water'].includes(el)) as Element[];
+
         if (patternCode === 'Transform') {
             jiShen = transformJiShen;
         } else if (patternCode === 'Follow_Weak') {
@@ -768,29 +1121,42 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
             jiShen = [relations['Wealth'], relations['Official']];
         }
     } else {
+        // 普通格局根据身强/身弱确定初步喜忌
+        let initialYong: Element[] = [];
+        let initialJi: Element[] = [];
+
         if (patternCode === 'Follow_Weak') {
-            // 从格喜用: 财+官 (从杀格不喜食伤)
-            yongShen = [relations['Wealth'], relations['Official']];
-            jiShen = [relations['Resource'], relations['Self'], relations['Output']];
-            // 特殊: 从儿格
+            initialYong = [relations['Wealth'], relations['Official']];
+            initialJi = [relations['Resource'], relations['Self'], relations['Output']];
             if (calcPattern.includes('从儿')) {
-                yongShen = [relations['Output'], relations['Wealth']];
-                jiShen = [relations['Resource'], relations['Official']];
+                initialYong = [relations['Output'], relations['Wealth']];
+                initialJi = [relations['Resource'], relations['Official']];
             }
         } else if (patternCode === 'Fake_Follow') {
-            yongShen = [relations['Output'], relations['Wealth'], relations['Official']];
-            jiShen = [relations['Resource'], relations['Self']];
+            initialYong = [relations['Output'], relations['Wealth'], relations['Official']];
+            initialJi = [relations['Resource'], relations['Self']];
         } else if (patternCode === 'Follow_Strong') {
-            yongShen = [relations['Resource'], relations['Self'], relations['Output']];
-            jiShen = [relations['Wealth'], relations['Official']];
+            initialYong = [relations['Resource'], relations['Self'], relations['Output']];
+            initialJi = [relations['Wealth'], relations['Official']];
         } else if (patternCode === 'Normal') {
             if (verdict === '身弱') {
-                yongShen = [relations['Resource'], relations['Self']];
-                jiShen = [relations['Official'], relations['Wealth'], relations['Output']];
+                initialYong = [relations['Resource'], relations['Self']];
+                initialJi = [relations['Official'], relations['Wealth'], relations['Output']];
             } else {
-                yongShen = [relations['Official'], relations['Wealth'], relations['Output']];
-                jiShen = [relations['Resource'], relations['Self']];
+                initialYong = [relations['Official'], relations['Wealth'], relations['Output']];
+                initialJi = [relations['Resource'], relations['Self']];
             }
+        }
+
+        jiShen = initialJi;
+        // 精细筛选用神
+        yongShen = filterYongShen(initialYong, jiShen);
+
+        // 如果所有用神都被筛除，保留分数最高的一个（至少需要一个用神）
+        if (yongShen.length === 0 && initialYong.length > 0) {
+            const scored = initialYong.map(y => ({ el: y, score: calculateYongShenScore(y, jiShen) }));
+            scored.sort((a, b) => b.score - a.score);
+            yongShen = [scored[0].el];
         }
     }
 

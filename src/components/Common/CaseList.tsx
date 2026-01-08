@@ -3,12 +3,13 @@
  * 支持 Supabase 云端同步
  */
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronRight, Plus, Search, LogIn, Pencil, Trash2 } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Plus, Search, LogIn, Pencil, Trash2, Upload } from 'lucide-react';
 import { Solar } from 'lunar-typescript';
 import { useAuth } from '../../contexts/AuthContext';
 import { baziCaseService, CASE_TAGS, type BaziCase, type CaseTag } from '../../services/baziCaseService';
 import { TIAN_GAN_WU_XING } from '../../lib/xuan-bazi';
 import CreateCaseModal from './CreateCaseModal';
+import ImportCaseModal from './ImportCaseModal';
 import { BAZI_CASES_CHANGED_EVENT } from '../../data/caseConstants';
 import EditCaseModal from './EditCaseModal';
 
@@ -109,12 +110,15 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick }:
   const [cases, setCases] = useState<BaziCase[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editingCase, setEditingCase] = useState<BaziCase | null>(null);
   const [deletingCaseId, setDeletingCaseId] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<CaseTag | null>(null);
   const [isTagMenuOpen, setIsTagMenuOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const tagMenuRef = useRef<HTMLDivElement | null>(null);
   const allLabel = '\u5168\u90e8';
+  const PAGE_SIZE = 5;
 
   // 加载案例
   const loadCases = useCallback(async () => {
@@ -209,6 +213,18 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick }:
     }));
   }, [isAuthenticated, cases, search, selectedTag]);
 
+  // 分页计算
+  const totalPages = Math.ceil(displayCases.length / PAGE_SIZE);
+  const paginatedCases = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return displayCases.slice(start, start + PAGE_SIZE);
+  }, [displayCases, currentPage]);
+
+  // 当筛选条件变化时重置页码
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, selectedTag]);
+
   const handleDeleteCase = async (caseItem: BaziCase) => {
     if (!isAuthenticated || deletingCaseId) return;
     const confirmed = window.confirm(`确定删除「${caseItem.name}」吗？`);
@@ -235,55 +251,59 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick }:
         <div className="flex items-center justify-between">
           <h2 className="font-display text-base font-medium text-foreground">案例库</h2>
           <div className="relative" ref={tagMenuRef}>
-  <button
-    type="button"
-    onClick={() => setIsTagMenuOpen((prev) => !prev)}
-    aria-haspopup="menu"
-    aria-expanded={isTagMenuOpen}
-    className="text-xs text-[hsl(var(--text-secondary-light))] hover:text-[hsl(var(--text-primary-light))] dark:text-muted-foreground dark:hover:text-foreground flex items-center gap-1"
-  >
-    {selectedTag ?? allLabel}
-    <ChevronRight className={`w-3 h-3 transition-transform ${isTagMenuOpen ? 'rotate-90' : ''}`} />
-  </button>
+            <button
+              type="button"
+              onClick={() => setIsTagMenuOpen((prev) => !prev)}
+              aria-haspopup="menu"
+              aria-expanded={isTagMenuOpen}
+              className="text-xs text-[hsl(var(--text-secondary-light))] hover:text-[hsl(var(--text-primary-light))] dark:text-muted-foreground dark:hover:text-foreground flex items-center gap-1"
+            >
+              {selectedTag ?? allLabel}
+              <span className="text-muted-foreground">({selectedTag ? cases.filter(c => c.tags?.includes(selectedTag)).length : cases.length})</span>
+              <ChevronRight className={`w-3 h-3 transition-transform ${isTagMenuOpen ? 'rotate-90' : ''}`} />
+            </button>
             {isTagMenuOpen && (
               <div className="absolute right-0 mt-2 w-40 bg-sidebar border border-sidebar-border rounded-lg shadow-lg p-2 z-20">
-      <button
-        type="button"
-        onClick={() => {
-          setSelectedTag(null);
-          setIsTagMenuOpen(false);
-        }}
-                  className={`w-full text-left px-2 py-1.5 text-xs rounded-md transition-colors ${selectedTag === null
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedTag(null);
+                    setIsTagMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-2 py-1.5 text-xs rounded-md transition-colors ${selectedTag === null
                     ? 'bg-primary/15 text-primary'
                     : 'text-foreground hover:bg-sidebar-accent/60'
                     }`}
-      >
-        {allLabel}
-      </button>
-      <div className="mt-1 max-h-56 overflow-y-auto">
-        {CASE_TAGS.map(tag => {
-          const isActive = tag === selectedTag;
-          return (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => {
-                setSelectedTag(tag);
-                setIsTagMenuOpen(false);
-              }}
-                        className={`w-full text-left px-2 py-1.5 text-xs rounded-md transition-colors ${isActive
+                >
+                  <span>{allLabel}</span>
+                  <span className="text-muted-foreground">{cases.length}</span>
+                </button>
+                <div className="mt-1 max-h-56 overflow-y-auto">
+                  {CASE_TAGS.map(tag => {
+                    const isActive = tag === selectedTag;
+                    const count = cases.filter(c => c.tags?.includes(tag)).length;
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => {
+                          setSelectedTag(tag);
+                          setIsTagMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-2 py-1.5 text-xs rounded-md transition-colors ${isActive
                           ? 'bg-primary/15 text-primary'
                           : 'text-foreground hover:bg-sidebar-accent/60'
                           }`}
-            >
-              {tag}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  )}
-</div>
+                      >
+                        <span>{tag}</span>
+                        {count > 0 && <span className="text-muted-foreground">{count}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground" />
@@ -297,14 +317,24 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick }:
         </div>
 
         {isAuthenticated ? (
-          <button
-            type="button"
-            onClick={() => setShowCreateModal(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary/12 hover:bg-primary/18 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/40"
-          >
-            <Plus className="w-4 h-4" />
-            新建案例
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowImportModal(true)}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-secondary/50 hover:bg-secondary text-foreground/80 hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
+            >
+              <Upload className="w-4 h-4" />
+              导入
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(true)}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-primary/12 hover:bg-primary/18 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/40"
+            >
+              <Plus className="w-4 h-4" />
+              新建
+            </button>
+          </div>
         ) : (
           <button
             type="button"
@@ -327,113 +357,142 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick }:
             {isAuthenticated ? '暂无案例，点击上方按钮新建' : '登录后查看您的案例'}
           </div>
         ) : (
-          displayCases.map((item) => {
-            const pillars = getBaziPillars(item.birthDate ?? item.date);
-            const displayPillars = pillars.length === 8 ? [
-              pillars[0], pillars[2], pillars[4], pillars[6],
-              pillars[1], pillars[3], pillars[5], pillars[7]
-            ] : pillars;
-            const age = getAgeFromBirth(item.birthDate);
-            const dayGan = displayPillars.length >= 3 ? displayPillars[2] : '';
-            const dayGanElement = TIAN_GAN_WU_XING[dayGan] || '';
-            const dayGanBg = ELEMENT_BG_10[dayGanElement];
-            const dayGanColor = ELEMENT_TEXT_COLOR[dayGanElement];
-            const isSelected = selectedCaseId === item.id;
+          <>
+            {paginatedCases.map((item) => {
+              const pillars = getBaziPillars(item.birthDate ?? item.date);
+              const displayPillars = pillars.length === 8 ? [
+                pillars[0], pillars[2], pillars[4], pillars[6],
+                pillars[1], pillars[3], pillars[5], pillars[7]
+              ] : pillars;
+              const age = getAgeFromBirth(item.birthDate);
+              const dayGan = displayPillars.length >= 3 ? displayPillars[2] : '';
+              const dayGanElement = TIAN_GAN_WU_XING[dayGan] || '';
+              const dayGanBg = ELEMENT_BG_10[dayGanElement];
+              const dayGanColor = ELEMENT_TEXT_COLOR[dayGanElement];
+              const isSelected = selectedCaseId === item.id;
 
-            return (
-              <div
-                key={item.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => onSelectCase?.(item.id)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    onSelectCase?.(item.id);
-                  }
-                }}
-                className={`w-full text-left p-3 rounded-lg mb-1 transition-all cursor-pointer ${selectedCaseId === item.id
+              return (
+                <div
+                  key={item.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onSelectCase?.(item.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      onSelectCase?.(item.id);
+                    }
+                  }}
+                  className={`w-full text-left p-3 rounded-lg mb-1 transition-all cursor-pointer ${selectedCaseId === item.id
                     ? 'bg-[hsl(var(--muted-active))] border border-[hsl(var(--border-light))] dark:bg-sidebar-accent dark:border-primary/30'
                     : 'bg-[hsl(var(--muted))] border border-transparent hover:bg-[hsl(var(--muted-hover))] hover:border-[hsl(var(--border-light))] dark:bg-sidebar-accent/30 dark:border-transparent dark:hover:bg-sidebar-accent/50'
-                  }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-medium text-foreground">{item.name}</span>
-                      <span className="text-xs text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground">{item.gender}</span>
-                    </div>
-                    <div className="text-xs text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground mb-2">{item.date}</div>
-                    <div className="grid grid-cols-4 gap-1 w-fit">
-                      {displayPillars.map((pillar, index) => (
-                        <span
-                          key={index}
-                          style={index === 2 && (dayGanBg || dayGanColor)
-                            ? { backgroundColor: dayGanBg, color: dayGanColor }
-                            : undefined}
-                          className={`w-6 h-6 flex items-center justify-center text-xs bg-[hsl(var(--muted-hover))] dark:bg-sidebar-accent/80 border rounded text-foreground/80 font-mono ${isSelected ? 'border-border' : 'border-[hsl(var(--border-lighter))] dark:border-sidebar-border/30'}`}
-                        >
-                          {pillar}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  {isAuthenticated && (
-                    <div className="flex flex-col items-end self-stretch">
-                      {'tags' in item && item.tags && item.tags.length > 0 && (
-                        <div className="flex flex-wrap justify-end gap-1 mb-2 max-w-[96px]">
-                          {item.tags.slice(0, 3).map(tag => (
-                            <span key={tag} className="text-xs px-1.5 py-0.5 rounded bg-[hsl(var(--accent-primary)/0.12)] text-[hsl(var(--accent-primary))] dark:bg-primary/10 dark:text-primary/80">
-                              {tag}
-                            </span>
-                          ))}
-                          {item.tags.length > 3 && (
-                            <span className="text-xs text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground">+{item.tags.length - 3}</span>
-                          )}
-                        </div>
-                      )}
-                      <div className="flex flex-col items-end gap-2 mt-auto">
-                        {age !== null && (
-                          <div className="text-xs text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground">今年{age}岁</div>
-                        )}
-                        <div className="flex gap-1.5">
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              const target = cases.find(c => c.id === item.id);
-                              if (target) {
-                                setEditingCase(target);
-                              }
-                            }}
-                            className="p-1.5 rounded-md border border-[hsl(var(--border-light))] dark:border-border hover:border-primary/40 text-[hsl(var(--text-tertiary-light))] hover:text-[hsl(var(--text-primary-light))] dark:text-muted-foreground dark:hover:text-foreground"
-                            aria-label="编辑案例"
+                    }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-medium text-foreground">{item.name}</span>
+                        <span className="text-xs text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground">{item.gender}</span>
+                      </div>
+                      <div className="text-xs text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground mb-2">{item.date}</div>
+                      <div className="grid grid-cols-4 gap-1 w-fit">
+                        {displayPillars.map((pillar, index) => (
+                          <span
+                            key={index}
+                            style={index === 2 && (dayGanBg || dayGanColor)
+                              ? { backgroundColor: dayGanBg, color: dayGanColor }
+                              : undefined}
+                            className={`w-6 h-6 flex items-center justify-center text-xs bg-[hsl(var(--muted-hover))] dark:bg-sidebar-accent/80 border rounded text-foreground/80 font-mono ${isSelected ? 'border-border' : 'border-[hsl(var(--border-lighter))] dark:border-sidebar-border/30'}`}
                           >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              const target = cases.find(c => c.id === item.id);
-                              if (target) {
-                                handleDeleteCase(target);
-                              }
-                            }}
-                            disabled={deletingCaseId === item.id}
-                            className="p-1.5 rounded-md border border-[hsl(var(--border-light))] dark:border-border hover:border-[hsl(var(--destructive-primary))] dark:hover:border-destructive/60 text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground hover:text-[hsl(var(--destructive-primary))] dark:hover:text-destructive disabled:opacity-60 disabled:cursor-not-allowed"
-                            aria-label="删除案例"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                            {pillar}
+                          </span>
+                        ))}
                       </div>
                     </div>
-                  )}
+                    {isAuthenticated && (
+                      <div className="flex flex-col items-end self-stretch">
+                        {'tags' in item && item.tags && item.tags.length > 0 && (
+                          <div className="flex flex-wrap justify-end gap-1 mb-2 max-w-[96px]">
+                            {item.tags.slice(0, 3).map(tag => (
+                              <span key={tag} className="text-xs px-1.5 py-0.5 rounded bg-[hsl(var(--accent-primary)/0.12)] text-[hsl(var(--accent-primary))] dark:bg-primary/10 dark:text-primary/80">
+                                {tag}
+                              </span>
+                            ))}
+                            {item.tags.length > 3 && (
+                              <span className="text-xs text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground">+{item.tags.length - 3}</span>
+                            )}
+                          </div>
+                        )}
+                        <div className="flex flex-col items-end gap-2 mt-auto">
+                          {age !== null && (
+                            <div className="text-xs text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground">今年{age}岁</div>
+                          )}
+                          <div className="flex gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                const target = cases.find(c => c.id === item.id);
+                                if (target) {
+                                  setEditingCase(target);
+                                }
+                              }}
+                              className="p-1.5 rounded-md border border-[hsl(var(--border-light))] dark:border-border hover:border-primary/40 text-[hsl(var(--text-tertiary-light))] hover:text-[hsl(var(--text-primary-light))] dark:text-muted-foreground dark:hover:text-foreground"
+                              aria-label="编辑案例"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                const target = cases.find(c => c.id === item.id);
+                                if (target) {
+                                  handleDeleteCase(target);
+                                }
+                              }}
+                              disabled={deletingCaseId === item.id}
+                              className="p-1.5 rounded-md border border-[hsl(var(--border-light))] dark:border-border hover:border-[hsl(var(--destructive-primary))] dark:hover:border-destructive/60 text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground hover:text-[hsl(var(--destructive-primary))] dark:hover:text-destructive disabled:opacity-60 disabled:cursor-not-allowed"
+                              aria-label="删除案例"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
+              );
+            })}
+
+            {/* 分页控件 */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-sidebar-border">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-md border border-border hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="上一页"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-xs text-muted-foreground">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 rounded-md border border-border hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="下一页"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
-            );
-          })
+            )}
+          </>
         )}
       </div>
 
@@ -442,6 +501,13 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick }:
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onCreated={handleCaseCreated}
+      />
+
+      {/* 导入案例 Modal */}
+      <ImportCaseModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImported={handleCaseCreated}
       />
 
       {editingCase && (

@@ -360,9 +360,151 @@ def calculate_li_shuanglin_v32(bazi_str):
     
     month_roots = hidden_stems.get(month_branch, {})
     month_score = 0
-    is_month_hostile = False
     month_main_el = get_element(zang_gan_order[month_branch][0])
-    if controlling[month_main_el] == dm_el: is_month_hostile = True
+    
+    # -------------------------------------------------------------------------
+    # 官印相生流通链检测 (Flow Chain Detection)
+    # 当月令克日主时，检测是否存在 官杀→印→身 的流通链
+    # 如果印星透干且得月令生助，则月令之克被化解，不判定为敌对
+    # -------------------------------------------------------------------------
+    
+    # -------------------------------------------------------------------------
+    # 调候检测：判断印星是否因寒燥失衡而失效
+    # 五行生克在极端环境下会失效或反转
+    # -------------------------------------------------------------------------
+    def is_resource_ineffective(day_master_el, resource_el, month_br, all_branches, all_stems):
+        """判断印星是否因寒燥失衡而失效"""
+        FIRE_BRANCHES = ['巳', '午']
+        WATER_BRANCHES = ['亥', '子']
+        DRY_EARTH_BR = ['戌', '未']
+        WET_EARTH_BR = ['辰', '丑']
+        EARTH_BRANCHES = DRY_EARTH_BR + WET_EARTH_BR
+        
+        # 统计各类地支数量
+        def count_branches(target_list):
+            return sum(1 for b in all_branches if b in target_list)
+        
+        # 检查天干是否有某五行
+        def has_stem_element(target_el):
+            return any(stems_info.get(s, {}).get('el') == target_el for s in all_stems)
+        
+        # =========================================================
+        # 场景1: 燥土不生金 (金日主 + 土印星 + 火旺燥土)
+        # 条件: 火月 + 地支多火/燥土(≥3) + 无水润
+        # =========================================================
+        if day_master_el == 'Metal' and resource_el == 'Earth':
+            is_fire_month = month_br in FIRE_BRANCHES
+            fire_dry_count = count_branches(FIRE_BRANCHES + DRY_EARTH_BR)
+            has_water = count_branches(WATER_BRANCHES) > 0 or has_stem_element('Water')
+            has_wet_earth = count_branches(WET_EARTH_BR) > 0
+            
+            if is_fire_month and fire_dry_count >= 3 and not has_water and not has_wet_earth:
+                return True, "🔥 燥土不生金：火旺土燥，印星失效"
+        
+        # =========================================================
+        # 场景2: 寒水不生木 (木日主 + 水印星 + 水旺寒冷)
+        # 条件: 水月 + 地支多水/寒土(≥3) + 无火暖
+        # =========================================================
+        if day_master_el == 'Wood' and resource_el == 'Water':
+            is_water_month = month_br in WATER_BRANCHES
+            # 丑为寒湿土
+            water_cold_count = count_branches(WATER_BRANCHES + ['丑'])
+            has_fire = count_branches(FIRE_BRANCHES) > 0 or has_stem_element('Fire')
+            
+            if is_water_month and water_cold_count >= 3 and not has_fire:
+                return True, "❄️ 寒水不生木：水寒木冻，印星失效"
+        
+        # =========================================================
+        # 场景3: 湿木不生火 (火日主 + 木印星 + 水旺木湿)
+        # 条件: 水月 + 地支多水(≥2) + 木无强根
+        # =========================================================
+        if day_master_el == 'Fire' and resource_el == 'Wood':
+            is_water_month = month_br in WATER_BRANCHES
+            water_count = count_branches(WATER_BRANCHES)
+            # 检查木是否有强根（寅卯）
+            has_wood_root = '寅' in all_branches or '卯' in all_branches
+            
+            if is_water_month and water_count >= 2 and not has_wood_root:
+                return True, "💧 湿木不生火：水旺木湿，印星失效"
+        
+        # =========================================================
+        # 场景4: 土多金埋 (水日主 + 金印星 + 土重)
+        # 条件: 土月 + 地支多土(≥3) + 金无强根
+        # =========================================================
+        if day_master_el == 'Water' and resource_el == 'Metal':
+            is_earth_month = month_br in EARTH_BRANCHES
+            earth_count = count_branches(EARTH_BRANCHES)
+            # 检查金是否有强根（申酉）
+            has_metal_root = '申' in all_branches or '酉' in all_branches
+            
+            if is_earth_month and earth_count >= 3 and not has_metal_root:
+                return True, "🪨 土多金埋：土重金沉，印星失效"
+        
+        # =========================================================
+        # 场景5: 火多土焦 (土日主 + 火印星 + 火势过烈)
+        # 条件: 火月 + 地支多火(≥3) + 土无水润
+        # 注意: 此场景较少见，因为火生土通常是正常的
+        # =========================================================
+        if day_master_el == 'Earth' and resource_el == 'Fire':
+            is_fire_month = month_br in FIRE_BRANCHES
+            fire_count = count_branches(FIRE_BRANCHES)
+            has_water = count_branches(WATER_BRANCHES) > 0 or has_stem_element('Water')
+            has_wet_earth = count_branches(WET_EARTH_BR) > 0
+            
+            # 火多土焦需要非常极端的条件
+            if is_fire_month and fire_count >= 3 and not has_water and not has_wet_earth:
+                return True, "🔥🔥 火多土焦：火势过烈，土反被焦"
+        
+        return False, ""
+    
+    def has_flow_chain(month_el, day_master_el, all_stems):
+        """检测是否存在 官杀→印→身 的流通链"""
+        cycle = ['Wood', 'Fire', 'Earth', 'Metal', 'Water']
+        month_idx = cycle.index(month_el)
+        dm_idx = cycle.index(day_master_el)
+        
+        # 月令所生的五行
+        sheng_el = cycle[(month_idx + 1) % 5]
+        # 日主的印星五行（生日主的五行）
+        resource_el = cycle[(dm_idx + 4) % 5]  # (idx - 1 + 5) % 5 = (idx + 4) % 5
+        
+        # 月令所生的五行必须是日主的印星
+        if sheng_el != resource_el:
+            return False
+        
+        # 检查印星是否透干
+        has_resource_stem = False
+        for s in all_stems:
+            s_el = stems_info.get(s, {}).get('el')
+            if s_el == resource_el:
+                has_resource_stem = True
+                break
+        
+        if not has_resource_stem:
+            return False
+        
+        # 调候检测：检查印星是否因寒燥失衡而失效
+        ineffective, reason = is_resource_ineffective(
+            day_master_el, resource_el, month_branch, branches, stems
+        )
+        
+        if ineffective:
+            physics_log.append(reason)
+            return False  # 印星失效，流通链不成立
+        
+        return True  # 印星透干且有效，流通链成立
+    
+    # 判断月令是否克日主
+    is_month_hostile = False
+    if controlling[month_main_el] == dm_el:
+        # 月令克日主，但检查是否有流通链
+        if has_flow_chain(month_main_el, dm_el, stems):
+            is_month_hostile = False  # 通关，不判敌对
+            cycle = ['Wood', 'Fire', 'Earth', 'Metal', 'Water']
+            sheng_el = cycle[(cycle.index(month_main_el) + 1) % 5]
+            physics_log.append(f"🔄 官印相生：{ELEMENT_CN[month_main_el]}生{ELEMENT_CN[sheng_el]}，印透干生身，月令之克被化解")
+        else:
+            is_month_hostile = True
     for root, weight in month_roots.items():
         root_el = get_element(root)
         if root_el == dm_el: month_score += (weight * 0.3 if is_month_hostile else weight)
@@ -628,40 +770,214 @@ def calculate_li_shuanglin_v32(bazi_str):
         verdict = "身弱"
 
     # =========================================================================
-    # 8. 喜用神生成
+    # 8. 喜用神生成（精细筛选版）
     # =========================================================================
+    
+    # -------------------------------------------------------------------------
+    # 8.1 五行势力评估 (Element Power Evaluation)
+    # -------------------------------------------------------------------------
+    def evaluate_element_power(target_el):
+        """评估某五行的势力等级"""
+        score = 0
+        
+        # 月令得令检测
+        month_main_qi_el = get_element(zang_gan_order[month_branch][0])
+        if month_main_qi_el == target_el:
+            score += 3  # 得令
+        else:
+            # 检查月支中/余气
+            month_hidden = zang_gan_order.get(month_branch, [])
+            for i in range(1, len(month_hidden)):
+                if get_element(month_hidden[i]) == target_el:
+                    score += 1
+                    break
+        
+        # 地支根气检测
+        for br in branches:
+            if br == month_branch:
+                continue  # 已计算过
+            br_hidden = raw_hidden_stems.get(br, {})
+            for hidden, weight in br_hidden.items():
+                if get_element(hidden) == target_el:
+                    if weight >= 18:
+                        score += 2  # 本气强根
+                    elif weight >= 9:
+                        score += 1  # 中气
+                    break
+        
+        # 天干透出检测
+        for s in stems:
+            if get_element(s) == target_el:
+                score += 1
+                break
+        
+        # 根据总分确定等级
+        if score >= 6:
+            return 'very_strong'
+        elif score >= 4:
+            return 'strong'
+        elif score >= 2:
+            return 'neutral'
+        elif score >= 1:
+            return 'weak'
+        else:
+            return 'very_weak'
+    
+    # 评估所有五行的势力
+    element_powers = {
+        'Wood': evaluate_element_power('Wood'),
+        'Fire': evaluate_element_power('Fire'),
+        'Earth': evaluate_element_power('Earth'),
+        'Metal': evaluate_element_power('Metal'),
+        'Water': evaluate_element_power('Water')
+    }
+    
+    # -------------------------------------------------------------------------
+    # 8.2 用神打分筛选 (Yong Shen Scoring & Filtering)
+    # -------------------------------------------------------------------------
+    def el_sheng(a, b):
+        """a 生 b"""
+        el_cycle = ['Wood', 'Fire', 'Earth', 'Metal', 'Water']
+        return el_cycle[(el_cycle.index(a) + 1) % 5] == b
+    
+    def el_ke(a, b):
+        """a 克 b"""
+        el_cycle = ['Wood', 'Fire', 'Earth', 'Metal', 'Water']
+        return el_cycle[(el_cycle.index(a) + 2) % 5] == b
+    
+    def check_tongguan(yong_el, ji_list):
+        """通关检测"""
+        el_cycle = ['Wood', 'Fire', 'Earth', 'Metal', 'Water']
+        bonus = 0
+        
+        for ji in ji_list:
+            ji_power = element_powers.get(ji, 'neutral')
+            if ji_power in ['very_strong', 'strong']:
+                # 旺忌神克的目标
+                ke_target = el_cycle[(el_cycle.index(ji) + 2) % 5]
+                ke_target_power = element_powers.get(ke_target, 'neutral')
+                
+                # 如果被克目标较弱，存在交战
+                if ke_target_power in ['weak', 'very_weak', 'neutral']:
+                    # 通关用神需满足：ji → 生 → yong → 生 → ke_target
+                    sheng_from_ji = el_cycle[(el_cycle.index(ji) + 1) % 5]
+                    sheng_to_target = el_cycle[(el_cycle.index(ke_target) + 4) % 5]
+                    
+                    if yong_el == sheng_from_ji and yong_el == sheng_to_target:
+                        bonus += 12  # 完美通关
+        
+        return bonus
+    
+    def calculate_yong_shen_score(yong_el, ji_list):
+        """计算用神分数"""
+        score = 5  # 基础分
+        
+        for ji in ji_list:
+            ji_power = element_powers.get(ji, 'neutral')
+            
+            # 规则1-3: 用神克忌神
+            if el_ke(yong_el, ji):
+                if ji_power in ['very_strong', 'strong']:
+                    score += 15
+                elif ji_power == 'neutral':
+                    score += 8
+                else:
+                    score += 3
+            
+            # 规则4-6: 用神生忌神（助忌）
+            if el_sheng(yong_el, ji):
+                if ji_power in ['very_strong', 'strong']:
+                    score -= 20
+                elif ji_power == 'neutral':
+                    score -= 10
+                else:
+                    score -= 3
+            
+            # 规则7-8: 用神被忌神克（受损）
+            # 日主五行（Self/比劫）不参与生克运算
+            # 因为日主是分析主体，"日主克用神"不应作为扣分依据
+            if el_ke(ji, yong_el):
+                is_self_element = ji == relations['Self']
+                
+                if is_self_element:
+                    # 日主五行不参与生克，跳过扣分
+                    pass
+                else:
+                    if ji_power in ['very_strong', 'strong']:
+                        score -= 15
+                    elif ji_power == 'neutral':
+                        score -= 8
+        
+        # 规则9: 通关加分
+        score += check_tongguan(yong_el, ji_list)
+        
+        return score
+    
+    def filter_yong_shen(initial_yong, ji_list):
+        """筛选最优用神"""
+        scored = []
+        for yong in initial_yong:
+            s = calculate_yong_shen_score(yong, ji_list)
+            scored.append({'el': yong, 'score': s})
+        
+        # 按分数排序，剔除负分或零分
+        scored.sort(key=lambda x: -x['score'])
+        return [s['el'] for s in scored if s['score'] > 0]
+    
+    # -------------------------------------------------------------------------
+    # 8.3 生成初步喜忌神并筛选
+    # -------------------------------------------------------------------------
     yong_shen = []
     ji_shen = []
     
     if forced_yong_shen:
-        yong_shen = forced_yong_shen
+        # 特殊格局有强制用神
+        yong_shen = []
+        for s in forced_yong_shen:
+            el = s.split('(')[0] if '(' in str(s) else s
+            if el in ['Wood', 'Fire', 'Earth', 'Metal', 'Water']:
+                yong_shen.append(el)
+        
         if pattern_code == "Transform":
-             ji_shen = transform_ji_shen  # 使用之前计算的具体忌神
-        elif pattern_code == "Follow_Weak": ji_shen = [relations['Resource'], relations['Self']]
-        elif pattern_code == "Follow_Strong": ji_shen = [relations['Wealth'], relations['Official']]
-    else:
-        if pattern_code == "Follow_Weak":
-            # 从格喜用神：财星 + 官杀（财生官杀），忌印比
-            # 从杀格不喜食伤（因食伤克官杀）
-            yong_shen = [relations['Wealth'], relations['Official']]
-            ji_shen = [relations['Resource'], relations['Self'], relations['Output']]
-            # 特殊：从儿格喜食伤生财
-            if '从儿' in calc_pattern:
-                yong_shen = [relations['Output'], relations['Wealth']]
-                ji_shen = [relations['Resource'], relations['Official']]
-        elif pattern_code == "Fake_Follow":
-            yong_shen = [relations['Output'], relations['Wealth'], relations['Official']]
+            ji_shen = transform_ji_shen
+        elif pattern_code == "Follow_Weak":
             ji_shen = [relations['Resource'], relations['Self']]
         elif pattern_code == "Follow_Strong":
-             yong_shen = [relations['Resource'], relations['Self'], relations['Output']]
-             ji_shen = [relations['Wealth'], relations['Official']]
+            ji_shen = [relations['Wealth'], relations['Official']]
+    else:
+        # 普通格局根据身强/身弱确定初步喜忌
+        initial_yong = []
+        initial_ji = []
+        
+        if pattern_code == "Follow_Weak":
+            initial_yong = [relations['Wealth'], relations['Official']]
+            initial_ji = [relations['Resource'], relations['Self'], relations['Output']]
+            if '从儿' in calc_pattern:
+                initial_yong = [relations['Output'], relations['Wealth']]
+                initial_ji = [relations['Resource'], relations['Official']]
+        elif pattern_code == "Fake_Follow":
+            initial_yong = [relations['Output'], relations['Wealth'], relations['Official']]
+            initial_ji = [relations['Resource'], relations['Self']]
+        elif pattern_code == "Follow_Strong":
+            initial_yong = [relations['Resource'], relations['Self'], relations['Output']]
+            initial_ji = [relations['Wealth'], relations['Official']]
         elif pattern_code == "Normal":
             if verdict == "身弱":
-                yong_shen = [relations['Resource'], relations['Self']]
-                ji_shen = [relations['Official'], relations['Wealth'], relations['Output']]
+                initial_yong = [relations['Resource'], relations['Self']]
+                initial_ji = [relations['Official'], relations['Wealth'], relations['Output']]
             else:
-                yong_shen = [relations['Official'], relations['Wealth'], relations['Output']]
-                ji_shen = [relations['Resource'], relations['Self']]
+                initial_yong = [relations['Official'], relations['Wealth'], relations['Output']]
+                initial_ji = [relations['Resource'], relations['Self']]
+        
+        ji_shen = initial_ji
+        # 精细筛选用神
+        yong_shen = filter_yong_shen(initial_yong, ji_shen)
+        
+        # 如果所有用神都被筛除，保留分数最高的一个
+        if len(yong_shen) == 0 and len(initial_yong) > 0:
+            scored = [{'el': y, 'score': calculate_yong_shen_score(y, ji_shen)} for y in initial_yong]
+            scored.sort(key=lambda x: -x['score'])
+            yong_shen = [scored[0]['el']]
 
     def get_god_name(element):
         for k, v in relations.items():
