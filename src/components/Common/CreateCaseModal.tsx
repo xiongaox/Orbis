@@ -3,8 +3,9 @@
  * 包含姓名、性别、出生日期、标签、备注
  */
 import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
 import TagSelector from './TagSelector';
+import AdvancedDatePicker from './AdvancedDatePicker';
 import { baziCaseService, type CaseTag, type CreateCaseInput } from '../../services/baziCaseService';
 import { calculateBazi } from '../../services/bazi/caseHelper';
 
@@ -22,6 +23,7 @@ export default function CreateCaseModal({ isOpen, onClose, onCreated }: CreateCa
     const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
     if (!isOpen) return null;
 
@@ -135,12 +137,32 @@ export default function CreateCaseModal({ isOpen, onClose, onCreated }: CreateCa
                     {/* 出生日期 */}
                     <div className="modal-field">
                         <label className="modal-label">出生日期时间 *</label>
-                        <input
-                            type="datetime-local"
-                            value={birthDate}
-                            onChange={(e) => setBirthDate(e.target.value)}
-                            className="modal-input"
-                            disabled={loading}
+                        <div
+                            onClick={() => !loading && setIsDatePickerOpen(true)}
+                            className="modal-input cursor-pointer flex items-center justify-between group"
+                        >
+                            <span className={birthDate ? 'text-white' : 'text-gray-500'}>
+                                {birthDate ? new Date(birthDate).toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '请选择出生日期'}
+                            </span>
+                            <CalendarIcon className="w-4 h-4 text-gray-500 group-hover:text-primary transition-colors" />
+                        </div>
+
+                        <AdvancedDatePicker
+                            isOpen={isDatePickerOpen}
+                            onClose={() => setIsDatePickerOpen(false)}
+                            onConfirm={(date) => {
+                                // Convert to local ISO string (keeping local time)
+                                // Standard toISOString() converts to UTC, which might shift the day.
+                                // We want to preserve the selected "wall clock" time.
+                                // Simple trick: construct ISO manually or offset.
+                                const year = date.getFullYear();
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                const hour = String(date.getHours()).padStart(2, '0');
+                                const minute = String(date.getMinutes()).padStart(2, '0');
+                                setBirthDate(`${year}-${month}-${day}T${hour}:${minute}`);
+                            }}
+                            value={birthDate ? new Date(birthDate) : undefined}
                         />
                     </div>
 
