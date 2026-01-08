@@ -88,15 +88,15 @@ export default function BaziBasicInfoPanel({ baziData }: BaziBasicInfoPanelProps
             mingGua,
             zodiacConstellation: `${baziData.zodiac || '-'}、${constellation}`,
             xingXiu,
-            // 替换为真实数据
-            bodyStrength: wangShuaiResult.verdict,
+            // 使用新的 bodyStrength 字段（身强/身弱/从格/专旺）
+            bodyStrength: wangShuaiResult.bodyStrength,
             renYuanSiLing,
             taiYuan: `${taiYuan}（${taiYuanNaYin}）`,
             taiXi,
             mingShenGong: `${mingGong}（${mingGongNaYin}） ${shenGong}（${shenGongNaYin}）`,
             missing,
-            // 替换为真实数据 (优先展示特殊格局，如果是普通格局则展示正官格等)
-            pattern: wangShuaiResult.patternCode === 'Normal' ? wangShuaiResult.formalPattern : wangShuaiResult.calcPattern,
+            // 传统格局（正官格、建禄格等）
+            pattern: wangShuaiResult.formalPattern,
             joyGods: wangShuaiResult.joyGods.join('、'), // 使用算法计算的喜用
             joyDirection: wangShuaiResult.luckyDirections.join('、'), // 吉利方位
             dayMasterProfile: dayGan + dayGanWx,

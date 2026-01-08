@@ -46,8 +46,13 @@ const RAW_HIDDEN_STEMS: Record<string, HiddenStemWeight> = {
 };
 
 const ELEMENT_MAP: Record<string, Element> = {
+    // 天干
     '甲': 'Wood', '乙': 'Wood', '丙': 'Fire', '丁': 'Fire', '戊': 'Earth',
-    '己': 'Earth', '庚': 'Metal', '辛': 'Metal', '壬': 'Water', '癸': 'Water'
+    '己': 'Earth', '庚': 'Metal', '辛': 'Metal', '壬': 'Water', '癸': 'Water',
+    // 地支
+    '寅': 'Wood', '卯': 'Wood', '巳': 'Fire', '午': 'Fire',
+    '辰': 'Earth', '戌': 'Earth', '丑': 'Earth', '未': 'Earth',
+    '申': 'Metal', '酉': 'Metal', '亥': 'Water', '子': 'Water'
 };
 
 const DIRECTION_MAP: Record<Element, string> = {
@@ -114,9 +119,10 @@ export interface WangShuaiResult {
     // 八字信息
     bazi: string;
     // 判定结果
-    formalPattern: string;    // 传统格局
-    verdict: string;          // 身旺/身弱
-    calcPattern: string;      // 特殊格局
+    formalPattern: string;    // 传统格局（正官格、建禄格等）
+    bodyStrength: string;     // 身体强弱（身强/身弱/从财/专旺等）
+    verdict: string;          // 身旺/身弱（简化版）
+    calcPattern: string;      // 特殊格局（兼容旧代码）
     physicsLog: string[];     // 物理逻辑日志
     // 建议
     joyGods: string[];        // 喜用神 (中文)
@@ -140,7 +146,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
     // 确保有四柱
     if (!pillars || pillars.length < 4) {
         return {
-            bazi: "无效数据", formalPattern: "数据不全", verdict: "未知", calcPattern: "未知",
+            bazi: "无效数据", formalPattern: "数据不全", bodyStrength: "未知", verdict: "未知", calcPattern: "未知",
             physicsLog: [], joyGods: [], jiGods: [], luckyDirections: [],
             zScore: 0, formationCheck: "无", dayKongWang: [],
             patternCode: "Unknown"
@@ -172,15 +178,21 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
         if (!STEMS_INFO[dmStem]) return "未知";
 
         const mainQi = hidden[0];
-        const relationMain = getTenGod(mainQi, dmStem);
 
-        // 1. 禄刃
-        if (relationMain === '劫财') {
-            if (['子', '午', '卯', '酉'].includes(monthBranch)) return "羊刃格 (月令帝旺)";
-        }
-        if (relationMain === '比肩') {
-            if (['寅', '申', '巳', '亥'].includes(monthBranch)) return "建禄格 (月令建禄)";
-        }
+        // 1. 禄刃判定 (直接映射表)
+        const LU_MAP: Record<string, string> = {
+            '甲': '寅', '乙': '卯', '丙': '巳', '丁': '午', '戊': '巳',
+            '己': '午', '庚': '申', '辛': '酉', '壬': '亥', '癸': '子'
+        };
+        // 羊刃 (阳干：帝旺；阴干：通常不论羊刃格，或论月刃)
+        // 这里采用宽泛定义：只要是帝旺位即视为月刃/羊刃
+        const REN_MAP: Record<string, string> = {
+            '甲': '卯', '乙': '寅', '丙': '午', '丁': '巳', '戊': '午',
+            '己': '巳', '庚': '酉', '辛': '申', '壬': '子', '癸': '亥'
+        };
+
+        if (LU_MAP[dmStem] === monthBranch) return "建禄格 (月令建禄)";
+        if (REN_MAP[dmStem] === monthBranch) return "羊刃格 (月令帝旺)";
 
         // 2. 八正格 (透干优先)
         const allVisibleStems = [stems[0], stems[1], stems[3]]; // 年月时干
@@ -227,6 +239,9 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
     // 4.1 化气格判定
     let isTrueTransformation = false;
     let transformGodElement: Element | null = null;
+    let isZhuanWang = false;
+    let zhuanWangName = "";
+    let isEarthDominant = false;
 
     // 辅助函数：stem_has_root
     const stemHasRoot = (stem: string): boolean => {
@@ -419,22 +434,96 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
     }
 
     // 4.4 稼穑与十干体象
-    let isEarthDominant = false;
-    if (dmEl === 'Earth' && (counts['Earth'] + counts['Fire'] >= 7) && !isTrueTransformation) {
-        isEarthDominant = true;
-        physicsLog.push("🧱 稼穑成格：火土气势宏大，论专旺");
-        // 清空杂气
-        [...WET_EARTH, ...DRY_EARTH].forEach(b => {
-            if (hiddenStems[b]) {
-                const newDict: HiddenStemWeight = {};
-                Object.entries(hiddenStems[b]).forEach(([k, v]) => {
-                    const el = getElement(k);
-                    if (el === 'Earth' || el === 'Fire') newDict[k] = v;
-                });
-                hiddenStems[b] = newDict;
+    // 4.4 专旺格精确判定 (Five Super-Strong Patterns)
+    isZhuanWang = false;
+    zhuanWangName = "";
+
+    if (!isTrueTransformation) {
+        // 辅助检测函数
+        const hasFang = (el: Element): boolean => {
+            if (el === 'Wood') return branches.includes('寅') && branches.includes('卯') && branches.includes('辰');
+            if (el === 'Fire') return branches.includes('巳') && branches.includes('午') && branches.includes('未');
+            if (el === 'Metal') return branches.includes('申') && branches.includes('酉') && branches.includes('戌');
+            if (el === 'Water') return branches.includes('亥') && branches.includes('子') && branches.includes('丑');
+            return false;
+        };
+        const hasJu = (el: Element): boolean => {
+            if (el === 'Wood') return branches.includes('亥') && branches.includes('卯') && branches.includes('未');
+            if (el === 'Fire') return branches.includes('寅') && branches.includes('午') && branches.includes('戌');
+            if (el === 'Metal') return branches.includes('巳') && branches.includes('酉') && branches.includes('丑');
+            if (el === 'Water') return branches.includes('申') && branches.includes('子') && branches.includes('辰');
+            return false;
+        };
+
+        // 忌神检测 (是否存在强力的克神)
+        const hasStrongKiller = (killerEl: Element): boolean => {
+            // 简单规则：天干透克神，或者地支有2个以上克神
+            const killerCount = counts[killerEl] || 0;
+            const stemKiller = stems.some(s => {
+                const info = STEMS_INFO[s];
+                return info && info.el === killerEl;
+            });
+            return stemKiller || killerCount > 0;
+        };
+
+        // 1. 曲直格 (Wood)
+        if (dmEl === 'Wood') {
+            const isWoodStrong = hasFang('Wood') || hasJu('Wood') || (counts['Wood'] >= 5);
+            if (isWoodStrong && !hasStrongKiller('Metal')) {
+                isZhuanWang = true;
+                zhuanWangName = "专旺格 (曲直/木)";
+                physicsLog.push("🌲 曲直成格：木气成方/局，不见强金破格");
+                forcedYongShen = ["Wood(比劫)", "Water(印星)", "Fire(食伤)"];
             }
-        });
-        forcedYongShen = ["Fire(印星)", "Earth(比劫)", "Metal(食伤)"];
+        }
+        // 2. 炎上格 (Fire)
+        else if (dmEl === 'Fire') {
+            const isFireStrong = hasFang('Fire') || hasJu('Fire') || (counts['Fire'] >= 5);
+            if (isFireStrong && !hasStrongKiller('Water')) {
+                isZhuanWang = true;
+                zhuanWangName = "专旺格 (炎上/火)";
+                physicsLog.push("🔥 炎上成格：火气成方/局，不见强水破格");
+                forcedYongShen = ["Fire(比劫)", "Wood(印星)", "Earth(食伤)"];
+            }
+        }
+        // 3. 稼穑格 (Earth)
+        else if (dmEl === 'Earth') {
+            // 四库全 OR 火土气势宏大(费中堂造: 子丑化土+土重)
+            const fourKu = branches.includes('辰') && branches.includes('戌') && branches.includes('丑') && branches.includes('未');
+            const earthDominant = (counts['Earth'] + counts['Fire'] >= 6);
+            // 费中堂特殊检测: 子丑化土 + 土重
+            const ziChouEarth = branches.includes('子') && branches.includes('丑') && earthDominant;
+
+            if ((fourKu || earthDominant || ziChouEarth) && !hasStrongKiller('Wood')) {
+                isZhuanWang = true;
+                isEarthDominant = true;
+                zhuanWangName = "专旺格 (稼穑/土)";
+                physicsLog.push("🧱 稼穑成格：土气专旺，不见强木破格");
+                forcedYongShen = ["Earth(比劫)", "Fire(印星)", "Metal(食伤)"];
+            }
+        }
+        // 4. 从革格 (Metal)
+        else if (dmEl === 'Metal') {
+            const isMetalStrong = hasFang('Metal') || hasJu('Metal') || (counts['Metal'] >= 5);
+            if (isMetalStrong && !hasStrongKiller('Fire')) {
+                isZhuanWang = true;
+                zhuanWangName = "专旺格 (从革/金)";
+                physicsLog.push("⚔ 从革成格：金气成方/局，不见强火破格");
+                forcedYongShen = ["Metal(比劫)", "Earth(印星)", "Water(食伤)"];
+            }
+        }
+        // 5. 润下格 (Water)
+        else if (dmEl === 'Water') {
+            const isWaterStrong = hasFang('Water') || hasJu('Water') || (counts['Water'] >= 5);
+            if (isWaterStrong && !hasStrongKiller('Earth')) {
+                isZhuanWang = true;
+                zhuanWangName = "专旺格 (润下/水)";
+                physicsLog.push("🌊 润下成格：水气成方/局，不见强土破格");
+                forcedYongShen = ["Water(比劫)", "Metal(印星)", "Wood(食伤)"];
+            }
+        }
+
+
     }
 
     // 水多土流
@@ -663,7 +752,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
     if (isEarthDominant) zScore += 5.0;
 
     zScore = Math.round(zScore * 100) / 100;
-    let verdict = zScore > 0 ? "身旺" : "身弱";
+    let verdict = zScore > 0 ? "身强" : "身弱";
 
     // -------------------------------------------------------------------------
     // 6. 格局裁决 & 智能防御
@@ -703,15 +792,15 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
         if (physicsLog.some(l => l.includes("水多土流"))) {
             calcPattern = "身弱 (水多土流)";
             patternCode = "Normal";
-        } else if (physicsLog.some(l => l.includes("稼穑"))) {
-            calcPattern = "专旺格 (稼穑/气势)";
+        } else if (isZhuanWang) {
+            calcPattern = zhuanWangName;
             patternCode = "Follow_Strong";
         } else if (forcedYongShen.some(s => s.includes("财星"))) {
             calcPattern = "真从格 (弃命相从)";
             patternCode = "Follow_Weak";
         }
-    } else if (isEarthDominant) {
-        calcPattern = "专旺格 (稼穑格 / 气势专一)";
+    } else if (isZhuanWang) {
+        calcPattern = zhuanWangName;
         patternCode = "Follow_Strong";
     } else if (zScore < -1.5) {
         // === 从格判定 (V32 核心修复逻辑) ===
@@ -1205,9 +1294,61 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
     // Day pillar is index 2
     const dayKongWang = getKongWang(pillars[2].tiangan, pillars[2].dizhi);
 
+    // 生成 bodyStrength 字段（身体强弱描述）
+    let bodyStrength = verdict; // 默认使用 verdict（身强/身弱）
+
+    // 从格类型判断函数（直接使用 stemGods 和 counts）
+    const determineCongType = (): string => {
+        // 统计天干十神
+        const stemGodCounts = { 'Wealth': 0, 'Official': 0, 'Output': 0 };
+        stemGods.forEach(g => {
+            if (g === 'Wealth') stemGodCounts['Wealth']++;
+            else if (g === 'Official') stemGodCounts['Official']++;
+            else if (g === 'Output') stemGodCounts['Output']++;
+        });
+
+        // 从杀 > 从财 > 从儿
+        if (stemGodCounts['Official'] > 0 && counts[relations['Official']] >= 2) {
+            return '从官';
+        } else if (stemGodCounts['Wealth'] > 0 && counts[relations['Wealth']] >= 2) {
+            return '从财';
+        } else if (stemGodCounts['Output'] > 0 && counts[relations['Output']] >= 2) {
+            return '从儿';
+        }
+        return '从格';  // 默认
+    };
+
+    if (patternCode === 'Follow_Weak') {
+        // 从格细分：直接判断
+        bodyStrength = determineCongType();
+    } else if (patternCode === 'Fake_Follow') {
+        // 假从格细分
+        const congType = determineCongType();
+        bodyStrength = congType === '从格' ? '假从格' : '假' + congType;
+    } else if (patternCode === 'Follow_Strong') {
+        // 专旺格细分 (只有 calcPattern 明确指定了专旺类型才显示，否则只显示身强)
+        if (calcPattern.includes('稼穑')) {
+            bodyStrength = '专旺(稼穑)';
+        } else if (calcPattern.includes('曲直')) {
+            bodyStrength = '专旺(曲直)';
+        } else if (calcPattern.includes('炎上')) {
+            bodyStrength = '专旺(炎上)';
+        } else if (calcPattern.includes('从革')) {
+            bodyStrength = '专旺(从革)';
+        } else if (calcPattern.includes('润下')) {
+            bodyStrength = '专旺(润下)';
+        } else {
+            // 普通身强/极旺 (破格后的状态)
+            bodyStrength = '身强';
+        }
+    } else if (patternCode === 'Transform') {
+        bodyStrength = '化格';
+    }
+
     return {
         bazi: baziStr,
         formalPattern,
+        bodyStrength,
         verdict,
         calcPattern,
         physicsLog,
