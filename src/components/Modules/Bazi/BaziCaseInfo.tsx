@@ -12,6 +12,7 @@ interface BaziCaseInfoProps {
   baziData: BaziApiResponse | null;
   selectedDaYunIndex?: number | null;
   selectedLiuNianYear?: number | null;
+  currentYear?: number;
 }
 
 export default function BaziCaseInfo({
@@ -19,6 +20,7 @@ export default function BaziCaseInfo({
   baziData,
   selectedDaYunIndex,
   selectedLiuNianYear,
+  currentYear,
 }: BaziCaseInfoProps) {
   const { isAuthenticated } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -146,6 +148,7 @@ export default function BaziCaseInfo({
         baziData={baziData}
         selectedDaYunIndex={selectedDaYunIndex ?? null}
         selectedLiuNianYear={selectedLiuNianYear ?? null}
+        currentYear={currentYear}
       />
     </>
   );

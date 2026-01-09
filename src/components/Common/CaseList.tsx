@@ -83,12 +83,8 @@ function getAgeFromBirth(birthDate?: string): number | null {
   const date = new Date(birthDate);
   if (Number.isNaN(date.getTime())) return null;
   const now = new Date();
-  let age = now.getFullYear() - date.getFullYear();
-  const monthDiff = now.getMonth() - date.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < date.getDate())) {
-    age -= 1;
-  }
-  return age < 0 ? 0 : age;
+  // Bazi typically uses Virtual Age (虚岁): Current Year - Birth Year + 1
+  return now.getFullYear() - date.getFullYear() + 1;
 }
 
 const ELEMENT_BG_10: Record<string, string> = {
