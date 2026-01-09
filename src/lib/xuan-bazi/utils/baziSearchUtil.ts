@@ -1,4 +1,4 @@
-import { Solar, Lunar } from 'lunar-typescript';
+import { Solar } from 'lunar-typescript';
 
 export interface BaziTarget {
     yearGan: string;

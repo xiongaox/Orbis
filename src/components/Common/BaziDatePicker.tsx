@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2, Search, ChevronRight } from 'lucide-react';
 import { baziReverseSearch, type BaziSearchResult } from '../../lib/xuan-bazi/utils/baziSearchUtil';
 
 interface BaziDatePickerProps {
@@ -148,7 +148,7 @@ export default function BaziDatePicker({ onChange, onSelectDate }: BaziDatePicke
                             <div
                                 onClick={() => setActiveSlot(ganIndex as SlotIndex)}
                                 className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl font-serif font-bold cursor-pointer transition-all duration-200 select-none border
-                                    ${isGanActive ? 'border-primary shadow-[0_0_10px_rgba(var(--primary),0.3)] bg-background' : 'border-border/30 bg-muted hover:bg-muted/80'}
+                                    ${isGanActive ? 'border-primary shadow-[0_0_10px_rgba(var(--primary),0.3)] bg-transparent' : 'border-border/30 bg-muted hover:bg-muted/80'}
                                     ${ganValue ? getElementColor(ganValue) : ''}
                                 `}
                                 style={{
@@ -162,7 +162,7 @@ export default function BaziDatePicker({ onChange, onSelectDate }: BaziDatePicke
                             <div
                                 onClick={() => setActiveSlot(zhiIndex as SlotIndex)}
                                 className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl font-serif font-bold cursor-pointer transition-all duration-200 select-none border
-                                    ${isZhiActive ? 'border-primary shadow-[0_0_10px_rgba(var(--primary),0.3)] bg-background' : 'border-border/30 bg-muted hover:bg-muted/80'}
+                                    ${isZhiActive ? 'border-primary shadow-[0_0_10px_rgba(var(--primary),0.3)] bg-transparent' : 'border-border/30 bg-muted hover:bg-muted/80'}
                                     ${zhiValue ? getElementColor(zhiValue) : ''}
                                 `}
                                 style={{
@@ -181,6 +181,7 @@ export default function BaziDatePicker({ onChange, onSelectDate }: BaziDatePicke
                 <span>范围：1900-2100</span>
                 <div className="flex items-center gap-2">
                     <button
+                        type="button"
                         onClick={handleSearch}
                         disabled={isSearching}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-full transition-all text-xs font-medium border border-transparent
@@ -192,6 +193,7 @@ export default function BaziDatePicker({ onChange, onSelectDate }: BaziDatePicke
                     </button>
                     <div className="w-[1px] h-3 bg-border mx-1" />
                     <button
+                        type="button"
                         onClick={handleClear}
                         className="hover:text-foreground px-2 py-1.5 rounded-md hover:bg-muted transition-colors"
                     >
@@ -210,12 +212,13 @@ export default function BaziDatePicker({ onChange, onSelectDate }: BaziDatePicke
                         </div>
                         {searchResults.map((res, i) => (
                             <button
+                                type="button"
                                 key={i}
                                 onClick={() => onSelectDate?.(res.solarDate)}
-                                className="p-3 rounded-xl bg-muted/50 hover:bg-accent border border-transparent hover:border-border text-left text-sm transition-all flex items-center justify-between group"
+                                className="p-3 rounded-xl bg-muted/30 border border-transparent hover:border-primary/50 hover:bg-primary/5 text-left text-sm transition-all flex items-center justify-between group"
                             >
-                                <span className="font-mono text-foreground/90">{res.description}</span>
-                                <span className="opacity-0 group-hover:opacity-100 text-primary text-xs font-medium bg-primary/10 px-2 py-1 rounded-full transition-opacity">选择</span>
+                                <span className="font-mono text-foreground/90 group-hover:text-primary transition-colors">{res.description}</span>
+                                <ChevronRight className="w-4 h-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
                             </button>
                         ))}
                     </div>
@@ -223,6 +226,7 @@ export default function BaziDatePicker({ onChange, onSelectDate }: BaziDatePicke
                     <div className="grid grid-cols-5 gap-3 pb-8">
                         {currentOptions.map((char) => (
                             <button
+                                type="button"
                                 key={char}
                                 onClick={() => handleSelect(char)}
                                 className={`
@@ -238,6 +242,6 @@ export default function BaziDatePicker({ onChange, onSelectDate }: BaziDatePicke
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }

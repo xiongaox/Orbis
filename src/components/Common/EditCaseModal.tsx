@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
 import type { BaziCase, CaseTag } from '../../services/baziCaseService';
 import { baziCaseService } from '../../services/baziCaseService';
 import { calculateBazi } from '../../services/bazi/caseHelper';
 import { BAZI_CASES_CHANGED_EVENT } from '../../data/caseConstants';
 import TagSelector from './TagSelector';
+import AdvancedDatePicker from './AdvancedDatePicker';
 
 interface EditCaseModalProps {
     isOpen: boolean;
@@ -20,17 +22,20 @@ export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: Ed
         tags: CaseTag[];
         notes: string;
     }>({ name: '', gender: 'male', birth_date: '', tags: [], notes: '' });
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
     useEffect(() => {
         if (caseData) {
-            const date = new Date(caseData.birth_date);
-            const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+            // Adjust for local display if needed, or keep ISO string if picker handles it.
+            // AdvancedDatePicker expects a Date object or string it can parse.
+            // CreateCaseModal stores it as ISO string but displays it localized.
             setFormData({
                 name: caseData.name,
                 gender: caseData.gender,
-                birth_date: localDate.toISOString().slice(0, 16),
+                birth_date: caseData.birth_date,
                 tags: caseData.tags || [],
                 notes: caseData.notes || '',
             });
@@ -69,41 +74,94 @@ export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: Ed
     };
 
     return (
-        <div className="modal-backdrop">
-            <div className="modal-card">
+        <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
+            <div className="modal-card" style={{ maxWidth: '480px' }}>
                 <h2 className="modal-title">编辑案例</h2>
                 <form onSubmit={handleSubmit}>
+                    {/* 姓名 */}
                     <div className="modal-field">
-                        <label className="modal-label">姓名</label>
+                        <label className="modal-label">案例名称</label>
                         <input
                             type="text"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             className="modal-input"
-                            required
+                            placeholder="例如：张三"
+                            disabled={loading}
                         />
                     </div>
+
+                    {/* 性别 */}
                     <div className="modal-field">
                         <label className="modal-label">性别</label>
-                        <select
-                            value={formData.gender}
-                            onChange={(e) => setFormData({ ...formData, gender: e.target.value as 'male' | 'female' })}
-                            className="modal-select"
-                        >
-                            <option value="male">男</option>
-                            <option value="female">女</option>
-                        </select>
+                        <div className="flex gap-4">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="edit_gender"
+                                    value="male"
+                                    checked={formData.gender === 'male'}
+                                    onChange={() => setFormData({ ...formData, gender: 'male' })}
+                                    disabled={loading}
+                                    className="w-4 h-4 accent-primary"
+                                />
+                                <span className="text-sm text-foreground">男</span>
+                            </label>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="edit_gender"
+                                    value="female"
+                                    checked={formData.gender === 'female'}
+                                    onChange={() => setFormData({ ...formData, gender: 'female' })}
+                                    disabled={loading}
+                                    className="w-4 h-4 accent-primary"
+                                />
+                                <span className="text-sm text-foreground">女</span>
+                            </label>
+                        </div>
                     </div>
+
+                    {/* 出生日期 */}
                     <div className="modal-field">
-                        <label className="modal-label">出生日期</label>
-                        <input
-                            type="datetime-local"
-                            value={formData.birth_date}
-                            onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })}
-                            className="modal-input"
-                            required
+                        <label className="modal-label">出生日期时间</label>
+                        <div
+                            onClick={() => !loading && setIsDatePickerOpen(true)}
+                            className="modal-input cursor-pointer flex items-center justify-between group"
+                        >
+                            <span className={formData.birth_date ? 'text-foreground' : 'text-muted-foreground'}>
+                                {formData.birth_date
+                                    ? new Date(formData.birth_date).toLocaleString('zh-CN', {
+                                        hour12: false,
+                                        year: 'numeric',
+                                        month: '2-digit',
+                                        day: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    })
+                                    : '请选择出生日期'
+                                }
+                            </span>
+                            <CalendarIcon className="w-4 h-4 text-gray-500 group-hover:text-primary transition-colors" />
+                        </div>
+
+                        <AdvancedDatePicker
+                            isOpen={isDatePickerOpen}
+                            onClose={() => setIsDatePickerOpen(false)}
+                            onConfirm={(date) => {
+                                const year = date.getFullYear();
+                                const month = String(date.getMonth() + 1).padStart(2, '0');
+                                const day = String(date.getDate()).padStart(2, '0');
+                                const hour = String(date.getHours()).padStart(2, '0');
+                                const minute = String(date.getMinutes()).padStart(2, '0');
+                                setFormData({ ...formData, birth_date: `${year}-${month}-${day}T${hour}:${minute}` });
+                                setIsDatePickerOpen(false);
+                            }}
+                            value={formData.birth_date ? new Date(formData.birth_date) : undefined}
                         />
                     </div>
+
+                    {/* 标签 */}
                     <div className="modal-field">
                         <label className="modal-label">标签分类</label>
                         <TagSelector
@@ -112,6 +170,8 @@ export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: Ed
                             disabled={loading}
                         />
                     </div>
+
+                    {/* 备注 */}
                     <div className="modal-field">
                         <label className="modal-label">备注</label>
                         <textarea
@@ -119,29 +179,33 @@ export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: Ed
                             onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                             placeholder="可选，添加案例备注..."
                             className="modal-input resize-none"
-                            rows={2}
+                            rows={3}
                             disabled={loading}
                         />
                     </div>
+
                     {error && (
                         <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2 mb-4">
                             {error}
                         </div>
                     )}
+
                     <div className="modal-actions">
                         <button
                             type="button"
                             onClick={onClose}
                             className="modal-btn"
+                            disabled={loading}
                         >
                             取消
                         </button>
                         <button
                             type="submit"
                             disabled={loading}
-                            className="modal-btn primary"
+                            className="modal-btn primary flex items-center gap-2"
                         >
-                            {loading ? '保存中...' : '保存'}
+                            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                            保存
                         </button>
                     </div>
                 </form>
@@ -149,4 +213,3 @@ export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: Ed
         </div>
     );
 }
-

@@ -1,9 +1,11 @@
 /**
  * 八字模块页面容器
  */
+import { useState } from 'react';
 import BaziCaseInfo from './BaziCaseInfo';
 import BaziChart from './BaziChart';
 import DayunLiunianPanel from './DayunLiunianPanel';
+import WuxingStatusBar from './WuxingStatusBar';
 import type { BaziApiResponse } from '../../../types/bazi';
 import type { Case } from '../../../types';
 
@@ -30,6 +32,11 @@ export default function BaziPage({
     setSelectedDaYunIndex,
     setSelectedLiuNianYear,
 }: BaziPageProps) {
+    // 胎命身显示开关状态
+    const [showTaiMingShen, setShowTaiMingShen] = useState(false);
+    // 隐藏详情面板开关
+    const [hideDetails, setHideDetails] = useState(false);
+
     return (
         <>
             <BaziCaseInfo
@@ -44,8 +51,21 @@ export default function BaziPage({
                     loading={loading}
                     selectedDaYunIndex={selectedDaYunIndex}
                     selectedLiuNianYear={selectedLiuNianYear}
+                    showTaiMingShen={showTaiMingShen}
                 />
                 <div className="flex flex-col gap-4 min-h-0 overflow-y-auto">
+                    {/* 五行旺衰信息条 */}
+                    <div className="flex-shrink-0">
+                        <WuxingStatusBar
+                            baziData={baziData}
+                            selectedLiuNianYear={selectedLiuNianYear}
+                            showTaiMingShen={showTaiMingShen}
+                            onToggleTaiMingShen={() => setShowTaiMingShen(!showTaiMingShen)}
+                            hideDetails={hideDetails}
+                            onToggleHideDetails={() => setHideDetails(!hideDetails)}
+                        />
+                    </div>
+
                     <div className="flex-shrink-0">
                         <DayunLiunianPanel
                             data={baziData}
@@ -57,9 +77,12 @@ export default function BaziPage({
                         />
                     </div>
 
-                    <div className="flex-shrink-0">
-                        <BaziBasicInfoPanel baziData={baziData} />
-                    </div>
+                    {/* 详情面板 - 可隐藏 */}
+                    {!hideDetails && (
+                        <div className="flex-shrink-0">
+                            <BaziBasicInfoPanel baziData={baziData} />
+                        </div>
+                    )}
                 </div>
             </div>
             {error && (
