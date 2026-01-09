@@ -141,7 +141,7 @@ export default function CreateCaseModal({ isOpen, onClose, onCreated }: CreateCa
                             onClick={() => !loading && setIsDatePickerOpen(true)}
                             className="modal-input cursor-pointer flex items-center justify-between group"
                         >
-                            <span className={birthDate ? 'text-white' : 'text-gray-500'}>
+                            <span className={birthDate ? 'text-foreground' : 'text-muted-foreground'}>
                                 {birthDate ? new Date(birthDate).toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '请选择出生日期'}
                             </span>
                             <CalendarIcon className="w-4 h-4 text-gray-500 group-hover:text-primary transition-colors" />
@@ -161,6 +161,7 @@ export default function CreateCaseModal({ isOpen, onClose, onCreated }: CreateCa
                                 const hour = String(date.getHours()).padStart(2, '0');
                                 const minute = String(date.getMinutes()).padStart(2, '0');
                                 setBirthDate(`${year}-${month}-${day}T${hour}:${minute}`);
+                                setIsDatePickerOpen(false);
                             }}
                             value={birthDate ? new Date(birthDate) : undefined}
                         />
@@ -191,7 +192,7 @@ export default function CreateCaseModal({ isOpen, onClose, onCreated }: CreateCa
 
                     {/* 错误提示 */}
                     {error && (
-                        <div className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2 mb-4">
+                        <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-lg px-3 py-2 mb-4">
                             {error}
                         </div>
                     )}

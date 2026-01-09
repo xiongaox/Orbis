@@ -8,6 +8,8 @@ import { Solar } from 'lunar-typescript';
 import { useAuth } from '../../contexts/AuthContext';
 import { baziCaseService, CASE_TAGS, type BaziCase, type CaseTag } from '../../services/baziCaseService';
 import { TIAN_GAN_WU_XING } from '../../lib/xuan-bazi';
+import ConfirmModal from './ConfirmModal';
+
 import CreateCaseModal from './CreateCaseModal';
 import ImportCaseModal from './ImportCaseModal';
 import { BAZI_CASES_CHANGED_EVENT } from '../../data/caseConstants';
@@ -113,6 +115,7 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick }:
   const [showImportModal, setShowImportModal] = useState(false);
   const [editingCase, setEditingCase] = useState<BaziCase | null>(null);
   const [deletingCaseId, setDeletingCaseId] = useState<string | null>(null);
+  const [caseToDelete, setCaseToDelete] = useState<BaziCase | null>(null);
   const [selectedTag, setSelectedTag] = useState<CaseTag | null>(null);
   const [isTagMenuOpen, setIsTagMenuOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -225,18 +228,21 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick }:
     setCurrentPage(1);
   }, [search, selectedTag]);
 
-  const handleDeleteCase = async (caseItem: BaziCase) => {
-    if (!isAuthenticated || deletingCaseId) return;
-    const confirmed = window.confirm(`确定删除「${caseItem.name}」吗？`);
-    if (!confirmed) return;
+  const handleDeleteCase = (caseItem: BaziCase) => {
+    setCaseToDelete(caseItem);
+  };
 
-    setDeletingCaseId(caseItem.id);
+  const executeDelete = async () => {
+    if (!isAuthenticated || !caseToDelete) return; // double check
+
+    setDeletingCaseId(caseToDelete.id);
     try {
-      await baziCaseService.deleteCase(caseItem.id);
-      if (selectedCaseId === caseItem.id) {
+      await baziCaseService.deleteCase(caseToDelete.id);
+      if (selectedCaseId === caseToDelete.id) {
         onSelectCase?.(null);
       }
       window.dispatchEvent(new CustomEvent(BAZI_CASES_CHANGED_EVENT));
+      setCaseToDelete(null);
     } catch (error) {
       console.error('删除案例失败:', error);
       alert('删除失败');
@@ -437,7 +443,7 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick }:
                                   setEditingCase(target);
                                 }
                               }}
-                              className="p-1.5 rounded-md border border-[hsl(var(--border-light))] dark:border-border hover:border-primary/40 text-[hsl(var(--text-tertiary-light))] hover:text-[hsl(var(--text-primary-light))] dark:text-muted-foreground dark:hover:text-foreground"
+                              className="p-1.5 rounded-md border border-border hover:border-primary/50 hover:bg-primary/10 text-muted-foreground hover:text-primary"
                               aria-label="编辑案例"
                             >
                               <Pencil className="w-3.5 h-3.5" />
@@ -452,7 +458,7 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick }:
                                 }
                               }}
                               disabled={deletingCaseId === item.id}
-                              className="p-1.5 rounded-md border border-[hsl(var(--border-light))] dark:border-border hover:border-[hsl(var(--destructive-primary))] dark:hover:border-destructive/60 text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground hover:text-[hsl(var(--destructive-primary))] dark:hover:text-destructive disabled:opacity-60 disabled:cursor-not-allowed"
+                              className="p-1.5 rounded-md border border-border hover:border-red-400 hover:bg-red-100 dark:hover:bg-destructive/20 text-muted-foreground hover:text-red-500 dark:hover:text-destructive disabled:opacity-60 disabled:cursor-not-allowed"
                               aria-label="删除案例"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -518,6 +524,16 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick }:
           onSaved={() => setEditingCase(null)}
         />
       )}
+      <ConfirmModal
+        isOpen={!!caseToDelete}
+        onClose={() => setCaseToDelete(null)}
+        onConfirm={executeDelete}
+        title="删除确认"
+        description={<>确定要删除案例 <span className="font-medium text-foreground">「{caseToDelete?.name}」</span> 吗？此操作无法撤销。</>}
+        confirmText="删除"
+        variant="destructive"
+        loading={!!deletingCaseId}
+      />
     </aside>
   );
 }

@@ -39,8 +39,7 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm }
     // Lunar specific
     const [isLeap, setIsLeap] = useState(false);
 
-    // Bazi specific
-    const [baziPillars, setBaziPillars] = useState<(string | null)[]>([]);
+
 
     // Initialize from props
     useEffect(() => {
@@ -132,9 +131,6 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm }
             if (mode === 'solar') {
                 solarDate = new Date(year, month - 1, day, hour, minute);
             } else if (mode === 'lunar') {
-                // Simplified Lunar -> Solar conversion
-                // Note: handling leap months accurately requires checking if current month is leap
-                // Here we assume strict mapping for simplicity in this snippet
                 const lunar = Lunar.fromYmd(year, isLeap ? -month : month, day);
                 const solar = lunar.getSolar();
                 solarDate = new Date(solar.getYear(), solar.getMonth() - 1, solar.getDay(), hour, minute);
@@ -147,17 +143,20 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm }
         }
 
         // 2. Convert Solar Date to new Mode components
-        if (newMode === 'solar') {
-            setYear(solarDate.getFullYear());
-            setMonth(solarDate.getMonth() + 1);
-            setDay(solarDate.getDate());
-            // Time remains same
-        } else if (newMode === 'lunar') {
-            const lunar = Lunar.fromDate(solarDate);
-            setYear(lunar.getYear());
-            setMonth(Math.abs(lunar.getMonth()));
-            setDay(lunar.getDay());
-            setIsLeap(lunar.getMonth() < 0);
+        try {
+            if (newMode === 'solar') {
+                setYear(solarDate.getFullYear());
+                setMonth(solarDate.getMonth() + 1);
+                setDay(solarDate.getDate());
+            } else if (newMode === 'lunar') {
+                const lunar = Lunar.fromDate(solarDate);
+                setYear(lunar.getYear());
+                setMonth(Math.abs(lunar.getMonth()));
+                setDay(lunar.getDay());
+                setIsLeap(lunar.getMonth() < 0);
+            }
+        } catch (e) {
+            console.error("Mode conversion failed", e);
         }
 
         setMode(newMode);
@@ -196,13 +195,13 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm }
             <div className="w-full max-w-md bg-popover rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-200 border border-border" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-popover">
-                    <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors text-sm px-2 py-1">取消</button>
+                    <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors text-sm px-2 py-1">取消</button>
                     <div className="flex gap-1 bg-muted p-1 rounded-lg">
                         <TabButton active={mode === 'solar'} onClick={() => handleModeChange('solar')}>公历</TabButton>
                         <TabButton active={mode === 'lunar'} onClick={() => handleModeChange('lunar')}>农历</TabButton>
                         <TabButton active={mode === 'bazi'} onClick={() => handleModeChange('bazi')}>四柱</TabButton>
                     </div>
-                    <button onClick={handleConfirm} className="text-primary hover:text-primary/80 font-medium transition-colors text-sm px-2 py-1">确定</button>
+                    <button type="button" onClick={handleConfirm} className="text-primary hover:text-primary/80 font-medium transition-colors text-sm px-2 py-1">确定</button>
                 </div>
 
                 {/* Date Display & Manual Input */}
@@ -226,6 +225,7 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm }
                                 />
                                 <div className={`absolute right-1.5 top-1.5 bottom-1.5 transition-opacity duration-200 ${manualInput.length === 12 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                                     <button
+                                        type="button"
                                         onClick={handleManualSubmit}
                                         className="h-full px-3 bg-primary/20 hover:bg-primary/30 text-primary text-xs font-medium rounded-lg transition-colors flex items-center"
                                     >
@@ -241,13 +241,15 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm }
                 {mode === 'bazi' ? (
                     <div className="h-[430px] bg-popover border-t border-border">
                         <BaziDatePicker
-                            onChange={setBaziPillars}
                             onSelectDate={(date) => {
+                                // Sync local state and switch to solar mode for review
                                 setYear(date.getFullYear());
                                 setMonth(date.getMonth() + 1);
                                 setDay(date.getDate());
                                 setHour(date.getHours());
                                 setMinute(date.getMinutes());
+
+                                // Switch to solar mode for review instead of auto-confirming
                                 setMode('solar');
                             }}
                         />
@@ -256,7 +258,7 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm }
                     /* Solar/Lunar Picker Area */
                     <div className="relative bg-popover" style={{ height: PICKER_HEIGHT }}>
                         {/* Highlight Bar */}
-                        <div className="absolute top-1/2 left-0 right-0 -mt-[20px] h-[40px] bg-accent/50 pointer-events-none z-10 border-y border-border" />
+                        <div className="absolute top-1/2 left-0 right-0 -mt-[20px] h-[40px] bg-primary/15 pointer-events-none z-10 border-y border-primary/30" />
 
                         {/* Gradient Masks */}
                         <div className="absolute top-0 left-0 right-0 h-[80px] bg-gradient-to-b from-popover to-transparent pointer-events-none z-10" />
@@ -323,6 +325,7 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm }
 function TabButton({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
     return (
         <button
+            type="button"
             onClick={onClick}
             className={`px-3 py-1 rounded text-xs font-medium transition-all ${active ? 'bg-popover text-popover-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                 }`}
@@ -366,17 +369,19 @@ function PickerColumn({ items, value, onChange, label, formatItem, width = "flex
         }
     }, [value, items]);
 
-    const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const handleScroll = () => {
         isScrolling.current = true;
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
         timeoutRef.current = setTimeout(() => {
             isScrolling.current = false;
-            const scrollTop = e.currentTarget.scrollTop;
+            if (!scrollRef.current) return;
+
+            const scrollTop = scrollRef.current.scrollTop;
             const index = Math.round(scrollTop / ITEM_HEIGHT);
             const clampedIndex = Math.max(0, Math.min(index, items.length - 1));
 
-            e.currentTarget.scrollTo({
+            scrollRef.current.scrollTo({
                 top: clampedIndex * ITEM_HEIGHT,
                 behavior: 'smooth'
             });

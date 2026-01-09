@@ -201,6 +201,7 @@ interface BaziChartProps {
   currentYear?: number;
   selectedDaYunIndex?: number | null;
   selectedLiuNianYear?: number | null;
+  showTaiMingShen?: boolean;
 }
 
 export default function BaziChart({
@@ -209,6 +210,7 @@ export default function BaziChart({
   currentYear = new Date().getFullYear(),
   selectedDaYunIndex,
   selectedLiuNianYear,
+  showTaiMingShen = false,
 }: BaziChartProps) {
   const [isDiagramOpen, setIsDiagramOpen] = useState(false);
 
@@ -280,6 +282,23 @@ export default function BaziChart({
     return { ...details, shensha };
   }, [currentDaYun?.ganZhi, dayGan, shenShaContext, shenShaSetting]);
 
+  // 计算胎元、命宫、身宫的详细信息
+  const taiMingShenDetails = useMemo(() => {
+    if (!data?.extra || !showTaiMingShen) return null;
+
+    const { taiYuan, mingGong, shenGong } = data.extra;
+
+    const taiDetails = computePillarDetails(taiYuan, dayGan);
+    const mingDetails = computePillarDetails(mingGong, dayGan);
+    const shenDetails = computePillarDetails(shenGong, dayGan);
+
+    return {
+      tai: { ganZhi: taiYuan, tiangan: taiYuan[0], dizhi: taiYuan[1], ...taiDetails },
+      ming: { ganZhi: mingGong, tiangan: mingGong[0], dizhi: mingGong[1], ...mingDetails },
+      shen: { ganZhi: shenGong, tiangan: shenGong[0], dizhi: shenGong[1], ...shenDetails },
+    };
+  }, [data?.extra, showTaiMingShen, dayGan]);
+
   // 计算按柱的神煞
   const pillarShenSha = useMemo(() => {
     if (!shenShaContext) return null;
@@ -345,38 +364,88 @@ export default function BaziChart({
             </div>
           </div>
 
-          {/* 流年柱 */}
-          {currentLiuNian && liuNianDetails && (
-            <YunPillar
-              label="流年"
-              tiangan={currentLiuNian.tiangan}
-              dizhi={currentLiuNian.dizhi}
-              zhuxing={liuNianDetails.tianganShiShen}
-              zanggan={liuNianDetails.zanggan}
-              xingyun={liuNianDetails.diShi}
-              zizuo={liuNianDetails.ziZuo}
-              kongwang={liuNianDetails.kongWang}
-              nayin={liuNianDetails.naYin}
-              isAccent={true}
-              shensha={liuNianDetails.shensha}
-            />
+          {/* 胎命身柱 - 当开关开启时显示 */}
+          {showTaiMingShen && taiMingShenDetails && (
+            <>
+              <YunPillar
+                label="胎元"
+                tiangan={taiMingShenDetails.tai.tiangan}
+                dizhi={taiMingShenDetails.tai.dizhi}
+                zhuxing={taiMingShenDetails.tai.tianganShiShen}
+                zanggan={taiMingShenDetails.tai.zanggan}
+                xingyun={taiMingShenDetails.tai.diShi}
+                zizuo={taiMingShenDetails.tai.ziZuo}
+                kongwang={taiMingShenDetails.tai.kongWang}
+                nayin={taiMingShenDetails.tai.naYin}
+                isAccent={true}
+                shensha={[]}
+              />
+              <YunPillar
+                label="命宫"
+                tiangan={taiMingShenDetails.ming.tiangan}
+                dizhi={taiMingShenDetails.ming.dizhi}
+                zhuxing={taiMingShenDetails.ming.tianganShiShen}
+                zanggan={taiMingShenDetails.ming.zanggan}
+                xingyun={taiMingShenDetails.ming.diShi}
+                zizuo={taiMingShenDetails.ming.ziZuo}
+                kongwang={taiMingShenDetails.ming.kongWang}
+                nayin={taiMingShenDetails.ming.naYin}
+                isAccent={true}
+                shensha={[]}
+              />
+              <YunPillar
+                label="身宫"
+                tiangan={taiMingShenDetails.shen.tiangan}
+                dizhi={taiMingShenDetails.shen.dizhi}
+                zhuxing={taiMingShenDetails.shen.tianganShiShen}
+                zanggan={taiMingShenDetails.shen.zanggan}
+                xingyun={taiMingShenDetails.shen.diShi}
+                zizuo={taiMingShenDetails.shen.ziZuo}
+                kongwang={taiMingShenDetails.shen.kongWang}
+                nayin={taiMingShenDetails.shen.naYin}
+                isAccent={true}
+                shensha={[]}
+              />
+            </>
           )}
 
-          {/* 大运柱 */}
-          {currentDaYun && currentDaYun.index > 0 && daYunDetails && (
-            <YunPillar
-              label="大运"
-              tiangan={currentDaYun.tiangan}
-              dizhi={currentDaYun.dizhi}
-              zhuxing={daYunDetails.tianganShiShen}
-              zanggan={daYunDetails.zanggan}
-              xingyun={daYunDetails.diShi}
-              zizuo={daYunDetails.ziZuo}
-              kongwang={daYunDetails.kongWang}
-              nayin={daYunDetails.naYin}
-              isAccent={true}
-              shensha={daYunDetails.shensha}
-            />
+          {/* 流年/大运柱 - 当胎命身开关关闭时显示 */}
+          {!showTaiMingShen && (
+            <>
+              {/* 流年柱 */}
+              {currentLiuNian && liuNianDetails && (
+                <YunPillar
+                  label="流年"
+                  tiangan={currentLiuNian.tiangan}
+                  dizhi={currentLiuNian.dizhi}
+                  zhuxing={liuNianDetails.tianganShiShen}
+                  zanggan={liuNianDetails.zanggan}
+                  xingyun={liuNianDetails.diShi}
+                  zizuo={liuNianDetails.ziZuo}
+                  kongwang={liuNianDetails.kongWang}
+                  nayin={liuNianDetails.naYin}
+                  isAccent={true}
+                  shensha={liuNianDetails.shensha}
+                />
+              )}
+
+              {/* 大运柱 */}
+              {currentDaYun && currentDaYun.index > 0 && daYunDetails && (
+                <YunPillar
+                  label="大运"
+                  tiangan={currentDaYun.tiangan}
+                  dizhi={currentDaYun.dizhi}
+                  zhuxing={daYunDetails.tianganShiShen}
+                  zanggan={daYunDetails.zanggan}
+                  xingyun={daYunDetails.diShi}
+                  zizuo={daYunDetails.ziZuo}
+                  kongwang={daYunDetails.kongWang}
+                  nayin={daYunDetails.naYin}
+                  isAccent={true}
+                  shensha={daYunDetails.shensha}
+                />
+              )}
+            </>
           )}
 
           {/* 四柱 */}
