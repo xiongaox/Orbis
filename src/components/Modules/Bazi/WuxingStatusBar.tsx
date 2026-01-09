@@ -15,6 +15,7 @@ interface WuxingStatusBarProps {
     onToggleTaiMingShen: () => void;
     hideDetails: boolean;
     onToggleHideDetails: () => void;
+    onGoToCurrentYear: () => void;
 }
 
 export default function WuxingStatusBar({
@@ -25,6 +26,7 @@ export default function WuxingStatusBar({
     onToggleTaiMingShen,
     hideDetails,
     onToggleHideDetails,
+    onGoToCurrentYear,
 }: WuxingStatusBarProps) {
     // 获取月支
     const monthBranch = baziData?.pillars?.[1]?.dizhi || '';
@@ -96,6 +98,15 @@ export default function WuxingStatusBar({
                     `}
                 >
                     胎命身
+                </button>
+
+                {/* 当前流年按钮 */}
+                <button
+                    type="button"
+                    onClick={onGoToCurrentYear}
+                    className="px-3 py-1 rounded-lg text-xs font-medium transition-all border bg-muted text-foreground border-border hover:bg-muted/80"
+                >
+                    当前流年
                 </button>
 
                 {/* 隐藏详情开关 */}

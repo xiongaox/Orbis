@@ -63,6 +63,19 @@ export default function BaziPage({
                             onToggleTaiMingShen={() => setShowTaiMingShen(!showTaiMingShen)}
                             hideDetails={hideDetails}
                             onToggleHideDetails={() => setHideDetails(!hideDetails)}
+                            onGoToCurrentYear={() => {
+                                const nowYear = new Date().getFullYear();
+                                setSelectedLiuNianYear(nowYear);
+                                // 同时跳转到对应的大运
+                                if (baziData?.daYun) {
+                                    const targetDaYun = baziData.daYun.find(dy => nowYear >= dy.startYear && nowYear <= dy.endYear);
+                                    if (targetDaYun) {
+                                        setSelectedDaYunIndex(targetDaYun.index);
+                                    } else {
+                                        setSelectedDaYunIndex(null);
+                                    }
+                                }
+                            }}
                         />
                     </div>
 
