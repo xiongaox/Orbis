@@ -95,4 +95,39 @@ export const authService = {
 
         return { error: null };
     },
+
+    /**
+     * 发送邮箱 OTP 验证码
+     */
+    async sendOtp(email: string): Promise<{ error: AuthError | null }> {
+        const { error } = await supabase.auth.signInWithOtp({
+            email,
+            options: {
+                shouldCreateUser: true, // 如果用户不存在则创建
+            },
+        });
+
+        if (error) {
+            return { error: { message: error.message, code: error.code } };
+        }
+
+        return { error: null };
+    },
+
+    /**
+     * 验证 OTP 并登录
+     */
+    async verifyOtp(email: string, token: string): Promise<{ user: User | null; error: AuthError | null }> {
+        const { data, error } = await supabase.auth.verifyOtp({
+            email,
+            token,
+            type: 'email',
+        });
+
+        if (error) {
+            return { user: null, error: { message: error.message, code: error.code } };
+        }
+
+        return { user: data.user, error: null };
+    },
 };

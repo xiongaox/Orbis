@@ -50,7 +50,7 @@ export default function WuxingStatusBar({
     return (
         <div className="bg-card rounded-xl border border-border px-4 py-2.5 flex items-center justify-between text-sm">
             {/* 左侧：五行旺衰状态 */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-3">
                 {wuxingStatus.map((item, index) => (
                     <div key={item.element} className="flex items-center">
                         <span
@@ -63,7 +63,7 @@ export default function WuxingStatusBar({
                             {item.state}
                         </span>
                         {index < wuxingStatus.length - 1 && (
-                            <span className="text-border mx-2">|</span>
+                            <span className="text-border ml-3">|</span>
                         )}
                     </div>
                 ))}
