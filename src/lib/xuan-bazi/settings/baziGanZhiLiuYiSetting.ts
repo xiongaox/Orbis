@@ -48,6 +48,12 @@ export interface BaZiGanZhiLiuYiSetting {
     diZhiXiangPo: number;
     /** 地支相害（0:显示。1:关闭） */
     diZhiXiangHai: number;
+    /** 地支三合（0:显示。1:关闭） */
+    diZhiSanHe: number;
+    /** 地支三会（0:显示。1:关闭） */
+    diZhiSanHui: number;
+    /** 完整三合/三会时隐藏半合（0:隐藏。1:不隐藏） */
+    hideBanHeWhenFullSanHe: number;
 
     // ========== 地支计算类型 ==========
     /** 地支半合类型（0:以任意两支计算。1:以相邻两支计算） */
@@ -92,6 +98,9 @@ export function createDefaultGanZhiLiuYiSetting(): BaZiGanZhiLiuYiSetting {
         diZhiXiangChong: 0,
         diZhiXiangPo: 0,
         diZhiXiangHai: 0,
+        diZhiSanHe: 0,
+        diZhiSanHui: 0,
+        hideBanHeWhenFullSanHe: 0,
         // 地支计算类型（默认以任意两支计算）
         diZhiBanHeType: 0,
         diZhiGongHeType: 0,

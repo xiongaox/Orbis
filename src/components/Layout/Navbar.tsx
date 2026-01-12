@@ -1,8 +1,9 @@
 /**
  * 导航栏组件
  * 集成认证状态，支持登录/登出
+ * 包含实时时钟显示（公历、农历、四柱）
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   BookOpen,
   Calendar,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { Solar } from 'lunar-typescript';
 
 type ChartType =
   | 'bazi'
@@ -45,6 +47,55 @@ interface NavbarProps {
   activeChart: ChartType;
   onChartChange: (chart: ChartType) => void;
   onLoginClick?: () => void;
+}
+
+// 实时时钟组件
+function RealtimeClock() {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // 使用 lunar-typescript 计算农历和四柱
+  const solar = Solar.fromDate(now);
+  const lunar = solar.getLunar();
+  const eightChar = lunar.getEightChar();
+
+  // 公历格式
+  const solarStr = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日 ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  // 农历格式
+  const lunarStr = `${lunar.getYearInChinese()}年${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}`;
+
+  // 四柱（年柱、月柱、日柱、时柱）
+  const yearPillar = eightChar.getYearGan() + eightChar.getYearZhi();
+  const monthPillar = eightChar.getMonthGan() + eightChar.getMonthZhi();
+  const dayPillar = eightChar.getDayGan() + eightChar.getDayZhi();
+  const hourPillar = eightChar.getTimeGan() + eightChar.getTimeZhi();
+
+  return (
+    <div className="flex items-center gap-4 text-base">
+      {/* 公历 + 农历 */}
+      <div className="flex flex-col font-serif items-end leading-tight text-base">
+        <span className="text-foreground/80">{solarStr}</span>
+        <span className="text-muted-foreground">{lunarStr}</span>
+      </div>
+      {/* 四柱 */}
+      <div className="flex gap-1">
+        {[yearPillar, monthPillar, dayPillar, hourPillar].map((pillar, i) => (
+          <div
+            key={i}
+            className="flex flex-col items-center bg-secondary/50 rounded px-1.5 py-0.5"
+          >
+            <span className="text-primary font-serif text-base">{pillar[0]}</span>
+            <span className="text-muted-foreground font-serif text-base">{pillar[1]}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function Navbar({ activeChart, onChartChange, onLoginClick }: NavbarProps) {
@@ -85,33 +136,50 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
 
   return (
     <header className="h-16 glass-header sticky top-0 z-50 flex items-center justify-between px-6">
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center">
-          <Compass className="w-5 h-5 text-primary" />
+      {/* 左侧：Logo + 导航模块 */}
+      <div className="flex items-center gap-6">
+        {/* Logo */}
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center">
+            <Compass className="w-5 h-5 text-primary" />
+          </div>
+          <span className="font-display text-lg font-semibold tracking-wide text-foreground">玄枢录</span>
         </div>
-        <span className="font-display text-lg font-semibold tracking-wide text-foreground">玄枢录</span>
+
+        {/* 导航模块 */}
+        <nav className="flex items-center">
+          {navItems.map((item, index) => {
+            const Icon = item.icon;
+            const isActive = activeChart === item.id;
+            return (
+              <div key={item.id} className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => onChartChange(item.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-base font-medium transition-all duration-200 ${isActive
+                    ? 'text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="hidden lg:inline">{item.name}</span>
+                </button>
+                {/* 分割线 */}
+                {index < navItems.length - 1 && (
+                  <span className="text-border">|</span>
+                )}
+              </div>
+            );
+          })}
+        </nav>
       </div>
-      <nav className="flex items-center bg-secondary/50 rounded-lg p-1">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = activeChart === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onChartChange(item.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ${isActive
-                  ? 'bg-card text-primary border border-primary/30'
-                  : 'text-muted-foreground hover:text-foreground'
-                }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span className="hidden lg:inline">{item.name}</span>
-            </button>
-          );
-        })}
-      </nav>
-      <div className="flex items-center gap-2">
+
+      {/* 右侧：实时时钟 + 主题切换 + 用户菜单 */}
+      <div className="flex items-center gap-4">
+        {/* 实时时钟 */}
+        <RealtimeClock />
+
+        {/* 主题切换 */}
         <button
           type="button"
           onClick={handleToggleTheme}
@@ -124,6 +192,8 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
             <Moon className="w-4 h-4 text-muted-foreground" />
           )}
         </button>
+
+        {/* 用户菜单 */}
         <div className="relative">
           <button
             type="button"

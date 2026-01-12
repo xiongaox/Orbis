@@ -19,6 +19,10 @@ import {
     DI_ZHI_XIANG_CHONG,
     DI_ZHI_XIANG_PO,
     DI_ZHI_XIANG_HAI,
+    DI_ZHI_SAN_HE,
+    DI_ZHI_SAN_HUI,
+    BAN_HE_TO_SAN_HE,
+    GONG_HE_TO_SAN_HE,
 } from '../maps/baziGanZhiLiuYiMap';
 import type { BaZiGanZhiLiuYiSetting } from '../settings/baziGanZhiLiuYiSetting';
 
@@ -329,6 +333,81 @@ export function calculateDiZhiLiuYi(
                 }
             }
         }
+    }
+
+    // ==================== 三元关系检测（三合、三会） ====================
+    const fullSanHeKeys: string[] = []; // 记录完整的三合键，用于后续过滤半合
+
+    // 三合局检测
+    if (setting.diZhiSanHe === 0 && allZhis.length >= 3) {
+        for (let i = 0; i < allZhis.length; i++) {
+            for (let j = i + 1; j < allZhis.length; j++) {
+                for (let k = j + 1; k < allZhis.length; k++) {
+                    const zhis = [allZhis[i], allZhis[j], allZhis[k]];
+                    // 排序后拼接作为查找键
+                    const sortedKey = zhis.sort().join('');
+                    const sanHeInfo = DI_ZHI_SAN_HE[sortedKey];
+                    if (sanHeInfo) {
+                        const isDynamic = i >= staticCount || j >= staticCount || k >= staticCount;
+                        results.push({
+                            type: '三合',
+                            description: sanHeInfo.result,
+                            positions: [String(i), String(j), String(k)],
+                            isDynamic,
+                        });
+                        fullSanHeKeys.push(sortedKey);
+                    }
+                }
+            }
+        }
+    }
+
+    // 三会局检测
+    if (setting.diZhiSanHui === 0 && allZhis.length >= 3) {
+        for (let i = 0; i < allZhis.length; i++) {
+            for (let j = i + 1; j < allZhis.length; j++) {
+                for (let k = j + 1; k < allZhis.length; k++) {
+                    const zhis = [allZhis[i], allZhis[j], allZhis[k]];
+                    const sortedKey = zhis.sort().join('');
+                    const sanHuiInfo = DI_ZHI_SAN_HUI[sortedKey];
+                    if (sanHuiInfo) {
+                        const isDynamic = i >= staticCount || j >= staticCount || k >= staticCount;
+                        results.push({
+                            type: '三会',
+                            description: sanHuiInfo.result,
+                            positions: [String(i), String(j), String(k)],
+                            isDynamic,
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    // ==================== 过滤逻辑：完整三合时隐藏对应的半合和拱合 ====================
+    if (setting.hideBanHeWhenFullSanHe === 0 && fullSanHeKeys.length > 0) {
+        return results.filter(r => {
+            // 只过滤半合和拱合
+            if (r.type !== '半合' && r.type !== '拱合') return true;
+
+            // 获取涉及的两个地支
+            const pos0 = parseInt(r.positions[0]);
+            const pos1 = parseInt(r.positions[1]);
+            const zhiPair = [allZhis[pos0], allZhis[pos1]].sort().join('');
+
+            // 检查这个关系是否属于某个完整三合
+            let correspondingSanHe: string | undefined;
+            if (r.type === '半合') {
+                correspondingSanHe = BAN_HE_TO_SAN_HE[zhiPair];
+            } else if (r.type === '拱合') {
+                correspondingSanHe = GONG_HE_TO_SAN_HE[zhiPair];
+            }
+
+            if (correspondingSanHe && fullSanHeKeys.includes(correspondingSanHe)) {
+                return false; // 隐藏
+            }
+            return true;
+        });
     }
 
     return results;

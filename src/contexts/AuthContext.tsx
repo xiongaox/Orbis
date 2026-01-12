@@ -12,6 +12,9 @@ interface AuthContextType {
     signIn: (email: string, password: string) => Promise<{ error: string | null }>;
     signUp: (email: string, password: string) => Promise<{ error: string | null }>;
     signOut: () => Promise<void>;
+    resetPassword: (email: string) => Promise<{ error: string | null }>;
+    sendOtp: (email: string) => Promise<{ error: string | null }>;
+    verifyOtp: (email: string, token: string) => Promise<{ error: string | null }>;
     isAuthenticated: boolean;
 }
 
@@ -70,12 +73,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
     }, []);
 
+    const resetPassword = useCallback(async (email: string) => {
+        const { error } = await authService.resetPassword(email);
+        if (error) {
+            return { error: error.message };
+        }
+        return { error: null };
+    }, []);
+
+    const sendOtp = useCallback(async (email: string) => {
+        const { error } = await authService.sendOtp(email);
+        if (error) {
+            return { error: error.message };
+        }
+        return { error: null };
+    }, []);
+
+    const verifyOtp = useCallback(async (email: string, token: string) => {
+        const { user, error } = await authService.verifyOtp(email, token);
+        if (error) {
+            return { error: error.message };
+        }
+        setUser(user);
+        return { error: null };
+    }, []);
+
     const value: AuthContextType = {
         user,
         loading,
         signIn,
         signUp,
         signOut,
+        resetPassword,
+        sendOtp,
+        verifyOtp,
         isAuthenticated: !!user,
     };
 

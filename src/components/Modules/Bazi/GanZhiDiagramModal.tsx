@@ -20,21 +20,25 @@ interface GanZhiDiagramModalProps {
 // 统一颜色（使用与流年/大运标签相同的柔和颜色）
 const UNIFIED_COLOR = 'hsl(var(--muted-foreground))';
 
-// 轨道分配算法
+// 轨道分配算法（支持两点和三点关系）
 const assignTracks = (relations: any[]) => {
     // 按照跨度从小到大排序，这样短的在内层（靠近文字），长的在外层
-    // 同时也考虑起始位置
     const sorted = [...relations].map((r, originalIndex) => {
-        const i = parseInt(r.positions[0]);
-        const j = parseInt(r.positions[1]);
+        // positions 可能是数字或字符串，统一转换为数字
+        const positions = r.positions.map((p: string | number) => typeof p === 'number' ? p : parseInt(p));
+        const start = Math.min(...positions);
+        const end = Math.max(...positions);
         return {
             ...r,
             originalIndex,
-            start: Math.min(i, j),
-            end: Math.max(i, j),
-            span: Math.abs(i - j)
+            start,
+            end,
+            span: end - start,
+            isTriple: r.positions.length === 3, // 标记是否为三元关系
         };
     }).sort((a, b) => {
+        // 三点关系（三合/三会）放在更外层，优先分配不同轨道
+        if (a.isTriple !== b.isTriple) return a.isTriple ? 1 : -1;
         if (a.span !== b.span) return a.span - b.span;
         return a.start - b.start;
     });
@@ -43,13 +47,18 @@ const assignTracks = (relations: any[]) => {
 
     sorted.forEach(rel => {
         let placed = false;
-        // 尝试放入现有的轨道
         for (let t = 0; t < tracks.length; t++) {
             const track = tracks[t];
-            // 检查是否与该轨道上的任何线段重叠
-            // 为了美观，即使不重叠，如果距离太近也分开？这里简单判断区间重叠
             const overlap = track.some(existing => {
-                return !(rel.end < existing.start || rel.start > existing.end);
+                // 严格的区间重叠检测：两个区间有任何交集都算重叠
+                // 包括边界相等的情况：[0,2] 和 [2,4] 也算重叠（因为都涉及位置2）
+                const hasOverlap = !(rel.end < existing.start || rel.start > existing.end);
+                // 如果涉及三元关系，需要更严格的间隙
+                if (rel.isTriple || existing.isTriple) {
+                    // 三元关系需要更大的间隙才能不重叠
+                    return hasOverlap || Math.abs(rel.start - existing.end) <= 0 || Math.abs(rel.end - existing.start) <= 0;
+                }
+                return hasOverlap;
             });
 
             if (!overlap) {
@@ -60,7 +69,6 @@ const assignTracks = (relations: any[]) => {
             }
         }
 
-        // 如果没有合适的轨道，创建新轨道
         if (!placed) {
             const newTrack = [rel];
             rel.trackIndex = tracks.length;
@@ -153,6 +161,9 @@ export default function GanZhiDiagramModal({
         setting.diZhiXiangXing = 0;
         setting.diZhiXiangPo = 0;
         setting.diZhiXiangHai = 0;
+        setting.diZhiSanHe = 0;     // 三合 - 开启
+        setting.diZhiSanHui = 0;    // 三会 - 开启
+        setting.hideBanHeWhenFullSanHe = 0; // 完整三合时隐藏半合
 
         const tianGanRelations = calculateTianGanLiuYi(setting, staticGans, dynamicGans);
         const diZhiRelations = calculateDiZhiLiuYi(setting, staticZhis, dynamicZhis);
@@ -197,12 +208,16 @@ export default function GanZhiDiagramModal({
             indexMap[item.originalIndex] = idx;
         });
 
-        // 修正 relations 的 coordinates
+        // 修正 relations 的 coordinates（支持两点和三点关系）
         const mapRelations = (relations: any[]) => {
-            return relations.map(r => ({
-                ...r,
-                positions: [indexMap[parseInt(r.positions[0])], indexMap[parseInt(r.positions[1])]]
-            })).filter(r => r.positions[0] !== undefined && r.positions[1] !== undefined);
+            return relations.map(r => {
+                // 映射所有 positions（可能是 2 个或 3 个）
+                const mappedPositions = r.positions.map((p: string) => indexMap[parseInt(p)]);
+                return {
+                    ...r,
+                    positions: mappedPositions
+                };
+            }).filter(r => r.positions.every((p: number | undefined) => p !== undefined));
         };
 
         const mappedTianGan = mapRelations(tianGanRelations);
@@ -235,6 +250,9 @@ export default function GanZhiDiagramModal({
 
     // 判断关系是否需要引导线的辅助函数
     const needsGuideLine = (rel: any) => {
+        // 三点关系（三合/三会）始终使用引导线，将标签放到下方
+        if (rel.isTriple) return true;
+
         const fullText = rel.description || rel.type;
         const labelText = fullText.length > 3 ? fullText.slice(2) : fullText;
         const textWidth = labelText.length * 14 + 16;
@@ -424,14 +442,39 @@ export default function GanZhiDiagramModal({
                                 })}
 
                                 {/* 2. 地支关系 (Bottom area) - 分层渲染 */}
-                                {/* 2.1 第一层：所有虚线（按轨道从外到内排序） */}
+                                {/* 2.1 第一层：所有连接线（按轨道从外到内排序） */}
                                 {[...chartData.diZhiData.relationsWithTracks]
                                     .sort((a: any, b: any) => b.trackIndex - a.trackIndex)
                                     .map((rel: any, idx: number) => {
-                                        const x1 = getX(rel.start);
-                                        const x2 = getX(rel.end);
                                         const y = getDiZhiTrackY(rel.trackIndex);
                                         const color = UNIFIED_COLOR;
+                                        const positions = rel.positions.map((p: string) => parseInt(p)).sort((a: number, b: number) => a - b);
+
+                                        // 三点关系（三合/三会）：用曲线连接
+                                        if (positions.length === 3) {
+                                            const [p1, p2, p3] = positions;
+                                            const x1 = getX(p1);
+                                            const x2 = getX(p2);
+                                            const x3 = getX(p3);
+                                            // 使用三段直线连接，中间点略微下沉形成折线效果
+                                            return (
+                                                <g key={`dz-lines-${idx}`}>
+                                                    {/* 主连接线：两段 */}
+                                                    <line x1={x1} y1={y} x2={x2} y2={y} stroke={color} strokeWidth="1.5" strokeOpacity="0.7" />
+                                                    <line x1={x2} y1={y} x2={x3} y2={y} stroke={color} strokeWidth="1.5" strokeOpacity="0.7" />
+                                                    {/* 中间点标记 */}
+                                                    <circle cx={x2} cy={y} r="4" fill={color} fillOpacity="0.4" />
+                                                    {/* 虚线连接到地支文字 */}
+                                                    <line x1={x1} y1={y} x2={x1} y2={zhiTextY + 25} stroke={color} strokeWidth="1" strokeDasharray="4 4" strokeOpacity="0.4" />
+                                                    <line x1={x2} y1={y} x2={x2} y2={zhiTextY + 25} stroke={color} strokeWidth="1" strokeDasharray="4 4" strokeOpacity="0.4" />
+                                                    <line x1={x3} y1={y} x2={x3} y2={zhiTextY + 25} stroke={color} strokeWidth="1" strokeDasharray="4 4" strokeOpacity="0.4" />
+                                                </g>
+                                            );
+                                        }
+
+                                        // 两点关系：原有逻辑
+                                        const x1 = getX(rel.start);
+                                        const x2 = getX(rel.end);
                                         return (
                                             <g key={`dz-lines-${idx}`}>
                                                 <line x1={x1} y1={y} x2={x2} y2={y} stroke={color} strokeWidth="1" strokeOpacity="0.6" />
@@ -443,10 +486,29 @@ export default function GanZhiDiagramModal({
 
                                 {/* 2.2 第二层：所有圆形节点 */}
                                 {chartData.diZhiData.relationsWithTracks.map((rel: any, idx: number) => {
-                                    const x1 = getX(rel.start);
-                                    const x2 = getX(rel.end);
                                     const y = getDiZhiTrackY(rel.trackIndex);
                                     const color = UNIFIED_COLOR;
+                                    const positions = rel.positions.map((p: string) => parseInt(p)).sort((a: number, b: number) => a - b);
+
+                                    // 三点关系
+                                    if (positions.length === 3) {
+                                        const items = positions.map((p: number) => chartData.items[p]);
+                                        const xs = positions.map((p: number) => getX(p));
+                                        return (
+                                            <g key={`dz-circles-${idx}`}>
+                                                {xs.map((x: number, i: number) => (
+                                                    <g key={i}>
+                                                        <circle cx={x} cy={y} r="16" fill="hsl(var(--background))" stroke={color} strokeWidth="1" strokeOpacity="0.6" />
+                                                        <text x={x} y={y} dy="5" textAnchor="middle" fontSize="14" fill={getElementColor(items[i].zhi)} fontWeight="bold">{items[i].zhi}</text>
+                                                    </g>
+                                                ))}
+                                            </g>
+                                        );
+                                    }
+
+                                    // 两点关系
+                                    const x1 = getX(rel.start);
+                                    const x2 = getX(rel.end);
                                     const item1 = chartData.items[rel.start];
                                     const item2 = chartData.items[rel.end];
                                     return (
@@ -461,14 +523,35 @@ export default function GanZhiDiagramModal({
 
                                 {/* 2.3 第三层：所有标签 */}
                                 {chartData.diZhiData.relationsWithTracks.map((rel: any, idx: number) => {
-                                    const x1 = getX(rel.start);
-                                    const x2 = getX(rel.end);
                                     const y = getDiZhiTrackY(rel.trackIndex);
                                     const color = UNIFIED_COLOR;
+                                    const positions = rel.positions.map((p: string) => parseInt(p)).sort((a: number, b: number) => a - b);
 
                                     const fullText = rel.description || rel.type;
-                                    const labelText = fullText.length > 3 ? fullText.slice(2) : fullText;
+                                    // 三合/三会的描述直接使用完整文字
+                                    const labelText = rel.isTriple ? fullText : (fullText.length > 3 ? fullText.slice(2) : fullText);
                                     const textWidth = labelText.length * 14 + 16;
+
+                                    // 三点关系：标签放在整体中间位置
+                                    if (positions.length === 3) {
+                                        const x1 = getX(positions[0]);
+                                        const x3 = getX(positions[2]);
+                                        const midX = (x1 + x3) / 2;
+                                        const labelY = y + 35; // 标签放在连接线下方
+                                        return (
+                                            <g key={`dz-labels-${idx}`}>
+                                                <line x1={midX} y1={y} x2={midX} y2={labelY - 12} stroke={color} strokeWidth="1" strokeDasharray="2 2" />
+                                                <g transform={`translate(${midX}, ${labelY})`}>
+                                                    <rect x={-textWidth / 2} y="-12" width={textWidth} height="24" rx="4" fill="hsl(var(--card))" stroke={color} strokeWidth="1" />
+                                                    <text dy="5" textAnchor="middle" fontSize="12" fill={color} fontWeight="500">{labelText}</text>
+                                                </g>
+                                            </g>
+                                        );
+                                    }
+
+                                    // 两点关系：原有逻辑
+                                    const x1 = getX(rel.start);
+                                    const x2 = getX(rel.end);
                                     const nodeDistance = Math.abs(x2 - x1);
                                     const midX = (x1 + x2) / 2;
                                     const span = rel.span || Math.abs(rel.end - rel.start);

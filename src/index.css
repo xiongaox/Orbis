@@ -255,6 +255,16 @@ body {
   transition: border-color 0.2s;
 }
 
+/* 带左侧图标的输入框 */
+.modal-input.with-left-icon {
+  padding-left: 2.5rem;
+}
+
+/* 带右侧图标的输入框 */
+.modal-input.with-right-icon {
+  padding-right: 2.5rem;
+}
+
 .modal-input:focus,
 .modal-select:focus {
   border-color: hsl(var(--primary));
