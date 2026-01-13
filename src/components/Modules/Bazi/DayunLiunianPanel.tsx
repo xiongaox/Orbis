@@ -8,8 +8,10 @@ interface DayunLiunianPanelProps {
   currentYear?: number;
   selectedDaYunIndex?: number | null;
   selectedLiuNianYear?: number | null;
+  selectedLiuYueIndex?: number | null;
   onSelectDaYun?: (index: number | null) => void;
   onSelectLiuNian?: (year: number | null) => void;
+  onSelectLiuYue?: (index: number | null) => void;
 }
 
 export default function DayunLiunianPanel({
@@ -18,8 +20,10 @@ export default function DayunLiunianPanel({
   currentYear = new Date().getFullYear(),
   selectedDaYunIndex: propDaYunIndex,
   selectedLiuNianYear: propLiuNianYear,
+  selectedLiuYueIndex: propLiuYueIndex,
   onSelectDaYun,
   onSelectLiuNian,
+  onSelectLiuYue,
 }: DayunLiunianPanelProps) {
   // 内部状态（当外部不控制时使用）
   const [internalDaYunIndex, setInternalDaYunIndex] = useState<number | null>(null);
@@ -348,44 +352,53 @@ export default function DayunLiunianPanel({
             <div className="flex-1 min-w-0 overflow-x-auto">
               <div className="grid grid-cols-12 min-w-0 w-full">
                 {displayLiuYue.length > 0 ? (
-                  displayLiuYue.map((item, idx) => (
-                    <div
-                      key={`liuyue-${idx}`}
-                      className="min-w-0 p-3 border-r border-border last:border-r-0"
-                    >
-                      <div className="flex flex-col items-center text-center">
-                        <div className="flex flex-col items-center gap-1">
-                          <div className="text-xs text-muted-foreground leading-snug">
-                            {jieqiLabels[item.index] || item.month}月
+                  displayLiuYue.map((item, idx) => {
+                    const isSelected = propLiuYueIndex === item.index;
+                    return (
+                      <div
+                        key={`liuyue-${idx}`}
+                        className={`min-w-0 p-3 border-r border-border last:border-r-0 cursor-pointer transition-colors hover:bg-primary/10 ${isSelected ? 'bg-primary/10' : ''}`}
+                        onClick={() => {
+                          const newIndex = item.index === propLiuYueIndex ? null : item.index;
+                          if (onSelectLiuYue) {
+                            onSelectLiuYue(newIndex);
+                          }
+                        }}
+                      >
+                        <div className="flex flex-col items-center text-center">
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="text-xs text-muted-foreground leading-snug">
+                              {jieqiLabels[item.index] || item.month}月
+                            </div>
                           </div>
-                        </div>
-                        <div className="mt-2 space-y-1">
-                          <div className="flex items-baseline justify-center gap-x-1">
-                            <span
-                              className="font-display text-lg text-foreground leading-none"
-                              style={{ color: item.tiangan ? getElementColor(item.tiangan) : 'inherit' }}
-                            >
-                              {item.tiangan || '-'}
-                            </span>
-                            <span className="text-base text-muted-foreground leading-none">
-                              {item.tiangan ? getShiShenAbbr(dayMaster, item.tiangan) : ''}
-                            </span>
-                          </div>
-                          <div className="flex items-baseline justify-center gap-x-1">
-                            <span
-                              className="font-display text-lg text-foreground leading-none"
-                              style={{ color: item.dizhi ? getElementColor(item.dizhi) : 'inherit' }}
-                            >
-                              {item.dizhi || '-'}
-                            </span>
-                            <span className="text-base text-muted-foreground leading-none">
-                              {item.dizhi ? getShiShenAbbr(dayMaster, item.dizhi) : ''}
-                            </span>
+                          <div className="mt-2 space-y-1">
+                            <div className="flex items-baseline justify-center gap-x-1">
+                              <span
+                                className="font-display text-lg text-foreground leading-none"
+                                style={{ color: item.tiangan ? getElementColor(item.tiangan) : 'inherit' }}
+                              >
+                                {item.tiangan || '-'}
+                              </span>
+                              <span className="text-base text-muted-foreground leading-none">
+                                {item.tiangan ? getShiShenAbbr(dayMaster, item.tiangan) : ''}
+                              </span>
+                            </div>
+                            <div className="flex items-baseline justify-center gap-x-1">
+                              <span
+                                className="font-display text-lg text-foreground leading-none"
+                                style={{ color: item.dizhi ? getElementColor(item.dizhi) : 'inherit' }}
+                              >
+                                {item.dizhi || '-'}
+                              </span>
+                              <span className="text-base text-muted-foreground leading-none">
+                                {item.dizhi ? getShiShenAbbr(dayMaster, item.dizhi) : ''}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   // 空状态占位
                   Array.from({ length: 12 }).map((_, idx) => (

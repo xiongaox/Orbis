@@ -19,8 +19,10 @@ interface BaziPageProps {
     error: string | null;
     selectedDaYunIndex: number | null;
     selectedLiuNianYear: number | null;
+    selectedLiuYueIndex: number | null;
     setSelectedDaYunIndex: (index: number | null) => void;
     setSelectedLiuNianYear: (year: number | null) => void;
+    setSelectedLiuYueIndex: (index: number | null) => void;
 }
 
 export default function BaziPage({
@@ -30,8 +32,10 @@ export default function BaziPage({
     error,
     selectedDaYunIndex,
     selectedLiuNianYear,
+    selectedLiuYueIndex,
     setSelectedDaYunIndex,
     setSelectedLiuNianYear,
+    setSelectedLiuYueIndex,
 }: BaziPageProps) {
     // 胎命身显示开关状态
     const [showTaiMingShen, setShowTaiMingShen] = useState(false);
@@ -118,6 +122,19 @@ export default function BaziPage({
                                         setSelectedDaYunIndex(null);
                                     }
                                 }
+
+                                // 计算当前农历月份（流月索引，0-11，对应正月到腊月）
+                                // 流月以节气为准，用八字的月柱来确定
+                                const currentMonthZhi = eightChar.getMonthZhi();
+                                // 地支到流月索引的映射（寅月=正月=0, 卯月=二月=1, ...)
+                                const zhiToLiuYueIndex: Record<string, number> = {
+                                    '寅': 0, '卯': 1, '辰': 2, '巳': 3, '午': 4, '未': 5,
+                                    '申': 6, '酉': 7, '戌': 8, '亥': 9, '子': 10, '丑': 11,
+                                };
+                                const currentLiuYueIndex = zhiToLiuYueIndex[currentMonthZhi];
+                                if (currentLiuYueIndex !== undefined) {
+                                    setSelectedLiuYueIndex(currentLiuYueIndex);
+                                }
                             }}
                         />
                     </div>
@@ -128,8 +145,10 @@ export default function BaziPage({
                             loading={loading}
                             selectedDaYunIndex={selectedDaYunIndex}
                             selectedLiuNianYear={selectedLiuNianYear}
+                            selectedLiuYueIndex={selectedLiuYueIndex}
                             onSelectDaYun={setSelectedDaYunIndex}
                             onSelectLiuNian={setSelectedLiuNianYear}
+                            onSelectLiuYue={setSelectedLiuYueIndex}
                         />
                     </div>
 

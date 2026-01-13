@@ -17,9 +17,10 @@ export function useBazi() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // 选中的大运和流年状态（用于联动显示）
+    // 选中的大运、流年和流月状态（用于联动显示）
     const [selectedDaYunIndex, setSelectedDaYunIndex] = useState<number | null>(null);
     const [selectedLiuNianYear, setSelectedLiuNianYear] = useState<number | null>(null);
+    const [selectedLiuYueIndex, setSelectedLiuYueIndex] = useState<number | null>(null);
 
     // 加载案例数据
     const loadCase = useCallback(async (caseId: string) => {
@@ -143,9 +144,11 @@ export function useBazi() {
         error,
         selectedDaYunIndex,
         selectedLiuNianYear,
+        selectedLiuYueIndex,
         // 操作
         setSelectedDaYunIndex,
         setSelectedLiuNianYear,
+        setSelectedLiuYueIndex,
         handleSelectCase,
         initializeBazi,
     };

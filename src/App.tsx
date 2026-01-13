@@ -306,8 +306,10 @@ function AppContent() {
             error={bazi.error}
             selectedDaYunIndex={bazi.selectedDaYunIndex}
             selectedLiuNianYear={bazi.selectedLiuNianYear}
+            selectedLiuYueIndex={bazi.selectedLiuYueIndex}
             setSelectedDaYunIndex={bazi.setSelectedDaYunIndex}
             setSelectedLiuNianYear={bazi.setSelectedLiuNianYear}
+            setSelectedLiuYueIndex={bazi.setSelectedLiuYueIndex}
           />
         ) : (
           <PlaceholderChart chart={activeChart} />
