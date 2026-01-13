@@ -88,8 +88,16 @@ export default function BaziCaseInfo({
       <div className="bg-card rounded-xl border border-[hsl(var(--border-light))] dark:border-border p-4 mx-6 mt-6 mb-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="font-display text-xl text-primary">案</span>
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+              {baziData?.zodiac ? (
+                <img
+                  src={`/zodiac/${baziData.zodiac}.svg`}
+                  alt={baziData.zodiac}
+                  className="w-14 h-14 object-contain"
+                />
+              ) : (
+                <span className="font-display text-xl text-primary">案</span>
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
