@@ -613,7 +613,7 @@ export default function GanZhiLiuTongModal({
                                                     (selectedNode?.idx === idx && selectedNode?.type === 'gan') ? null : { idx, type: 'gan' }
                                                 )}
                                             >
-                                                <span className="font-display text-3xl font-bold" style={{ color: getElementColor(item.gan) }}>
+                                                <span className="font-display text-2xl font-bold" style={{ color: getElementColor(item.gan) }}>
                                                     {item.gan}
                                                 </span>
                                             </div>
@@ -656,7 +656,7 @@ export default function GanZhiLiuTongModal({
                                                     (selectedNode?.idx === idx && selectedNode?.type === 'zhi') ? null : { idx, type: 'zhi' }
                                                 )}
                                             >
-                                                <span className="font-display text-3xl font-bold" style={{ color: getElementColor(item.zhi) }}>
+                                                <span className="font-display text-2xl font-bold" style={{ color: getElementColor(item.zhi) }}>
                                                     {item.zhi}
                                                 </span>
                                             </div>

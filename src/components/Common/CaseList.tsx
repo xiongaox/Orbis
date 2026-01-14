@@ -117,7 +117,7 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick }:
   const [currentPage, setCurrentPage] = useState(1);
   const tagMenuRef = useRef<HTMLDivElement | null>(null);
   const allLabel = '\u5168\u90e8';
-  const PAGE_SIZE = 5;
+  const PAGE_SIZE = 6;
 
   // 加载案例
   const loadCases = useCallback(async () => {

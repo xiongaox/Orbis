@@ -145,7 +145,7 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
       </div>
 
       {/* 导航模块 - 从 sidebar 结束处开始，与主内容区对齐 */}
-      <div className="flex-1 flex items-center justify-between px-6">
+      <div className="flex-1 flex items-center justify-between pr-6">
         <nav className="flex items-center">
           {navItems.map((item, index) => {
             const Icon = item.icon;

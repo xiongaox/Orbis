@@ -5,7 +5,27 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+// ESA 部署适配：支持分段 key
+const getSupabaseAnonKey = () => {
+    // 1. 优先尝试获取完整 key
+    if (import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        return import.meta.env.VITE_SUPABASE_ANON_KEY;
+    }
+
+    // 2. 尝试获取分段 key 并拼接
+    const part1 = import.meta.env.VITE_SUPABASE_ANON_KEY_PART1 || '';
+    const part2 = import.meta.env.VITE_SUPABASE_ANON_KEY_PART2 || '';
+    const part3 = import.meta.env.VITE_SUPABASE_ANON_KEY_PART3 || '';
+
+    if (part1) {
+        return part1 + part2 + part3;
+    }
+
+    return '';
+};
+
+const supabaseAnonKey = getSupabaseAnonKey();
 
 // 检查是否配置了 Supabase
 export const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
