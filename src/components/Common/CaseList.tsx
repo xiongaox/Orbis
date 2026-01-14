@@ -29,6 +29,7 @@ interface CaseListProps {
   selectedCaseId?: string | null;
   onSelectCase?: (caseId: string | null) => void;
   onLoginClick?: () => void;
+  onOpenLibrary?: () => void;
 }
 
 function getBaziPillars(dateStr: string): string[] {
@@ -102,7 +103,7 @@ const ELEMENT_TEXT_COLOR: Record<string, string> = {
   水: 'var(--element-water-text)',
 };
 
-export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick }: CaseListProps) {
+export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, onOpenLibrary }: CaseListProps) {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [search, setSearch] = useState('');
   const [cases, setCases] = useState<BaziCase[]>([]);
@@ -251,7 +252,13 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick }:
     <aside className="w-56 bg-sidebar border-r border-sidebar-border flex flex-col min-h-0">
       <div className="p-4 border-b border-sidebar-border space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-base font-medium text-foreground">案例库</h2>
+          <button
+            type="button"
+            onClick={onOpenLibrary}
+            className="font-display text-base font-medium text-foreground hover:text-primary transition-colors"
+          >
+            案例库
+          </button>
           <div className="relative" ref={tagMenuRef}>
             <button
               type="button"

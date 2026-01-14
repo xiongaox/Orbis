@@ -201,6 +201,37 @@ body {
   display: none;
 }
 
+/* 细滚动条样式 (悬停时显示) */
+.scrollbar-thin {
+  scrollbar-width: none;
+}
+
+.scrollbar-thin:hover {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  height: 4px;
+  width: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 2px;
+}
+
+.scrollbar-thin:hover::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+}
+
+.scrollbar-thin:hover::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
 /* Modal 组件样式 */
 .modal-backdrop {
   position: fixed;
@@ -220,6 +251,20 @@ body {
   padding: 1.5rem;
   width: 90%;
   max-width: 400px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* 大尺寸弹窗 */
+.modal-card-lg {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 720px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 

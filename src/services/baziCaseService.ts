@@ -22,6 +22,7 @@ export interface BaziCase {
     tags: CaseTag[];
     notes?: string;
     bazi_data?: Record<string, unknown>;
+    sort_order?: number;
     created_at: string;
     updated_at: string;
 }
@@ -37,7 +38,7 @@ export const baziCaseService = {
         const { data, error } = await supabase
             .from('bazi_cases')
             .select('*')
-            .order('created_at', { ascending: false });
+            .order('sort_order', { ascending: true });
 
         if (error) {
             console.error('Failed to fetch cases:', error);
@@ -196,4 +197,24 @@ export const baziCaseService = {
 
         return data || [];
     },
+
+    /**
+     * 批量更新排序顺序
+     */
+    async updateSortOrder(orderedIds: string[]): Promise<void> {
+        const updates = orderedIds.map((id, index) =>
+            supabase
+                .from('bazi_cases')
+                .update({ sort_order: index + 1 })
+                .eq('id', id)
+        );
+
+        const results = await Promise.all(updates);
+        const failed = results.find(r => r.error);
+        if (failed?.error) {
+            console.error('Failed to update sort order:', failed.error);
+            throw new Error(failed.error.message);
+        }
+    },
 };
+

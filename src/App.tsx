@@ -14,6 +14,7 @@ import type { GanZhiLiuYiData } from './components/Common/GanZhiLiuYiPanel';
 import PlaceholderChart from './components/Common/PlaceholderChart';
 import BaziPage from './components/Modules/Bazi/BaziPage';
 import AuthModal from './components/Auth/AuthModal';
+import CaseLibraryModal from './components/Common/CaseLibraryModal';
 import { useBazi } from './hooks/useBazi';
 import type { ChartType } from './types';
 import {
@@ -30,6 +31,7 @@ import type { InsightBook } from './components/Common/InsightPanel';
 function AppContent() {
   const [activeChart, setActiveChart] = useState<ChartType>('bazi');
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showCaseLibraryModal, setShowCaseLibraryModal] = useState(false);
   // 默认选中的经典书籍 ID
   const [activeBookId, setActiveBookId] = useState<string>('qiongtong');
   const bazi = useBazi();
@@ -284,6 +286,7 @@ function AppContent() {
             selectedCaseId={bazi.selectedCaseId}
             onSelectCase={bazi.handleSelectCase}
             onLoginClick={handleLoginClick}
+            onOpenLibrary={() => setShowCaseLibraryModal(true)}
           />
         ) : undefined}
         liuYiPanel={showInsights ? <GanZhiLiuYiPanel data={ganZhiLiuYiData} /> : undefined}
@@ -320,6 +323,15 @@ function AppContent() {
       <AuthModal
         isOpen={showAuthModal}
         onClose={() => setShowAuthModal(false)}
+      />
+
+      {/* 案例库弹窗 */}
+      <CaseLibraryModal
+        isOpen={showCaseLibraryModal}
+        onClose={() => setShowCaseLibraryModal(false)}
+        selectedCaseId={bazi.selectedCaseId}
+        onSelectCase={bazi.handleSelectCase}
+        onLoginClick={handleLoginClick}
       />
     </div>
   );
