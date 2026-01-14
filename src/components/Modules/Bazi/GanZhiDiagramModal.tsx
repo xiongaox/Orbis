@@ -245,7 +245,9 @@ export default function GanZhiDiagramModal({
     const GUIDE_LINE_EXTRA = 35; // 有引导线时额外增加的间距
     const CENTER_AREA_HEIGHT = 200; // 中间文字区域高度
 
-    const startX = (800 - TOTAL_WIDTH) / 2 + ITEM_WIDTH / 2;
+    // SVG 内部使用实际计算宽度，通过 viewBox 实现自适应居中
+    const SVG_WIDTH = TOTAL_WIDTH + 80; // 内容宽度 + 两侧padding
+    const startX = 40 + ITEM_WIDTH / 2; // 左侧 padding 40px
     const getX = (index: number) => startX + index * (ITEM_WIDTH + GAP);
 
     // 判断关系是否需要引导线的辅助函数
@@ -326,7 +328,7 @@ export default function GanZhiDiagramModal({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-background rounded-xl border border-border shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-background rounded-xl border border-border shadow-2xl w-full max-w-[720px] max-h-[95vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
 
                 <div className="flex items-center justify-between p-4 border-b border-border bg-muted/20">
                     <h2 className="text-lg font-medium text-foreground">干支流通图解</h2>
@@ -336,7 +338,7 @@ export default function GanZhiDiagramModal({
                                 onClick={() => setShowLiuNian(!showLiuNian)}
                                 className={`px-3 py-1 text-sm rounded-md border transition-colors ${showLiuNian
                                     ? 'bg-primary/20 text-primary border-primary/50'
-                                    : 'bg-muted text-muted-foreground border-transparent hover:bg-muted/80'
+                                    : 'bg-secondary/50 text-muted-foreground border-border hover:bg-secondary'
                                     }`}
                             >
                                 流年
@@ -345,7 +347,7 @@ export default function GanZhiDiagramModal({
                                 onClick={() => setShowDaYun(!showDaYun)}
                                 className={`px-3 py-1 text-sm rounded-md border transition-colors ${showDaYun
                                     ? 'bg-primary/20 text-primary border-primary/50'
-                                    : 'bg-muted text-muted-foreground border-transparent hover:bg-muted/80'
+                                    : 'bg-secondary/50 text-muted-foreground border-border hover:bg-secondary'
                                     }`}
                             >
                                 大运
@@ -358,10 +360,15 @@ export default function GanZhiDiagramModal({
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-auto p-8 flex justify-center bg-dot-pattern">
+                <div className="flex-1 overflow-auto p-8 flex items-center justify-center bg-dot-pattern">
                     {chartData && (
-                        <div className="relative" style={{ width: 800, height: totalHeight }}>
-                            <svg className="w-full h-full">
+                        <div className="relative w-full h-full flex items-center justify-center">
+                            <svg
+                                viewBox={`0 0 ${SVG_WIDTH} ${totalHeight}`}
+                                className="max-w-full max-h-full"
+                                style={{ width: 'auto', height: 'auto' }}
+                                preserveAspectRatio="xMidYMid meet"
+                            >
                                 {/* Defs for gradients or markers if needed */}
                                 <defs>
                                     <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">

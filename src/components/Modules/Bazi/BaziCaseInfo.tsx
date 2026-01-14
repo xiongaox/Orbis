@@ -1,4 +1,4 @@
-import { GitBranch } from 'lucide-react';
+import { GitBranch, ArrowRightLeft } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { baziCaseService } from '../../../services/baziCaseService';
@@ -6,6 +6,7 @@ import { BAZI_CASES_CHANGED_EVENT } from '../../../data/caseConstants';
 import type { Case } from '../../../types';
 import type { BaziApiResponse } from '../../../types/bazi';
 import GanZhiDiagramModal from './GanZhiDiagramModal';
+import GanZhiLiuTongModal from './GanZhiLiuTongModal';
 
 interface BaziCaseInfoProps {
   caseData: Case | null;
@@ -25,6 +26,7 @@ export default function BaziCaseInfo({
   const { isAuthenticated } = useAuth();
   const [saving, setSaving] = useState(false);
   const [showDiagram, setShowDiagram] = useState(false);
+  const [showLiuTong, setShowLiuTong] = useState(false);
 
   // 使用 API 返回的数据，如果没有则使用 case 数据
   const displayName = caseData?.name || '当前时间';
@@ -145,6 +147,15 @@ export default function BaziCaseInfo({
               <GitBranch className="w-4 h-4" />
               干支图解
             </button>
+            <button
+              type="button"
+              onClick={() => setShowLiuTong(true)}
+              disabled={!baziData}
+              className="px-3 py-2 text-sm rounded-lg border border-border hover:bg-muted flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <ArrowRightLeft className="w-4 h-4" />
+              干支流通
+            </button>
           </div>
         </div>
       </div>
@@ -153,6 +164,16 @@ export default function BaziCaseInfo({
       <GanZhiDiagramModal
         isOpen={showDiagram}
         onClose={() => setShowDiagram(false)}
+        baziData={baziData}
+        selectedDaYunIndex={selectedDaYunIndex ?? null}
+        selectedLiuNianYear={selectedLiuNianYear ?? null}
+        currentYear={currentYear}
+      />
+
+      {/* 干支流通弹窗 */}
+      <GanZhiLiuTongModal
+        isOpen={showLiuTong}
+        onClose={() => setShowLiuTong(false)}
         baziData={baziData}
         selectedDaYunIndex={selectedDaYunIndex ?? null}
         selectedLiuNianYear={selectedLiuNianYear ?? null}

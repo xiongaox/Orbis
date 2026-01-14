@@ -138,23 +138,12 @@ export default function DayunLiunianPanel({
       setInternalDaYunIndex(newIndex);
     }
 
-    // 切换大运时，自动选中该大运的第一年
-    if (newIndex !== null) {
-      const targetDaYun = daYun.find(d => d.index === newIndex);
-      if (targetDaYun) {
-        if (onSelectLiuNian) {
-          onSelectLiuNian(targetDaYun.startYear);
-        } else {
-          setInternalLiuNianYear(targetDaYun.startYear);
-        }
-      }
+    // 切换大运时，清空流年选择（不自动选择第一年）
+    // 用户需要手动点击流年才会选中
+    if (onSelectLiuNian) {
+      onSelectLiuNian(null);
     } else {
-      // 取消选择大运时，重置流年（通常回退到当前年）
-      if (onSelectLiuNian) {
-        onSelectLiuNian(null);
-      } else {
-        setInternalLiuNianYear(null);
-      }
+      setInternalLiuNianYear(null);
     }
   };
 
