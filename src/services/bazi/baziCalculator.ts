@@ -10,7 +10,7 @@ import {
     NA_YIN,
     SHI_ER_ZHANG_SHENG,
     KONG_WANG,
-} from '../../lib/xuan-bazi';
+} from '../../lib/xuan-bazi/maps';
 
 // 获取五行的辅助函数
 function getElement(char: string): string {

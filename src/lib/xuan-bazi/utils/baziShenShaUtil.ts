@@ -8,7 +8,7 @@
 
 import * as ShenShaMap from '../maps/baziShenShaMap';
 import type { BaZiShenShaSetting } from '../settings/baziShenShaSetting';
-import { getXunKong } from '../../../utils/metaphysics';
+import { getXunKong } from './baziJichuUtil';
 // TIAN_GAN, DI_ZHI 用于扩展计算
 
 // ==================== 类型定义 ====================

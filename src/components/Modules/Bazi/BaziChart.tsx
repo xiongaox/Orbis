@@ -1,17 +1,23 @@
 import { useState, useMemo } from 'react';
 import type { PillarData, BaziApiResponse, HiddenStem } from '../../../types/bazi';
 import {
-  getElement,
-  getElementColor,
-  getXunKong,
-  SHI_SHEN_MAP,
-  ZANG_GAN_MAP,
-  NA_YIN_MAP,
-  CHANG_SHENG_MAP
-} from '../../../utils/metaphysics';
+  DI_ZHI_CANG_GAN,
+  SHI_SHEN,
+  NA_YIN,
+  SHI_ER_ZHANG_SHENG,
+  TIAN_GAN_WU_XING,
+  DI_ZHI_WU_XING,
+} from '../../../lib/xuan-bazi/maps';
+import { getXunKong } from '../../../lib/xuan-bazi/utils';
+import { getElementColor } from '../../../lib/xuan-bazi/maps/baziStyleMap';
 import { calculateShenSha, calculateDynamicShenSha, getJiJie, type ShenShaContext } from '../../../lib/xuan-bazi/utils/baziShenShaUtil';
 import { createDefaultShenShaSetting } from '../../../lib/xuan-bazi/settings/baziShenShaSetting';
 import GanZhiDiagramModal from './GanZhiDiagramModal';
+
+// 获取五行的辅助函数
+function getElement(char: string): string {
+  return TIAN_GAN_WU_XING[char] || DI_ZHI_WU_XING[char] || '';
+}
 
 /**
  * 动态计算柱的详细信息
@@ -25,19 +31,19 @@ function computePillarDetails(ganZhi: string, dayGan: string) {
   const tiangan = ganZhi[0];
   const dizhi = ganZhi[1];
 
-  const tianganShiShen = SHI_SHEN_MAP[dayGan]?.[tiangan] || '';
+  const tianganShiShen = SHI_SHEN[dayGan + tiangan] || '';
 
-  const hideGans = ZANG_GAN_MAP[dizhi] || [];
-  const zanggan: HiddenStem[] = hideGans.map(gan => ({
+  const hideGans = DI_ZHI_CANG_GAN[dizhi] || [];
+  const zanggan: HiddenStem[] = hideGans.map((gan: string) => ({
     gan,
-    shiShen: SHI_SHEN_MAP[dayGan]?.[gan] || '',
+    shiShen: SHI_SHEN[dayGan + gan] || '',
     element: getElement(gan)
   }));
 
-  const diShi = CHANG_SHENG_MAP[dayGan]?.[dizhi] || '';
+  const diShi = SHI_ER_ZHANG_SHENG[dayGan + dizhi] || '';
   // 自坐：用该柱天干查该柱地支的十二长生
-  const ziZuo = CHANG_SHENG_MAP[tiangan]?.[dizhi] || '';
-  const naYin = NA_YIN_MAP[ganZhi] || '';
+  const ziZuo = SHI_ER_ZHANG_SHENG[tiangan + dizhi] || '';
+  const naYin = NA_YIN[ganZhi] || '';
   const kongWang = getXunKong(ganZhi);
 
   return { tianganShiShen, zanggan, diShi, ziZuo, kongWang, naYin };

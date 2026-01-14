@@ -5,7 +5,7 @@ import {
     calculateTianGanLiuYi,
     calculateDiZhiLiuYi
 } from '../../../lib/xuan-bazi/utils/baziGanZhiLiuYiUtil';
-import { getElementColor } from '../../../utils/metaphysics';
+import { getElementColor } from '../../../lib/xuan-bazi/maps/baziStyleMap';
 
 interface GanZhiDiagramModalProps {
     isOpen: boolean;

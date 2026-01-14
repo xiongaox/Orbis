@@ -5,6 +5,7 @@
  */
 
 import { Solar } from 'lunar-typescript';
+import { TIAN_GAN_WU_XING, DI_ZHI_WU_XING, NA_YIN } from '../maps/baziJichuMap';
 
 /**
  * 解析日期字符串（支持多种格式）
@@ -47,16 +48,7 @@ const GUA_MAP: Record<number, string> = {
     0: '离卦 (东四命)' // 9%9=0
 };
 
-// 五行映射
-const GAN_WX_MAP: Record<string, string> = {
-    '甲': '木', '乙': '木', '丙': '火', '丁': '火', '戊': '土',
-    '己': '土', '庚': '金', '辛': '金', '壬': '水', '癸': '水'
-};
-const ZHI_WX_MAP: Record<string, string> = {
-    '子': '水', '丑': '土', '寅': '木', '卯': '木', '辰': '土',
-    '巳': '火', '午': '火', '未': '土', '申': '金', '酉': '金',
-    '戌': '土', '亥': '水'
-};
+
 
 /**
  * 计算命卦
@@ -112,11 +104,11 @@ export function getWuXingStatistics(pillars: { tiangan: string; dizhi: string }[
 
     pillars.forEach(p => {
         // 天干五行
-        const gWx = GAN_WX_MAP[p.tiangan];
+        const gWx = TIAN_GAN_WU_XING[p.tiangan];
         if (gWx) counts[gWx] = (counts[gWx] || 0) + 1;
 
         // 地支五行
-        const zWx = ZHI_WX_MAP[p.dizhi];
+        const zWx = DI_ZHI_WU_XING[p.dizhi];
         if (zWx) counts[zWx] = (counts[zWx] || 0) + 1;
     });
 
@@ -342,14 +334,14 @@ export function getRenYuanSiLing(solarDateStr: string): string {
         for (const ling of lings) {
             accumulated += ling.days;
             if (daysPassed < accumulated) {
-                const ganWx = GAN_WX_MAP[ling.gan] || '';
+                const ganWx = TIAN_GAN_WU_XING[ling.gan] || '';
                 return `${ling.gan}${ganWx}值令`;
             }
         }
 
         // 默认返回最后一个
         const lastLing = lings[lings.length - 1];
-        const lastWx = GAN_WX_MAP[lastLing.gan] || '';
+        const lastWx = TIAN_GAN_WU_XING[lastLing.gan] || '';
         return `${lastLing.gan}${lastWx}值令`;
     } catch {
         return '未知';
@@ -395,25 +387,8 @@ export function getTaiXi(dayGanZhi: string): string {
 
     const taiXiGanZhi = taiXiGan + taiXiZhi;
 
-    // 获取胎息纳音
-    const NA_YIN_MAP: Record<string, string> = {
-        '甲子': '海中金', '乙丑': '海中金', '丙寅': '炉中火', '丁卯': '炉中火',
-        '戊辰': '大林木', '己巳': '大林木', '庚午': '路旁土', '辛未': '路旁土',
-        '壬申': '剑锋金', '癸酉': '剑锋金', '甲戌': '山头火', '乙亥': '山头火',
-        '丙子': '涧下水', '丁丑': '涧下水', '戊寅': '城头土', '己卯': '城头土',
-        '庚辰': '白蜡金', '辛巳': '白蜡金', '壬午': '杨柳木', '癸未': '杨柳木',
-        '甲申': '泉中水', '乙酉': '泉中水', '丙戌': '屋上土', '丁亥': '屋上土',
-        '戊子': '霹雳火', '己丑': '霹雳火', '庚寅': '松柏木', '辛卯': '松柏木',
-        '壬辰': '长流水', '癸巳': '长流水', '甲午': '沙中金', '乙未': '沙中金',
-        '丙申': '山下火', '丁酉': '山下火', '戊戌': '平地木', '己亥': '平地木',
-        '庚子': '壁上土', '辛丑': '壁上土', '壬寅': '金箔金', '癸卯': '金箔金',
-        '甲辰': '覆灯火', '乙巳': '覆灯火', '丙午': '天河水', '丁未': '天河水',
-        '戊申': '大驿土', '己酉': '大驿土', '庚戌': '钗钏金', '辛亥': '钗钏金',
-        '壬子': '桑柘木', '癸丑': '桑柘木', '甲寅': '大溪水', '乙卯': '大溪水',
-        '丙辰': '沙中土', '丁巳': '沙中土', '戊午': '天上火', '己未': '天上火',
-        '庚申': '石榴木', '辛酉': '石榴木', '壬戌': '大海水', '癸亥': '大海水'
-    };
-    const taiXiNaYin = NA_YIN_MAP[taiXiGanZhi] || '';
+    // 获取胎息纳音（使用公共常量）
+    const taiXiNaYin = NA_YIN[taiXiGanZhi] || '';
 
     return `${taiXiGanZhi}${taiXiNaYin ? '（' + taiXiNaYin + '）' : ''}`
 }

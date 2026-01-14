@@ -10,7 +10,9 @@
  */
 import { useMemo, useState, useEffect } from 'react';
 import { X, ChevronsLeft, ChevronsRight, ChevronsUp, ChevronsDown } from 'lucide-react';
-import { getElementColor, getShiShen } from '../../../utils/metaphysics';
+import { getElementColor } from '../../../lib/xuan-bazi/maps/baziStyleMap';
+import { getShiShen } from '../../../lib/xuan-bazi/utils';
+import { DI_ZHI_CANG_GAN } from '../../../lib/xuan-bazi/maps/baziJichuMap';
 
 interface GanZhiLiuTongModalProps {
     isOpen: boolean;
@@ -66,21 +68,7 @@ const SHISHEN_KE: Record<ShiShenGroup, ShiShenGroup> = {
 
 
 
-// 地支藏干（简化版，用于判断天干地支合）
-const DIZHI_CANGGAN: Record<string, string[]> = {
-    '子': ['癸'],
-    '丑': ['己', '癸', '辛'],
-    '寅': ['甲', '丙', '戊'],
-    '卯': ['乙'],
-    '辰': ['戊', '乙', '癸'],
-    '巳': ['丙', '庚', '戊'],
-    '午': ['丁', '己'],
-    '未': ['己', '丁', '乙'],
-    '申': ['庚', '壬', '戊'],
-    '酉': ['辛'],
-    '戌': ['戊', '辛', '丁'],
-    '亥': ['壬', '甲'],
-};
+
 
 // 天干合的组合
 const TIANGAN_HE: Record<string, string> = {
@@ -91,9 +79,8 @@ const TIANGAN_HE: Record<string, string> = {
     '戊癸': '火', '癸戊': '火',
 };
 
-// 判断天干与地支藏干是否有合
 const hasGanZhiHe = (gan: string, zhi: string): boolean => {
-    const cangGans = DIZHI_CANGGAN[zhi] || [];
+    const cangGans = DI_ZHI_CANG_GAN[zhi] || [];
     for (const cg of cangGans) {
         if (TIANGAN_HE[gan + cg]) return true;
     }
