@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { TIAN_GAN } from '../../lib/xuan-bazi/maps/baziJichuMap';
 import {
   BookOpen,
   ChevronDown,
@@ -8,30 +9,6 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-// 默认八字书籍（向后兼容）
-const defaultBooks = [
-  { id: 'dayun', name: '穷通宝鉴', category: 'classic' },
-  { id: 'shensha', name: '滴天髓', category: 'classic' },
-  { id: 'sanming', name: '三命通会', category: 'classic' },
-  { id: 'bazi', name: '八字提要', category: 'analysis' },
-  { id: 'gezhi', name: '子平真诠', category: 'analysis' },
-];
-
-// 默认内容（向后兼容）
-const defaultContent = {
-  hint: '调候用神提示：甲 壬',
-  subHint: '本八字：连 壬 亘 甲',
-  summary: `九月丙火虎袈，墓土用甲，先用甲木，次取壬水。
-
-丙火至九月，为囊地之火。易与土博光。而乃忌魁光。水，如太阳遇于地平下凌沧波申返砺而出。分光，故先取甲木木制土。用月用卦甲木制土。甲丁两适。科甲有准。若无兰荐贫中。首无支配己巳。支责临期甲已。`,
-  keyPoints: [
-    '九秋土爆木枯，用甲不能无水，癸水只有洒太之功，贫而无取太之用。',
-    '有辅甲之铜官，得养甲己，甲震王适，无度欲才，充甲又焦否下格。',
-    '戊戌宫火之墓库，与未月同为燥土。用用甲木制土，泄秀生财。',
-  ],
-  advice: `成宫火之墓库，与未月同为燥土。增则甲丙气急火气，溜则丙火无力。
-柱无庚辛王委等出干首。终方贫气天忱。`,
-};
 
 export interface InsightBook {
   id: string;
@@ -67,8 +44,8 @@ interface InsightPanelProps {
 export default function InsightPanel({
   className = '',
   title = '智能咨询参考',
-  books = defaultBooks,
-  content = defaultContent,
+  books = [],
+  content = {},
   activeBook: controlledActiveBook,
   onBookChange,
 }: InsightPanelProps) {
@@ -90,14 +67,14 @@ export default function InsightPanel({
     );
   };
 
-  // 天干列表
-  const tianGanList = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+  // 天干列表（使用公共常量）
+  const tianGanList = TIAN_GAN;
 
   // 渲染调候用神文本（给天干加边框）
   const renderTianGanText = (text: string) => {
     const chars = text.split('');
     return chars.map((char, index) => {
-      if (tianGanList.includes(char)) {
+      if (tianGanList.includes(char as any)) {
         return (
           <span
             key={index}

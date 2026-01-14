@@ -12,7 +12,7 @@ import {
     NA_YIN,
     SHI_ER_ZHANG_SHENG,
     KONG_WANG,
-} from '../../lib/xuan-bazi';
+} from '../../lib/xuan-bazi/maps';
 import type { BaziChartData } from '../../types';
 
 export function calculateBazi(birthDate: string, _gender: 'male' | 'female'): BaziChartData {

@@ -7,7 +7,7 @@ import { ChevronRight, ChevronLeft, Plus, Search, LogIn, Pencil, Trash2, Upload 
 import { Solar } from 'lunar-typescript';
 import { useAuth } from '../../contexts/AuthContext';
 import { baziCaseService, CASE_TAGS, type BaziCase, type CaseTag } from '../../services/baziCaseService';
-import { TIAN_GAN_WU_XING } from '../../lib/xuan-bazi';
+import { TIAN_GAN_WU_XING } from '../../lib/xuan-bazi/maps';
 import ConfirmModal from './ConfirmModal';
 
 import CreateCaseModal from './CreateCaseModal';

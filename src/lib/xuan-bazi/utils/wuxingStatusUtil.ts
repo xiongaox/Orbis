@@ -28,13 +28,13 @@ const MONTH_ELEMENT_MAP: Record<string, Wuxing> = {
 // 五行生克循环顺序：木 -> 火 -> 土 -> 金 -> 水 -> 木
 const WUXING_CYCLE: Wuxing[] = ['木', '火', '土', '金', '水'];
 
-// 五行颜色映射
+// 五行颜色映射 (使用 CSS 变量，与 index.css 保持一致)
 const WUXING_COLORS: Record<Wuxing, string> = {
-    '木': '#22c55e',  // green
-    '火': '#ef4444',  // red
-    '土': '#a16207',  // yellow/brown
-    '金': '#d97706',  // orange/gold
-    '水': '#2563eb'   // blue
+    '木': 'var(--element-wood)',
+    '火': 'var(--element-fire)',
+    '土': 'var(--element-earth)',
+    '金': 'var(--element-metal)',
+    '水': 'var(--element-water)'
 };
 
 /**

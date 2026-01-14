@@ -1,47 +1,16 @@
 import { useState } from 'react';
 import { Loader2, Search, ChevronRight } from 'lucide-react';
 import { baziReverseSearch, type BaziSearchResult } from '../../lib/xuan-bazi/utils/baziSearchUtil';
+import { TIAN_GAN, DI_ZHI } from '../../lib/xuan-bazi/maps/baziJichuMap';
+import { getElementTextColor, getElementBgColor } from '../../lib/xuan-bazi/maps/baziStyleMap';
 
 interface BaziDatePickerProps {
     onChange?: (val: any) => void;
     onSelectDate?: (date: Date) => void;
 }
 
-const STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
-const BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
-
-// Element Colors
-const ELEMENT_COLORS: Record<string, string> = {
-    '甲': 'text-[#22c55e]', '乙': 'text-[#22c55e]', // Wood
-    '丙': 'text-[#ef4444]', '丁': 'text-[#ef4444]', // Fire
-    '戊': 'text-[#a16207]', '己': 'text-[#a16207]', // Earth
-    '庚': 'text-[#d97706]', '辛': 'text-[#d97706]', // Metal
-    '壬': 'text-[#2563eb]', '癸': 'text-[#2563eb]', // Water
-
-    '寅': 'text-[#22c55e]', '卯': 'text-[#22c55e]',
-    '巳': 'text-[#ef4444]', '午': 'text-[#ef4444]',
-    '辰': 'text-[#a16207]', '戌': 'text-[#a16207]', '丑': 'text-[#a16207]', '未': 'text-[#a16207]',
-    '申': 'text-[#d97706]', '酉': 'text-[#d97706]',
-    '亥': 'text-[#2563eb]', '子': 'text-[#2563eb]',
-};
-
-// Background colors match the text color but very light (opacity 5-10%)
-const ELEMENT_BG_COLORS: Record<string, string> = {
-    '甲': 'bg-[#22c55e]/5', '乙': 'bg-[#22c55e]/5',
-    '丙': 'bg-[#ef4444]/5', '丁': 'bg-[#ef4444]/5',
-    '戊': 'bg-[#a16207]/5', '己': 'bg-[#a16207]/5',
-    '庚': 'bg-[#d97706]/5', '辛': 'bg-[#d97706]/5',
-    '壬': 'bg-[#2563eb]/5', '癸': 'bg-[#2563eb]/5',
-
-    '寅': 'bg-[#22c55e]/5', '卯': 'bg-[#22c55e]/5',
-    '巳': 'bg-[#ef4444]/5', '午': 'bg-[#ef4444]/5',
-    '辰': 'bg-[#a16207]/5', '戌': 'bg-[#a16207]/5', '丑': 'bg-[#a16207]/5', '未': 'bg-[#a16207]/5',
-    '申': 'bg-[#d97706]/5', '酉': 'bg-[#d97706]/5',
-    '亥': 'bg-[#2563eb]/5', '子': 'bg-[#2563eb]/5',
-};
-
-const getElementColor = (char: string) => ELEMENT_COLORS[char] || 'text-foreground';
-const getElementBg = (char: string) => ELEMENT_BG_COLORS[char] || 'bg-muted/50';
+const STEMS = [...TIAN_GAN];
+const BRANCHES = [...DI_ZHI]; // Keep local names for minimal diff, or refactor usages
 
 type SlotIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7; // Y-Gan, Y-Zhi, M-Gan, M-Zhi, D-Gan, D-Zhi, H-Gan, H-Zhi
 
@@ -86,10 +55,10 @@ export default function BaziDatePicker({ onChange, onSelectDate }: BaziDatePicke
         setIsSearching(true);
         try {
             const target = {
-                yearGan: slots[0]!, yearZhi: slots[1]!,
-                monthGan: slots[2]!, monthZhi: slots[3]!,
-                dayGan: slots[4]!, dayZhi: slots[5]!,
-                hourGan: slots[6]!, hourZhi: slots[7]!
+                yearGan: slots[0]! as any, yearZhi: slots[1]! as any,
+                monthGan: slots[2]! as any, monthZhi: slots[3]! as any,
+                dayGan: slots[4]! as any, dayZhi: slots[5]! as any,
+                hourGan: slots[6]! as any, hourZhi: slots[7]! as any
             };
 
             const results = await baziReverseSearch(target);
@@ -120,7 +89,7 @@ export default function BaziDatePicker({ onChange, onSelectDate }: BaziDatePicke
         const selectedStem = slots[stemSlotIndex];
 
         if (selectedStem) {
-            const stemIndex = STEMS.indexOf(selectedStem);
+            const stemIndex = STEMS.indexOf(selectedStem as any);
             const isYang = stemIndex % 2 === 0;
             currentOptions = BRANCHES.filter((_, idx) => (idx % 2 === 0) === isYang);
         }
@@ -149,10 +118,10 @@ export default function BaziDatePicker({ onChange, onSelectDate }: BaziDatePicke
                                 onClick={() => setActiveSlot(ganIndex as SlotIndex)}
                                 className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl font-serif font-bold cursor-pointer transition-all duration-200 select-none border
                                     ${isGanActive ? 'border-primary shadow-[0_0_10px_rgba(var(--primary),0.3)] bg-transparent' : 'border-border/30 bg-muted hover:bg-muted/80'}
-                                    ${ganValue ? getElementColor(ganValue) : ''}
+                                    ${ganValue ? getElementTextColor(ganValue) : ''}
                                 `}
                                 style={{
-                                    backgroundColor: ganValue && !isGanActive ? ELEMENT_BG_COLORS[ganValue]?.replace('/5', '/10') : undefined
+                                    backgroundColor: ganValue && !isGanActive ? getElementBgColor(ganValue)?.replace('/5', '/10') : undefined
                                 }}
                             >
                                 {ganValue}
@@ -163,10 +132,10 @@ export default function BaziDatePicker({ onChange, onSelectDate }: BaziDatePicke
                                 onClick={() => setActiveSlot(zhiIndex as SlotIndex)}
                                 className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl font-serif font-bold cursor-pointer transition-all duration-200 select-none border
                                     ${isZhiActive ? 'border-primary shadow-[0_0_10px_rgba(var(--primary),0.3)] bg-transparent' : 'border-border/30 bg-muted hover:bg-muted/80'}
-                                    ${zhiValue ? getElementColor(zhiValue) : ''}
+                                    ${zhiValue ? getElementTextColor(zhiValue) : ''}
                                 `}
                                 style={{
-                                    backgroundColor: zhiValue && !isZhiActive ? ELEMENT_BG_COLORS[zhiValue]?.replace('/5', '/10') : undefined
+                                    backgroundColor: zhiValue && !isZhiActive ? getElementBgColor(zhiValue)?.replace('/5', '/10') : undefined
                                 }}
                             >
                                 {zhiValue}
@@ -231,8 +200,8 @@ export default function BaziDatePicker({ onChange, onSelectDate }: BaziDatePicke
                                 onClick={() => handleSelect(char)}
                                 className={`
                                     aspect-square rounded-xl flex items-center justify-center text-xl font-serif font-bold transition-all
-                                    ${getElementColor(char)}
-                                    ${getElementBg(char)}
+                                    ${getElementTextColor(char)}
+                                    ${getElementBgColor(char)}
                                     hover:brightness-95 active:scale-95
                                 `}
                             >

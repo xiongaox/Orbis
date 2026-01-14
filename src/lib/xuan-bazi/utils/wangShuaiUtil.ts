@@ -4,11 +4,13 @@
  * 包含：严谨定格、物理引擎（化气、从格、燥土防从、战克检测）、智能防御系统
  */
 
+import { DI_ZHI_CANG_GAN, TIAN_GAN_WU_XING, DI_ZHI_WU_XING } from '../maps/baziJichuMap';
+
 // =========================================================================
 // 1. 静态数据库 (Static Data)
 // =========================================================================
 
-type Element = 'Wood' | 'Fire' | 'Earth' | 'Metal' | 'Water';
+type Element = '木' | '火' | '土' | '金' | '水';
 type Polarity = '+' | '-';
 
 interface StemInfo {
@@ -17,19 +19,14 @@ interface StemInfo {
 }
 
 const STEMS_INFO: Record<string, StemInfo> = {
-    '甲': { el: 'Wood', pol: '+' }, '乙': { el: 'Wood', pol: '-' },
-    '丙': { el: 'Fire', pol: '+' }, '丁': { el: 'Fire', pol: '-' },
-    '戊': { el: 'Earth', pol: '+' }, '己': { el: 'Earth', pol: '-' },
-    '庚': { el: 'Metal', pol: '+' }, '辛': { el: 'Metal', pol: '-' },
-    '壬': { el: 'Water', pol: '+' }, '癸': { el: 'Water', pol: '-' }
+    '甲': { el: '木', pol: '+' }, '乙': { el: '木', pol: '-' },
+    '丙': { el: '火', pol: '+' }, '丁': { el: '火', pol: '-' },
+    '戊': { el: '土', pol: '+' }, '己': { el: '土', pol: '-' },
+    '庚': { el: '金', pol: '+' }, '辛': { el: '金', pol: '-' },
+    '壬': { el: '水', pol: '+' }, '癸': { el: '水', pol: '-' }
 };
 
-// 藏干列表 (主气在index 0)
-const ZANG_GAN_ORDER: Record<string, string[]> = {
-    '子': ['癸'], '丑': ['己', '癸', '辛'], '寅': ['甲', '丙', '戊'], '卯': ['乙'],
-    '辰': ['戊', '乙', '癸'], '巳': ['丙', '戊', '庚'], '午': ['丁', '己'], '未': ['己', '丁', '乙'],
-    '申': ['庚', '壬', '戊'], '酉': ['辛'], '戌': ['戊', '辛', '丁'], '亥': ['壬', '甲']
-};
+
 
 interface HiddenStemWeight {
     [stem: string]: number;
@@ -45,22 +42,18 @@ const RAW_HIDDEN_STEMS: Record<string, HiddenStemWeight> = {
     '戌': { '戊': 18, '辛': 9, '丁': 3 }, '亥': { '壬': 18, '甲': 12 }
 };
 
+// 使用公共常量构建五行映射
 const ELEMENT_MAP: Record<string, Element> = {
-    // 天干
-    '甲': 'Wood', '乙': 'Wood', '丙': 'Fire', '丁': 'Fire', '戊': 'Earth',
-    '己': 'Earth', '庚': 'Metal', '辛': 'Metal', '壬': 'Water', '癸': 'Water',
-    // 地支
-    '寅': 'Wood', '卯': 'Wood', '巳': 'Fire', '午': 'Fire',
-    '辰': 'Earth', '戌': 'Earth', '丑': 'Earth', '未': 'Earth',
-    '申': 'Metal', '酉': 'Metal', '亥': 'Water', '子': 'Water'
+    ...Object.fromEntries(Object.entries(TIAN_GAN_WU_XING).map(([k, v]) => [k, v as Element])),
+    ...Object.fromEntries(Object.entries(DI_ZHI_WU_XING).map(([k, v]) => [k, v as Element]))
 };
 
 const DIRECTION_MAP: Record<Element, string> = {
-    'Wood': '东方', 'Fire': '南方', 'Earth': '西南、东北', 'Metal': '西方', 'Water': '北方'
+    '木': '东方', '火': '南方', '土': '西南、东北', '金': '西方', '水': '北方'
 };
 
 const CONTROLLING: Record<Element, Element> = {
-    'Wood': 'Earth', 'Earth': 'Water', 'Water': 'Fire', 'Fire': 'Metal', 'Metal': 'Wood'
+    '木': '土', '土': '水', '水': '火', '火': '金', '金': '木'
 };
 
 // 湿土/燥土分类
@@ -68,18 +61,18 @@ const CONTROLLING: Record<Element, Element> = {
 const WET_EARTH = ['辰', '丑'];
 const DRY_EARTH = ['戌', '未'];
 
-// 英文五行转中文映射
-const ELEMENT_CN: Record<string, string> = { 'Wood': '木', 'Fire': '火', 'Earth': '土', 'Metal': '金', 'Water': '水' };
+// 五行列表 (用于验证)
+const WU_XING_LIST: Element[] = ['木', '火', '土', '金', '水'];
 
 // 天干五合规则 (Pair, Transform Element, Valid Months, Blocker Element, Cleaner Element)
 type TransformRule = [Set<string>, Element, string[], Element[], Element[]];
 
 const TRANSFORM_RULES: TransformRule[] = [
-    [new Set(['甲', '己']), 'Earth', ['辰', '戌', '丑', '未', '巳', '午'], ['Wood'], ['Metal', 'Fire']],
-    [new Set(['乙', '庚']), 'Metal', ['申', '酉', '巳'], ['Fire'], ['Water', 'Earth']],
-    [new Set(['丙', '辛']), 'Water', ['申', '酉'], ['Earth'], ['Wood', 'Metal']], // V32修正: 仅申酉
-    [new Set(['丁', '壬']), 'Wood', ['寅', '卯'], ['Metal'], ['Fire', 'Water']],
-    [new Set(['戊', '癸']), 'Fire', ['巳', '午', '寅', '卯', '戌'], ['Water'], ['Earth', 'Wood']]
+    [new Set(['甲', '己']), '土', ['辰', '戌', '丑', '未', '巳', '午'], ['木'], ['金', '火']],
+    [new Set(['乙', '庚']), '金', ['申', '酉', '巳'], ['火'], ['水', '土']],
+    [new Set(['丙', '辛']), '水', ['申', '酉'], ['土'], ['木', '金']], // V32修正: 仅申酉
+    [new Set(['丁', '壬']), '木', ['寅', '卯'], ['金'], ['火', '水']],
+    [new Set(['戊', '癸']), '火', ['巳', '午', '寅', '卯', '戌'], ['水'], ['土', '木']]
 ];
 
 // =========================================================================
@@ -95,7 +88,7 @@ function getTenGod(targetStem: string, dmStem: string): string {
     const tg = STEMS_INFO[targetStem];
     if (!dm || !tg) return "未知";
 
-    const elements: Element[] = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
+    const elements: Element[] = ['木', '火', '土', '金', '水'];
     const dmIdx = elements.indexOf(dm.el);
     const tgIdx = elements.indexOf(tg.el);
 
@@ -173,7 +166,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
     // 3. 严谨定格 (Strict Pattern)
     // -------------------------------------------------------------------------
     function determineStrictPattern(): string {
-        const hidden = ZANG_GAN_ORDER[monthBranch] || [];
+        const hidden = DI_ZHI_CANG_GAN[monthBranch] || [];
         if (hidden.length === 0) return "未知";
         if (!STEMS_INFO[dmStem]) return "未知";
 
@@ -227,7 +220,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
 
     // 基础计数 (all_chars)
     const allChars = [...stems, ...branches];
-    const counts: Record<Element, number> = { 'Wood': 0, 'Fire': 0, 'Earth': 0, 'Metal': 0, 'Water': 0 };
+    const counts: Record<Element, number> = { '木': 0, '火': 0, '土': 0, '金': 0, '水': 0 };
     allChars.forEach(char => {
         const el = getElement(char);
         if (el) counts[el]++;
@@ -285,7 +278,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
                     }
 
                     // === 条件2: 化神必须旺 ===
-                    if (targetEl === 'Earth') {
+                    if (targetEl === '土') {
                         // 甲己化土: 地支土>=2, 干透戊己
                         const earthBranches = branches.filter(b => [...WET_EARTH, ...DRY_EARTH].includes(b));
                         const hasWuJi = stems.includes('戊') || stems.includes('己');
@@ -297,14 +290,14 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
                             isBlocked = true;
                             blockReasons.push("天干未透戊己土");
                         }
-                    } else if (targetEl === 'Metal') {
+                    } else if (targetEl === '金') {
                         // 乙庚化金
                         const metalBranches = branches.filter(b => ['申', '酉'].includes(b));
                         if (metalBranches.length < 1 && !['申', '酉'].includes(monthBranch)) {
                             isBlocked = true;
                             blockReasons.push("地支无金气支撑");
                         }
-                    } else if (targetEl === 'Water') {
+                    } else if (targetEl === '水') {
                         // 丙辛化水
                         const waterBranches = branches.filter(b => ['亥', '子'].includes(b));
                         if (waterBranches.length < 1 && !['亥', '子'].includes(monthBranch)) {
@@ -335,7 +328,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
                         });
 
                         if (hasCleaner) {
-                            transformLogDetail = `✨ 真化气格：[${pairArr.sort().join('')}]合化[${ELEMENT_CN[targetEl]}]，虽有[${blockerFound.join('')}]阻碍，幸得救应去浊留清`;
+                            transformLogDetail = `✨ 真化气格：[${pairArr.sort().join('')}]合化[${targetEl}]，虽有[${blockerFound.join('')}]阻碍，幸得救应去浊留清`;
                         } else {
                             isBlocked = true;
                             blockReasons.push(`有[${blockerFound.join('')}]克化神且无制`);
@@ -346,7 +339,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
                         physicsLog.push(`🔗 假化气格：[${pairArr.sort().join('')}]合而不化 - ${blockReasons.join('; ')}`);
                     } else {
                         if (!transformLogDetail) {
-                            transformLogDetail = `✨ 真化气格：[${pairArr.sort().join('')}]合化[${ELEMENT_CN[targetEl]}]，月令支持，化神旺，日干无根`;
+                            transformLogDetail = `✨ 真化气格：[${pairArr.sort().join('')}]合化[${targetEl}]，月令支持，化神旺，日干无根`;
                         }
                         physicsLog.push(transformLogDetail);
                         isTrueTransformation = true;
@@ -441,17 +434,17 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
     if (!isTrueTransformation) {
         // 辅助检测函数
         const hasFang = (el: Element): boolean => {
-            if (el === 'Wood') return branches.includes('寅') && branches.includes('卯') && branches.includes('辰');
-            if (el === 'Fire') return branches.includes('巳') && branches.includes('午') && branches.includes('未');
-            if (el === 'Metal') return branches.includes('申') && branches.includes('酉') && branches.includes('戌');
-            if (el === 'Water') return branches.includes('亥') && branches.includes('子') && branches.includes('丑');
+            if (el === '木') return branches.includes('寅') && branches.includes('卯') && branches.includes('辰');
+            if (el === '火') return branches.includes('巳') && branches.includes('午') && branches.includes('未');
+            if (el === '金') return branches.includes('申') && branches.includes('酉') && branches.includes('戌');
+            if (el === '水') return branches.includes('亥') && branches.includes('子') && branches.includes('丑');
             return false;
         };
         const hasJu = (el: Element): boolean => {
-            if (el === 'Wood') return branches.includes('亥') && branches.includes('卯') && branches.includes('未');
-            if (el === 'Fire') return branches.includes('寅') && branches.includes('午') && branches.includes('戌');
-            if (el === 'Metal') return branches.includes('巳') && branches.includes('酉') && branches.includes('丑');
-            if (el === 'Water') return branches.includes('申') && branches.includes('子') && branches.includes('辰');
+            if (el === '木') return branches.includes('亥') && branches.includes('卯') && branches.includes('未');
+            if (el === '火') return branches.includes('寅') && branches.includes('午') && branches.includes('戌');
+            if (el === '金') return branches.includes('巳') && branches.includes('酉') && branches.includes('丑');
+            if (el === '水') return branches.includes('申') && branches.includes('子') && branches.includes('辰');
             return false;
         };
 
@@ -467,9 +460,9 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
         };
 
         // 1. 曲直格 (Wood)
-        if (dmEl === 'Wood') {
-            const isWoodStrong = hasFang('Wood') || hasJu('Wood') || (counts['Wood'] >= 5);
-            if (isWoodStrong && !hasStrongKiller('Metal')) {
+        if (dmEl === '木') {
+            const isWoodStrong = hasFang('木') || hasJu('木') || (counts['木'] >= 5);
+            if (isWoodStrong && !hasStrongKiller('金')) {
                 isZhuanWang = true;
                 zhuanWangName = "专旺格 (曲直/木)";
                 physicsLog.push("🌲 曲直成格：木气成方/局，不见强金破格");
@@ -477,9 +470,9 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
             }
         }
         // 2. 炎上格 (Fire)
-        else if (dmEl === 'Fire') {
-            const isFireStrong = hasFang('Fire') || hasJu('Fire') || (counts['Fire'] >= 5);
-            if (isFireStrong && !hasStrongKiller('Water')) {
+        else if (dmEl === '火') {
+            const isFireStrong = hasFang('火') || hasJu('火') || (counts['火'] >= 5);
+            if (isFireStrong && !hasStrongKiller('水')) {
                 isZhuanWang = true;
                 zhuanWangName = "专旺格 (炎上/火)";
                 physicsLog.push("🔥 炎上成格：火气成方/局，不见强水破格");
@@ -487,14 +480,14 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
             }
         }
         // 3. 稼穑格 (Earth)
-        else if (dmEl === 'Earth') {
+        else if (dmEl === '土') {
             // 四库全 OR 火土气势宏大(费中堂造: 子丑化土+土重)
             const fourKu = branches.includes('辰') && branches.includes('戌') && branches.includes('丑') && branches.includes('未');
-            const earthDominant = (counts['Earth'] + counts['Fire'] >= 6);
+            const earthDominant = (counts['土'] + counts['火'] >= 6);
             // 费中堂特殊检测: 子丑化土 + 土重
             const ziChouEarth = branches.includes('子') && branches.includes('丑') && earthDominant;
 
-            if ((fourKu || earthDominant || ziChouEarth) && !hasStrongKiller('Wood')) {
+            if ((fourKu || earthDominant || ziChouEarth) && !hasStrongKiller('木')) {
                 isZhuanWang = true;
                 isEarthDominant = true;
                 zhuanWangName = "专旺格 (稼穑/土)";
@@ -503,9 +496,9 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
             }
         }
         // 4. 从革格 (Metal)
-        else if (dmEl === 'Metal') {
-            const isMetalStrong = hasFang('Metal') || hasJu('Metal') || (counts['Metal'] >= 5);
-            if (isMetalStrong && !hasStrongKiller('Fire')) {
+        else if (dmEl === '金') {
+            const isMetalStrong = hasFang('金') || hasJu('金') || (counts['金'] >= 5);
+            if (isMetalStrong && !hasStrongKiller('火')) {
                 isZhuanWang = true;
                 zhuanWangName = "专旺格 (从革/金)";
                 physicsLog.push("⚔ 从革成格：金气成方/局，不见强火破格");
@@ -513,9 +506,9 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
             }
         }
         // 5. 润下格 (Water)
-        else if (dmEl === 'Water') {
-            const isWaterStrong = hasFang('Water') || hasJu('Water') || (counts['Water'] >= 5);
-            if (isWaterStrong && !hasStrongKiller('Earth')) {
+        else if (dmEl === '水') {
+            const isWaterStrong = hasFang('水') || hasJu('水') || (counts['水'] >= 5);
+            if (isWaterStrong && !hasStrongKiller('土')) {
                 isZhuanWang = true;
                 zhuanWangName = "专旺格 (润下/水)";
                 physicsLog.push("🌊 润下成格：水气成方/局，不见强土破格");
@@ -527,16 +520,16 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
     }
 
     // 水多土流
-    if (dmEl === 'Earth' && counts['Water'] >= 3 && ['亥', '子'].includes(monthBranch) && !isEarthDominant) {
+    if (dmEl === '土' && counts['水'] >= 3 && ['亥', '子'].includes(monthBranch) && !isEarthDominant) {
         const isWaterSuccess = physicsLog.some(l => l.includes("化水"));
-        if (isWaterSuccess || counts['Water'] >= 5) {
+        if (isWaterSuccess || counts['水'] >= 5) {
             physicsLog.push("🌊 水多土流：冬土遇洪，根气全消");
             forcedYongShen = ["Water(财星)", "Wood(官杀)"];
         }
     }
 
     // 5. 旺衰评分 (Z-Score)
-    const cycle: Element[] = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
+    const cycle: Element[] = ['木', '火', '土', '金', '水'];
     const idx = cycle.indexOf(dmEl);
     const textRelation = {
         'Self': dmEl,
@@ -552,7 +545,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
     // 月令得分
     const monthRoots = hiddenStems[monthBranch] || {};
     let monthScore = 0;
-    const monthMainQi = ZANG_GAN_ORDER[monthBranch][0];
+    const monthMainQi = DI_ZHI_CANG_GAN[monthBranch][0];
     const monthMainEl = getElement(monthMainQi);
 
     // -------------------------------------------------------------------------
@@ -590,10 +583,10 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
         // 场景1: 燥土不生金 (金日主 + 土印星 + 火旺燥土)
         // 条件: 火月 + 地支多火/燥土(≥3) + 无水润
         // =========================================================
-        if (dayMasterEl === 'Metal' && resourceEl === 'Earth') {
+        if (dayMasterEl === '金' && resourceEl === '土') {
             const isFireMonth = FIRE_BRANCHES.includes(monthBr);
             const fireDryCount = countBranches([...FIRE_BRANCHES, ...DRY_EARTH_BR]);
-            const hasWater = countBranches(WATER_BRANCHES) > 0 || hasStemElement('Water');
+            const hasWater = countBranches(WATER_BRANCHES) > 0 || hasStemElement('水');
             const hasWetEarth = countBranches(WET_EARTH_BR) > 0;
 
             if (isFireMonth && fireDryCount >= 3 && !hasWater && !hasWetEarth) {
@@ -605,11 +598,11 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
         // 场景2: 寒水不生木 (木日主 + 水印星 + 水旺寒冷)
         // 条件: 水月 + 地支多水/寒土(≥3) + 无火暖
         // =========================================================
-        if (dayMasterEl === 'Wood' && resourceEl === 'Water') {
+        if (dayMasterEl === '木' && resourceEl === '水') {
             const isWaterMonth = WATER_BRANCHES.includes(monthBr);
             // 丑为寒湿土
             const waterColdCount = countBranches([...WATER_BRANCHES, '丑']);
-            const hasFire = countBranches(FIRE_BRANCHES) > 0 || hasStemElement('Fire');
+            const hasFire = countBranches(FIRE_BRANCHES) > 0 || hasStemElement('火');
 
             if (isWaterMonth && waterColdCount >= 3 && !hasFire) {
                 return { ineffective: true, reason: "❄️ 寒水不生木：水寒木冻，印星失效" };
@@ -620,7 +613,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
         // 场景3: 湿木不生火 (火日主 + 木印星 + 水旺木湿)
         // 条件: 水月 + 地支多水(≥2) + 木无强根
         // =========================================================
-        if (dayMasterEl === 'Fire' && resourceEl === 'Wood') {
+        if (dayMasterEl === '火' && resourceEl === '木') {
             const isWaterMonth = WATER_BRANCHES.includes(monthBr);
             const waterCount = countBranches(WATER_BRANCHES);
             // 检查木是否有强根（寅卯）
@@ -635,7 +628,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
         // 场景4: 土多金埋 (水日主 + 金印星 + 土重)
         // 条件: 土月 + 地支多土(≥3) + 金无强根
         // =========================================================
-        if (dayMasterEl === 'Water' && resourceEl === 'Metal') {
+        if (dayMasterEl === '水' && resourceEl === '金') {
             const isEarthMonth = EARTH_BRANCHES.includes(monthBr);
             const earthCount = countBranches(EARTH_BRANCHES);
             // 检查金是否有强根（申酉）
@@ -651,10 +644,10 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
         // 条件: 火月 + 地支多火(≥3) + 土无水润
         // 注意: 此场景较少见，因为火生土通常是正常的
         // =========================================================
-        if (dayMasterEl === 'Earth' && resourceEl === 'Fire') {
+        if (dayMasterEl === '土' && resourceEl === '火') {
             const isFireMonth = FIRE_BRANCHES.includes(monthBr);
             const fireCount = countBranches(FIRE_BRANCHES);
-            const hasWater = countBranches(WATER_BRANCHES) > 0 || hasStemElement('Water');
+            const hasWater = countBranches(WATER_BRANCHES) > 0 || hasStemElement('水');
             const hasWetEarth = countBranches(WET_EARTH_BR) > 0;
 
             // 火多土焦需要非常极端的条件
@@ -667,7 +660,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
     };
 
     const hasFlowChain = (monthEl: Element, dayMasterEl: Element, allStems: string[]): boolean => {
-        const flowCycle: Element[] = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
+        const flowCycle: Element[] = ['木', '火', '土', '金', '水'];
         const monthIdx = flowCycle.indexOf(monthEl);
         const dmIdx = flowCycle.indexOf(dayMasterEl);
 
@@ -710,7 +703,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
         // 月令克日主，但检查是否有流通链
         if (hasFlowChain(monthMainEl, dmEl, stems)) {
             isMonthHostile = false; // 通关，不判敌对
-            physicsLog.push(`🔄 官印相生：${ELEMENT_CN[monthMainEl]}生${ELEMENT_CN[cycle[(cycle.indexOf(monthMainEl) + 1) % 5] as Element]}，印透干生身，月令之克被化解`);
+            physicsLog.push(`🔄 官印相生：${monthMainEl}生${cycle[(cycle.indexOf(monthMainEl) + 1) % 5]}，印透干生身，月令之克被化解`);
         } else {
             isMonthHostile = true;
         }
@@ -775,11 +768,11 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
     });
 
     if (isTrueTransformation && transformGodElement) {
-        calcPattern = `真化气格 (化${ELEMENT_CN[transformGodElement]})`;
+        calcPattern = `真化气格 (化${transformGodElement})`;
         patternCode = "Transform";
 
         // 化气格喜忌
-        const cycle = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
+        const cycle = ['木', '火', '土', '金', '水'];
         const transIdx = cycle.indexOf(transformGodElement);
         const xieShen = cycle[(transIdx + 1) % 5];
         const keShen = cycle[(transIdx + 3) % 5];
@@ -921,7 +914,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
 
                 // 假从格用神 (V32)
                 if (congElement) {
-                    const cycle = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
+                    const cycle = ['木', '火', '土', '金', '水'];
                     const cIdx = cycle.indexOf(congElement);
                     const shengCong = cycle[(cIdx - 1 + 5) % 5];
                     forcedYongShen = [congElement as string, shengCong as string];
@@ -930,7 +923,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
                 calcPattern = `真${congType} (弃命相从)`;
                 patternCode = "Follow_Weak";
                 if (congElement) {
-                    const cycle = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
+                    const cycle = ['木', '火', '土', '金', '水'];
                     const cIdx = cycle.indexOf(congElement);
                     const shengCong = cycle[(cIdx - 1 + 5) % 5];
                     forcedYongShen = [congElement as string, shengCong as string];
@@ -1031,12 +1024,12 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
         let score = 0;
 
         // 月令得令检测
-        const monthMainQiEl = getElement(ZANG_GAN_ORDER[monthBranch][0]);
+        const monthMainQiEl = getElement(DI_ZHI_CANG_GAN[monthBranch][0]);
         if (monthMainQiEl === targetEl) {
             score += 3; // 得令
         } else {
             // 检查月支中/余气
-            const monthHidden = ZANG_GAN_ORDER[monthBranch] || [];
+            const monthHidden = DI_ZHI_CANG_GAN[monthBranch] || [];
             for (let i = 1; i < monthHidden.length; i++) {
                 if (getElement(monthHidden[i]) === targetEl) {
                     score += 1;
@@ -1077,29 +1070,29 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
 
     // 评估所有五行的势力
     const elementPowers: Record<Element, PowerLevel> = {
-        'Wood': evaluateElementPower('Wood'),
-        'Fire': evaluateElementPower('Fire'),
-        'Earth': evaluateElementPower('Earth'),
-        'Metal': evaluateElementPower('Metal'),
-        'Water': evaluateElementPower('Water')
+        '木': evaluateElementPower('木'),
+        '火': evaluateElementPower('火'),
+        '土': evaluateElementPower('土'),
+        '金': evaluateElementPower('金'),
+        '水': evaluateElementPower('水')
     };
 
     // -------------------------------------------------------------------------
     // 8.2 用神打分筛选 (Yong Shen Scoring & Filtering)
     // -------------------------------------------------------------------------
     const sheng = (a: Element, b: Element): boolean => {
-        const elCycle: Element[] = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
+        const elCycle: Element[] = ['木', '火', '土', '金', '水'];
         return elCycle[(elCycle.indexOf(a) + 1) % 5] === b;
     };
 
     const ke = (a: Element, b: Element): boolean => {
-        const elCycle: Element[] = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
+        const elCycle: Element[] = ['木', '火', '土', '金', '水'];
         return elCycle[(elCycle.indexOf(a) + 2) % 5] === b;
     };
 
     const checkTongguan = (yongEl: Element, jiList: Element[]): number => {
         // 通关检测：若旺忌神克某五行，用神可以作为通关
-        const elCycle: Element[] = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
+        const elCycle: Element[] = ['木', '火', '土', '金', '水'];
         let bonus = 0;
 
         for (const ji of jiList) {
@@ -1199,8 +1192,8 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
         // 特殊格局有强制用神
         yongShen = forcedYongShen.map(s => {
             const el = s.split('(')[0];
-            return (ELEMENT_CN[el] ? el : s) as Element;
-        }).filter(el => ['Wood', 'Fire', 'Earth', 'Metal', 'Water'].includes(el)) as Element[];
+            return (WU_XING_LIST.includes(el as Element) ? el : s) as Element;
+        }).filter(el => WU_XING_LIST.includes(el)) as Element[];
 
         if (patternCode === 'Transform') {
             jiShen = transformJiShen;
@@ -1252,11 +1245,11 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
     // Output formatting
     const toCn = (list: string[]): string[] => {
         return list.map(item => {
-            // Check if it is "Water(xx)"
+            // 如果是 "木(比肩)" 格式，取前半部分
             const elPart = item.split('(')[0];
-            if (ELEMENT_CN[elPart]) return ELEMENT_CN[elPart];
-            // Check if it is Element Key 'Wood'
-            if (ELEMENT_CN[item]) return ELEMENT_CN[item];
+            if (WU_XING_LIST.includes(elPart as Element)) return elPart;
+            // 直接是五行名
+            if (WU_XING_LIST.includes(item as Element)) return item;
             return item;
         });
     };

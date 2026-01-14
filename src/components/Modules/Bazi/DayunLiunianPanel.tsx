@@ -1,6 +1,13 @@
 import { useState, useMemo } from 'react';
-import { getElementColor, getShiShenAbbr } from '../../../utils/metaphysics';
+import { getElementColor } from '../../../lib/xuan-bazi/maps/baziStyleMap';
+import { getShiShen, getShiShenAbbr as getShiShenAbbrByName } from '../../../lib/xuan-bazi/utils';
 import type { BaziApiResponse } from '../../../types/bazi';
+
+// 兼容辅助函数：获取十神缩写（两参数版本）
+function getShiShenAbbr(dayMaster: string, target: string): string {
+  const shiShen = getShiShen(dayMaster, target);
+  return getShiShenAbbrByName(shiShen) || '';
+}
 
 interface DayunLiunianPanelProps {
   data: BaziApiResponse | null;

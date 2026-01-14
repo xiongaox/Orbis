@@ -227,3 +227,10 @@ export const SHI_SHEN_ABBR: Record<string, string> = {
 export function getShiShenAbbr(shiShen: string): string {
     return SHI_SHEN_ABBR[shiShen] || '';
 }
+
+/**
+ * 获取旬空（getKongWang 的别名）
+ * @param ganZhi 干支字符串
+ * @returns 旬空字符串
+ */
+export const getXunKong = getKongWang;
