@@ -1,7 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { getElementColor } from '../../../lib/xuan-bazi/maps/baziStyleMap';
 import { getShiShen, getShiShenAbbr as getShiShenAbbrByName } from '../../../lib/xuan-bazi/utils';
 import type { BaziApiResponse } from '../../../types/bazi';
+import {
+  isTianGanHe,
+  isDiZhiLiuHe,
+  isDiZhiChong
+} from '../../../lib/xuan-bazi/utils/baziGanZhiLiuYiUtil';
+import { TIAN_GAN_XIANG_KE, TIAN_GAN_XIANG_CHONG } from '../../../lib/xuan-bazi/maps/baziGanZhiLiuYiMap';
 
 // 兼容辅助函数：获取十神缩写（两参数版本）
 function getShiShenAbbr(dayMaster: string, target: string): string {
@@ -35,6 +41,7 @@ export default function DayunLiunianPanel({
   // 内部状态（当外部不控制时使用）
   const [internalDaYunIndex, setInternalDaYunIndex] = useState<number | null>(null);
   const [internalLiuNianYear, setInternalLiuNianYear] = useState<number | null>(null);
+  const [activeHint, setActiveHint] = useState<{ year: number; message: string; type: 'danger' | 'warning' | 'success' } | null>(null);
 
   // 大运分页状态（每页显示10个大运）
   const [daYunPage, setDaYunPage] = useState(0);
@@ -51,6 +58,61 @@ export default function DayunLiunianPanel({
 
   // 获取日主（日柱天干）
   const dayMaster = pillars[2]?.tiangan || '丙';
+
+  // 辅助函数：快速检查关系
+  // 检查天干相克/相冲
+  const isTianGanKeOrChong = (g1: string, g2: string) => {
+    const k1 = g1 + g2;
+    const k2 = g2 + g1;
+    return !!(TIAN_GAN_XIANG_KE[k1] || TIAN_GAN_XIANG_KE[k2] || TIAN_GAN_XIANG_CHONG[k1] || TIAN_GAN_XIANG_CHONG[k2]);
+  };
+
+  // 检查流年特殊状态
+  const checkLiunianStatus = (lnItem: any, currentDy: any, pillarList: any[]) => {
+    if (!lnItem) return null;
+    const { tiangan: lnGan, dizhi: lnZhi } = lnItem;
+
+    const messages: string[] = [];
+    let hasChong = false;
+    let hasHe = false;
+    let hasSuiYun = false;
+
+    // 1. 岁运并临：流年与大运完全相同
+    if (currentDy && currentDy.tiangan === lnGan && currentDy.dizhi === lnZhi) {
+      messages.push('岁运并临');
+      hasSuiYun = true;
+    }
+
+    // 2. 天合地合 / 天克地冲 (与四柱)
+    const pillarNames = ['年柱', '月柱', '日柱', '时柱'];
+    pillarList.forEach((p, idx) => {
+      if (!p) return;
+      const { tiangan: pGan, dizhi: pZhi } = p;
+      if (!pGan || !pZhi) return;
+
+      // 天合地合
+      if (isTianGanHe(lnGan, pGan) && isDiZhiLiuHe(lnZhi, pZhi)) {
+        messages.push(`与${pillarNames[idx]}天合地合`);
+        hasHe = true;
+      }
+
+      // 天克地冲
+      if (isTianGanKeOrChong(lnGan, pGan) && isDiZhiChong(lnZhi, pZhi)) {
+        messages.push(`与${pillarNames[idx]}天克地冲`);
+        hasChong = true;
+      }
+    });
+
+    if (messages.length > 0) {
+      let type: 'danger' | 'warning' | 'success' = 'success';
+      if (hasChong) type = 'danger';      // 红色最优先
+      else if (hasSuiYun) type = 'warning'; // 黄色次之
+      else if (hasHe) type = 'success';     // 绿色最后
+
+      return { message: messages.join('；'), type };
+    }
+    return null;
+  };
 
   // 过滤大运：现在我们利用 index=0（或我们手动插入的 index=-1）作为小运/起运前
   // 每页显示10个大运，支持分页
@@ -83,6 +145,12 @@ export default function DayunLiunianPanel({
     return result.slice(0, 10);
   }, [liuNian, activeDaYunIndex]);
 
+  // 获取当前激活大运对象
+  const activeDaYunObject = useMemo(() => {
+    return daYun.find(d => d.index === activeDaYunIndex);
+  }, [daYun, activeDaYunIndex]);
+
+
   // 获取激活大运对应的小运
   const displayXiaoYun = useMemo(() => {
     // 小运数据现在包含 dayunIndex 字段
@@ -114,6 +182,36 @@ export default function DayunLiunianPanel({
     }
     return [];
   }, [displayLiuNian, selectedLiuNianYear, currentYear]);
+
+  // 当选中流年变化时，自动更新提示
+  useEffect(() => {
+    if (selectedLiuNianYear) {
+      const selectedItem = displayLiuNian.find(ln => ln.year === selectedLiuNianYear);
+      if (selectedItem) {
+        const status = checkLiunianStatus(selectedItem, activeDaYunObject, pillars);
+        if (status) {
+          setActiveHint({ year: selectedLiuNianYear, message: status.message, type: status.type });
+        } else {
+          setActiveHint(null);
+        }
+      }
+    } else {
+      // 如果没有选中流年，且当前没有任何hint显示，或者当前显示的hint是之前选中流年的，则清空
+      // 这里简单处理：只要没有选中流年，就清空。如果用户点击红点显示的，保持原样逻辑（点击红点会设置 activeHint）
+      // 但这里我们希望跟随选中。
+      setActiveHint(null);
+    }
+  }, [selectedLiuNianYear, displayLiuNian, activeDaYunObject, pillars]);
+
+  // 当数据（案例）切换时，重置提示
+  useEffect(() => {
+    setActiveHint(null);
+  }, [data]);
+
+  // 当大运切换时，重置提示
+  useMemo(() => {
+    setActiveHint(null);
+  }, [activeDaYunIndex]);
 
   // 节气月份映射（用于显示）
   const jieqiLabels = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '腊'];
@@ -284,17 +382,38 @@ export default function DayunLiunianPanel({
               </div>
             </div>
             <div className="flex-1 min-w-0 overflow-x-auto">
-              <div className="grid grid-cols-10 min-w-0 w-full">
+              <div className="grid grid-cols-10 min-w-0 w-full relative">
                 {displayLiuNian.map((item, idx) => {
                   const xiaoyun = displayXiaoYun[idx];
                   const isCurrentYear = item.year === currentYear;
                   const isSelected = item.year === selectedLiuNianYear;
                   // 只有当是第10个格子时才移除右边框
                   const isLastColumn = idx === 9;
+
+                  // 计算特殊状态
+                  const status = checkLiunianStatus(item, activeDaYunObject, pillars);
+                  const isHintActive = activeHint?.year === item.year;
+
+                  // 动态颜色类
+                  let dotColorClass = '';
+                  if (status) {
+                    switch (status.type) {
+                      case 'danger':
+                        dotColorClass = isHintActive ? 'bg-red-500 border-red-500' : 'border-red-500 hover:bg-red-500';
+                        break;
+                      case 'warning':
+                        dotColorClass = isHintActive ? 'bg-yellow-500 border-yellow-500' : 'border-yellow-500 hover:bg-yellow-500';
+                        break;
+                      case 'success':
+                        dotColorClass = isHintActive ? 'bg-green-500 border-green-500' : 'border-green-500 hover:bg-green-500';
+                        break;
+                    }
+                  }
+
                   return (
                     <div
                       key={item.year}
-                      className={`min-w-0 p-3 border-r border-border cursor-pointer transition-colors hover:bg-primary/10 ${isLastColumn ? '!border-r-0' : ''} ${isSelected ? 'bg-primary/10' : isCurrentYear ? 'bg-primary/5' : ''
+                      className={`relative min-w-0 p-3 border-r border-border cursor-pointer transition-colors hover:bg-primary/10 ${isLastColumn ? '!border-r-0' : ''} ${isSelected ? 'bg-primary/10' : isCurrentYear ? 'bg-primary/5' : ''
                         }`}
                       onClick={() => handleLiuNianClick(item.year)}
                     >
@@ -328,12 +447,51 @@ export default function DayunLiunianPanel({
                           {xiaoyun?.ganZhi || '-'}
                         </div>
                       </div>
+
+                      {/* 提示红点 */}
+                      {status && (
+                        <div
+                          role="button"
+                          className="absolute bottom-1 right-1 cursor-pointer z-10 p-1 group"
+                          onClick={(e) => {
+                            e.stopPropagation(); // 防止触发流年选择
+                            if (activeHint?.year === item.year) {
+                              setActiveHint(null);
+                            } else {
+                              setActiveHint({ year: item.year, message: status.message, type: status.type });
+                            }
+                          }}
+                        >
+                          <div className={`w-1.5 h-1.5 rounded-full border transition-colors ${dotColorClass}`} />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
             </div>
           </div>
+          {/* 提示栏（插入在流年Grid下方） */}
+          {activeHint && (
+            <div
+              className={`w-full px-4 py-2 border-t flex items-center gap-2 animate-in slide-in-from-top-2 duration-200
+                        ${activeHint.type === 'danger' ? 'bg-red-500/10 border-red-500/20' :
+                  activeHint.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/20' :
+                    'bg-green-500/10 border-green-500/20'}
+                    `}
+            >
+              <span className="text-xs text-muted-foreground">流年提示：</span>
+              <span
+                className={`text-xs font-medium 
+                            ${activeHint.type === 'danger' ? 'text-red-500' :
+                    activeHint.type === 'warning' ? 'text-yellow-500' :
+                      'text-green-500'}
+                        `}
+              >
+                {activeHint.message}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* 流月行 */}

@@ -125,6 +125,7 @@ export default function GanZhiDiagramModal({
         const currentDaYun = activeDaYun;
 
         // 确定流年：优先使用选中的，否则查找当前年份
+        // 确定流年：优先使用选中的，否则查找当前年份，最后取第一个
         let activeLiuNian = null;
         if (selectedLiuNianYear !== null && liuNian) {
             activeLiuNian = liuNian.find((ln: any) => ln.year === selectedLiuNianYear);
@@ -334,6 +335,9 @@ export default function GanZhiDiagramModal({
                     <h2 className="text-lg font-medium text-foreground">干支流通图解</h2>
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
+                            {showLiuNian && (!chartData?.items.find((i: any) => i.label === '流年')) && (
+                                <span className="text-sm text-yellow-500 animate-pulse mr-2">请先选择流年</span>
+                            )}
                             <button
                                 onClick={() => setShowLiuNian(!showLiuNian)}
                                 className={`px-3 py-1 text-sm rounded-md border transition-colors ${showLiuNian
@@ -360,13 +364,18 @@ export default function GanZhiDiagramModal({
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-auto p-8 flex items-center justify-center bg-dot-pattern">
+                <div className="flex-1 overflow-auto p-8 flex bg-dot-pattern">
                     {chartData && (
-                        <div className="relative w-full h-full flex items-center justify-center">
+                        <div className="relative m-auto transition-all duration-300">
                             <svg
+                                width={SVG_WIDTH}
+                                height={totalHeight}
                                 viewBox={`0 0 ${SVG_WIDTH} ${totalHeight}`}
-                                className="max-w-full max-h-full"
-                                style={{ width: 'auto', height: 'auto' }}
+                                className="max-w-full block"
+                                style={{
+                                    height: 'auto',
+                                    maxWidth: SVG_WIDTH,
+                                }}
                                 preserveAspectRatio="xMidYMid meet"
                             >
                                 {/* Defs for gradients or markers if needed */}
