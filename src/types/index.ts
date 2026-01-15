@@ -42,6 +42,7 @@ export interface Case extends BaziChartData {
 // 排盘类型
 export type ChartType =
     | 'bazi'
+    | 'qimen'
     | 'liuyao'
     | 'ziwei'
     | 'daliuren'

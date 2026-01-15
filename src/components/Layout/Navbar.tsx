@@ -9,6 +9,7 @@ import {
   Calendar,
   Compass,
   Flower2,
+  Grid3X3,
   LogOut,
   Moon,
   Settings,
@@ -24,6 +25,7 @@ import { getRealtimeClockData } from '../../utils/lunarUtil';
 
 type ChartType =
   | 'bazi'
+  | 'qimen'
   | 'liuyao'
   | 'ziwei'
   | 'daliuren'
@@ -34,6 +36,7 @@ type ChartType =
 
 const navItems: { id: ChartType; name: string; icon: ComponentType<{ className?: string }> }[] = [
   { id: 'bazi', name: '八字', icon: Compass },
+  { id: 'qimen', name: '奇门', icon: Grid3X3 },
   { id: 'liuyao', name: '六爻', icon: BookOpen },
   { id: 'ziwei', name: '紫薇', icon: Star },
   { id: 'daliuren', name: '大六壬', icon: Moon },
