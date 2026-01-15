@@ -339,9 +339,9 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
                       onSelectCase?.(item.id);
                     }
                   }}
-                  className={`w-full text-left p-3 rounded-lg mb-1 transition-all cursor-pointer ${selectedCaseId === item.id
-                    ? 'bg-[hsl(var(--muted-active))] border border-[hsl(var(--border-light))] dark:bg-sidebar-accent dark:border-primary/30'
-                    : 'bg-[hsl(var(--muted))] border border-transparent hover:bg-[hsl(var(--muted-hover))] hover:border-[hsl(var(--border-light))] dark:bg-sidebar-accent/30 dark:border-transparent dark:hover:bg-sidebar-accent/50'
+                  className={`w-full text-left p-3 rounded-lg mb-1 transition-all cursor-pointer border ${selectedCaseId === item.id
+                    ? 'bg-sidebar-accent border-primary/30'
+                    : 'bg-card border-border/60 hover:border-border hover:shadow-sm dark:bg-sidebar-accent/30 dark:border-sidebar-border/50 dark:hover:bg-sidebar-accent/50 dark:hover:border-sidebar-border'
                     }`}
                 >
                   <div className="flex items-start justify-between gap-3">
