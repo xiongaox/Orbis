@@ -19,7 +19,7 @@ type ImportStep = 'upload' | 'preview' | 'importing' | 'result';
 export default function ImportCaseModal({ isOpen, onClose, onImported }: ImportCaseModalProps) {
     const [step, setStep] = useState<ImportStep>('upload');
     const [parseResult, setParseResult] = useState<ParseResult | null>(null);
-    const [isImporting, setIsImporting] = useState(false);
+    const [, setIsImporting] = useState(false);
     const [importResult, setImportResult] = useState<{ success: number; failed: number } | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [dragOver, setDragOver] = useState(false);

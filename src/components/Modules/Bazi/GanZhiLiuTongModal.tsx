@@ -21,10 +21,7 @@ import {
     LIUTONG_COLORS,
     type ShiShenGroup,
 } from '../../../lib/xuan-bazi/maps/shishenGroupMap';
-import {
-    useGanZhiLiuTong,
-    getNodeShiShenGroup,
-} from '../../../hooks/useGanZhiLiuTong';
+// Hook 未使用，逻辑已内联在组件中
 
 interface GanZhiLiuTongModalProps {
     isOpen: boolean;
