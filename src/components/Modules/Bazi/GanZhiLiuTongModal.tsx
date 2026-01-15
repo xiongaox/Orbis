@@ -13,6 +13,18 @@ import { X, ChevronsLeft, ChevronsRight, ChevronsUp, ChevronsDown } from 'lucide
 import { getElementColor } from '../../../lib/xuan-bazi/maps/baziStyleMap';
 import { getShiShen } from '../../../lib/xuan-bazi/utils';
 import { DI_ZHI_CANG_GAN } from '../../../lib/xuan-bazi/maps/baziJichuMap';
+import {
+    SHISHEN_GROUP_MAP,
+    SHISHEN_SHENG,
+    SHISHEN_KE,
+    TIANGAN_HE,
+    LIUTONG_COLORS,
+    type ShiShenGroup,
+} from '../../../lib/xuan-bazi/maps/shishenGroupMap';
+import {
+    useGanZhiLiuTong,
+    getNodeShiShenGroup,
+} from '../../../hooks/useGanZhiLiuTong';
 
 interface GanZhiLiuTongModalProps {
     isOpen: boolean;
@@ -26,59 +38,11 @@ interface GanZhiLiuTongModalProps {
 
 type Selection = { idx: number; type: 'gan' | 'zhi' } | null;
 
+// 颜色配置（使用集中定义的常量）
+const FLOW_COLOR = LIUTONG_COLORS.FLOW;
+const BLOCK_COLOR = LIUTONG_COLORS.BLOCK;
 
-
-// 颜色配置
-const FLOW_COLOR = '#63A103';  // 绿色 (用户指定)
-const BLOCK_COLOR = '#ef4444'; // 红色
-
-
-
-// ========== 十神相关 ==========
-
-// 十神分组类型
-type ShiShenGroup = '比劫' | '食伤' | '财星' | '官杀' | '印枭';
-
-// 十神 -> 分组映射
-const SHISHEN_GROUP_MAP: Record<string, ShiShenGroup> = {
-    '比肩': '比劫', '劫财': '比劫',
-    '食神': '食伤', '伤官': '食伤',
-    '正财': '财星', '偏财': '财星',
-    '正官': '官杀', '七杀': '官杀',
-    '正印': '印枭', '偏印': '印枭',
-};
-
-// 十神生链：A 生 B (印枭→比劫→食伤→财星→官杀→印枭)
-const SHISHEN_SHENG: Record<ShiShenGroup, ShiShenGroup> = {
-    '印枭': '比劫',
-    '比劫': '食伤',
-    '食伤': '财星',
-    '财星': '官杀',
-    '官杀': '印枭',
-};
-
-// 十神克链：A 克 B (印枭⊗食伤⊗官杀⊗比劫⊗财星⊗印枭)
-const SHISHEN_KE: Record<ShiShenGroup, ShiShenGroup> = {
-    '印枭': '食伤',
-    '食伤': '官杀',
-    '官杀': '比劫',
-    '比劫': '财星',
-    '财星': '印枭',
-};
-
-
-
-
-
-// 天干合的组合
-const TIANGAN_HE: Record<string, string> = {
-    '甲己': '土', '己甲': '土',
-    '乙庚': '金', '庚乙': '金',
-    '丙辛': '水', '辛丙': '水',
-    '丁壬': '木', '壬丁': '木',
-    '戊癸': '火', '癸戊': '火',
-};
-
+// 天干与地支藏干是否有五合关系
 const hasGanZhiHe = (gan: string, zhi: string): boolean => {
     const cangGans = DI_ZHI_CANG_GAN[zhi] || [];
     for (const cg of cangGans) {

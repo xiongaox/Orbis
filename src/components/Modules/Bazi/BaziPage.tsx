@@ -6,37 +6,25 @@ import BaziCaseInfo from './BaziCaseInfo';
 import BaziChart from './BaziChart';
 import DayunLiunianPanel from './DayunLiunianPanel';
 import WuxingStatusBar from './WuxingStatusBar';
-import { Solar } from 'lunar-typescript';
-import type { BaziApiResponse } from '../../../types/bazi';
-import type { Case } from '../../../types';
-
 import BaziBasicInfoPanel from './BaziBasicInfoPanel';
+import { getRealtimeClockData } from '../../../utils/lunarUtil';
+import { useBaziContext } from '../../../contexts/BaziContext';
 
-interface BaziPageProps {
-    selectedCase: Case | null;
-    baziData: BaziApiResponse | null;
-    loading: boolean;
-    error: string | null;
-    selectedDaYunIndex: number | null;
-    selectedLiuNianYear: number | null;
-    selectedLiuYueIndex: number | null;
-    setSelectedDaYunIndex: (index: number | null) => void;
-    setSelectedLiuNianYear: (year: number | null) => void;
-    setSelectedLiuYueIndex: (index: number | null) => void;
-}
+export default function BaziPage() {
+    // 使用 Context 获取八字状态，避免 Prop Drilling
+    const {
+        selectedCase,
+        baziData,
+        loading,
+        error,
+        selectedDaYunIndex,
+        selectedLiuNianYear,
+        selectedLiuYueIndex,
+        setSelectedDaYunIndex,
+        setSelectedLiuNianYear,
+        setSelectedLiuYueIndex,
+    } = useBaziContext();
 
-export default function BaziPage({
-    selectedCase,
-    baziData,
-    loading,
-    error,
-    selectedDaYunIndex,
-    selectedLiuNianYear,
-    selectedLiuYueIndex,
-    setSelectedDaYunIndex,
-    setSelectedLiuNianYear,
-    setSelectedLiuYueIndex,
-}: BaziPageProps) {
     // 胎命身显示开关状态
     const [showTaiMingShen, setShowTaiMingShen] = useState(false);
     // 隐藏详情面板开关
@@ -89,12 +77,10 @@ export default function BaziPage({
                             hideDetails={hideDetails}
                             onToggleHideDetails={() => setHideDetails(!hideDetails)}
                             onGoToCurrentYear={() => {
-                                // 使用八字算法计算当前的干支年（以立春为界）
+                                // 使用 lunarUtil 封装获取当前干支年（以立春为界）
                                 const now = new Date();
-                                const solar = Solar.fromDate(now);
-                                const lunar = solar.getLunar();
-                                const eightChar = lunar.getEightChar();
-                                const currentGanZhi = eightChar.getYearGan() + eightChar.getYearZhi();
+                                const clockData = getRealtimeClockData(now);
+                                const currentGanZhi = clockData.eightChar.yearGan + clockData.eightChar.yearZhi;
 
                                 // 默认年份：如果是1月，必然是上一年（因为立春在2月）；如果是其他月份，默认为当年
                                 // 这样即使干支匹配失败，也能得到正确的大致年份
@@ -125,7 +111,7 @@ export default function BaziPage({
 
                                 // 计算当前农历月份（流月索引，0-11，对应正月到腊月）
                                 // 流月以节气为准，用八字的月柱来确定
-                                const currentMonthZhi = eightChar.getMonthZhi();
+                                const currentMonthZhi = clockData.eightChar.monthZhi;
                                 // 地支到流月索引的映射（寅月=正月=0, 卯月=二月=1, ...)
                                 const zhiToLiuYueIndex: Record<string, number> = {
                                     '寅': 0, '卯': 1, '辰': 2, '巳': 3, '午': 4, '未': 5,

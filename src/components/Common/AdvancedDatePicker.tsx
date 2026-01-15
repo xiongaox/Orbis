@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Lunar } from 'lunar-typescript';
+import { getLunarToSolarDate, getSolarToLunarInfo } from '../../utils/lunarUtil';
 import BaziDatePicker from './BaziDatePicker';
 
 interface AdvancedDatePickerProps {
@@ -131,9 +131,9 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm }
             if (mode === 'solar') {
                 solarDate = new Date(year, month - 1, day, hour, minute);
             } else if (mode === 'lunar') {
-                const lunar = Lunar.fromYmd(year, isLeap ? -month : month, day);
-                const solar = lunar.getSolar();
-                solarDate = new Date(solar.getYear(), solar.getMonth() - 1, solar.getDay(), hour, minute);
+                // 使用 lunarUtil 封装的函数
+                const baseDate = getLunarToSolarDate(year, isLeap ? -month : month, day);
+                solarDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), hour, minute);
             } else {
                 solarDate = new Date();
             }
@@ -149,11 +149,12 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm }
                 setMonth(solarDate.getMonth() + 1);
                 setDay(solarDate.getDate());
             } else if (newMode === 'lunar') {
-                const lunar = Lunar.fromDate(solarDate);
-                setYear(lunar.getYear());
-                setMonth(Math.abs(lunar.getMonth()));
-                setDay(lunar.getDay());
-                setIsLeap(lunar.getMonth() < 0);
+                // 使用 lunarUtil 封装的函数
+                const lunarInfo = getSolarToLunarInfo(solarDate);
+                setYear(lunarInfo.year);
+                setMonth(Math.abs(lunarInfo.month));
+                setDay(lunarInfo.day);
+                setIsLeap(lunarInfo.isLeapMonth);
             }
         } catch (e) {
             console.error("Mode conversion failed", e);
@@ -173,9 +174,9 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm }
             if (mode === 'solar') {
                 finalDate = new Date(year, month - 1, day, hour, minute);
             } else if (mode === 'lunar') {
-                const lunar = Lunar.fromYmd(year, isLeap ? -month : month, day);
-                const solar = lunar.getSolar();
-                finalDate = new Date(solar.getYear(), solar.getMonth() - 1, solar.getDay(), hour, minute);
+                // 使用 lunarUtil 封装的函数
+                const baseDate = getLunarToSolarDate(year, isLeap ? -month : month, day);
+                finalDate = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), hour, minute);
             } else {
                 finalDate = new Date();
             }
