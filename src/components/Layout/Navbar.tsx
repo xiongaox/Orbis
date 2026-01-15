@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Solar } from 'lunar-typescript';
+import { getRealtimeClockData } from '../../utils/lunarUtil';
 
 type ChartType =
   | 'bazi'
@@ -58,33 +58,21 @@ function RealtimeClock() {
     return () => clearInterval(timer);
   }, []);
 
-  // 使用 lunar-typescript 计算农历和四柱
-  const solar = Solar.fromDate(now);
-  const lunar = solar.getLunar();
-  const eightChar = lunar.getEightChar();
-
-  // 公历格式
-  const solarStr = `${now.getFullYear()}年${String(now.getMonth() + 1).padStart(2, '0')}月${String(now.getDate()).padStart(2, '0')}日 ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-  // 农历格式
-  const lunarStr = `${lunar.getYearInChinese()}年${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}`;
-
-  // 四柱（年柱、月柱、日柱、时柱）
-  const yearPillar = eightChar.getYearGan() + eightChar.getYearZhi();
-  const monthPillar = eightChar.getMonthGan() + eightChar.getMonthZhi();
-  const dayPillar = eightChar.getDayGan() + eightChar.getDayZhi();
-  const hourPillar = eightChar.getTimeGan() + eightChar.getTimeZhi();
+  // 使用 lunarUtil 封装获取时钟数据
+  const clockData = getRealtimeClockData(now);
 
   return (
     <div className="flex items-center gap-4 text-base">
       {/* 公历 + 农历 */}
       <div className="flex flex-col font-serif items-end leading-tight text-base">
-        <span className="text-foreground/80">{solarStr}</span>
-        <span className="text-muted-foreground">{lunarStr}</span>
+        <span className="text-foreground/80">{clockData.solar.formatted}</span>
+        <span className="text-muted-foreground">
+          {clockData.lunar.yearInChinese}年{clockData.lunar.monthInChinese}月{clockData.lunar.dayInChinese}
+        </span>
       </div>
       {/* 四柱 */}
       <div className="flex gap-1">
-        {[yearPillar, monthPillar, dayPillar, hourPillar].map((pillar, i) => (
+        {[clockData.pillars.year, clockData.pillars.month, clockData.pillars.day, clockData.pillars.hour].map((pillar, i) => (
           <div
             key={i}
             className="flex flex-col items-center bg-secondary/50 rounded px-1.5 py-0.5"

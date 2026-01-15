@@ -5,7 +5,7 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Pencil, Trash2 } from 'lucide-react';
-import { Solar } from 'lunar-typescript';
+import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../utils/lunarUtil';
 import { TIAN_GAN_WU_XING } from '../../lib/xuan-bazi/maps';
 import type { BaziCase } from '../../services/baziCaseService';
 
@@ -24,40 +24,6 @@ const ELEMENT_TEXT_COLOR: Record<string, string> = {
     金: 'var(--element-metal-text)',
     水: 'var(--element-water-text)',
 };
-
-// 计算八字四柱
-function getBaziPillars(dateStr: string): string[] {
-    try {
-        const date = new Date(dateStr);
-        if (isNaN(date.getTime())) return [];
-        const solar = Solar.fromYmdHms(
-            date.getFullYear(),
-            date.getMonth() + 1,
-            date.getDate(),
-            date.getHours(),
-            date.getMinutes(),
-            0
-        );
-        const lunar = solar.getLunar();
-        const eightChar = lunar.getEightChar();
-        return [
-            eightChar.getYearGan(), eightChar.getYearZhi(),
-            eightChar.getMonthGan(), eightChar.getMonthZhi(),
-            eightChar.getDayGan(), eightChar.getDayZhi(),
-            eightChar.getTimeGan(), eightChar.getTimeZhi()
-        ];
-    } catch {
-        return [];
-    }
-}
-
-// 计算虚岁
-function getAgeFromBirth(birthDate: string): number | null {
-    const date = new Date(birthDate);
-    if (isNaN(date.getTime())) return null;
-    const now = new Date();
-    return now.getFullYear() - date.getFullYear() + 1;
-}
 
 interface SortableCaseCardProps {
     caseData: BaziCase;
@@ -92,7 +58,7 @@ export default function SortableCaseCard({
     };
 
     // 计算显示数据
-    const pillars = getBaziPillars(caseData.birth_date);
+    const pillars = getBaziPillarsFromDateString(caseData.birth_date);
     const displayPillars = pillars.length === 8 ? [
         pillars[0], pillars[2], pillars[4], pillars[6],
         pillars[1], pillars[3], pillars[5], pillars[7]

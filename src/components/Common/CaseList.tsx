@@ -4,7 +4,7 @@
  */
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronRight, ChevronLeft, Plus, Search, LogIn, Pencil, Trash2, Upload } from 'lucide-react';
-import { Solar } from 'lunar-typescript';
+import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../utils/lunarUtil';
 import { useAuth } from '../../contexts/AuthContext';
 import { baziCaseService, CASE_TAGS, type BaziCase, type CaseTag } from '../../services/baziCaseService';
 import { TIAN_GAN_WU_XING } from '../../lib/xuan-bazi/maps';
@@ -32,62 +32,7 @@ interface CaseListProps {
   onOpenLibrary?: () => void;
 }
 
-function getBaziPillars(dateStr: string): string[] {
-  try {
-    // 尝试解析中文日期格式
-    const match = dateStr.match(/(\d+)年(\d+)月(\d+)日/);
-    if (match) {
-      const year = parseInt(match[1], 10);
-      const month = parseInt(match[2], 10);
-      const day = parseInt(match[3], 10);
-      const solar = Solar.fromYmd(year, month, day);
-      const lunar = solar.getLunar();
-      const eightChar = lunar.getEightChar();
-      return [
-        eightChar.getYearGan(), eightChar.getYearZhi(),
-        eightChar.getMonthGan(), eightChar.getMonthZhi(),
-        eightChar.getDayGan(), eightChar.getDayZhi(),
-        eightChar.getTimeGan(), eightChar.getTimeZhi()
-      ];
-    }
-
-    // 尝试解析 ISO 日期格式
-    const date = new Date(dateStr);
-    if (!isNaN(date.getTime())) {
-      const solar = Solar.fromYmdHms(
-        date.getFullYear(),
-        date.getMonth() + 1,
-        date.getDate(),
-        date.getHours(),
-        date.getMinutes(),
-        0
-      );
-      const lunar = solar.getLunar();
-      const eightChar = lunar.getEightChar();
-      return [
-        eightChar.getYearGan(), eightChar.getYearZhi(),
-        eightChar.getMonthGan(), eightChar.getMonthZhi(),
-        eightChar.getDayGan(), eightChar.getDayZhi(),
-        eightChar.getTimeGan(), eightChar.getTimeZhi()
-      ];
-    }
-
-    return [];
-  } catch (e) {
-    console.error('Bazi calculation error:', e);
-    return [];
-  }
-}
-
-function getAgeFromBirth(birthDate?: string): number | null {
-  if (!birthDate) return null;
-  const date = new Date(birthDate);
-  if (Number.isNaN(date.getTime())) return null;
-  const now = new Date();
-  // Bazi typically uses Virtual Age (虚岁): Current Year - Birth Year + 1
-  return now.getFullYear() - date.getFullYear() + 1;
-}
-
+// 五行背景色常量
 const ELEMENT_BG_10: Record<string, string> = {
   木: 'var(--element-wood-bg)',
   火: 'var(--element-fire-bg)',
@@ -95,6 +40,8 @@ const ELEMENT_BG_10: Record<string, string> = {
   金: 'var(--element-metal-bg)',
   水: 'var(--element-water-bg)',
 };
+
+// 五行文字色常量
 const ELEMENT_TEXT_COLOR: Record<string, string> = {
   木: 'var(--element-wood-text)',
   火: 'var(--element-fire-text)',
@@ -368,7 +315,7 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
         ) : (
           <>
             {paginatedCases.map((item) => {
-              const pillars = getBaziPillars(item.birthDate ?? item.date);
+              const pillars = getBaziPillarsFromDateString(item.birthDate ?? item.date);
               const displayPillars = pillars.length === 8 ? [
                 pillars[0], pillars[2], pillars[4], pillars[6],
                 pillars[1], pillars[3], pillars[5], pillars[7]
