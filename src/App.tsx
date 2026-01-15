@@ -12,6 +12,7 @@ import InsightPanel from './components/Common/InsightPanel';
 import GanZhiLiuYiPanel from './components/Common/GanZhiLiuYiPanel';
 import PlaceholderChart from './components/Common/PlaceholderChart';
 import BaziPage from './components/Modules/Bazi/BaziPage';
+import QimenPage from './components/Modules/Qimen/QimenPage';
 import AuthModal from './components/Auth/AuthModal';
 import CaseLibraryModal from './components/Common/CaseLibraryModal';
 import { useInsightContent } from './hooks/useInsightContent';
@@ -28,9 +29,9 @@ function AppContent() {
   // 使用 Context 获取八字状态
   const bazi = useBaziContext();
 
-  // 根据当前模块决定是否显示侧边栏
-  const showSidebar = activeChart !== 'wannianli';
-  const showInsights = activeChart !== 'wannianli';
+  // 根据当前模块决定是否显示侧边栏（奇门模块有自己的布局）
+  const showSidebar = activeChart === 'bazi';
+  const showInsights = activeChart === 'bazi';
 
   // 切换到八字时初始化数据
   useEffect(() => {
@@ -55,6 +56,37 @@ function AppContent() {
     baziData: bazi.baziData,
     activeBookId,
   });
+
+  // 渲染主内容区域
+  const renderMainContent = () => {
+    switch (activeChart) {
+      case 'bazi':
+        return <BaziPage />;
+      case 'qimen':
+        // 奇门模块使用独立的三栏布局，直接返回
+        return <QimenPage />;
+      default:
+        return <PlaceholderChart chart={activeChart} />;
+    }
+  };
+
+  // 奇门模块使用独立布局
+  if (activeChart === 'qimen') {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar
+          activeChart={activeChart}
+          onChartChange={setActiveChart}
+          onLoginClick={handleLoginClick}
+        />
+        {renderMainContent()}
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -84,11 +116,7 @@ function AppContent() {
           ) : undefined
         }
       >
-        {activeChart === 'bazi' ? (
-          <BaziPage />
-        ) : (
-          <PlaceholderChart chart={activeChart} />
-        )}
+        {renderMainContent()}
       </MainLayout>
 
       {/* 登录/注册 Modal */}
