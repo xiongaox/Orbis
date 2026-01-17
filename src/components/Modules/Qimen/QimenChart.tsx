@@ -35,6 +35,8 @@ interface QimenChartProps {
         xunShou: string;
         zhiFu: string;
         zhiShi: string;
+        maXing: string;
+        kongWang: string;
         siZhu: {
             year: string;
             month: string;
@@ -61,9 +63,11 @@ const MOCK_HEADER = {
     solarDate: '2026年1月15日',
     lunarDate: '冬月廿七',
     ju: '阳遁五局',
-    xunShou: '甲子旬',
+    xunShou: '甲子戊',
     zhiFu: '天禽',
     zhiShi: '死门',
+    maXing: '亥',
+    kongWang: '申酉',
     siZhu: {
         year: '乙巳',
         month: '己丑',
@@ -90,8 +94,8 @@ export default function QimenChart({
             {/* 顶部信息栏 - Redesigned matching Figma */}
             <div className="flex justify-center mb-4">
                 <div className="w-full max-w-[720px] bg-card rounded-xl border border-border p-4 flex flex-col gap-4">
-                    {/* 第一行：日期时间 */}
-                    <div className="flex items-center gap-4 text-xl">
+                    {/* 第一行：日期时间 + 操作按钮 */}
+                    <div className="flex items-center justify-between text-xl">
                         <div className="flex items-baseline gap-2">
                             <span className="font-serif font-bold text-foreground">
                                 {header.solarDate.replace(/年|月|日/g, (match) => ` ${match} `)}
@@ -103,10 +107,18 @@ export default function QimenChart({
                                 13:52
                             </span>
                         </div>
+                        <div className="flex items-center gap-2">
+                            <button className="px-3 py-1 text-sm bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors font-serif">
+                                现在
+                            </button>
+                            <button className="px-3 py-1 text-sm bg-secondary text-muted-foreground rounded-md hover:bg-secondary/80 transition-colors font-serif border border-border">
+                                重新选择
+                            </button>
+                        </div>
                     </div>
 
                     {/* 第二行：四柱 + 信息 */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-start">
                         {/* 左侧：四柱 */}
                         <div className="flex gap-6">
                             {([
@@ -130,32 +142,40 @@ export default function QimenChart({
                             ))}
                         </div>
 
-                        {/* 分割线 */}
-                        <div className="h-10 w-px bg-border/60 mx-6" />
+                        {/* 分割线 - 调整间距以配合 justify-start */}
+                        <div className="h-10 w-px bg-border/60 ml-8 mr-10" />
 
                         {/* 右侧：局数信息 */}
-                        <div className="flex-1 grid grid-cols-2 gap-y-1 gap-x-6 text-sm">
+                        <div className="grid grid-cols-3 gap-y-1 gap-x-8 text-base">
                             <div className="flex items-center gap-2">
                                 <span className="text-muted-foreground font-light">
                                     {header.ju.substring(0, 2)}:
                                 </span>
-                                <span className="text-foreground font-serif text-lg">
+                                <span className="text-foreground font-serif">
                                     {header.ju.substring(2)}
                                 </span>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="text-foreground font-serif text-lg">
-                                    {header.xunShou.slice(0, -1)}
-                                </span>
                                 <span className="text-muted-foreground font-light">
-                                    {header.xunShou.slice(-1)}
+                                    旬首:
+                                </span>
+                                <span className="text-foreground font-serif">
+                                    {header.xunShou}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground font-light">
+                                    马星:
+                                </span>
+                                <span className="text-foreground font-serif">
+                                    {header.maXing}
                                 </span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="text-muted-foreground font-light">
                                     值符:
                                 </span>
-                                <span className="text-foreground font-serif text-lg">
+                                <span className="text-foreground font-serif">
                                     {header.zhiFu}
                                 </span>
                             </div>
@@ -163,23 +183,44 @@ export default function QimenChart({
                                 <span className="text-muted-foreground font-light">
                                     值使:
                                 </span>
-                                <span className="text-foreground font-serif text-lg">
+                                <span className="text-foreground font-serif">
                                     {header.zhiShi}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground font-light">
+                                    空亡(时):
+                                </span>
+                                <span className="text-foreground font-serif">
+                                    {header.kongWang}
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    {/* 第三行：标签 */}
-                    <div className="flex items-center gap-2">
-                        <div className="px-3.5 py-0.5 rounded-full border border-border text-muted-foreground text-sm font-serif">
-                            时家置润转盘
+                    {/* 第三行：标签 + 操作按钮 */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="px-3.5 py-0.5 rounded-full border border-border text-muted-foreground text-sm font-serif">
+                                时家置润转盘
+                            </div>
+                            <div className="px-3.5 py-0.5 rounded-full border border-border text-muted-foreground text-sm font-serif">
+                                天显
+                            </div>
+                            <div className="px-3.5 py-0.5 rounded-full border border-border text-muted-foreground text-sm font-serif">
+                                五不
+                            </div>
                         </div>
-                        <div className="px-3.5 py-0.5 rounded-full border border-border text-muted-foreground text-sm font-serif">
-                            天显
-                        </div>
-                        <div className="px-3.5 py-0.5 rounded-full border border-border text-muted-foreground text-sm font-serif">
-                            五不
+                        <div className="flex items-center gap-2">
+                            <button className="px-3.5 py-0.5 text-sm bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors font-serif border border-border">
+                                上一局
+                            </button>
+                            <button className="px-3.5 py-0.5 text-sm bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors font-serif border border-border">
+                                下一局
+                            </button>
+                            <button className="px-3.5 py-0.5 text-sm bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors font-serif border border-border">
+                                高级设置
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -223,9 +264,6 @@ export default function QimenChart({
                                                 <span className="text-sm text-muted-foreground opacity-0">占位</span>
                                             </div>
                                         </div>
-                                        <div className="absolute bottom-1 right-1.5 text-xs text-muted-foreground/30">
-                                            {palace.position}
-                                        </div>
                                     </>
                                 ) : (
                                     <>
@@ -239,7 +277,7 @@ export default function QimenChart({
                                                 </div>
                                                 <div className="flex items-end justify-center pb-1">
                                                     {/* 八神：次大 */}
-                                                    <span className="text-xl font-serif text-foreground/80">{palace.shen}</span>
+                                                    <span className="text-xl font-serif text-foreground/60">{palace.shen}</span>
                                                 </div>
                                                 <div className="flex items-end justify-center pb-1">
                                                     <span className="text-xl font-serif text-muted-foreground">{palace.shenWang}</span>
@@ -287,18 +325,13 @@ export default function QimenChart({
                                                 </div>
                                             </div>
                                         </div>
-
-                                        {/* 洛书数（右下角小字） */}
-                                        <div className="absolute bottom-1 right-1.5 text-xs text-muted-foreground/30">
-                                            {palace.position}
-                                        </div>
                                     </>
                                 )}
                             </button>
                         ))}
                     </div>
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }

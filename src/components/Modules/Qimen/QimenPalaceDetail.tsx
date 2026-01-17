@@ -49,7 +49,7 @@ interface QimenPalaceDetailProps {
 export default function QimenPalaceDetail({ palace }: QimenPalaceDetailProps) {
     if (!palace) {
         return (
-            <aside className="w-80 bg-card border-l border-border flex flex-col min-h-0 flex-shrink-0">
+            <aside className="w-96 bg-card border-l border-border flex flex-col min-h-0 flex-shrink-0">
                 <div className="flex-1 flex items-center justify-center text-muted-foreground">
                     <div className="text-center">
                         <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -65,7 +65,7 @@ export default function QimenPalaceDetail({ palace }: QimenPalaceDetailProps) {
     const shenDetail = SHEN_DETAILS[palace.shen] || { nature: '未知', description: '' };
 
     return (
-        <aside className="w-80 bg-card border-l border-border flex flex-col min-h-0 flex-shrink-0 overflow-hidden">
+        <aside className="w-96 bg-card border-l border-border flex flex-col min-h-0 flex-shrink-0 overflow-hidden">
             {/* 标题 */}
             <div className="p-4 border-b border-border">
                 <h2 className="font-display text-lg font-medium text-foreground">
@@ -96,8 +96,8 @@ export default function QimenPalaceDetail({ palace }: QimenPalaceDetailProps) {
                         <div className="flex items-center gap-2 mb-2">
                             <h3 className="text-sm font-medium text-foreground">{palace.xing}</h3>
                             <span className={`text-xs px-1.5 py-0.5 rounded ${xingDetail.nature === '吉星' ? 'bg-green-500/10 text-green-500' :
-                                    xingDetail.nature === '凶星' ? 'bg-red-500/10 text-red-500' :
-                                        'bg-yellow-500/10 text-yellow-500'
+                                xingDetail.nature === '凶星' ? 'bg-red-500/10 text-red-500' :
+                                    'bg-yellow-500/10 text-yellow-500'
                                 }`}>
                                 {xingDetail.nature}
                             </span>
@@ -114,8 +114,8 @@ export default function QimenPalaceDetail({ palace }: QimenPalaceDetailProps) {
                         <div className="flex items-center gap-2 mb-2">
                             <h3 className="text-sm font-medium text-foreground">{palace.men}</h3>
                             <span className={`text-xs px-1.5 py-0.5 rounded ${menDetail.nature === '吉门' ? 'bg-green-500/10 text-green-500' :
-                                    menDetail.nature === '凶门' ? 'bg-red-500/10 text-red-500' :
-                                        'bg-yellow-500/10 text-yellow-500'
+                                menDetail.nature === '凶门' ? 'bg-red-500/10 text-red-500' :
+                                    'bg-yellow-500/10 text-yellow-500'
                                 }`}>
                                 {menDetail.nature}
                             </span>
@@ -132,8 +132,8 @@ export default function QimenPalaceDetail({ palace }: QimenPalaceDetailProps) {
                         <div className="flex items-center gap-2 mb-2">
                             <h3 className="text-sm font-medium text-foreground">{palace.shen}</h3>
                             <span className={`text-xs px-1.5 py-0.5 rounded ${shenDetail.nature === '吉神' ? 'bg-green-500/10 text-green-500' :
-                                    shenDetail.nature === '凶神' ? 'bg-red-500/10 text-red-500' :
-                                        'bg-yellow-500/10 text-yellow-500'
+                                shenDetail.nature === '凶神' ? 'bg-red-500/10 text-red-500' :
+                                    'bg-yellow-500/10 text-yellow-500'
                                 }`}>
                                 {shenDetail.nature}
                             </span>

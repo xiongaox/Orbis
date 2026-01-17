@@ -3,7 +3,7 @@
  * 左侧显示案例列表，支持分类筛选
  */
 import { useState } from 'react';
-import { Search, Plus, ChevronDown } from 'lucide-react';
+import { Search, Plus, ChevronDown, Upload } from 'lucide-react';
 
 // 奇门案例分类
 const QIMEN_CATEGORIES = [
@@ -35,7 +35,7 @@ const MOCK_CASES: QimenCase[] = [
         title: '钱包丢了吗？',
         category: 'lost',
         author: '不吹牛',
-        date: '2026-01-15',
+        date: '2026-01-15 14:30',
         preview: '看看此人丢了啥东西，能否找到【在哪里谁找...】',
     },
     {
@@ -43,7 +43,7 @@ const MOCK_CASES: QimenCase[] = [
         title: '一朋友问存折找不到了，看看在哪里？',
         category: 'lost',
         author: '不吹牛',
-        date: '2026-01-14',
+        date: '2026-01-14 09:15',
         preview: '问测寻找失物方位',
     },
     {
@@ -51,7 +51,7 @@ const MOCK_CASES: QimenCase[] = [
         title: '掉了一份筆記，能不能找到？',
         category: 'lost',
         author: '不吹牛',
-        date: '2026-01-13',
+        date: '2026-01-13 16:45',
         preview: '办公室物品遗失',
     },
     {
@@ -59,7 +59,7 @@ const MOCK_CASES: QimenCase[] = [
         title: '我的银行卡不记得放哪去了',
         category: 'lost',
         author: '不吹牛',
-        date: '2026-01-12',
+        date: '2026-01-12 11:20',
         preview: '现在怎么找也找不到...',
     },
     {
@@ -67,7 +67,7 @@ const MOCK_CASES: QimenCase[] = [
         title: '问今年事业运势如何',
         category: 'work',
         author: '易学研究',
-        date: '2026-01-10',
+        date: '2026-01-10 20:05',
         preview: '2026年事业发展方向',
     },
 ];
@@ -96,63 +96,81 @@ export default function QimenCaseList({
     const currentCategoryName = QIMEN_CATEGORIES.find(c => c.id === selectedCategory)?.name || '全部';
 
     return (
-        <aside className="w-56 bg-sidebar border-r border-sidebar-border flex flex-col min-h-0 flex-shrink-0">
-            {/* 标题栏 */}
-            <div className="p-4 border-b border-sidebar-border">
-                <div className="flex items-center justify-between mb-3">
-                    <h2 className="font-display text-base font-medium text-sidebar-foreground">奇门案例</h2>
+        <aside className="w-96 bg-sidebar border-r border-sidebar-border flex flex-col min-h-0 flex-shrink-0">
+            {/* 标题栏与操作 */}
+            <div className="p-4 border-b border-sidebar-border space-y-3">
+                <div className="flex items-center justify-between">
                     <button
                         type="button"
-                        className="p-1.5 rounded-md hover:bg-sidebar-accent transition-colors"
-                        title="新建案例"
+                        className="font-display text-base font-medium text-foreground hover:text-primary transition-colors"
                     >
-                        <Plus className="w-4 h-4 text-sidebar-foreground" />
+                        案例库
                     </button>
+                    <div className="relative">
+                        <button
+                            type="button"
+                            onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                        >
+                            {currentCategoryName}
+                            <span className="text-muted-foreground/60">({filteredCases.length})</span>
+                            <ChevronDown className={`w-3 h-3 transition-transform ${isCategoryOpen ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {isCategoryOpen && (
+                            <div className="absolute right-0 mt-2 w-40 bg-sidebar border border-sidebar-border rounded-lg shadow-lg p-2 z-20">
+                                {QIMEN_CATEGORIES.map((cat) => (
+                                    <button
+                                        key={cat.id}
+                                        type="button"
+                                        onClick={() => {
+                                            setSelectedCategory(cat.id);
+                                            setIsCategoryOpen(false);
+                                        }}
+                                        className={`w-full flex items-center justify-between px-2 py-1.5 text-xs rounded-md transition-colors ${selectedCategory === cat.id
+                                            ? 'bg-primary/10 text-primary'
+                                            : 'text-foreground hover:bg-sidebar-accent/60'
+                                            }`}
+                                    >
+                                        <span>{cat.name}</span>
+                                        <span className="text-muted-foreground/60">
+                                            {MOCK_CASES.filter(c => c.category === cat.id || cat.id === 'all').length}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* 搜索框 */}
                 <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
                         type="text"
                         placeholder="搜索案例..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-8 pr-3 py-1.5 text-sm bg-sidebar-accent/50 border border-transparent rounded-md focus:border-primary/50 focus:outline-none text-sidebar-foreground placeholder:text-muted-foreground"
+                        className="w-full pl-9 pr-3 py-2 text-sm bg-muted/50 border border-border rounded-lg focus:border-primary/50 focus:outline-none text-foreground placeholder:text-muted-foreground transition-all"
                     />
                 </div>
-            </div>
 
-            {/* 分类选择 */}
-            <div className="px-4 py-2 border-b border-sidebar-border">
-                <div className="relative">
+                {/* 操作按钮 */}
+                <div className="flex gap-2">
                     <button
                         type="button"
-                        onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-                        className="w-full flex items-center justify-between px-3 py-1.5 text-sm bg-sidebar-accent/30 rounded-md hover:bg-sidebar-accent/50 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-secondary/50 hover:bg-secondary text-foreground/80 hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
                     >
-                        <span className="text-sidebar-foreground">{currentCategoryName}</span>
-                        <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${isCategoryOpen ? 'rotate-180' : ''}`} />
+                        <Upload className="w-4 h-4" />
+                        导入
                     </button>
-
-                    {isCategoryOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-10 py-1">
-                            {QIMEN_CATEGORIES.map((cat) => (
-                                <button
-                                    key={cat.id}
-                                    type="button"
-                                    onClick={() => {
-                                        setSelectedCategory(cat.id);
-                                        setIsCategoryOpen(false);
-                                    }}
-                                    className={`w-full px-3 py-1.5 text-left text-sm hover:bg-muted transition-colors ${selectedCategory === cat.id ? 'text-primary' : 'text-foreground'
-                                        }`}
-                                >
-                                    {cat.name}
-                                </button>
-                            ))}
-                        </div>
-                    )}
+                    <button
+                        type="button"
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/30"
+                    >
+                        <Plus className="w-4 h-4" />
+                        新建
+                    </button>
                 </div>
             </div>
 
@@ -170,8 +188,8 @@ export default function QimenCaseList({
                                 type="button"
                                 onClick={() => onSelectCase(caseItem.id)}
                                 className={`w-full text-left p-3 rounded-lg transition-all border ${selectedCaseId === caseItem.id
-                                        ? 'bg-sidebar-accent border-primary/30'
-                                        : 'bg-card border-border/60 hover:border-border hover:shadow-sm dark:bg-sidebar-accent/30 dark:border-sidebar-border/50 dark:hover:bg-sidebar-accent/50'
+                                    ? 'bg-sidebar-accent border-primary/30'
+                                    : 'bg-card border-border/60 hover:border-border hover:shadow-sm dark:bg-sidebar-accent/30 dark:border-sidebar-border/50 dark:hover:bg-sidebar-accent/50'
                                     }`}
                             >
                                 <div className="text-sm font-medium text-foreground line-clamp-2 mb-1">
@@ -180,8 +198,11 @@ export default function QimenCaseList({
                                 <div className="text-xs text-muted-foreground line-clamp-1 mb-2">
                                     {caseItem.preview}
                                 </div>
-                                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                    <span>作者: {caseItem.author}</span>
+                                <div className="flex items-center justify-between text-xs">
+                                    <span className="text-muted-foreground">{caseItem.date}</span>
+                                    <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                                        {QIMEN_CATEGORIES.find(cat => cat.id === caseItem.category)?.name}
+                                    </span>
                                 </div>
                             </button>
                         ))}
