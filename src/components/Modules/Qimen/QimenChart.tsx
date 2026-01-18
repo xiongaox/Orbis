@@ -90,248 +90,251 @@ export default function QimenChart({
     const orderedPalaces = LUOSHU_ORDER.map(pos => palaces.find(p => p.position === pos)!);
 
     return (
-        <div className="flex flex-col h-full">
-            {/* 顶部信息栏 - Redesigned matching Figma */}
-            <div className="flex justify-center mb-4">
-                <div className="w-full max-w-[720px] bg-card rounded-xl border border-border p-4 flex flex-col gap-4">
-                    {/* 第一行：日期时间 + 操作按钮 */}
-                    <div className="flex items-center justify-between text-xl">
-                        <div className="flex items-baseline gap-2">
-                            <span className="font-serif font-bold text-foreground">
-                                {header.solarDate.replace(/年|月|日/g, (match) => ` ${match} `)}
-                            </span>
-                            <span className="font-serif text-foreground">
-                                ({header.lunarDate})
-                            </span>
-                            <span className="font-serif font-bold text-foreground ml-2">
-                                13:52
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button className="px-3 py-1 text-sm bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors font-serif">
-                                现在
-                            </button>
-                            <button className="px-3 py-1 text-sm bg-secondary text-muted-foreground rounded-md hover:bg-secondary/80 transition-colors font-serif border border-border">
-                                重新选择
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* 第二行：四柱 + 信息 */}
-                    <div className="flex items-center justify-start">
-                        {/* 左侧：四柱 */}
-                        <div className="flex gap-6">
-                            {([
-                                { key: 'year', label: '年' },
-                                { key: 'month', label: '月' },
-                                { key: 'day', label: '日' },
-                                { key: 'hour', label: '时' }
-                            ] as const).map(({ key, label }) => (
-                                <div key={key} className="flex flex-col items-center relative pr-4">
-                                    <span className="text-2xl font-serif text-foreground leading-none mb-1">
-                                        {header.siZhu[key][0]}
+        <div className="flex flex-col h-full overflow-hidden items-center p-2">
+            {/* 九宫盘高度决定整体宽度的容器 */}
+            <div className="flex flex-col flex-1 min-h-0 items-center w-full">
+                {/* 内容容器：宽度由九宫盘决定 */}
+                <div className="flex flex-col h-full items-center">
+                    {/* 顶部信息栏 - 宽度 100% 跟随父容器 */}
+                    <div className="w-full flex-shrink-0 mb-2">
+                        <div className="w-full bg-card rounded-xl border border-border p-4 2xl:p-5 flex flex-col gap-3 2xl:gap-4">
+                            {/* 第一行：日期时间 + 操作按钮 */}
+                            <div className="flex items-center justify-between text-sm 2xl:text-xl">
+                                <div className="flex items-baseline gap-1 2xl:gap-2">
+                                    <span className="font-serif font-bold text-foreground">
+                                        {header.solarDate.replace(/年|月|日/g, (match) => ` ${match} `)}
                                     </span>
-                                    <span className="text-2xl font-serif text-foreground leading-none">
-                                        {header.siZhu[key][1]}
+                                    <span className="font-serif text-foreground">
+                                        ({header.lunarDate})
                                     </span>
-                                    {/* 标签：绝对定位在右侧中间 */}
-                                    <span className="absolute top-1/2 -translate-y-1/2 right-0 text-sm text-muted-foreground/60 font-serif transform scale-90 origin-right">
-                                        {label}
+                                    <span className="font-serif font-bold text-foreground ml-1 2xl:ml-2">
+                                        13:52
                                     </span>
                                 </div>
-                            ))}
-                        </div>
+                                <div className="flex items-center gap-1 2xl:gap-2">
+                                    <button className="px-2 2xl:px-3 py-0.5 2xl:py-1 text-xs 2xl:text-sm bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors font-serif">
+                                        现在
+                                    </button>
+                                    <button className="px-2 2xl:px-3 py-0.5 2xl:py-1 text-xs 2xl:text-sm bg-secondary text-muted-foreground rounded-md hover:bg-secondary/80 transition-colors font-serif border border-border">
+                                        重新选择
+                                    </button>
+                                </div>
+                            </div>
 
-                        {/* 分割线 - 调整间距以配合 justify-start */}
-                        <div className="h-10 w-px bg-border/60 ml-8 mr-10" />
+                            {/* 第二行：四柱 + 信息 */}
+                            <div className="flex items-center justify-start">
+                                {/* 左侧：四柱 */}
+                                <div className="flex gap-5 2xl:gap-6">
+                                    {([
+                                        { key: 'year', label: '年' },
+                                        { key: 'month', label: '月' },
+                                        { key: 'day', label: '日' },
+                                        { key: 'hour', label: '时' }
+                                    ] as const).map(({ key, label }) => (
+                                        <div key={key} className="flex flex-col items-center relative pr-3 2xl:pr-4">
+                                            <span className="text-base 2xl:text-2xl font-serif text-foreground leading-none mb-0.5 2xl:mb-1">
+                                                {header.siZhu[key][0]}
+                                            </span>
+                                            <span className="text-base 2xl:text-2xl font-serif text-foreground leading-none">
+                                                {header.siZhu[key][1]}
+                                            </span>
+                                            {/* 标签：绝对定位在右侧中间 */}
+                                            <span className="absolute top-1/2 -translate-y-1/2 right-0 text-xs 2xl:text-sm text-muted-foreground/60 font-serif transform scale-90 origin-right">
+                                                {label}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
 
-                        {/* 右侧：局数信息 */}
-                        <div className="grid grid-cols-3 gap-y-1 gap-x-8 text-base">
-                            <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground font-light">
-                                    {header.ju.substring(0, 2)}:
-                                </span>
-                                <span className="text-foreground font-serif">
-                                    {header.ju.substring(2)}
-                                </span>
+                                {/* 分割线 - 调整间距以配合 justify-start */}
+                                <div className="h-6 2xl:h-10 w-px bg-border/60 ml-4 2xl:ml-8 mr-4 2xl:mr-10" />
+
+                                {/* 右侧：局数信息 */}
+                                <div className="grid grid-cols-3 gap-y-0.5 2xl:gap-y-1 gap-x-3 2xl:gap-x-8 text-xs 2xl:text-base">
+                                    <div className="flex items-center gap-1 2xl:gap-2">
+                                        <span className="text-muted-foreground font-light">
+                                            {header.ju.substring(0, 2)}:
+                                        </span>
+                                        <span className="text-foreground font-serif">
+                                            {header.ju.substring(2)}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-1 2xl:gap-2">
+                                        <span className="text-muted-foreground font-light">
+                                            旬首:
+                                        </span>
+                                        <span className="text-foreground font-serif">
+                                            {header.xunShou}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-1 2xl:gap-2">
+                                        <span className="text-muted-foreground font-light">
+                                            马星:
+                                        </span>
+                                        <span className="text-foreground font-serif">
+                                            {header.maXing}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-1 2xl:gap-2">
+                                        <span className="text-muted-foreground font-light">
+                                            值符:
+                                        </span>
+                                        <span className="text-foreground font-serif">
+                                            {header.zhiFu}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-1 2xl:gap-2">
+                                        <span className="text-muted-foreground font-light">
+                                            值使:
+                                        </span>
+                                        <span className="text-foreground font-serif">
+                                            {header.zhiShi}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-1 2xl:gap-2">
+                                        <span className="text-muted-foreground font-light">
+                                            空亡(时):
+                                        </span>
+                                        <span className="text-foreground font-serif">
+                                            {header.kongWang}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground font-light">
-                                    旬首:
-                                </span>
-                                <span className="text-foreground font-serif">
-                                    {header.xunShou}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground font-light">
-                                    马星:
-                                </span>
-                                <span className="text-foreground font-serif">
-                                    {header.maXing}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground font-light">
-                                    值符:
-                                </span>
-                                <span className="text-foreground font-serif">
-                                    {header.zhiFu}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground font-light">
-                                    值使:
-                                </span>
-                                <span className="text-foreground font-serif">
-                                    {header.zhiShi}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground font-light">
-                                    空亡(时):
-                                </span>
-                                <span className="text-foreground font-serif">
-                                    {header.kongWang}
-                                </span>
+
+                            {/* 第三行：标签 + 操作按钮 */}
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1 2xl:gap-2">
+                                    <div className="px-2 2xl:px-3.5 py-0.5 rounded-full border border-border text-muted-foreground text-xs 2xl:text-sm font-serif">
+                                        时家置润转盘
+                                    </div>
+                                    <div className="px-2 2xl:px-3.5 py-0.5 rounded-full border border-border text-muted-foreground text-xs 2xl:text-sm font-serif">
+                                        天显
+                                    </div>
+                                    <div className="px-2 2xl:px-3.5 py-0.5 rounded-full border border-border text-muted-foreground text-xs 2xl:text-sm font-serif">
+                                        五不
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1 2xl:gap-2">
+                                    <button className="px-2 2xl:px-3.5 py-0.5 text-xs 2xl:text-sm bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors font-serif border border-border">
+                                        上一局
+                                    </button>
+                                    <button className="px-2 2xl:px-3.5 py-0.5 text-xs 2xl:text-sm bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors font-serif border border-border">
+                                        下一局
+                                    </button>
+                                    <button className="px-2 2xl:px-3.5 py-0.5 text-xs 2xl:text-sm bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors font-serif border border-border">
+                                        高级设置
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* 第三行：标签 + 操作按钮 */}
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <div className="px-3.5 py-0.5 rounded-full border border-border text-muted-foreground text-sm font-serif">
-                                时家置润转盘
+                    {/* 九宫格盘式 - 基于剩余高度自适应尺寸 */}
+                    <div className="flex-1 flex items-center justify-center min-h-0 w-full">
+                        <div className="h-full aspect-square max-w-full bg-card rounded-xl border border-border p-2">
+                            <div className="grid grid-cols-3 gap-1 h-full">
+                                {orderedPalaces.map((palace) => (
+                                    <button
+                                        key={palace.position}
+                                        type="button"
+                                        onClick={() => onSelectPalace(palace.position)}
+                                        className={`relative rounded-lg border transition-all ${selectedPalace === palace.position
+                                            ? 'border-primary bg-primary/5'
+                                            : 'border-border/50 hover:border-border hover:bg-muted/30'
+                                            } ${palace.position === 5 ? 'bg-muted/20' : ''}`}
+                                    >
+                                        {/* 中宫特殊布局：左上暗干，右下地盘干 */}
+                                        {palace.position === 5 ? (
+                                            <>
+                                                <div className="grid grid-cols-3 grid-rows-3 h-full p-1 2xl:p-1.5 gap-0">
+                                                    {/* (1,1) 暗干 - 对应其他宫位的暗干位置 */}
+                                                    <div className="flex items-center justify-center">
+                                                        <span className="text-lg 2xl:text-xl font-serif text-muted-foreground">{palace.anGan}</span>
+                                                    </div>
+                                                    <div />
+                                                    <div />
+
+                                                    <div />
+                                                    <div />
+                                                    <div />
+
+                                                    <div />
+                                                    <div />
+                                                    {/* (3,3) 地盘干 - 对应其他宫位的天盘干位置 */}
+                                                    <div className="flex flex-col items-center justify-center leading-tight">
+                                                        <span className="text-lg 2xl:text-xl font-serif text-foreground">{palace.diPan}</span>
+                                                        {/* 如果地盘干也有十二长生，即使是空字符串也占位保持对齐 */}
+                                                        <span className="text-xs 2xl:text-sm text-muted-foreground opacity-0">占位</span>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                {/* 宫位内 3x3 网格布局 */}
+                                                <div className="h-full flex flex-col justify-center">
+                                                    <div className="grid grid-cols-3 w-full p-1 2xl:p-1.5 gap-y-2 2xl:gap-y-4 gap-x-0">
+                                                        {/* 第一行 - 底部对齐，减少与第二行九星的间距 */}
+                                                        <div className="flex items-end justify-center pb-0.5 2xl:pb-1">
+                                                            <span className="text-base 2xl:text-xl font-serif text-muted-foreground">{palace.anGan}</span>
+                                                        </div>
+                                                        <div className="flex items-end justify-center pb-0.5 2xl:pb-1">
+                                                            {/* 八神：次大 */}
+                                                            <span className="text-base 2xl:text-xl font-serif text-foreground/60">{palace.shen}</span>
+                                                        </div>
+                                                        <div className="flex items-end justify-center pb-0.5 2xl:pb-1">
+                                                            <span className="text-base 2xl:text-xl font-serif text-muted-foreground">{palace.shenWang}</span>
+                                                        </div>
+
+                                                        {/* 第二行 - 底部对齐 */}
+                                                        <div className="flex flex-col items-center justify-end leading-tight">
+                                                            <div className="h-7 2xl:h-9 flex items-end">
+                                                                <span className="text-base 2xl:text-xl font-serif text-foreground">{palace.anGan}</span>
+                                                            </div>
+                                                            <span className="text-sm 2xl:text-sm text-muted-foreground mt-0.5">{palace.anGanShiErCS}</span>
+                                                        </div>
+                                                        <div className="flex flex-col items-center justify-end leading-tight">
+                                                            {/* 九星：最大，最醒目 */}
+                                                            <div className="h-7 2xl:h-9 flex items-end">
+                                                                <span className="text-2xl 2xl:text-3xl font-serif font-bold text-foreground">{palace.xing}</span>
+                                                            </div>
+                                                            <span className="text-sm 2xl:text-sm text-muted-foreground mt-0.5">{palace.xingWang}</span>
+                                                        </div>
+                                                        <div className="flex flex-col items-center justify-end leading-tight">
+                                                            <div className="h-7 2xl:h-9 flex items-end">
+                                                                <span className="text-base 2xl:text-xl font-serif text-foreground">{palace.diPan}</span>
+                                                            </div>
+                                                            <span className="text-sm 2xl:text-sm text-muted-foreground mt-0.5">{palace.diPanShiErCS}</span>
+                                                        </div>
+
+                                                        {/* 第三行 - 底部对齐 */}
+                                                        <div className="flex items-center justify-center">
+                                                            {/* 空位 */}
+                                                        </div>
+                                                        <div className="flex flex-col items-center justify-end leading-tight">
+                                                            {/* 八门：次大 */}
+                                                            <div className="h-6 2xl:h-8 flex items-end">
+                                                                <span className="text-lg 2xl:text-2xl font-serif text-foreground">{palace.men}</span>
+                                                            </div>
+                                                            <span className="text-sm 2xl:text-sm text-muted-foreground mt-0.5">{palace.menWang}</span>
+                                                        </div>
+                                                        <div className="flex flex-col items-center justify-end leading-tight">
+                                                            <div className="h-6 2xl:h-8 flex items-end">
+                                                                <span className="text-base 2xl:text-xl font-serif text-foreground">{palace.tianPan}</span>
+                                                            </div>
+                                                            <span className="text-sm 2xl:text-sm text-muted-foreground mt-0.5">{palace.tianPanShiErCS}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )}
+                                    </button>
+                                ))}
                             </div>
-                            <div className="px-3.5 py-0.5 rounded-full border border-border text-muted-foreground text-sm font-serif">
-                                天显
-                            </div>
-                            <div className="px-3.5 py-0.5 rounded-full border border-border text-muted-foreground text-sm font-serif">
-                                五不
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button className="px-3.5 py-0.5 text-sm bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors font-serif border border-border">
-                                上一局
-                            </button>
-                            <button className="px-3.5 py-0.5 text-sm bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors font-serif border border-border">
-                                下一局
-                            </button>
-                            <button className="px-3.5 py-0.5 text-sm bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors font-serif border border-border">
-                                高级设置
-                            </button>
                         </div>
                     </div>
                 </div>
             </div>
-
-            {/* 九宫格盘式 - 正方形居中 */}
-            <div className="flex-1 flex items-center justify-center">
-                <div className="w-full max-w-[720px] aspect-square bg-card rounded-xl border border-border p-2">
-                    <div className="grid grid-cols-3 gap-1 h-full">
-                        {orderedPalaces.map((palace) => (
-                            <button
-                                key={palace.position}
-                                type="button"
-                                onClick={() => onSelectPalace(palace.position)}
-                                className={`relative rounded-lg border transition-all ${selectedPalace === palace.position
-                                    ? 'border-primary bg-primary/5'
-                                    : 'border-border/50 hover:border-border hover:bg-muted/30'
-                                    } ${palace.position === 5 ? 'bg-muted/20' : ''}`}
-                            >
-                                {/* 中宫特殊布局：左上暗干，右下地盘干 */}
-                                {palace.position === 5 ? (
-                                    <>
-                                        <div className="grid grid-cols-3 grid-rows-3 h-full p-1.5 gap-0">
-                                            {/* (1,1) 暗干 - 对应其他宫位的暗干位置 */}
-                                            <div className="flex items-center justify-center">
-                                                <span className="text-xl font-serif text-muted-foreground">{palace.anGan}</span>
-                                            </div>
-                                            <div />
-                                            <div />
-
-                                            <div />
-                                            <div />
-                                            <div />
-
-                                            <div />
-                                            <div />
-                                            {/* (3,3) 地盘干 - 对应其他宫位的天盘干位置 */}
-                                            <div className="flex flex-col items-center justify-center leading-tight">
-                                                <span className="text-xl font-serif text-foreground">{palace.diPan}</span>
-                                                {/* 如果地盘干也有十二长生，即使是空字符串也占位保持对齐 */}
-                                                <span className="text-sm text-muted-foreground opacity-0">占位</span>
-                                            </div>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <>
-                                        {/* 宫位内 3x3 网格布局 */}
-                                        <div className="h-full flex flex-col justify-center">
-                                            <div className="grid grid-cols-3 w-full p-1.5 gap-y-4 gap-x-0">
-                                                {/* 第一行 */}
-                                                {/* 第一行 - 底部对齐，减少与第二行九星的间距 */}
-                                                <div className="flex items-end justify-center pb-1">
-                                                    <span className="text-xl font-serif text-muted-foreground">{palace.anGan}</span>
-                                                </div>
-                                                <div className="flex items-end justify-center pb-1">
-                                                    {/* 八神：次大 */}
-                                                    <span className="text-xl font-serif text-foreground/60">{palace.shen}</span>
-                                                </div>
-                                                <div className="flex items-end justify-center pb-1">
-                                                    <span className="text-xl font-serif text-muted-foreground">{palace.shenWang}</span>
-                                                </div>
-
-                                                {/* 第二行 - 底部对齐 */}
-                                                {/* 第二行 - 底部对齐 */}
-                                                {/* 第二行 - 底部对齐 */}
-                                                <div className="flex flex-col items-center justify-end leading-tight">
-                                                    <div className="h-9 flex items-end">
-                                                        <span className="text-xl font-serif text-foreground">{palace.anGan}</span>
-                                                    </div>
-                                                    <span className="text-sm text-muted-foreground mt-1">{palace.anGanShiErCS}</span>
-                                                </div>
-                                                <div className="flex flex-col items-center justify-end leading-tight">
-                                                    {/* 九星：最大，最醒目 */}
-                                                    <div className="h-9 flex items-end">
-                                                        <span className="text-3xl font-serif font-bold text-foreground">{palace.xing}</span>
-                                                    </div>
-                                                    <span className="text-sm text-muted-foreground mt-1">{palace.xingWang}</span>
-                                                </div>
-                                                <div className="flex flex-col items-center justify-end leading-tight">
-                                                    <div className="h-9 flex items-end">
-                                                        <span className="text-xl font-serif text-foreground">{palace.diPan}</span>
-                                                    </div>
-                                                    <span className="text-sm text-muted-foreground mt-1">{palace.diPanShiErCS}</span>
-                                                </div>
-
-                                                {/* 第三行 - 底部对齐（虽然只有天盘干，但统一对齐更好看） */}
-                                                <div className="flex items-center justify-center">
-                                                    {/* 空位 */}
-                                                </div>
-                                                <div className="flex flex-col items-center justify-end leading-tight">
-                                                    {/* 八门：次大 */}
-                                                    <div className="h-8 flex items-end">
-                                                        <span className="text-2xl font-serif text-foreground">{palace.men}</span>
-                                                    </div>
-                                                    <span className="text-sm text-muted-foreground mt-1">{palace.menWang}</span>
-                                                </div>
-                                                <div className="flex flex-col items-center justify-end leading-tight">
-                                                    <div className="h-8 flex items-end">
-                                                        <span className="text-xl font-serif text-foreground">{palace.tianPan}</span>
-                                                    </div>
-                                                    <span className="text-sm text-muted-foreground mt-1">{palace.tianPanShiErCS}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </div >
-        </div >
+        </div>
     );
 }

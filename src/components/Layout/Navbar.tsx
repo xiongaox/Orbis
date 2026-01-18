@@ -2,6 +2,7 @@
  * 导航栏组件
  * 集成认证状态，支持登录/登出
  * 包含实时时钟显示（公历、农历、四柱）
+ * 响应式设计：小屏幕折叠菜单 + 时钟互斥显示
  */
 import { useState, useEffect } from 'react';
 import {
@@ -34,17 +35,20 @@ type ChartType =
   | 'wannianli'
   | 'sanyuan';
 
-const navItems: { id: ChartType; name: string; icon: ComponentType<{ className?: string }> }[] = [
-  { id: 'bazi', name: '八字', icon: Compass },
-  { id: 'qimen', name: '奇门', icon: Grid3X3 },
-  { id: 'liuyao', name: '六爻', icon: BookOpen },
-  { id: 'ziwei', name: '紫薇', icon: Star },
-  { id: 'daliuren', name: '大六壬', icon: Moon },
-  { id: 'xiaoliuren', name: '小六壬', icon: Sun },
-  { id: 'meihua', name: '梅花', icon: Flower2 },
-  { id: 'wannianli', name: '万年历', icon: Calendar },
-  { id: 'sanyuan', name: '三元天星', icon: Sparkles },
+const navItems: { id: ChartType; name: string; icon: ComponentType<{ className?: string }>; priority: 'core' | 'extra' }[] = [
+  { id: 'bazi', name: '八字', icon: Compass, priority: 'core' },
+  { id: 'qimen', name: '奇门', icon: Grid3X3, priority: 'core' },
+  { id: 'liuyao', name: '六爻', icon: BookOpen, priority: 'core' },
+  { id: 'wannianli', name: '万年历', icon: Calendar, priority: 'core' },
+  { id: 'ziwei', name: '紫薇', icon: Star, priority: 'extra' },
+  { id: 'daliuren', name: '大六壬', icon: Moon, priority: 'extra' },
+  { id: 'xiaoliuren', name: '小六壬', icon: Sun, priority: 'extra' },
+  { id: 'meihua', name: '梅花', icon: Flower2, priority: 'extra' },
+  { id: 'sanyuan', name: '三元天星', icon: Sparkles, priority: 'extra' },
 ];
+
+// 核心菜单项（小屏幕始终显示）
+const coreItems = navItems.filter(item => item.priority === 'core');
 
 interface NavbarProps {
   activeChart: ChartType;
@@ -61,7 +65,6 @@ function RealtimeClock() {
     return () => clearInterval(timer);
   }, []);
 
-  // 使用 lunarUtil 封装获取时钟数据
   const clockData = getRealtimeClockData(now);
 
   return (
@@ -89,10 +92,38 @@ function RealtimeClock() {
   );
 }
 
+// 导航菜单按钮组件
+function NavButton({
+  item,
+  isActive,
+  onClick,
+  showText = true
+}: {
+  item: typeof navItems[0];
+  isActive: boolean;
+  onClick: () => void;
+  showText?: boolean;
+}) {
+  const Icon = item.icon;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center gap-1 px-2 lg:px-3 py-1.5 text-sm lg:text-base font-medium transition-all duration-200 whitespace-nowrap ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+        }`}
+    >
+      <Icon className="w-4 h-4" />
+      {showText && <span>{item.name}</span>}
+    </button>
+  );
+}
+
 export default function Navbar({ activeChart, onChartChange, onLoginClick }: NavbarProps) {
   const { user, isAuthenticated, signOut, loading } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  // 小屏幕菜单展开状态
+
   const [isDark, setIsDark] = useState(() => {
     if (typeof document === 'undefined') return true;
     return document.documentElement.classList.contains('dark');
@@ -127,46 +158,57 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
 
   return (
     <header className="h-16 glass-header sticky top-0 z-50 flex items-center">
-      {/* Logo 区域 - 固定宽度与左侧 sidebar 对齐 */}
-      <div className="w-56 flex-shrink-0 flex items-center gap-3 px-4">
+      {/* Logo 区域 - 响应式宽度 */}
+      <div className="w-auto lg:w-56 flex-shrink-0 flex items-center gap-2 lg:gap-3 px-3 lg:px-4">
         <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center">
           <Compass className="w-5 h-5 text-primary" />
         </div>
-        <span className="font-display text-lg font-semibold tracking-wide text-foreground">玄枢录</span>
+        <span className="font-display text-lg font-semibold tracking-wide text-foreground hidden sm:inline">玄枢录</span>
       </div>
 
-      {/* 导航模块 - 从 sidebar 结束处开始，与主内容区对齐 */}
-      <div className="flex-1 flex items-center justify-between pr-6">
-        <nav className="flex items-center">
-          {navItems.map((item, index) => {
-            const Icon = item.icon;
-            const isActive = activeChart === item.id;
-            return (
-              <div key={item.id} className="flex items-center">
-                <button
-                  type="button"
-                  onClick={() => onChartChange(item.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-base font-medium transition-all duration-200 ${isActive
-                    ? 'text-primary'
-                    : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="hidden lg:inline">{item.name}</span>
-                </button>
-                {/* 分割线 */}
-                {index < navItems.length - 1 && (
-                  <span className="text-border">|</span>
-                )}
-              </div>
-            );
-          })}
+      {/* 导航模块 - 响应式布局 */}
+      <div className="flex-1 flex items-center justify-between pr-3 lg:pr-6 min-w-0">
+        {/* 小屏幕导航：核心菜单 + 可展开额外菜单 */}
+        <nav className="flex items-center 2xl:hidden">
+          {/* 核心菜单始终显示 */}
+          {coreItems.map((item, index) => (
+            <div key={item.id} className="flex items-center flex-shrink-0">
+              <NavButton
+                item={item}
+                isActive={activeChart === item.id}
+                onClick={() => onChartChange(item.id)}
+              />
+              {index < coreItems.length - 1 && (
+                <span className="text-border">|</span>
+              )}
+            </div>
+          ))}
+
+
         </nav>
 
-        {/* 右侧：实时时钟 + 主题切换 + 用户菜单 */}
-        <div className="flex items-center gap-4">
+        {/* 大屏幕导航：完整菜单 */}
+        <nav className="hidden 2xl:flex items-center">
+          {navItems.map((item, index) => (
+            <div key={item.id} className="flex items-center flex-shrink-0">
+              <NavButton
+                item={item}
+                isActive={activeChart === item.id}
+                onClick={() => onChartChange(item.id)}
+              />
+              {index < navItems.length - 1 && (
+                <span className="text-border">|</span>
+              )}
+            </div>
+          ))}
+        </nav>
+
+        {/* 右侧：实时时钟（展开时隐藏） + 主题切换 + 用户菜单 */}
+        <div className="flex items-center gap-2 lg:gap-4">
           {/* 实时时钟 */}
-          <RealtimeClock />
+          <div className="hidden sm:flex">
+            <RealtimeClock />
+          </div>
 
           {/* 主题切换 */}
           <button
@@ -187,7 +229,7 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
             <button
               type="button"
               onClick={() => setMenuOpen((prev) => !prev)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-secondary/50 transition-colors"
+              className="flex items-center gap-2 px-2 lg:px-3 py-2 rounded-lg hover:bg-secondary/50 transition-colors"
               disabled={loading}
             >
               <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
@@ -201,7 +243,7 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
                   <User className="w-4 h-4 text-muted-foreground" />
                 )}
               </div>
-              <span className="text-sm text-muted-foreground hidden sm:inline">
+              <span className="text-sm text-muted-foreground hidden lg:inline">
                 {loading ? '加载中...' : isAuthenticated ? displayName : '未登录'}
               </span>
             </button>
