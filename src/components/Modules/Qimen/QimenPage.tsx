@@ -1,6 +1,7 @@
 /**
  * 奇门遁甲模块 - 主页面容器
  * 三栏布局：左侧案例列表、中间九宫盘式、右侧宫位详情
+ * 响应式设计：大屏全展开，中等屏幕变窄，小屏幕折叠侧边栏
  */
 import { useState } from 'react';
 import QimenCaseList from './QimenCaseList';
@@ -59,21 +60,28 @@ export default function QimenPage() {
     const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
     const [selectedPalace, setSelectedPalace] = useState<number | null>(null);
 
+
+
     // 获取选中的宫位数据
     const selectedPalaceData = selectedPalace
         ? MOCK_PALACES.find(p => p.position === selectedPalace) || null
         : null;
 
     return (
-        <div className="flex flex-1 min-h-0 overflow-hidden">
+        <div className="flex flex-1 min-h-0 overflow-hidden relative">
             {/* 左侧案例列表 */}
-            <QimenCaseList
-                selectedCaseId={selectedCaseId}
-                onSelectCase={setSelectedCaseId}
-            />
+            <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 overflow-hidden hidden lg:block">
+                <QimenCaseList
+                    selectedCaseId={selectedCaseId}
+                    onSelectCase={setSelectedCaseId}
+                />
+            </div>
 
             {/* 中间九宫盘式 */}
-            <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col p-6">
+            <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col p-4 lg:p-6 relative">
+                {/* 折叠按钮 - 左侧 */}
+
+
                 <QimenChart
                     palaces={MOCK_PALACES}
                     selectedPalace={selectedPalace}
@@ -82,7 +90,9 @@ export default function QimenPage() {
             </main>
 
             {/* 右侧宫位详情 */}
-            <QimenPalaceDetail palace={selectedPalaceData} />
+            <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 overflow-hidden hidden xl:block">
+                <QimenPalaceDetail palace={selectedPalaceData} />
+            </div>
         </div>
     );
 }

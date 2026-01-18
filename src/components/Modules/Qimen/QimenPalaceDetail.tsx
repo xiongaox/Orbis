@@ -49,7 +49,7 @@ interface QimenPalaceDetailProps {
 export default function QimenPalaceDetail({ palace }: QimenPalaceDetailProps) {
     if (!palace) {
         return (
-            <aside className="w-96 bg-card border-l border-border flex flex-col min-h-0 flex-shrink-0">
+            <aside className="w-full h-full bg-card border-l border-border flex flex-col min-h-0">
                 <div className="flex-1 flex items-center justify-center text-muted-foreground">
                     <div className="text-center">
                         <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -65,7 +65,7 @@ export default function QimenPalaceDetail({ palace }: QimenPalaceDetailProps) {
     const shenDetail = SHEN_DETAILS[palace.shen] || { nature: '未知', description: '' };
 
     return (
-        <aside className="w-96 bg-card border-l border-border flex flex-col min-h-0 flex-shrink-0 overflow-hidden">
+        <aside className="w-full h-full bg-card border-l border-border flex flex-col min-h-0 overflow-hidden">
             {/* 标题 */}
             <div className="p-4 border-b border-border">
                 <h2 className="font-display text-lg font-medium text-foreground">

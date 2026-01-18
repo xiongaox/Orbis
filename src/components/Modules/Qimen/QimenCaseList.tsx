@@ -96,7 +96,7 @@ export default function QimenCaseList({
     const currentCategoryName = QIMEN_CATEGORIES.find(c => c.id === selectedCategory)?.name || '全部';
 
     return (
-        <aside className="w-96 bg-sidebar border-r border-sidebar-border flex flex-col min-h-0 flex-shrink-0">
+        <aside className="w-full h-full bg-sidebar border-r border-sidebar-border flex flex-col min-h-0">
             {/* 标题栏与操作 */}
             <div className="p-4 border-b border-sidebar-border space-y-3">
                 <div className="flex items-center justify-between">
