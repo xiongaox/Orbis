@@ -1,6 +1,3 @@
-// 洛书九宫顺序：巽离坤震中兑艮坎乾 -> 4 9 2 3 5 7 8 1 6
-// const LUOSHU_ORDER = [4, 9, 2, 3, 5, 7, 8, 1, 6];
-
 export interface CustomTime {
   year: number;
   month: number;
@@ -55,29 +52,64 @@ async function initCspWasm() {
 /**
  * 调用 CSP WASM 进行排盘 (同步)
  */
+// Call CSP WASM
 function callCspWasm(time: CustomTime, type: number): string {
   if (!wasmModule) return "WASM 模块加载中，请稍候...";
 
   try {
     const param = new wasmModule.CmdParam();
     param.year = time.year;
+    // WASM expects 1-12 for manual mode (tyme library convention)
     param.mon = time.month;
     param.day = time.day;
     param.hour = time.hour;
     param.min = time.minute;
-    param.type = type;
-    param.is_auto = true;
+
+    // Initialize fields
+    param.sec = 0;
+    // Set zone to 0.0 because the input time (str_dt/hour/min) is already Local Time (Beijing Time).
+    // If we set zone=8.0, the WASM engine treats input as UTC and adds 8 hours, causing incorrect ShiChen (e.g., 1:22 -> 9:22).
+    param.zone = 0.0;
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    param.str_dt = `${time.year}-${pad(time.month)}-${pad(time.day)} ${pad(time.hour)}:${pad(time.minute)}:00`;
+
+    // Manual Mode
+    param.is_auto = false;
+
+    // Native Calculation: By passing ju=0, we trigger WASM's internal cal_ju() logic
+    param.ju = 0;
+    param.type = type; // 1=ZhiRun, 2=YinPan, 3=ChaiBu, 4=MaoShan
+
+    console.log('[DemoDebug] Native WASM Call:', {
+      type: param.type,
+      ju: param.ju,
+      is_auto: param.is_auto,
+      date: param.str_dt
+    });
 
     const qm = new wasmModule.CQimenUse();
-    const output = qm.run_captured(param);
+    let output = "";
+    try {
+      output = qm.run_captured(param);
+    } catch (innerE: any) {
+      console.error("qm.run_captured threw:", innerE);
+      let msg = innerE;
+      if (wasmModule.getExceptionMessage) {
+        try {
+          msg = wasmModule.getExceptionMessage(innerE);
+        } catch (ignored) { }
+      }
+      throw msg;
+    }
 
-    param.delete();
-    qm.delete();
+    if (param.delete) param.delete();
+    if (qm.delete) qm.delete();
 
     return output;
   } catch (e: any) {
     console.error("WASM Execution Error:", e);
-    return `WASM Error: ${e.message}`;
+    const errMsg = typeof e === 'string' ? e : (e.message || JSON.stringify(e));
+    return `WASM Error: ${errMsg}`;
   }
 }
 
@@ -100,21 +132,27 @@ export function renderQimenDemo() {
   const root = document.getElementById('qimen-demo-root');
   if (!root) return;
 
+  // Initialize currentTime if not set
+  if (!currentTime) {
+    const now = new Date();
+    currentTime = {
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      day: now.getDate(),
+      hour: now.getHours(),
+      minute: now.getMinutes()
+    };
+  }
+
   // Initialize WASM
   initCspWasm();
 
   render();
 }
 
-function render() {
-  const container = document.getElementById('qimen-demo-root');
-  if (!container) return;
-
-  // Render CSP interface
-  container.innerHTML = generateCspHTML(cspRawOutput, currentTime);
-
-  bindEvents(container);
-}
+// Function render() is defined at the bottom of the file now
+// to allow using it in initCspWasm's finally block properly.
+// (It was moved to avoid circular scoping issues during refactor)
 
 /**
  * 解析 CSP 输出为结构化数据
@@ -461,6 +499,8 @@ function generateCspHTML(output: string, customTime: CustomTime | undefined): st
           <input type="number" id="input-minute" class="demo-input" value="\${now.minute}" placeholder="分" min="0" max="59">
           <span class="demo-label">分</span>
           <button id="btn-custom" class="demo-btn">自定义起盘</button>
+          <button id="btn-prev-hour" class="demo-btn" style="background: #e74c3c;">上一局</button>
+          <button id="btn-next-hour" class="demo-btn" style="background: #27ae60;">下一局</button>
         </div>
       </div>
     `.replace(/\$\{now\.year\}/g, String(now.year))
@@ -530,10 +570,27 @@ function generateCspHTML(output: string, customTime: CustomTime | undefined): st
         <input type="number" id="input-minute" class="csp-input" value="${now.minute}" placeholder="分" min="0" max="59">
         <span class="csp-label">分</span>
         <button id="btn-custom" class="csp-btn">自定义起盘</button>
+        <button id="btn-prev-hour" class="csp-btn" style="background: #e74c3c;">上一局</button>
+        <button id="btn-next-hour" class="csp-btn" style="background: #27ae60;">下一局</button>
       </div>
       <div class="csp-note">✨ Powered by C++ WebAssembly</div>
     </div>
   `;
+}
+
+function render() {
+  const container = document.getElementById('qimen-demo-root');
+  if (!container) return;
+
+  // Render CSP interface
+  container.innerHTML = generateCspHTML(cspRawOutput, currentTime);
+
+  bindEvents(container);
+
+  // If WASM is loaded and output is empty (initial state), trigger a calc
+  if (wasmModule && !cspRawOutput && currentTime) {
+    triggerCalc();
+  }
 }
 
 function bindEvents(container: HTMLElement) {
@@ -546,16 +603,7 @@ function bindEvents(container: HTMLElement) {
         currentPaiPanMethod = val;
         // Trigger calculation if we have a current time, otherwise it waits for custom input
         if (currentTime) {
-          let cspType = 1;
-          if (currentPaiPanMethod === 'zhirun') cspType = 1;
-          else if (currentPaiPanMethod === 'yinpan') cspType = 2;
-          else if (currentPaiPanMethod === 'chaibu') cspType = 3;
-          else if (currentPaiPanMethod === 'maoshan') cspType = 4;
-
-          callCspEngine(currentTime, cspType).then(output => {
-            cspRawOutput = output;
-            render();
-          });
+          triggerCalc();
         }
       }
     });
@@ -564,33 +612,86 @@ function bindEvents(container: HTMLElement) {
   // Bind Custom Calculation
   const btnCustom = container.querySelector('#btn-custom');
   btnCustom?.addEventListener('click', () => {
-    const yearInput = container.querySelector('#input-year') as HTMLInputElement;
-    const monthInput = container.querySelector('#input-month') as HTMLInputElement;
-    const dayInput = container.querySelector('#input-day') as HTMLInputElement;
-    const hourInput = container.querySelector('#input-hour') as HTMLInputElement;
-    const minuteInput = container.querySelector('#input-minute') as HTMLInputElement;
-
-    if (yearInput && monthInput && dayInput && hourInput && minuteInput) {
-      const year = parseInt(yearInput.value);
-      const month = parseInt(monthInput.value);
-      const day = parseInt(dayInput.value);
-      const hour = parseInt(hourInput.value);
-      const minute = parseInt(minuteInput.value);
-
-      currentTime = { year, month, day, hour, minute };
-
-      // CSP 引擎
-      let cspType = 1;
-      if (currentPaiPanMethod === 'zhirun') cspType = 1;
-      else if (currentPaiPanMethod === 'yinpan') cspType = 2;
-      else if (currentPaiPanMethod === 'chaibu') cspType = 3;
-      else if (currentPaiPanMethod === 'maoshan') cspType = 4;
-
-      callCspEngine(currentTime, cspType).then(output => {
-        cspRawOutput = output;
-        render();
-      });
-    }
+    updateTimeFromInputs(container);
   });
+
+  // Prev/Next Hour Buttons
+  const btnPrev = container.querySelector('#btn-prev-hour');
+  btnPrev?.addEventListener('click', () => {
+    handleTimeChange(container, -2);
+  });
+
+  const btnNext = container.querySelector('#btn-next-hour');
+  btnNext?.addEventListener('click', () => {
+    handleTimeChange(container, 2);
+  });
+}
+
+function updateTimeFromInputs(container: HTMLElement) {
+  const yearInput = container.querySelector('#input-year') as HTMLInputElement;
+  const monthInput = container.querySelector('#input-month') as HTMLInputElement;
+  const dayInput = container.querySelector('#input-day') as HTMLInputElement;
+  const hourInput = container.querySelector('#input-hour') as HTMLInputElement;
+  const minuteInput = container.querySelector('#input-minute') as HTMLInputElement;
+
+  if (yearInput && monthInput && dayInput && hourInput && minuteInput) {
+    const year = parseInt(yearInput.value);
+    const month = parseInt(monthInput.value);
+    const day = parseInt(dayInput.value);
+    const hour = parseInt(hourInput.value);
+    const minute = parseInt(minuteInput.value);
+
+    currentTime = { year, month, day, hour, minute };
+    triggerCalc();
+  }
+}
+
+function handleTimeChange(container: HTMLElement, deltaHours: number) {
+  // Read current inputs first (in case user changed them without clicking Custom)
+  const yearInput = container.querySelector('#input-year') as HTMLInputElement;
+  const monthInput = container.querySelector('#input-month') as HTMLInputElement;
+  const dayInput = container.querySelector('#input-day') as HTMLInputElement;
+  const hourInput = container.querySelector('#input-hour') as HTMLInputElement;
+  const minuteInput = container.querySelector('#input-minute') as HTMLInputElement;
+
+  if (yearInput && monthInput && dayInput && hourInput && minuteInput) {
+    let d = new Date(
+      parseInt(yearInput.value),
+      parseInt(monthInput.value) - 1, // JS Month 0-11
+      parseInt(dayInput.value),
+      parseInt(hourInput.value),
+      parseInt(minuteInput.value)
+    );
+
+    // Add hours
+    d.setHours(d.getHours() + deltaHours);
+
+    // Update currentTime
+    currentTime = {
+      year: d.getFullYear(),
+      month: d.getMonth() + 1,
+      day: d.getDate(),
+      hour: d.getHours(),
+      minute: d.getMinutes()
+    };
+
+    triggerCalc();
+  }
+}
+
+function triggerCalc() {
+  // CSP 引擎类型
+  let cspType = 1;
+  if (currentPaiPanMethod === 'zhirun') cspType = 1;
+  else if (currentPaiPanMethod === 'yinpan') cspType = 2;
+  else if (currentPaiPanMethod === 'chaibu') cspType = 3;
+  else if (currentPaiPanMethod === 'maoshan') cspType = 4;
+
+  if (currentTime) {
+    callCspEngine(currentTime, cspType).then(output => {
+      cspRawOutput = output;
+      render();
+    });
+  }
 }
 

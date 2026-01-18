@@ -1,9 +1,9 @@
 /**
  * 奇门遁甲模块 - 案例列表组件
- * 左侧显示案例列表，支持分类筛选
+ * 左侧显示案例列表，支持起盘功能
  */
 import { useState } from 'react';
-import { Search, Plus, ChevronDown, Upload } from 'lucide-react';
+import { Search, ChevronDown } from 'lucide-react';
 
 // 奇门案例分类
 const QIMEN_CATEGORIES = [
@@ -76,11 +76,17 @@ interface QimenCaseListProps {
     selectedCaseId: string | null;
     onSelectCase: (id: string) => void;
     onLoginClick?: () => void;
+    onOpenDatePicker?: () => void;
+    onCalculateNow?: () => void;
+    selectedDate?: Date;
 }
 
 export default function QimenCaseList({
     selectedCaseId,
     onSelectCase,
+    onOpenDatePicker,
+    onCalculateNow,
+    selectedDate,
 }: QimenCaseListProps) {
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<CategoryId>('all');
@@ -155,22 +161,33 @@ export default function QimenCaseList({
                     />
                 </div>
 
-                {/* 操作按钮 */}
-                <div className="flex gap-2">
-                    <button
-                        type="button"
-                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-secondary/50 hover:bg-secondary text-foreground/80 hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
-                    >
-                        <Upload className="w-4 h-4" />
-                        导入
-                    </button>
-                    <button
-                        type="button"
-                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/30"
-                    >
-                        <Plus className="w-4 h-4" />
-                        新建
-                    </button>
+                {/* 起盘操作区 */}
+                <div className="p-3 bg-muted/30 rounded-lg border border-border/50 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">起盘时间</span>
+                        <span className="font-mono text-foreground">
+                            {selectedDate
+                                ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')} ${String(selectedDate.getHours()).padStart(2, '0')}:${String(selectedDate.getMinutes()).padStart(2, '0')}`
+                                : '未选择'
+                            }
+                        </span>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            type="button"
+                            onClick={onOpenDatePicker}
+                            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-secondary/50 hover:bg-secondary text-foreground/80 hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
+                        >
+                            选择时间
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onCalculateNow}
+                            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/30"
+                        >
+                            当前时间
+                        </button>
+                    </div>
                 </div>
             </div>
 
