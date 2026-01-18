@@ -25,6 +25,7 @@ export interface LunarDateInfo {
     yearInChinese: string;
     monthInChinese: string;
     dayInChinese: string;
+    yearInGanZhi: string; // Add yearInGanZhi field
     year: number;
     month: number;
     day: number;
@@ -177,6 +178,7 @@ export function getRealtimeClockData(date: Date): RealtimeClockData {
             yearInChinese: lunar.getYearInChinese(),
             monthInChinese: lunar.getMonthInChinese(),
             dayInChinese: lunar.getDayInChinese(),
+            yearInGanZhi: lunar.getYearInGanZhi(),
             year: lunar.getYear(),
             month: lunar.getMonth(),
             day: lunar.getDay(),
@@ -222,6 +224,7 @@ export function getSolarToLunarInfo(date: Date): LunarDateInfo {
         yearInChinese: lunar.getYearInChinese(),
         monthInChinese: lunar.getMonthInChinese(),
         dayInChinese: lunar.getDayInChinese(),
+        yearInGanZhi: lunar.getYearInGanZhi(), // Populate it
         year: lunar.getYear(),
         month: lunar.getMonth(),
         day: lunar.getDay(),
