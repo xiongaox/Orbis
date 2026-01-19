@@ -68,6 +68,8 @@ export default function QimenPage() {
     const [editingCase, setEditingCase] = useState<QimenCase | null>(null);
     const [currentCase, setCurrentCase] = useState<QimenCase | null>(null);
 
+
+
     // 全局格局弹窗状态
     const [selectedPattern, setSelectedPattern] = useState<GlobalPattern | null>(null);
 
@@ -138,6 +140,7 @@ export default function QimenPage() {
         const newDate = new Date(selectedDate);
         newDate.setHours(newDate.getHours() - 2);
         console.log('new date:', newDate);
+
         await calculateQimenByDate(newDate);
     }, [selectedDate, calculateQimenByDate]);
 
@@ -149,6 +152,8 @@ export default function QimenPage() {
         console.log('new date:', newDate);
         await calculateQimenByDate(newDate);
     }, [selectedDate, calculateQimenByDate]);
+
+
 
     // 初始化 WASM 并计算当前时间的盘
     useEffect(() => {
@@ -238,6 +243,7 @@ export default function QimenPage() {
                     onOpenDatePicker={() => setIsDatePickerOpen(true)}
                     globalPatterns={globalPatterns}
                     onPatternClick={setSelectedPattern}
+
                 />
             </main>
 
@@ -355,7 +361,7 @@ export default function QimenPage() {
                                                     {key}
                                                 </div>
                                             </div>
-                                            <div className="whitespace-pre-wrap leading-relaxed text-secondary-foreground/60 font-normal pl-3">
+                                            <div className="whitespace-pre-wrap leading-relaxed text-secondary-foreground/60 font-normal pl-3 text-base">
                                                 {value}
                                             </div>
                                         </div>

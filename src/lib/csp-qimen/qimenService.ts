@@ -157,7 +157,7 @@ function callCspWasm(time: QimenTime, type: number): string {
         param.ju = 0;
         param.type = type;
 
-        console.log('[QimenDebug] Native WASM Call:', {
+        console.log('[QimenDebug] Native WASM Call - Inputs:', {
             inputTime: time,
             paramJu: param.ju,
             paramType: param.type,
@@ -168,6 +168,8 @@ function callCspWasm(time: QimenTime, type: number): string {
 
         const qm = new wasmModule.CQimenUse();
         const output = qm.run_captured(param);
+
+        console.log('[QimenDebug] Native WASM Output Preview:', output.substring(0, 100).replace(/\n/g, ' '));
 
         param.delete();
         qm.delete();

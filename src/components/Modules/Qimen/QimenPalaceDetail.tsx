@@ -36,27 +36,33 @@ function extractGan(str: string): string {
 }
 
 // 帮助函数：根据类型和标签获取详细数据
-function getDetailDisplayData(type: string, label: string, fullLabel: string, position?: number, timeZhi?: string) {
+function getDetailDisplayData(type: string, label: string, position: number | undefined, timeZhi?: string) {
     // 1. 清理标签 (移除括号内备注、数字、宫字、前缀等)
     let cleanLabel = label.replace(/\s*\(.*\)/, '').trim(); // 移除 (长生) 等
 
+    // 纠正别名/异体字 (如: 腾蛇 -> 螣蛇)
+    if (cleanLabel.includes('腾蛇')) {
+        cleanLabel = cleanLabel.replace(/腾蛇/g, '螣蛇');
+    }
+
     // 特殊处理
-    if (type === '宫' || type === '卦') {
+    // 特殊处理
+    if (['宫', '九宫', '卦', '八卦'].includes(type)) {
         // "乾六宫" -> "乾", "乾卦" -> "乾"
         cleanLabel = cleanLabel.split('')[0];
-    } else if (type === '暗' || type === '寄') {
-        // "暗干戊" -> "戊", "天寄癸" -> "癸", "地寄壬" -> "壬"
-        cleanLabel = cleanLabel.replace(/^暗干/, '').replace(/^[天地]?寄/, '');
+    } else if (['暗', '寄', '暗干', '天盘寄干', '地盘寄干'].includes(type) || type.startsWith('寄')) {
+        // "暗干戊" -> "戊", "天寄癸" -> "癸", "地寄壬" -> "壬", "天盘寄干戊" -> "戊"
+        cleanLabel = cleanLabel.replace(/^暗干/, '').replace(/^[天地]盘?寄(干)?/, '').replace(/^[天地]寄/, '');
     } else if (type === '星时') {
         // "天蓬值子时" -> "天蓬"
         cleanLabel = cleanLabel.split('值')[0];
     }
 
     // 移除阴阳五行后缀 (如 "阳金", "阴水")
-    if (['天', '地', '暗', '寄'].includes(type) || type === '星时') { // 星 normally doesn't have suffix in label logic here
+    // Note: '星' type typically handles '天蓬'. '星时' cleans to '天蓬'.
+    if (['天', '地', '暗', '寄', '暗干'].includes(type) || type.startsWith('寄') || type === '星时') {
         // cleanLabel = cleanLabel.replace(/[阳阴][木火土金水].*$/, '');
     }
-    // Note: '星' type typically handles '天蓬'. '星时' cleans to '天蓬'.
 
     let title = cleanLabel;
     let subTitle = '';
@@ -104,8 +110,8 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
                 title = label;
                 // subTitle = '九星值时';
                 content = [
-                    d.时辰克应 && `【时辰克应】\n${d.时辰克应}`,
-                    d.解释 && `【解释】\n${d.解释}`,
+                    d.解读 && `【解读】\n${d.解读}`,
+                    d.原文 && `【原文】\n${d.原文}`,
                 ].filter(Boolean).join('\n\n');
             }
             break;
@@ -127,14 +133,14 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
             break;
         }
         case '九宫': {
-            // Gong data usually just simple description or derived?
-            // Assuming we might have data or just generic
-            title = cleanLabel;
-            // subTitle = '九宫';
-            content = `【九宫】\n${cleanLabel}的相关信息...`; // TODO: Add Gong specific data source if available
-            // Actually, usually gong links to Bagua or just position. 
-            // Let's check DataService. If no specific Gong data, maybe show Bagua data instead?
-            // Or just leave as is for now.
+            if (position) {
+                const d = QimenDataService.getGong(cleanLabel, position);
+                if (d) {
+                    title = cleanLabel + '宫'; // "坎宫"
+                    // subTitle = '九宫';
+                    content = d.description;
+                }
+            }
             break;
         }
         case '八卦': {
@@ -156,8 +162,11 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
         case '天盘干':
         case '地盘干':
         case '暗干':
+        case '天盘寄干':
+        case '地盘寄干':
         case '寄': {
-            const d = QimenDataService.getGan(cleanLabel);
+            const gan = extractGan(cleanLabel);
+            const d = QimenDataService.getGan(gan);
             if (d) {
                 title = cleanLabel; // 甲
                 // subTitle = '十天干';
@@ -190,7 +199,7 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
             }
             break;
         }
-        case '神门': {
+        case '神门克应': {
             if (cleanLabel.includes('+')) {
                 const [shen, men] = cleanLabel.split('+');
                 const d = QimenDataService.getShenMen(shen, men);
@@ -206,28 +215,7 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
             }
             break;
         }
-        case '扩展格局': {
-            if (label.includes('+')) {
-                const [l1, l2] = label.split('+');
-                const g1 = extractGan(l1);
-                const g2 = extractGan(l2);
-                const d = QimenDataService.getGanCombo(g1, g2);
-                if (d) {
-                    title = label;
-                    // subTitle = d.格局名称 || '扩展克应';
-                    if (d.格局名称) tags.push(d.格局名称);
-                    content = [
-                        d.详解 && `【详解】\n${d.详解}`,
-                        d.象意联想 && `【象意】\n${d.象意联想}`,
-                        d.测疾病 && `【测疾病】\n${d.测疾病}`,
-                    ].filter(Boolean).join('\n\n');
-                } else {
-                    content = '暂无该组合的详细数据。';
-                }
-            }
-            break;
-        }
-        case '门干': {
+        case '门干克应': {
             if (cleanLabel.includes('+')) {
                 const [men, gan] = cleanLabel.split('+');
                 const d = QimenDataService.getMenGan(men, gan);
@@ -244,12 +232,14 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
             break;
         }
         case '十干克应': {
-            // Label comes as "乙+丙"
-            if (cleanLabel.includes('+')) {
-                const [tian, di] = cleanLabel.split('+');
+            // Label can be "乙+丙" or "暗乙+天丙" etc.
+            if (label.includes('+')) {
+                const [p1, p2] = label.split('+');
+                const tian = extractGan(p1);
+                const di = extractGan(p2);
                 const d = QimenDataService.getGanCombo(tian, di);
                 if (d) {
-                    title = cleanLabel;
+                    title = label;
                     // subTitle = d.格局名称 || '克应';
                     if (d.格局名称) tags.push(d.格局名称);
                     content = [
@@ -263,7 +253,7 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
             }
             break;
         }
-        case '门门': {
+        case '门门克应': {
             if (cleanLabel.includes('+')) {
                 const [m1, m2] = cleanLabel.split('+');
                 const d = QimenDataService.getMenMen(m1, m2);
@@ -271,8 +261,8 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
                     title = cleanLabel;
                     // subTitle = '门门克应';
                     content = [
-                        d.吉凶 && `【吉凶】\n${d.吉凶}`,
-                        d.详解 && `【详解】\n${d.详解}`,
+                        d.静应 && `【静应】\n${d.静应}`,
+                        d.动应 && `【动应】\n${d.动应}`,
                     ].filter(Boolean).join('\n\n');
                 } else {
                     content = '暂无该门门组合的详细数据。';
@@ -280,15 +270,17 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
             }
             break;
         }
-        case '驿马': {
+        case '马星': {
             const d = QimenDataService.getJuPattern('驿马');
             if (d) {
                 title = '驿马';
-                subTitle = '马星';
+                // subTitle = '马星';
                 const appItems = d.应用 ? Object.entries(d.应用).map(([k, v]) => `• ${k}：${v}`).join('\n') : '';
                 const limaItems = d.临马星含义 ? d.临马星含义.map((item: string) => `• ${item}`).join('\n') : '';
+                const desc = d.描述 ? d.描述.replace(/驿马/g, '马星') : ''; // 替换描述中的 "驿马" 为 "马星"
+
                 content = [
-                    d.描述 && `【描述】\n${d.描述}`,
+                    desc && `【描述】\n${desc}`,
                     d.口诀 && `【口诀】\n${d.口诀}`,
                     d.时上马星 && `【时上马星】\n${d.时上马星}`,
                     limaItems && `【临马星含义】\n${limaItems}`,
@@ -297,18 +289,33 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
             }
             break;
         }
-        case '空亡': {
+        case '旬空': {
             const d = QimenDataService.getJuPattern('空亡');
             if (d) {
                 title = '空亡';
-                subTitle = '旬空';
+                // subTitle = '旬空';
                 const appItems = d.应用 ? Object.entries(d.应用).map(([k, v]) => `• ${k}：${v}`).join('\n') : '';
+                const desc = d.描述 ? d.描述.replace(/空亡/g, '旬空') : ''; // 替换描述中的 "空亡" 为 "旬空"
+
                 content = [
-                    d.描述 && `【描述】\n${d.描述}`,
+                    desc && `【描述】\n${desc}`,
                     d.日干落空亡 && `【日干落空亡】\n${d.日干落空亡}`,
                     d.时干落空亡 && `【时干落空亡】\n${d.时干落空亡}`,
                     d.真空假空 && `【真空假空】\n${d.真空假空}`,
                     appItems && `【应用】\n${appItems}`,
+                ].filter(Boolean).join('\n\n');
+            }
+            break;
+        }
+        case '时干入墓': {
+            const d = QimenDataService.getJuPattern('时干入墓');
+            if (d) {
+                title = '时干入墓';
+                content = [
+                    (d.定义概念 || d.定义) && `【定义】\n${d.定义概念 || d.定义}`,
+                    d.含义 && `【含义】\n${d.含义}`,
+                    d.辨析 && `【辨析】\n${d.辨析}`,
+                    d.注意 && `【注意】\n${d.注意}`,
                 ].filter(Boolean).join('\n\n');
             }
             break;
@@ -322,7 +329,8 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
             let subPatternKey = '';
 
             // 解析子格局，如 "天遁(九遁)" -> patternKey="九遁", subPatternKey="天遁"
-            const subMatch = cleanLabel.match(/^(.+)\((.+)\)$/);
+            // 注意：使用原始 label 进行匹配，因为 cleanLabel 可能清理掉了括号
+            const subMatch = label.match(/^(.+)\((.+)\)$/);
             if (subMatch) {
                 subPatternKey = subMatch[1];
                 patternKey = subMatch[2];
@@ -393,7 +401,7 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
 
         palace.men && { id: 'men', label: palace.men, type: '八门' },
         { id: 'gong', label: palace.gongName + palace.position + '宫', type: '九宫' },
-        { id: 'gua', label: palace.gongName + '卦', type: '八卦' },
+        (palace.gongName !== '中') && { id: 'gua', label: palace.gongName + '卦', type: '八卦' },
 
         // 天干
         palace.tianPan && { id: 'tian', label: getGanLabel(palace.tianPan) + (palace.tianPanShiErCS ? ` (${palace.tianPanShiErCS})` : ''), type: '天盘干' },
@@ -405,28 +413,29 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
         palace.anGan && { id: 'an', label: '暗干' + getGanLabel(palace.anGan), type: '暗干' },
 
         // 寄宫 (如果有)
-        palace.jiGongTianPan && { id: 'ji_tian', label: '天寄' + getGanLabel(palace.jiGongTianPan), type: '寄' },
-        palace.jiGongDiPan && { id: 'ji_di', label: '地寄' + getGanLabel(palace.jiGongDiPan), type: '寄' },
+        palace.jiGongTianPan && { id: 'ji_tian', label: getGanLabel(palace.jiGongTianPan), type: '天盘寄干' },
+        palace.jiGongDiPan && { id: 'ji_di', label: getGanLabel(palace.jiGongDiPan), type: '地盘寄干' },
 
         // 格局组合
         (palace.tianPan && palace.diPan) && { id: 'ge_td', label: `${palace.tianPan}+${palace.diPan}`, type: '十干克应' },
 
         // 扩展格局: 暗干+天盘, 暗干+地盘, 暗干+寄天, 暗干+寄地, 天盘+寄地, 寄天+地盘, 天盘+暗干
-        (palace.anGan && palace.tianPan) && { id: 'ge_at', label: `暗${palace.anGan}+天${palace.tianPan}`, type: '扩展格局' },
-        (palace.anGan && palace.diPan) && { id: 'ge_ad', label: `暗${palace.anGan}+地${palace.diPan}`, type: '扩展格局' },
-        (palace.anGan && palace.jiGongTianPan) && { id: 'ge_ajt', label: `暗${palace.anGan}+寄天${palace.jiGongTianPan}`, type: '扩展格局' },
-        (palace.anGan && palace.jiGongDiPan) && { id: 'ge_ajd', label: `暗${palace.anGan}+寄地${palace.jiGongDiPan}`, type: '扩展格局' },
-        (palace.tianPan && palace.jiGongDiPan) && { id: 'ge_tjd', label: `天${palace.tianPan}+寄地${palace.jiGongDiPan}`, type: '扩展格局' },
-        (palace.jiGongTianPan && palace.diPan) && { id: 'ge_jtd', label: `寄天${palace.jiGongTianPan}+地${palace.diPan}`, type: '扩展格局' },
-        (palace.tianPan && palace.anGan) && { id: 'ge_ta', label: `天${palace.tianPan}+暗${palace.anGan}`, type: '扩展格局' },
+        (palace.anGan && palace.tianPan) && { id: 'ge_at', label: `暗${palace.anGan}+天${palace.tianPan}`, type: '十干克应' },
+        (palace.anGan && palace.diPan) && { id: 'ge_ad', label: `暗${palace.anGan}+地${palace.diPan}`, type: '十干克应' },
+        (palace.anGan && palace.jiGongTianPan) && { id: 'ge_ajt', label: `暗${palace.anGan}+寄天${palace.jiGongTianPan}`, type: '十干克应' },
+        (palace.anGan && palace.jiGongDiPan) && { id: 'ge_ajd', label: `暗${palace.anGan}+寄地${palace.jiGongDiPan}`, type: '十干克应' },
+        (palace.tianPan && palace.jiGongDiPan) && { id: 'ge_tjd', label: `天${palace.tianPan}+寄地${palace.jiGongDiPan}`, type: '十干克应' },
+        (palace.jiGongTianPan && palace.diPan) && { id: 'ge_jtd', label: `寄天${palace.jiGongTianPan}+地${palace.diPan}`, type: '十干克应' },
+        (palace.tianPan && palace.anGan) && { id: 'ge_ta', label: `天${palace.tianPan}+暗${palace.anGan}`, type: '十干克应' },
 
-        (palace.shen && palace.men) && { id: 'ge_sm', label: `${palace.shen}+${palace.men}`, type: '神门' },
-        (palace.men && palace.tianPan) && { id: 'ge_mt', label: `${palace.men}+${palace.tianPan}`, type: '门干' },
-        (originalMen && palace.men) && { id: 'ge_mm', label: `${originalMen}+${palace.men}`, type: '门门' },
+        (palace.shen && palace.men) && { id: 'ge_sm', label: `${palace.shen}+${palace.men}`, type: '神门克应' },
+        (palace.men && palace.tianPan) && { id: 'ge_mt', label: `${palace.men}+${palace.tianPan}`, type: '门干克应' },
+        (originalMen && palace.men) && { id: 'ge_mm', label: `${originalMen}+${palace.men}`, type: '门门克应' },
 
-        // 局势格局：驿马、空亡（只有当前宫位有时才显示）
-        (palace.maKong?.includes('马')) && { id: 'yima', label: '驿马', type: '驿马' },
-        (palace.maKong?.includes('〇')) && { id: 'kongwang', label: '空亡', type: '空亡' },
+        // 局势格局：马星（驿马）、旬空（空亡）
+        // 用户要求：Tab小标题显示 "马星"/"旬空"，大标题显示 "驿马"/"空亡"
+        (palace.maKong?.includes('马')) && { id: 'yima', label: '驿马', type: '马星' },
+        (palace.maKong?.includes('〇')) && { id: 'kongwang', label: '空亡', type: '旬空' },
 
         // 吉凶格局（动态检测）
         ...detectPalacePatterns(palace, zhiShiMen, {
@@ -437,11 +446,16 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
             dayGan: siZhu?.day?.charAt(0),
             hourGan: siZhu?.hour?.charAt(0),
             xunShou,
-        } as PatternContext).map((p, i) => ({
-            id: `pattern_${i}_${p.name}`,
-            label: p.name === '九遁' ? `${p.label}(九遁)` : p.label,
-            type: p.type
-        })),
+        } as PatternContext).map((p, i) => {
+            // 对于包含子类的复杂格局，构造 "子名(父名)" 格式的标签
+            const complexPatterns = ['九遁', '三诈五假', '六仪击刑'];
+            const label = complexPatterns.includes(p.name) ? `${p.label}(${p.name})` : p.label;
+            return {
+                id: `pattern_${i}_${p.name}`,
+                label: label,
+                type: p.type
+            };
+        }),
     ].filter(Boolean) as { id: string; label: string; type: string }[];
 
     // 如果当前选中的 tab 不在 menuItems 中，默认选第一项
@@ -450,7 +464,7 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
     // 获取详情数据
     const detailData = useMemo(() => {
         if (!activeItem) return { title: '', subTitle: '', tags: [], content: '' };
-        return getDetailDisplayData(activeItem.type, activeItem.label, activeItem.label, palace.position, timeZhi);
+        return getDetailDisplayData(activeItem.type, activeItem.label, palace.position, timeZhi);
     }, [activeItem, palace.position, timeZhi]);
 
     return (

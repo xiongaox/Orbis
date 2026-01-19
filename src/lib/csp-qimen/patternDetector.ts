@@ -278,47 +278,16 @@ export function detectPalacePatterns(
     }
     // 值符宫天盘丙
     if (shen === '值符' && tian === '丙') {
-        patterns.push({ name: '悖格', label: '悖格(丙加值符)', type: '凶格' });
+        patterns.push({ name: '悖格', label: '悖格', type: '凶格' });
     }
     // 天盘值符星落丙地
     if (xing === zhiFuXing && di === '丙') {
-        patterns.push({ name: '悖格', label: '悖格(值符加丙)', type: '凶格' });
+        patterns.push({ name: '悖格', label: '悖格', type: '凶格' });
     }
 
-    // 20. 伏吟：星/门落本宫
-    // 九星本宫：天蓬坎1, 天芮坤2, 天冲震3, 天辅巽4, 天禽中5, 天心乾6, 天柱兑7, 天任艮8, 天英离9
-    const xingBenGong: Record<string, number> = {
-        '天蓬': 1, '天芮': 2, '天冲': 3, '天辅': 4, '天禽': 5,
-        '天心': 6, '天柱': 7, '天任': 8, '天英': 9,
-    };
-    // 八门本宫：休门坎1, 死门坤2, 伤门震3, 杜门巽4, 开门乾6, 惊门兑7, 生门艮8, 景门离9
-    const menBenGong: Record<string, number> = {
-        '休门': 1, '死门': 2, '伤门': 3, '杜门': 4,
-        '开门': 6, '惊门': 7, '生门': 8, '景门': 9,
-    };
-    const xingFuYin = xingBenGong[xing] === pos;
-    const menFuYin = menBenGong[men] === pos;
-    if (xingFuYin && menFuYin) {
-        patterns.push({ name: '伏吟', label: '星门俱伏吟', type: '凶格' });
-    } else if (xingFuYin) {
-        patterns.push({ name: '伏吟', label: '星伏吟', type: '凶格' });
-    } else if (menFuYin) {
-        patterns.push({ name: '伏吟', label: '门伏吟', type: '凶格' });
-    }
 
-    // 21. 反吟：星/门落对冲宫
-    const duiChong: Record<number, number> = {
-        1: 9, 9: 1, 2: 8, 8: 2, 3: 7, 7: 3, 4: 6, 6: 4,
-    };
-    const xingFanYin = xingBenGong[xing] !== undefined && duiChong[xingBenGong[xing]] === pos;
-    const menFanYin = menBenGong[men] !== undefined && duiChong[menBenGong[men]] === pos;
-    if (xingFanYin && menFanYin) {
-        patterns.push({ name: '反吟', label: '星门俱反吟', type: '凶格' });
-    } else if (xingFanYin) {
-        patterns.push({ name: '反吟', label: '星反吟', type: '凶格' });
-    } else if (menFanYin) {
-        patterns.push({ name: '反吟', label: '门反吟', type: '凶格' });
-    }
+    // 20. 伏吟：星/门落本宫 - 已在全局格局中处理，宫位详情不显示
+    // 21. 反吟：星/门落对冲宫 - 已在全局格局中处理，宫位详情不显示
 
     // 22. 六仪击刑：特定天盘六仪落特定宫位
     const liuYiJiXingMap: Record<string, number> = {
@@ -330,7 +299,14 @@ export function detectPalacePatterns(
         '癸': 4,  // 甲寅癸落巽宫（寅刑巳）
     };
     if (liuYiJiXingMap[tian] === pos) {
-        patterns.push({ name: '六仪击刑', label: '六仪击刑', type: '凶格' });
+        let label = '六仪击刑';
+        if (tian === '戊' && pos === 3) label = '甲子戊落震宫';
+        if (tian === '己' && pos === 2) label = '甲戌己落坤宫';
+        if (tian === '庚' && pos === 8) label = '甲申庚落艮宫';
+        if (tian === '辛' && pos === 9) label = '甲午辛落离宫';
+        if (tian === '壬' && pos === 4) label = '甲辰壬落巽宫';
+        if (tian === '癸' && pos === 4) label = '甲寅癸落巽宫';
+        patterns.push({ name: '六仪击刑', label, type: '凶格' });
     }
 
     // 23. 五不遇时：时干克日干（同性相克）
