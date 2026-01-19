@@ -141,6 +141,10 @@ export default function QimenPage() {
         newDate.setHours(newDate.getHours() - 2);
         console.log('new date:', newDate);
 
+        // 清除案例选择状态
+        setSelectedCaseId(null);
+        setCurrentCase(null);
+
         await calculateQimenByDate(newDate);
     }, [selectedDate, calculateQimenByDate]);
 
@@ -150,6 +154,11 @@ export default function QimenPage() {
         const newDate = new Date(selectedDate);
         newDate.setHours(newDate.getHours() + 2);
         console.log('new date:', newDate);
+
+        // 清除案例选择状态
+        setSelectedCaseId(null);
+        setCurrentCase(null);
+
         await calculateQimenByDate(newDate);
     }, [selectedDate, calculateQimenByDate]);
 

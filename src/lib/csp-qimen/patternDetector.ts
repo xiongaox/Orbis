@@ -272,17 +272,26 @@ export function detectPalacePatterns(
 
     // 19. 悖格：丙加年/月/日/时干，或丙加值符，或值符加丙
     if (tian === '丙') {
-        if (di === yearGan || di === monthGan || di === dayGan || di === hourGan) {
-            patterns.push({ name: '悖格', label: '悖格', type: '凶格' });
+        if (di === yearGan) {
+            patterns.push({ name: '悖格', label: `天丙+地${yearGan}(年干)`, type: '凶格' });
+        }
+        if (di === monthGan) {
+            patterns.push({ name: '悖格', label: `天丙+地${monthGan}(月干)`, type: '凶格' });
+        }
+        if (di === dayGan) {
+            patterns.push({ name: '悖格', label: `天丙+地${dayGan}(日干)`, type: '凶格' });
+        }
+        if (di === hourGan) {
+            patterns.push({ name: '悖格', label: `天丙+地${hourGan}(时干)`, type: '凶格' });
         }
     }
     // 值符宫天盘丙
     if (shen === '值符' && tian === '丙') {
-        patterns.push({ name: '悖格', label: '悖格', type: '凶格' });
+        patterns.push({ name: '悖格', label: '值符+天盘丙', type: '凶格' });
     }
     // 天盘值符星落丙地
     if (xing === zhiFuXing && di === '丙') {
-        patterns.push({ name: '悖格', label: '悖格', type: '凶格' });
+        patterns.push({ name: '悖格', label: '值符星+地盘丙', type: '凶格' });
     }
 
 

@@ -7,6 +7,7 @@
 import type { QimenPalace } from '../../components/Modules/Qimen/QimenChart';
 import { getEightCharFromDate, getSolarToLunarInfo } from '../../utils/lunarUtil';
 import { LunarUtil } from 'lunar-typescript';
+import { getXingWang, getMenWang, getGanShiErCS } from './qimenUtils';
 
 // ============ 类型定义 ============
 
@@ -613,16 +614,16 @@ function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResu
                     return '';
                 })()
             ),
-            // 旺相休囚（CSP 不输出，留空）
+            // 旺相休囚（使用 qimenUtils 计算）
             shenWang: '',
-            xingWang: '',
-            menWang: '',
-            // 十二长生（CSP 不输出，留空）
-            jiGongTianPanCS: '',
-            jiGongDiPanCS: '',
+            xingWang: pos === 5 ? '' : getXingWang(cspPalace?.xing || '', pos, siZhu.month.slice(1, 2)),
+            menWang: pos === 5 ? '' : getMenWang(cspPalace?.men || '', pos, siZhu.month.slice(1, 2)),
+            // 十二长生（使用 qimenUtils 计算）
+            jiGongTianPanCS: pos === 5 ? '' : getGanShiErCS(cspPalace?.tianPanJi || '', pos),
+            jiGongDiPanCS: pos === 5 ? '' : getGanShiErCS(cspPalace?.diPanJi || '', pos),
             anGanShiErCS: '',
-            tianPanShiErCS: '',
-            diPanShiErCS: '',
+            tianPanShiErCS: pos === 5 ? '' : getGanShiErCS(cspPalace?.tianPan || '', pos),
+            diPanShiErCS: pos === 5 ? '' : getGanShiErCS(cspPalace?.diPan || '', pos),
         };
 
         palaces.push(palace);
