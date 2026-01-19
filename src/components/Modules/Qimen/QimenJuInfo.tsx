@@ -187,8 +187,8 @@ export default function QimenJuInfo({ date, header, caseData }: QimenJuInfoProps
                                 const labelMap: Record<string, string> = { year: '年', month: '月', day: '日', hour: '时' };
                                 const label = labelMap[key];
                                 return (
-                                    <div key={key} className="flex items-baseline gap-1 bg-muted/30 px-2 py-1 rounded">
-                                        <span className="text-[10px] text-muted-foreground/70">{label}</span>
+                                    <div key={key} className="flex items-baseline gap-1 bg-muted/30 border border-border/40 px-2 py-1 rounded">
+                                        <span className="text-xs text-muted-foreground/70">{label}</span>
                                         <span className={`font-mono ${key === 'hour' ? 'text-primary font-bold' : 'text-foreground/90'}`}>
                                             {val || '-'}
                                         </span>
@@ -208,8 +208,8 @@ export default function QimenJuInfo({ date, header, caseData }: QimenJuInfoProps
                                 const labelMap: Record<string, string> = { year: '年', month: '月', day: '日', hour: '时' };
                                 const label = labelMap[key];
                                 return (
-                                    <div key={key} className="flex items-baseline gap-1 bg-muted/30 px-2 py-1 rounded">
-                                        <span className="text-[10px] text-muted-foreground/70">{label}</span>
+                                    <div key={key} className="flex items-baseline gap-1 bg-muted/30 border border-border/40 px-2 py-1 rounded">
+                                        <span className="text-xs text-muted-foreground/70">{label}</span>
                                         <span className={`font-mono ${key === 'hour' ? 'text-primary font-bold' : 'text-foreground/90'}`}>
                                             {val || '-'}
                                         </span>
@@ -283,8 +283,14 @@ export default function QimenJuInfo({ date, header, caseData }: QimenJuInfoProps
                     </div>
                 </div>
             ) : (
-                <div className="p-8 text-center flex flex-col items-center justify-center h-40 text-muted-foreground/60 gap-2">
-                    <span className="text-4xl opacity-20">📭</span>
+                <div className="p-8 text-center flex flex-col items-center justify-center h-40 text-muted-foreground/60 gap-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-30">
+                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                        <line x1="10" y1="9" x2="8" y2="9" />
+                    </svg>
                     <span className="text-sm">暂无关联案例信息</span>
                 </div>
             )}

@@ -81,7 +81,7 @@ function RealtimeClock() {
         {[clockData.pillars.year, clockData.pillars.month, clockData.pillars.day, clockData.pillars.hour].map((pillar, i) => (
           <div
             key={i}
-            className="flex flex-col items-center bg-secondary/50 rounded px-1.5 py-0.5"
+            className="flex flex-col items-center px-1.5 py-0.5"
           >
             <span className="text-primary font-serif text-base">{pillar[0]}</span>
             <span className="text-muted-foreground font-serif text-base">{pillar[1]}</span>

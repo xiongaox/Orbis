@@ -324,11 +324,11 @@ function getDetailDisplayData(type: string, label: string, position: number | un
         case '吉格':
         case '凶格': {
             // fullLabel 初始传入的是格局名称，如 "三奇贵人升殿" 或 "天遁"
-            // 对于九遁类，label 格式为 "天遁(九遁)"
+            // 对于复杂格局，label 格式为 "甲子戊落震宫(六仪击刑)"
             let patternKey = cleanLabel;
             let subPatternKey = '';
 
-            // 解析子格局，如 "天遁(九遁)" -> patternKey="九遁", subPatternKey="天遁"
+            // 解析子格局，如 "甲子戊落震宫(六仪击刑)" -> patternKey="六仪击刑", subPatternKey="甲子戊落震宫"
             // 注意：使用原始 label 进行匹配，因为 cleanLabel 可能清理掉了括号
             const subMatch = label.match(/^(.+)\((.+)\)$/);
             if (subMatch) {
@@ -338,9 +338,11 @@ function getDetailDisplayData(type: string, label: string, position: number | un
 
             const d = QimenDataService.getJuPattern(patternKey);
             if (d) {
-                title = subPatternKey || patternKey;
-                // subTitle = type === '吉格' ? '吉格' : '凶格'; // 移除吉凶定性
-                // tags.push(type); // 移除吉凶标签
+                // 复杂格局：标题显示格局名（六仪击刑），subTitle显示具体描述（甲子戊落震宫）
+                title = patternKey;
+                if (subPatternKey) {
+                    subTitle = subPatternKey;
+                }
 
                 // 如果是子格局（如九遁中的天遁），直接取子项文本
                 if (subPatternKey && d[subPatternKey]) {
@@ -389,55 +391,36 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
         );
     }
 
-    // 构建左侧菜单项
+    // 构建左侧菜单项（按用户指定顺序）
     const originalMen = QimenDataService.getOriginalMen(palace.position);
     const menuItems = [
-        // 核心单项
+        // 1. 八神
         palace.shen && { id: 'shen', label: palace.shen, type: '八神' },
+        // 2. 九星
         palace.xing && { id: 'xing', label: palace.xing, type: '九星' },
-
-        // 九星值时 (如果有时间支) : 天蓬值子时
-        (palace.xing && timeZhi) && { id: 'xing_time', label: `${palace.xing}值${timeZhi}时`, type: '九星值时' },
-
+        // 3. 八门
         palace.men && { id: 'men', label: palace.men, type: '八门' },
+        // 4. 九宫
         { id: 'gong', label: palace.gongName + palace.position + '宫', type: '九宫' },
+        // 5. 八卦
         (palace.gongName !== '中') && { id: 'gua', label: palace.gongName + '卦', type: '八卦' },
-
-        // 天干
-        palace.tianPan && { id: 'tian', label: getGanLabel(palace.tianPan) + (palace.tianPanShiErCS ? ` (${palace.tianPanShiErCS})` : ''), type: '天盘干' },
-
-        // 旬首甲遁 (仅在值符宫显示)
-        (palace.shen === '值符' && palace.tianPan) && { id: 'jia_dun', label: '甲遁' + palace.tianPan + '下', type: '遁' },
-
-        palace.diPan && { id: 'di', label: getGanLabel(palace.diPan) + (palace.diPanShiErCS ? ` (${palace.diPanShiErCS})` : ''), type: '地盘干' },
-        palace.anGan && { id: 'an', label: '暗干' + getGanLabel(palace.anGan), type: '暗干' },
-
-        // 寄宫 (如果有)
+        // 6. 天盘干
+        palace.tianPan && { id: 'tian', label: getGanLabel(palace.tianPan), type: '天盘干' },
+        // 7. 地盘干
+        palace.diPan && { id: 'di', label: getGanLabel(palace.diPan), type: '地盘干' },
+        // 8. 天盘寄干
         palace.jiGongTianPan && { id: 'ji_tian', label: getGanLabel(palace.jiGongTianPan), type: '天盘寄干' },
+        // 9. 地盘寄干
         palace.jiGongDiPan && { id: 'ji_di', label: getGanLabel(palace.jiGongDiPan), type: '地盘寄干' },
-
-        // 格局组合
-        (palace.tianPan && palace.diPan) && { id: 'ge_td', label: `${palace.tianPan}+${palace.diPan}`, type: '十干克应' },
-
-        // 扩展格局: 暗干+天盘, 暗干+地盘, 暗干+寄天, 暗干+寄地, 天盘+寄地, 寄天+地盘, 天盘+暗干
-        (palace.anGan && palace.tianPan) && { id: 'ge_at', label: `暗${palace.anGan}+天${palace.tianPan}`, type: '十干克应' },
-        (palace.anGan && palace.diPan) && { id: 'ge_ad', label: `暗${palace.anGan}+地${palace.diPan}`, type: '十干克应' },
-        (palace.anGan && palace.jiGongTianPan) && { id: 'ge_ajt', label: `暗${palace.anGan}+寄天${palace.jiGongTianPan}`, type: '十干克应' },
-        (palace.anGan && palace.jiGongDiPan) && { id: 'ge_ajd', label: `暗${palace.anGan}+寄地${palace.jiGongDiPan}`, type: '十干克应' },
-        (palace.tianPan && palace.jiGongDiPan) && { id: 'ge_tjd', label: `天${palace.tianPan}+寄地${palace.jiGongDiPan}`, type: '十干克应' },
-        (palace.jiGongTianPan && palace.diPan) && { id: 'ge_jtd', label: `寄天${palace.jiGongTianPan}+地${palace.diPan}`, type: '十干克应' },
-        (palace.tianPan && palace.anGan) && { id: 'ge_ta', label: `天${palace.tianPan}+暗${palace.anGan}`, type: '十干克应' },
-
-        (palace.shen && palace.men) && { id: 'ge_sm', label: `${palace.shen}+${palace.men}`, type: '神门克应' },
-        (palace.men && palace.tianPan) && { id: 'ge_mt', label: `${palace.men}+${palace.tianPan}`, type: '门干克应' },
-        (originalMen && palace.men) && { id: 'ge_mm', label: `${originalMen}+${palace.men}`, type: '门门克应' },
-
-        // 局势格局：马星（驿马）、旬空（空亡）
-        // 用户要求：Tab小标题显示 "马星"/"旬空"，大标题显示 "驿马"/"空亡"
+        // 10. 暗干
+        palace.anGan && { id: 'an', label: '暗干' + getGanLabel(palace.anGan), type: '暗干' },
+        // 11. 遁藏（仅在值符宫显示）
+        (palace.shen === '值符' && palace.tianPan) && { id: 'jia_dun', label: '甲遁' + palace.tianPan + '下', type: '遁藏' },
+        // 12. 马星
         (palace.maKong?.includes('马')) && { id: 'yima', label: '驿马', type: '马星' },
+        // 13. 旬空
         (palace.maKong?.includes('〇')) && { id: 'kongwang', label: '空亡', type: '旬空' },
-
-        // 吉凶格局（动态检测）
+        // 14. 吉凶格局（动态检测）
         ...detectPalacePatterns(palace, zhiShiMen, {
             zhiShiMen,
             zhiFuXing,
@@ -447,16 +430,33 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
             hourGan: siZhu?.hour?.charAt(0),
             xunShou,
         } as PatternContext).map((p, i) => {
-            // 对于包含子类的复杂格局，构造 "子名(父名)" 格式的标签
-            const complexPatterns = ['九遁', '三诈五假', '六仪击刑'];
-            const label = complexPatterns.includes(p.name) ? `${p.label}(${p.name})` : p.label;
+            const complexPatterns = ['九遁', '三诈五假', '六仪击刑', '悖格'];
+            const isComplex = complexPatterns.includes(p.name) && p.label !== p.name;
             return {
                 id: `pattern_${i}_${p.name}`,
-                label: label,
+                label: isComplex ? `${p.label}(${p.name})` : p.label,
+                displayLabel: isComplex ? p.name : p.label,
                 type: p.type
             };
         }),
-    ].filter(Boolean) as { id: string; label: string; type: string }[];
+        // 15. 十干克应（多个组合）
+        (palace.tianPan && palace.diPan) && { id: 'ge_td', label: `${palace.tianPan}+${palace.diPan}`, type: '十干克应' },
+        (palace.anGan && palace.tianPan) && { id: 'ge_at', label: `暗${palace.anGan}+天${palace.tianPan}`, type: '十干克应' },
+        (palace.anGan && palace.diPan) && { id: 'ge_ad', label: `暗${palace.anGan}+地${palace.diPan}`, type: '十干克应' },
+        (palace.anGan && palace.jiGongTianPan) && { id: 'ge_ajt', label: `暗${palace.anGan}+寄天${palace.jiGongTianPan}`, type: '十干克应' },
+        (palace.anGan && palace.jiGongDiPan) && { id: 'ge_ajd', label: `暗${palace.anGan}+寄地${palace.jiGongDiPan}`, type: '十干克应' },
+        (palace.tianPan && palace.jiGongDiPan) && { id: 'ge_tjd', label: `天${palace.tianPan}+寄地${palace.jiGongDiPan}`, type: '十干克应' },
+        (palace.jiGongTianPan && palace.diPan) && { id: 'ge_jtd', label: `寄天${palace.jiGongTianPan}+地${palace.diPan}`, type: '十干克应' },
+        (palace.tianPan && palace.anGan) && { id: 'ge_ta', label: `天${palace.tianPan}+暗${palace.anGan}`, type: '十干克应' },
+        // 16. 门门克应
+        (originalMen && palace.men) && { id: 'ge_mm', label: `${originalMen}+${palace.men}`, type: '门门克应' },
+        // 17. 门干克应
+        (palace.men && palace.tianPan) && { id: 'ge_mt', label: `${palace.men}+${palace.tianPan}`, type: '门干克应' },
+        // 18. 神门克应
+        (palace.shen && palace.men) && { id: 'ge_sm', label: `${palace.shen}+${palace.men}`, type: '神门克应' },
+        // 19. 九星值时
+        (palace.xing && timeZhi) && { id: 'xing_time', label: `${palace.xing}值${timeZhi}时`, type: '九星值时' },
+    ].filter(Boolean) as { id: string; label: string; displayLabel?: string; type: string }[];
 
     // 如果当前选中的 tab 不在 menuItems 中，默认选第一项
     const activeItem = menuItems.find(i => i.id === selectedTab) || menuItems[0];
@@ -491,7 +491,7 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
                             >
                                 {isActive && <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary" />}
                                 <span className={`text-xs ${isActive ? 'text-primary/80' : 'opacity-60'}`}>{item.type}</span>
-                                <span className={`font-serif text-sm font-medium truncate ${isActive ? 'text-primary' : ''}`}>{item.label.split(' ')[0]}</span>
+                                <span className={`font-serif text-sm font-medium truncate ${isActive ? 'text-primary' : ''}`}>{item.displayLabel || item.label}</span>
                             </button>
                         );
                     })}
@@ -503,22 +503,22 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
                 {/* 头部信息 */}
                 {activeItem && (
                     <div className="p-5 border-b border-border bg-muted/10">
-                        <div className="flex items-baseline gap-3 mb-2">
+                        <div className="flex flex-col gap-2">
                             <h2 className="text-xl font-serif text-foreground">{detailData.title}</h2>
-                            {detailData.subTitle && (
-                                <span className="text-sm text-muted-foreground">{detailData.subTitle}</span>
+                            {/* subTitle 和 tags 统一使用标签容器样式 */}
+                            {(detailData.subTitle || (detailData.tags && detailData.tags.length > 0)) && (
+                                <div className="flex flex-wrap gap-2">
+                                    {detailData.subTitle && (
+                                        <span className="px-2 py-0.5 rounded text-xs bg-primary/10 text-primary border border-primary/20">{detailData.subTitle}</span>
+                                    )}
+                                    {detailData.tags?.map((tag, i) => (
+                                        <span key={i} className="px-2 py-0.5 rounded text-xs bg-primary/10 text-primary border border-primary/20">
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
                             )}
                         </div>
-
-                        {detailData.tags && detailData.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                                {detailData.tags.map((tag, i) => (
-                                    <span key={i} className="px-2 py-0.5 rounded text-xs bg-primary/10 text-primary border border-primary/20">
-                                        {tag}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
                     </div>
                 )}
 

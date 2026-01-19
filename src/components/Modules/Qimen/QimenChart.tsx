@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { PaiPanMethod } from '../../../lib/csp-qimen/qimenService';
 import type { GlobalPattern } from '../../../lib/csp-qimen/patternDetector';
+import { getTianPanStatus, getMenPoStatus } from '../../../lib/csp-qimen/qimenStatusUtils';
 
 // 九宫数据结构
 export interface QimenPalace {
@@ -130,93 +131,95 @@ export default function QimenChart({
                             </div>
 
                             {/* 第二行：四柱 + 信息 */}
-                            <div className="flex items-center justify-start">
-                                {/* 左侧：四柱 */}
-                                <div className="flex gap-5 2xl:gap-6">
-                                    {([
-                                        { key: 'year', label: '年' },
-                                        { key: 'month', label: '月' },
-                                        { key: 'day', label: '日' },
-                                        { key: 'hour', label: '时' }
-                                    ] as const).map(({ key, label }) => {
-                                        const stem = header.siZhu[key][0];
-                                        const branch = header.siZhu[key][1];
-                                        const isDayOrHour = key === 'day' || key === 'hour';
-                                        // 甲时/甲日：整柱高亮（干+支）
-                                        const isJia = stem === '甲';
+                            {header.siZhu?.year && (
+                                <div className="flex items-center justify-start">
+                                    {/* 左侧：四柱 */}
+                                    <div className="flex gap-5 2xl:gap-6">
+                                        {([
+                                            { key: 'year', label: '年' },
+                                            { key: 'month', label: '月' },
+                                            { key: 'day', label: '日' },
+                                            { key: 'hour', label: '时' }
+                                        ] as const).map(({ key, label }) => {
+                                            const stem = header.siZhu[key][0];
+                                            const branch = header.siZhu[key][1];
+                                            const isDayOrHour = key === 'day' || key === 'hour';
+                                            // 甲时/甲日：整柱高亮（干+支）
+                                            const isJia = stem === '甲';
 
-                                        return (
-                                            <div key={key} className="flex flex-col items-center relative pr-3 2xl:pr-4">
-                                                <span className={`text-base 2xl:text-2xl font-serif leading-none mb-0.5 2xl:mb-1 ${isDayOrHour ? 'text-primary font-bold' : 'text-foreground'}`}>
-                                                    {stem}
-                                                </span>
-                                                <span className={`text-base 2xl:text-2xl font-serif leading-none ${isDayOrHour && isJia ? 'text-primary font-bold' : 'text-foreground'}`}>
-                                                    {branch}
-                                                </span>
-                                                {/* 标签：绝对定位在右侧中间 */}
-                                                <span className="absolute top-1/2 -translate-y-1/2 right-0 text-xs 2xl:text-sm text-muted-foreground/60 font-serif transform scale-90 origin-right">
-                                                    {label}
-                                                </span>
-                                            </div>
-                                        );
-                                    })}
+                                            return (
+                                                <div key={key} className="flex flex-col items-center relative pr-3 2xl:pr-4">
+                                                    <span className={`text-base 2xl:text-2xl font-serif leading-none mb-0.5 2xl:mb-1 ${isDayOrHour ? 'text-primary font-bold' : 'text-foreground'}`}>
+                                                        {stem}
+                                                    </span>
+                                                    <span className={`text-base 2xl:text-2xl font-serif leading-none ${isDayOrHour && isJia ? 'text-primary font-bold' : 'text-foreground'}`}>
+                                                        {branch}
+                                                    </span>
+                                                    {/* 标签：绝对定位在右侧中间 */}
+                                                    <span className="absolute top-1/2 -translate-y-1/2 right-0 text-xs 2xl:text-sm text-muted-foreground/60 font-serif transform scale-90 origin-right">
+                                                        {label}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* 分割线 - 调整间距以配合 justify-start */}
+                                    <div className="h-6 2xl:h-10 w-px bg-border/60 ml-4 2xl:ml-8 mr-4 2xl:mr-10" />
+
+                                    {/* 右侧：局数信息 */}
+                                    <div className="grid grid-cols-3 gap-y-0.5 2xl:gap-y-1 gap-x-3 2xl:gap-x-8 text-xs 2xl:text-base">
+                                        <div className="flex items-center gap-1 2xl:gap-2">
+                                            <span className="text-muted-foreground font-light">
+                                                {header.ju.substring(0, 2)}:
+                                            </span>
+                                            <span className="text-foreground font-serif font-bold">
+                                                {header.ju.substring(2)}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1 2xl:gap-2">
+                                            <span className="text-muted-foreground font-light">
+                                                旬首:
+                                            </span>
+                                            <span className="text-foreground font-serif">
+                                                {header.xunShou}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1 2xl:gap-2">
+                                            <span className="text-muted-foreground font-light">
+                                                马星:
+                                            </span>
+                                            <span className="text-foreground font-serif">
+                                                {header.maXing}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1 2xl:gap-2">
+                                            <span className="text-muted-foreground font-light">
+                                                值符:
+                                            </span>
+                                            <span className="text-foreground font-serif">
+                                                {header.zhiFu}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1 2xl:gap-2">
+                                            <span className="text-muted-foreground font-light">
+                                                值使:
+                                            </span>
+                                            <span className="text-foreground font-serif">
+                                                {header.zhiShi}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1 2xl:gap-2">
+                                            <span className="text-muted-foreground font-light">
+                                                空亡:
+                                            </span>
+                                            <span className="text-foreground font-serif">
+                                                {header.kongWang}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
-
-                                {/* 分割线 - 调整间距以配合 justify-start */}
-                                <div className="h-6 2xl:h-10 w-px bg-border/60 ml-4 2xl:ml-8 mr-4 2xl:mr-10" />
-
-                                {/* 右侧：局数信息 */}
-                                <div className="grid grid-cols-3 gap-y-0.5 2xl:gap-y-1 gap-x-3 2xl:gap-x-8 text-xs 2xl:text-base">
-                                    <div className="flex items-center gap-1 2xl:gap-2">
-                                        <span className="text-muted-foreground font-light">
-                                            {header.ju.substring(0, 2)}:
-                                        </span>
-                                        <span className="text-foreground font-serif font-bold">
-                                            {header.ju.substring(2)}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-1 2xl:gap-2">
-                                        <span className="text-muted-foreground font-light">
-                                            旬首:
-                                        </span>
-                                        <span className="text-foreground font-serif">
-                                            {header.xunShou}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-1 2xl:gap-2">
-                                        <span className="text-muted-foreground font-light">
-                                            马星:
-                                        </span>
-                                        <span className="text-foreground font-serif">
-                                            {header.maXing}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-1 2xl:gap-2">
-                                        <span className="text-muted-foreground font-light">
-                                            值符:
-                                        </span>
-                                        <span className="text-foreground font-serif">
-                                            {header.zhiFu}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-1 2xl:gap-2">
-                                        <span className="text-muted-foreground font-light">
-                                            值使:
-                                        </span>
-                                        <span className="text-foreground font-serif">
-                                            {header.zhiShi}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-1 2xl:gap-2">
-                                        <span className="text-muted-foreground font-light">
-                                            空亡:
-                                        </span>
-                                        <span className="text-foreground font-serif">
-                                            {header.kongWang}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
+                            )}
 
                             {/* 第三行：标签 + 操作按钮 */}
                             <div className="flex items-center justify-between">
@@ -303,7 +306,7 @@ export default function QimenChart({
                                             : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
                                             }`}
                                     >
-                                        长生
+                                        长生状态
                                     </button>
                                     <button className="px-2 2xl:px-3.5 py-0.5 text-xs 2xl:text-sm bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors font-serif border border-border">
                                         设置
@@ -402,7 +405,7 @@ export default function QimenChart({
                                             ) : (
                                                 <>
                                                     {/* 宫位内 3行 布局 */}
-                                                    <div className={`h-full flex flex-col p-1 2xl:p-1.5 ${showChangSheng ? 'justify-center gap-y-5 2xl:gap-y-6' : 'justify-evenly gap-y-5 2xl:gap-y-6'}`}>
+                                                    <div className={`h-full flex flex-col p-0.5 2xl:p-1 ${showChangSheng ? 'justify-center gap-y-3 2xl:gap-y-4' : 'justify-evenly gap-y-3 2xl:gap-y-4'}`}>
                                                         {/* 第一行：暗干 + 八神 + 马/空 */}
                                                         <div className="grid grid-cols-3 w-full">
                                                             <div className="flex items-center justify-center">
@@ -418,34 +421,61 @@ export default function QimenChart({
 
                                                         {/* 第二行：寄宫天盘 + 九星 + 天盘干 */}
                                                         <div className="grid grid-cols-3 w-full">
-                                                            <div className="flex flex-col items-center justify-center leading-tight">
+                                                            <div className="flex flex-col items-center justify-center leading-none">
                                                                 <span className="text-base 2xl:text-xl font-serif text-foreground">{palace.jiGongTianPan}</span>
-                                                                {showChangSheng && <span className="text-sm 2xl:text-sm text-muted-foreground">{palace.jiGongTianPanCS}</span>}
+                                                                {showChangSheng && <span className="text-xs 2xl:text-sm text-muted-foreground">{palace.jiGongTianPanCS}</span>}
                                                             </div>
-                                                            <div className="flex flex-col items-center justify-center leading-tight">
-                                                                <span className={`text-2xl 2xl:text-3xl font-serif font-bold ${isZhiFu ? 'text-primary' : 'text-foreground'}`}>{palace.xing}</span>
-                                                                {showChangSheng && <span className="text-sm 2xl:text-sm text-muted-foreground">{palace.xingWang}</span>}
+                                                            <div className="flex flex-col items-center justify-center leading-none">
+                                                                <span className={`text-xl 2xl:text-2xl font-serif font-bold ${isZhiFu ? 'text-primary' : 'text-foreground'}`}>{palace.xing}</span>
+                                                                {showChangSheng && <span className="text-xs 2xl:text-sm text-muted-foreground">{palace.xingWang}</span>}
                                                             </div>
-                                                            <div className="flex flex-col items-center justify-center leading-tight">
-                                                                <span className={`text-base 2xl:text-xl font-serif ${isDayStem || isHourStem ? 'text-primary font-bold' : 'text-foreground'}`}>{palace.tianPan}</span>
-                                                                {showChangSheng && <span className="text-sm 2xl:text-sm text-muted-foreground">{palace.tianPanShiErCS}</span>}
-                                                            </div>
+                                                            {(() => {
+                                                                const tianPanStatus = getTianPanStatus(palace.tianPan, palace.position);
+                                                                const tianPanStyle = tianPanStatus.colorVar ? { color: tianPanStatus.colorVar } : undefined;
+                                                                const tianPanClass = tianPanStatus.colorVar
+                                                                    ? 'text-base 2xl:text-xl font-serif font-bold'
+                                                                    : `text-base 2xl:text-xl font-serif ${isDayStem || isHourStem ? 'text-primary font-bold' : 'text-foreground'}`;
+                                                                return (
+                                                                    <div className="flex flex-col items-center justify-center leading-none">
+                                                                        <span className={tianPanClass} style={tianPanStyle}>{palace.tianPan}</span>
+                                                                        {showChangSheng && <span className="text-xs 2xl:text-sm text-muted-foreground">{palace.tianPanShiErCS}</span>}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
 
                                                         {/* 第三行：寄宫地盘 + 八门 + 地盘干 */}
                                                         <div className="grid grid-cols-3 w-full">
-                                                            <div className="flex flex-col items-center justify-center leading-tight">
+                                                            <div className="flex flex-col items-center justify-center leading-none">
                                                                 <span className="text-base 2xl:text-xl font-serif text-foreground">{palace.jiGongDiPan}</span>
-                                                                {showChangSheng && <span className="text-sm 2xl:text-sm text-muted-foreground">{palace.jiGongDiPanCS}</span>}
+                                                                {showChangSheng && <span className="text-xs 2xl:text-sm text-muted-foreground">{palace.jiGongDiPanCS}</span>}
                                                             </div>
-                                                            <div className="flex flex-col items-center justify-center leading-tight">
-                                                                <span className={`text-lg 2xl:text-2xl font-serif ${isZhiShi ? 'text-primary' : 'text-foreground'}`}>{palace.men}</span>
-                                                                {showChangSheng && <span className="text-sm 2xl:text-sm text-muted-foreground">{palace.menWang}</span>}
-                                                            </div>
-                                                            <div className="flex flex-col items-center justify-center leading-tight">
-                                                                <span className="text-base 2xl:text-xl font-serif text-foreground">{palace.diPan}</span>
-                                                                {showChangSheng && <span className="text-sm 2xl:text-sm text-muted-foreground">{palace.diPanShiErCS}</span>}
-                                                            </div>
+                                                            {(() => {
+                                                                const menPoStatus = getMenPoStatus(palace.men, palace.position);
+                                                                const menStyle = menPoStatus.colorVar ? { color: menPoStatus.colorVar } : undefined;
+                                                                const menClass = menPoStatus.colorVar
+                                                                    ? 'text-lg 2xl:text-xl font-serif font-bold'
+                                                                    : `text-lg 2xl:text-xl font-serif ${isZhiShi ? 'text-primary' : 'text-foreground'}`;
+                                                                return (
+                                                                    <div className="flex flex-col items-center justify-center leading-none">
+                                                                        <span className={menClass} style={menStyle}>{palace.men}</span>
+                                                                        {showChangSheng && <span className="text-xs 2xl:text-sm text-muted-foreground">{palace.menWang}</span>}
+                                                                    </div>
+                                                                );
+                                                            })()}
+                                                            {(() => {
+                                                                const diPanStatus = getTianPanStatus(palace.diPan, palace.position);
+                                                                const diPanStyle = diPanStatus.colorVar ? { color: diPanStatus.colorVar } : undefined;
+                                                                const diPanClass = diPanStatus.colorVar
+                                                                    ? 'text-base 2xl:text-xl font-serif font-bold'
+                                                                    : 'text-base 2xl:text-xl font-serif text-foreground';
+                                                                return (
+                                                                    <div className="flex flex-col items-center justify-center leading-none">
+                                                                        <span className={diPanClass} style={diPanStyle}>{palace.diPan}</span>
+                                                                        {showChangSheng && <span className="text-xs 2xl:text-sm text-muted-foreground">{palace.diPanShiErCS}</span>}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     </div>
                                                 </>
@@ -461,3 +491,4 @@ export default function QimenChart({
         </div>
     );
 }
+

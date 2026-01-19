@@ -64,12 +64,7 @@ export default function QimenCaseList({
 
     return (
         <aside className="w-full h-full bg-sidebar border-r border-sidebar-border flex flex-col min-h-0">
-            {/* Loading Indicator */}
-            {isLoading && (
-                <div className="absolute top-0 left-0 right-0 h-1 bg-primary/20 overflow-hidden z-20">
-                    <div className="h-full bg-primary animate-progress origin-left"></div>
-                </div>
-            )}
+
 
             {/* 标题栏与操作 */}
             <div className="p-4 border-b border-sidebar-border space-y-3">
