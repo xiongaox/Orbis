@@ -5,6 +5,7 @@
  */
 import { useState } from 'react';
 import type { PaiPanMethod } from '../../../lib/csp-qimen/qimenService';
+import type { GlobalPattern } from '../../../lib/csp-qimen/patternDetector';
 
 // 九宫数据结构
 export interface QimenPalace {
@@ -60,6 +61,8 @@ interface QimenChartProps {
             hour: string;
         };
     };
+    globalPatterns?: GlobalPattern[];  // 全局格局
+    onPatternClick?: (pattern: GlobalPattern) => void;  // 格局点击回调
 }
 
 // 洛书九宫布局顺序（按行从左到右，从上到下）
@@ -83,6 +86,8 @@ export default function QimenChart({
     onResetToNow,
     onOpenDatePicker,
     header,
+    globalPatterns = [],
+    onPatternClick,
 }: QimenChartProps) {
     const orderedPalaces = LUOSHU_ORDER.map(pos => palaces.find(p => p.position === pos)!);
     // 是否显示十二长生和旺相
@@ -259,12 +264,17 @@ export default function QimenChart({
                                             </>
                                         )}
                                     </div>
-                                    <div className="px-2 2xl:px-3.5 py-0.5 rounded-full border border-border text-muted-foreground text-xs 2xl:text-sm font-serif">
-                                        天显
-                                    </div>
-                                    <div className="px-2 2xl:px-3.5 py-0.5 rounded-full border border-border text-muted-foreground text-xs 2xl:text-sm font-serif">
-                                        五不
-                                    </div>
+                                    {/* 全局格局按钮 */}
+                                    {globalPatterns.map((pattern, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => onPatternClick?.(pattern)}
+                                            className="px-2 2xl:px-3.5 py-0.5 rounded-full border border-border text-muted-foreground text-xs 2xl:text-sm font-serif hover:bg-muted/10 transition-colors"
+                                            title={pattern.fullLabel}
+                                        >
+                                            {pattern.label}
+                                        </button>
+                                    ))}
                                 </div>
                                 <div className="flex items-center gap-1 2xl:gap-2">
                                     <button
