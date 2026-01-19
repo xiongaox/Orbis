@@ -214,7 +214,7 @@ export default function QimenPage() {
                     palaces={palaces}
                     header={header}
                     selectedPalace={selectedPalace}
-                    onSelectPalace={setSelectedPalace}
+                    onSelectPalace={(position) => setSelectedPalace(position === selectedPalace ? null : position)}
                     onPrevHour={handlePrevHour}
                     onNextHour={handleNextHour}
                     method={paiPanMethod}

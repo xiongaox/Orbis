@@ -351,6 +351,10 @@ const MA_XING_MAP: Record<string, string> = {
 // 用来补全中宫地盘干（虽然 Demo 逻辑中直接置空，但保留此逻辑可防止 UI 数据缺失）
 const DI_PAN_GAN_SHUN = ['戊', '己', '庚', '辛', '壬', '癸', '丁', '丙', '乙'];
 
+// 暗干使用的九干（六仪三奇，甲永远隐藏）
+// 顺序：戊己庚辛壬癸丁丙乙（地盘干顺序）
+const AN_GAN_ORDER = ['戊', '己', '庚', '辛', '壬', '癸', '丁', '丙', '乙'];
+
 // 实际上中宫通常视为寄宫，WASM 并未直接输出中宫独立内容
 // Demo 做法：中宫天盘显示 戊 (或根据局数? Demo里写死戊，但实际上应该跟局数有关?)
 // 咱们这里跟随 Demo 处理：中宫尽量简化，或者沿用之前逻辑计算中宫地盘
@@ -401,6 +405,102 @@ function getZhongGongDiPan(juStr: string): string {
     }
 
     return DI_PAN_GAN_SHUN[steps] || '';
+}
+
+/**
+ * 计算暗干
+ * 算法：时干找值使飞布，遇地盘相同入中
+ * 
+ * 关键点：
+ * 1. 找值使门**实际所在的宫位**（转盘后的位置，非本宫）
+ * 2. 从该宫位起，以时干为首，按飞宫顺序依次落干
+ * 3. 当飞布之干 = 该宫地盘干时，此干入中宫
+ * 
+ * @param zhiShiMen 值使门名称（如 "休门" 或 "休"）
+ * @param hourGan 时干（如 "戊"）
+ * @param palaces 已构建的 QimenPalace 数组（有明确的 position 字段）
+ * @returns 每个宫位的暗干映射 { position: anGan }
+ */
+function calculateAnGan(
+    zhiShiMen: string,
+    hourGan: string,
+    palaces: QimenPalace[],
+    juName: string
+): Record<number, string> {
+    const result: Record<number, string> = {};
+
+    // 1. 找值使门**实际所在的宫位**
+    //    遍历 palaces，找到 men 字段包含值使门名称的宫位
+    const menNameToFind = zhiShiMen.replace('门', '');
+    let zhiShiPalacePos = 0;
+
+    for (const palace of palaces) {
+        const palaceMen = palace.men?.replace('门', '') || '';
+        if (palaceMen === menNameToFind) {
+            zhiShiPalacePos = palace.position;
+            break;
+        }
+    }
+
+    if (zhiShiPalacePos === 0) {
+        console.warn('[AnGan] Cannot find zhiShi palace for:', zhiShiMen, 'positions:', palaces.map(p => `${p.position}:${p.men}`));
+        return result;
+    }
+
+    // 2. 确定时干在九干中的位置（六仪三奇：戊己庚辛壬癸丁丙乙）
+    const hourGanIdx = AN_GAN_ORDER.indexOf(hourGan);
+    if (hourGanIdx === -1) {
+        console.warn('[AnGan] Invalid hourGan (not in 9 stems):', hourGan);
+        return result;
+    }
+
+    // 3. 构建地盘干映射 (用于判断入中)
+    const diPanMap: Record<number, string> = {};
+    for (const palace of palaces) {
+        diPanMap[palace.position] = palace.diPan || '';
+    }
+
+    // 4. 判断入中规则 (如果时干 == 值使门所在宫的地盘干，则起点改为5宫)
+    let startPos = zhiShiPalacePos;
+    if (hourGan === diPanMap[startPos]) {
+        startPos = 5;
+        console.log(`[AnGan] 入中规则触发: 时干(${hourGan}) == 地盘干, 起点改为中宫(5)`);
+    }
+
+    // 5. 确定飞宫路径 (阳顺阴逆)
+    const isYang = juName.includes('阳'); // 局名包含"阳"即为阳遁
+    let posPath = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    if (!isYang) {
+        posPath = [9, 8, 7, 6, 5, 4, 3, 2, 1]; // 阴遁逆排
+    }
+
+    // 6. 确定起始索引
+    let currentPathIdx = posPath.indexOf(startPos);
+    let currentGanIdx = hourGanIdx;
+
+    if (currentPathIdx === -1) {
+        console.warn('[AnGan] Start Pos not in path?', startPos);
+        return result;
+    }
+
+    console.log('[AnGan] Debug:', {
+        juName, isYang, zhiShiMen, zhiShiPalacePos, startPos, hourGan
+    });
+
+    // 7. 飞布排干
+    for (let i = 0; i < 9; i++) {
+        const pos = posPath[currentPathIdx];
+        const gan = AN_GAN_ORDER[currentGanIdx];
+
+        result[pos] = gan;
+
+        // 移动指针
+        currentPathIdx = (currentPathIdx + 1) % 9;
+        currentGanIdx = (currentGanIdx + 1) % 9;
+    }
+
+    console.log('[AnGan] Final result:', result);
+    return result;
 }
 
 /**
@@ -494,7 +594,7 @@ function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResu
             men: pos === 5 ? '' : (cspPalace?.men ? `${cspPalace.men}门` : ''),
             xing: pos === 5 ? '' : (cspPalace?.xing || ''),
             shen: pos === 5 ? '' : (cspPalace?.shen || ''),
-            anGan: '', // CSP 不输出暗干，留空
+            anGan: '', // 将在后续填充
             // 寄宫干支
             jiGongTianPan: pos === 5 ? '' : (cspPalace?.tianPanJi || ''),
             jiGongDiPan: pos === 5 ? '' : (cspPalace?.diPanJi || ''),
@@ -525,6 +625,43 @@ function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResu
 
         palaces.push(palace);
     }
+
+    // 计算暗干
+    let hourGan = siZhu.hour.slice(0, 1);
+
+    // 特殊处理：如果时干是"甲"，则取旬首仪（六甲遁六仪）
+    if (hourGan === '甲') {
+        const hourZhi = siZhu.hour.slice(1, 2);
+
+        // 简单查表法：
+        const xunShouMap: Record<string, string> = {
+            '子': '戊', // 甲子戊
+            '戌': '己', // 甲戌己
+            '申': '庚', // 甲申庚
+            '午': '辛', // 甲午辛
+            '辰': '壬', // 甲辰壬
+            '寅': '癸'  // 甲寅癸
+        };
+        const newGan = xunShouMap[hourZhi];
+        if (newGan) {
+            console.log(`[AnGan] 时干为甲(${siZhu.hour})，转换为旬首仪: ${newGan}`);
+            hourGan = newGan;
+        } else {
+            console.warn(`[AnGan] 时干为甲，但无法匹配旬首: ${siZhu.hour}`);
+        }
+    }
+
+    console.log('[AnGan] Input:', { zhiShi: parsed.zhiShi, hourGan, siZhuHour: siZhu.hour });
+    console.log('[AnGan] Palaces men:', palaces.map(p => `${p.position}:${p.men}`));
+
+    const anGanMap = calculateAnGan(parsed.zhiShi, hourGan, palaces, parsed.ju);
+
+    // 填充暗干到各宫位
+    for (const palace of palaces) {
+        palace.anGan = anGanMap[palace.position] || '';
+    }
+
+    console.log('[AnGan] Applied:', palaces.map(p => `${p.position}:${p.anGan}`));
 
     return { header, palaces };
 }

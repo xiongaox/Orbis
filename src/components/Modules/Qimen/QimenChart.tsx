@@ -317,12 +317,12 @@ export default function QimenChart({
                                         {/* 中宫特殊布局：左上天盘干（暗干），右下地盘干 */}
                                         {palace.position === 5 ? (
                                             <>
-                                                {/* 中宫：保持三行结构与左右宫位一致，只是数据为空 */}
+                                                {/* 中宫：显示入中的暗干和地盘干 */}
                                                 <div className={`h-full flex flex-col p-1 2xl:p-1.5 ${showChangSheng ? 'justify-center gap-y-5 2xl:gap-y-6' : 'justify-evenly gap-y-5 2xl:gap-y-6'}`}>
-                                                    {/* 第一行：占位（与左右宫位第一行高度一致） */}
+                                                    {/* 第一行：暗干（入中）在左上角 */}
                                                     <div className="grid grid-cols-3 w-full">
                                                         <div className="flex items-center justify-center">
-                                                            <span className="text-base 2xl:text-xl font-serif text-muted-foreground">&nbsp;</span>
+                                                            <span className="text-base 2xl:text-xl font-serif text-muted-foreground">{palace.anGan}</span>
                                                         </div>
                                                         <div className="flex items-center justify-center">
                                                             <span className="text-base 2xl:text-xl font-serif text-foreground/60">&nbsp;</span>
