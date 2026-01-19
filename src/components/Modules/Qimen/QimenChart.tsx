@@ -41,6 +41,8 @@ interface QimenChartProps {
     onNextHour?: () => void;  // 下一时辰
     method?: PaiPanMethod;
     onMethodChange?: (method: PaiPanMethod) => void;
+    onResetToNow?: () => void;
+    onOpenDatePicker?: () => void;
     header: {
         solarDate: string;
         lunarDate: string;
@@ -78,11 +80,15 @@ export default function QimenChart({
     onNextHour,
     method = 'zhirun',
     onMethodChange,
+    onResetToNow,
+    onOpenDatePicker,
     header,
 }: QimenChartProps) {
     const orderedPalaces = LUOSHU_ORDER.map(pos => palaces.find(p => p.position === pos)!);
     // 是否显示十二长生和旺相
     const [showChangSheng, setShowChangSheng] = useState(true);
+    // 盘式选择器开关
+    const [isMethodOpen, setIsMethodOpen] = useState(false);
 
     return (
         <div className="flex flex-col h-full overflow-hidden items-center p-2">
@@ -107,19 +113,17 @@ export default function QimenChart({
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-1 2xl:gap-2">
-                                    <button className="px-2 2xl:px-3 py-0.5 2xl:py-1 text-xs 2xl:text-sm bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors font-serif">
+                                    <button
+                                        onClick={onResetToNow}
+                                        className="px-2 2xl:px-3 py-0.5 2xl:py-1 text-xs 2xl:text-sm bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors font-serif"
+                                    >
                                         现在
                                     </button>
+
                                     <button
-                                        onClick={() => setShowChangSheng(!showChangSheng)}
-                                        className={`px-2 2xl:px-3 py-0.5 2xl:py-1 text-xs 2xl:text-sm rounded-md transition-colors font-serif border border-border ${showChangSheng
-                                            ? 'bg-primary/10 text-primary'
-                                            : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
-                                            }`}
+                                        onClick={onOpenDatePicker}
+                                        className="px-2 2xl:px-3 py-0.5 2xl:py-1 text-xs 2xl:text-sm bg-secondary text-muted-foreground rounded-md hover:bg-secondary/80 transition-colors font-serif border border-border"
                                     >
-                                        长生
-                                    </button>
-                                    <button className="px-2 2xl:px-3 py-0.5 2xl:py-1 text-xs 2xl:text-sm bg-secondary text-muted-foreground rounded-md hover:bg-secondary/80 transition-colors font-serif border border-border">
                                         重新选择
                                     </button>
                                 </div>
@@ -210,23 +214,50 @@ export default function QimenChart({
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1 2xl:gap-2">
 
-                                    <div className="relative group">
-                                        <select
-                                            value={method}
-                                            onChange={(e) => onMethodChange?.(e.target.value as PaiPanMethod)}
-                                            className="appearance-none bg-transparent pl-3 pr-8 py-0.5 rounded-full border border-border text-muted-foreground text-xs 2xl:text-sm font-serif cursor-pointer hover:border-primary/50 hover:text-primary transition-colors focus:outline-none focus:ring-1 focus:ring-primary"
+                                    <div className="relative">
+                                        {/* Dropdown Trigger Button */}
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsMethodOpen(!isMethodOpen)}
+                                            className="flex items-center gap-1 pl-3 pr-2 py-0.5 rounded-full border border-border text-primary text-xs 2xl:text-sm font-serif hover:bg-muted/10 transition-colors"
                                         >
-                                            {METHODS.map((m) => (
-                                                <option key={m.value} value={m.value}>
-                                                    {m.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground">
-                                            <svg className="h-3 w-3 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                            <span>
+                                                {METHODS.find(m => m.value === method)?.label}
+                                            </span>
+                                            <svg className={`h-3 w-3 fill-current text-muted-foreground transition-transform ${isMethodOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                                                 <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
                                             </svg>
-                                        </div>
+                                        </button>
+
+                                        {/* Dropdown Menu */}
+                                        {isMethodOpen && (
+                                            <>
+                                                {/* Backdrop to close on click outside */}
+                                                <div
+                                                    className="fixed inset-0 z-40"
+                                                    onClick={() => setIsMethodOpen(false)}
+                                                />
+                                                {/* Menu Content */}
+                                                <div className="absolute top-full mt-1 left-0 z-50 w-max bg-card border border-border/80 rounded-xl shadow-xl py-1.5 animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5">
+                                                    {METHODS.map((m) => (
+                                                        <button
+                                                            key={m.value}
+                                                            type="button"
+                                                            onClick={() => {
+                                                                onMethodChange?.(m.value);
+                                                                setIsMethodOpen(false);
+                                                            }}
+                                                            className={`block w-full text-left px-3.5 py-2 text-xs 2xl:text-sm font-serif whitespace-nowrap transition-colors ${method === m.value
+                                                                    ? 'bg-primary/10 text-primary font-medium'
+                                                                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                                                                }`}
+                                                        >
+                                                            {m.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                     <div className="px-2 2xl:px-3.5 py-0.5 rounded-full border border-border text-muted-foreground text-xs 2xl:text-sm font-serif">
                                         天显
@@ -239,19 +270,30 @@ export default function QimenChart({
                                     <button
                                         type="button"
                                         onClick={onPrevHour}
-                                        className="px-2 2xl:px-3.5 py-0.5 text-xs 2xl:text-sm bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors font-serif border border-border"
+                                        className="p-1 2xl:p-1.5 bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors border border-border"
+                                        title="上一局"
                                     >
-                                        上一局
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 2xl:w-3.5 2xl:h-3.5"><path d="m15 18-6-6 6-6" /></svg>
                                     </button>
                                     <button
                                         type="button"
                                         onClick={onNextHour}
-                                        className="px-2 2xl:px-3.5 py-0.5 text-xs 2xl:text-sm bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors font-serif border border-border"
+                                        className="p-1 2xl:p-1.5 bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors border border-border"
+                                        title="下一局"
                                     >
-                                        下一局
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 2xl:w-3.5 2xl:h-3.5"><path d="m9 18 6-6-6-6" /></svg>
+                                    </button>
+                                    <button
+                                        onClick={() => setShowChangSheng(!showChangSheng)}
+                                        className={`px-2 2xl:px-3.5 py-0.5 text-xs 2xl:text-sm rounded-full transition-colors font-serif border border-border ${showChangSheng
+                                            ? 'bg-primary/10 text-primary'
+                                            : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+                                            }`}
+                                    >
+                                        长生
                                     </button>
                                     <button className="px-2 2xl:px-3.5 py-0.5 text-xs 2xl:text-sm bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors font-serif border border-border">
-                                        高级设置
+                                        设置
                                     </button>
                                 </div>
                             </div>

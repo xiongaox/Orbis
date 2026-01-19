@@ -8,6 +8,7 @@ import QimenCaseList from './QimenCaseList';
 import QimenChart, { type QimenPalace } from './QimenChart';
 import QimenPalaceDetail from './QimenPalaceDetail';
 import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
+import QimenNewCaseModal from './QimenNewCaseModal';
 import {
     calculateQimen,
     calculateQimenNow,
@@ -15,6 +16,7 @@ import {
     type QimenHeader,
     type PaiPanMethod
 } from '../../../lib/csp-qimen/qimenService';
+import { qimenCaseService, type QimenCase } from '../../../services/qimenCaseService';
 
 // 默认空的宫位数据
 const EMPTY_PALACES: QimenPalace[] = Array.from({ length: 9 }, (_, i) => ({
@@ -49,12 +51,17 @@ export default function QimenPage() {
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
+    // 新建案例弹窗状态
+    const [isNewCaseModalOpen, setIsNewCaseModalOpen] = useState(false);
+
     // 真实数据状态
     const [palaces, setPalaces] = useState<QimenPalace[]>(EMPTY_PALACES);
     const [header, setHeader] = useState<QimenHeader>(DEFAULT_HEADER);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [paiPanMethod, setPaiPanMethod] = useState<PaiPanMethod>('zhirun');
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const [editingCase, setEditingCase] = useState<QimenCase | null>(null);
 
     // 根据指定日期计算奇门盘
     const calculateQimenByDate = useCallback(async (date: Date) => {
@@ -134,6 +141,28 @@ export default function QimenPage() {
         init();
     }, [calculateNow]);
 
+    // 删除案例
+    const handleDeleteCase = async (id: string) => {
+        if (!window.confirm('确定要删除这个案例吗？')) return;
+        try {
+            await qimenCaseService.deleteCase(id);
+            setRefreshTrigger(prev => prev + 1);
+            if (selectedCaseId === id) {
+                setSelectedCaseId(null);
+                // Optionally clear chart or reset to now
+            }
+        } catch (e) {
+            console.error(e);
+            alert('删除失败');
+        }
+    };
+
+    // 编辑案例
+    const handleEditCase = (caseItem: QimenCase) => {
+        setEditingCase(caseItem);
+        setIsNewCaseModalOpen(true);
+    };
+
     // 获取选中的宫位数据
     const selectedPalaceData = selectedPalace
         ? palaces.find(p => p.position === selectedPalace) || null
@@ -145,10 +174,19 @@ export default function QimenPage() {
             <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 overflow-hidden hidden lg:block">
                 <QimenCaseList
                     selectedCaseId={selectedCaseId}
-                    onSelectCase={setSelectedCaseId}
-                    onOpenDatePicker={() => setIsDatePickerOpen(true)}
-                    onCalculateNow={calculateNow}
-                    selectedDate={selectedDate}
+                    onSelectCase={(id, caseItem) => {
+                        setSelectedCaseId(id);
+                        if (caseItem.test_date) {
+                            calculateQimenByDate(new Date(caseItem.test_date));
+                        }
+                    }}
+                    onOpenDatePicker={() => {
+                        setEditingCase(null);
+                        setIsNewCaseModalOpen(true);
+                    }}
+                    onDeleteCase={handleDeleteCase}
+                    onEditCase={handleEditCase}
+                    refreshTrigger={refreshTrigger}
                 />
             </div>
 
@@ -177,6 +215,8 @@ export default function QimenPage() {
                     onNextHour={handleNextHour}
                     method={paiPanMethod}
                     onMethodChange={setPaiPanMethod}
+                    onResetToNow={calculateNow}
+                    onOpenDatePicker={() => setIsDatePickerOpen(true)}
                 />
             </main>
 
@@ -195,6 +235,28 @@ export default function QimenPage() {
                     calculateQimenByDate(date);
                 }}
             />
+
+            {/* 新建/编辑案例弹窗 */}
+            {isNewCaseModalOpen && (
+                <QimenNewCaseModal
+                    key={editingCase ? `edit-${editingCase.id}` : 'new'} // Force remount on mode change
+                    isOpen={isNewCaseModalOpen}
+                    initialData={editingCase}
+                    onClose={() => {
+                        setIsNewCaseModalOpen(false);
+                        setEditingCase(null);
+                    }}
+                    onConfirm={(data) => {
+                        console.log('案例保存成功:', data);
+                        setIsNewCaseModalOpen(false);
+                        setEditingCase(null);
+                        // 创建后直接跳转到该时间起盘
+                        calculateQimenByDate(data.date);
+                        // 刷新列表
+                        setRefreshTrigger(prev => prev + 1);
+                    }}
+                />
+            )}
         </div>
     );
 }

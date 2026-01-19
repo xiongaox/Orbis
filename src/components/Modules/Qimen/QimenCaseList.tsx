@@ -2,107 +2,75 @@
  * 奇门遁甲模块 - 案例列表组件
  * 左侧显示案例列表，支持起盘功能
  */
-import { useState } from 'react';
-import { Search, ChevronDown } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, ChevronDown, Pencil, Trash2 } from 'lucide-react';
+import { qimenCaseService, type QimenCase, QIMEN_CATEGORIES } from '../../../services/qimenCaseService';
 
-// 奇门案例分类
-const QIMEN_CATEGORIES = [
-    { id: 'all', name: '全部' },
-    { id: 'work', name: '工作事业' },
-    { id: 'study', name: '求学考试' },
-    { id: 'love', name: '恋爱婚姻' },
-    { id: 'wealth', name: '生意财运' },
-    { id: 'lost', name: '失物失人' },
-    { id: 'travel', name: '出行出国' },
-    { id: 'health', name: '疾病身体' },
-] as const;
 
-type CategoryId = typeof QIMEN_CATEGORIES[number]['id'];
-
-// Mock 案例数据
-interface QimenCase {
-    id: string;
-    title: string;
-    category: CategoryId;
-    author: string;
-    date: string;
-    preview: string;
-}
-
-const MOCK_CASES: QimenCase[] = [
-    {
-        id: '1',
-        title: '钱包丢了吗？',
-        category: 'lost',
-        author: '不吹牛',
-        date: '2026-01-15 14:30',
-        preview: '看看此人丢了啥东西，能否找到【在哪里谁找...】',
-    },
-    {
-        id: '2',
-        title: '一朋友问存折找不到了，看看在哪里？',
-        category: 'lost',
-        author: '不吹牛',
-        date: '2026-01-14 09:15',
-        preview: '问测寻找失物方位',
-    },
-    {
-        id: '3',
-        title: '掉了一份筆記，能不能找到？',
-        category: 'lost',
-        author: '不吹牛',
-        date: '2026-01-13 16:45',
-        preview: '办公室物品遗失',
-    },
-    {
-        id: '4',
-        title: '我的银行卡不记得放哪去了',
-        category: 'lost',
-        author: '不吹牛',
-        date: '2026-01-12 11:20',
-        preview: '现在怎么找也找不到...',
-    },
-    {
-        id: '5',
-        title: '问今年事业运势如何',
-        category: 'work',
-        author: '易学研究',
-        date: '2026-01-10 20:05',
-        preview: '2026年事业发展方向',
-    },
-];
 
 interface QimenCaseListProps {
     selectedCaseId: string | null;
-    onSelectCase: (id: string) => void;
+    onSelectCase: (id: string, k: QimenCase) => void;
     onLoginClick?: () => void;
     onOpenDatePicker?: () => void;
-    onCalculateNow?: () => void;
-    selectedDate?: Date;
+    onDeleteCase?: (id: string) => void;
+    onEditCase?: (caseItem: QimenCase) => void;
+    refreshTrigger?: number; // Trigger refresh
 }
 
 export default function QimenCaseList({
     selectedCaseId,
     onSelectCase,
     onOpenDatePicker,
-    onCalculateNow,
-    selectedDate,
+    onDeleteCase,
+    onEditCase,
+    refreshTrigger = 0
 }: QimenCaseListProps) {
     const [search, setSearch] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState<CategoryId>('all');
+    const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
 
+    // Real Data State
+    const [cases, setCases] = useState<QimenCase[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    // Fetch Cases
+    useEffect(() => {
+        const fetchCases = async () => {
+            setIsLoading(true);
+            try {
+                const data = await qimenCaseService.getCases();
+                setCases(data);
+            } catch (error) {
+                console.error("Fetch cases failed", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchCases();
+    }, [refreshTrigger]);
+
     // 筛选案例
-    const filteredCases = MOCK_CASES.filter(c => {
+    const filteredCases = cases.filter(c => {
         const matchesSearch = c.title.toLowerCase().includes(search.toLowerCase());
+        // Simple category filtering (need to handle 'all')
         const matchesCategory = selectedCategory === 'all' || c.category === selectedCategory;
         return matchesSearch && matchesCategory;
     });
 
-    const currentCategoryName = QIMEN_CATEGORIES.find(c => c.id === selectedCategory)?.name || '全部';
+    // Filter Categories (includes "All")
+    const FILTER_CATEGORIES = [{ id: 'all', name: '全部' }, ...QIMEN_CATEGORIES];
+    const currentCategoryName = FILTER_CATEGORIES.find(c => c.id === selectedCategory)?.name || '未知';
 
     return (
         <aside className="w-full h-full bg-sidebar border-r border-sidebar-border flex flex-col min-h-0">
+            {/* Loading Indicator */}
+            {isLoading && (
+                <div className="absolute top-0 left-0 right-0 h-1 bg-primary/20 overflow-hidden z-20">
+                    <div className="h-full bg-primary animate-progress origin-left"></div>
+                </div>
+            )}
+
             {/* 标题栏与操作 */}
             <div className="p-4 border-b border-sidebar-border space-y-3">
                 <div className="flex items-center justify-between">
@@ -112,6 +80,7 @@ export default function QimenCaseList({
                     >
                         案例库
                     </button>
+
                     <div className="relative">
                         <button
                             type="button"
@@ -125,7 +94,7 @@ export default function QimenCaseList({
 
                         {isCategoryOpen && (
                             <div className="absolute right-0 mt-2 w-40 bg-sidebar border border-sidebar-border rounded-lg shadow-lg p-2 z-20">
-                                {QIMEN_CATEGORIES.map((cat) => (
+                                {FILTER_CATEGORIES.map((cat) => (
                                     <button
                                         key={cat.id}
                                         type="button"
@@ -140,7 +109,10 @@ export default function QimenCaseList({
                                     >
                                         <span>{cat.name}</span>
                                         <span className="text-muted-foreground/60">
-                                            {MOCK_CASES.filter(c => c.category === cat.id || cat.id === 'all').length}
+                                            {/* Count logic */}
+                                            {cat.id === 'all'
+                                                ? cases.length
+                                                : cases.filter(c => c.category === cat.id).length}
                                         </span>
                                     </button>
                                 ))}
@@ -161,34 +133,26 @@ export default function QimenCaseList({
                     />
                 </div>
 
-                {/* 起盘操作区 */}
-                <div className="p-3 bg-muted/30 rounded-lg border border-border/50 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">起盘时间</span>
-                        <span className="font-mono text-foreground">
-                            {selectedDate
-                                ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')} ${String(selectedDate.getHours()).padStart(2, '0')}:${String(selectedDate.getMinutes()).padStart(2, '0')}`
-                                : '未选择'
-                            }
-                        </span>
-                    </div>
-                    <div className="flex gap-2">
-                        <button
-                            type="button"
-                            onClick={onOpenDatePicker}
-                            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-secondary/50 hover:bg-secondary text-foreground/80 hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
-                        >
-                            选择时间
-                        </button>
-                        <button
-                            type="button"
-                            onClick={onCalculateNow}
-                            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/30"
-                        >
-                            当前时间
-                        </button>
-                    </div>
+                {/* 操作按钮组 (导入/新建) */}
+                <div className="flex gap-2">
+                    <button
+                        type="button"
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
+                        导入
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onOpenDatePicker}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/30"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+                        新建
+                    </button>
                 </div>
+
+
             </div>
 
             {/* 案例列表 */}
@@ -200,28 +164,64 @@ export default function QimenCaseList({
                 ) : (
                     <div className="space-y-2">
                         {filteredCases.map((caseItem) => (
-                            <button
+                            <div
                                 key={caseItem.id}
-                                type="button"
-                                onClick={() => onSelectCase(caseItem.id)}
-                                className={`w-full text-left p-3 rounded-lg transition-all border ${selectedCaseId === caseItem.id
+                                className={`w-full p-3 rounded-lg transition-all border group relative ${selectedCaseId === caseItem.id
                                     ? 'bg-sidebar-accent border-primary/30'
                                     : 'bg-card border-border/60 hover:border-border hover:shadow-sm dark:bg-sidebar-accent/30 dark:border-sidebar-border/50 dark:hover:bg-sidebar-accent/50'
                                     }`}
                             >
-                                <div className="text-sm font-medium text-foreground line-clamp-2 mb-1">
-                                    {caseItem.title}
+                                <div
+                                    className="cursor-pointer"
+                                    onClick={() => onSelectCase(caseItem.id, caseItem)}
+                                >
+                                    <div className="flex justify-between items-start mb-1">
+                                        <div className="text-sm font-medium text-foreground line-clamp-2 flex-1 pr-2">
+                                            {caseItem.title}
+                                        </div>
+                                        <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] bg-primary/10 text-primary font-medium whitespace-nowrap">
+                                            {QIMEN_CATEGORIES.find(cat => cat.id === caseItem.category)?.name}
+                                        </span>
+                                    </div>
+
+                                    <div className="text-xs text-muted-foreground line-clamp-1 mb-2 h-4">
+                                        {caseItem.description || ''}
+                                    </div>
+
+                                    <div className="flex items-center justify-between text-xs mt-2">
+                                        <span className="text-muted-foreground">
+                                            {caseItem.test_date ? (() => {
+                                                const d = new Date(caseItem.test_date);
+                                                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                                            })() : ''}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="text-xs text-muted-foreground line-clamp-1 mb-2">
-                                    {caseItem.preview}
+
+                                {/* Edit/Delete Buttons (Bottom Right) */}
+                                <div className="absolute bottom-2 right-2 flex gap-1 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onEditCase?.(caseItem);
+                                        }}
+                                        className="p-1 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded"
+                                        title="编辑"
+                                    >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onDeleteCase?.(caseItem.id);
+                                        }}
+                                        className="p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded"
+                                        title="删除"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
                                 </div>
-                                <div className="flex items-center justify-between text-xs">
-                                    <span className="text-muted-foreground">{caseItem.date}</span>
-                                    <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-medium">
-                                        {QIMEN_CATEGORIES.find(cat => cat.id === caseItem.category)?.name}
-                                    </span>
-                                </div>
-                            </button>
+                            </div>
                         ))}
                     </div>
                 )}
