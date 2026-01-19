@@ -172,7 +172,7 @@ export default function QimenPage() {
         : null;
 
     return (
-        <div className="flex flex-1 min-h-0 overflow-hidden relative">
+        <div className="flex flex-1 h-full min-h-0 overflow-hidden relative">
             {/* 左侧案例列表 */}
             <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 overflow-hidden hidden lg:block">
                 <QimenCaseList
@@ -225,9 +225,12 @@ export default function QimenPage() {
             </main>
 
             {/* 右侧宫位详情 */}
-            <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 overflow-hidden hidden xl:block border-l border-border/50 bg-card/10">
+            <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 min-h-0 overflow-hidden hidden xl:flex xl:flex-col border-l border-border/50 bg-card/10">
                 {selectedPalaceData ? (
-                    <QimenPalaceDetail palace={selectedPalaceData} />
+                    <QimenPalaceDetail
+                        palace={selectedPalaceData}
+                        timeZhi={header?.siZhu?.hour?.slice(1, 2)}
+                    />
                 ) : (
                     <QimenJuInfo
                         date={selectedDate}

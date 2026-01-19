@@ -73,7 +73,7 @@ function AppContent() {
   // 奇门模块使用独立布局
   if (activeChart === 'qimen') {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="h-screen overflow-hidden bg-background flex flex-col">
         <Navbar
           activeChart={activeChart}
           onChartChange={setActiveChart}
