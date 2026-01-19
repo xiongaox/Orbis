@@ -9,6 +9,7 @@ import xingTimeData from './data/xing_time.json';
 import shenMenData from './data/shen_men.json';
 import menGanData from './data/men_gan.json';
 import menMenData from './data/men_men.json';
+import juPatternData from './data/ju_pattern.json';
 
 export interface ShenDesc {
     内容: string;
@@ -258,5 +259,12 @@ export const QimenDataService = {
             6: '开门'
         };
         return MAP[position] || null;
+    },
+    /**
+     * 获取局势格局数据（驿马、空亡等）
+     * @param name 格局名称，如 "驿马" 或 "空亡"
+     */
+    getJuPattern(name: string): Record<string, any> | null {
+        return (juPatternData as any)[name] || null;
     }
 };

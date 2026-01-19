@@ -6,10 +6,15 @@ import { useState, useMemo } from 'react';
 import { BookOpen } from 'lucide-react';
 import type { QimenPalace } from './QimenChart';
 import { QimenDataService } from '../../../lib/csp-qimen/qimenDataService';
+import { detectPalacePatterns, type PatternContext } from '../../../lib/csp-qimen/patternDetector';
 
 interface QimenPalaceDetailProps {
     palace: QimenPalace | null;
     timeZhi?: string;
+    zhiShiMen?: string; // 值使门名称
+    zhiFuXing?: string; // 值符星名称
+    siZhu?: { year: string; month: string; day: string; hour: string }; // 四柱
+    xunShou?: string;  // 旬首
 }
 
 // 干支阴阳五行映射
@@ -59,94 +64,84 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
     let content = '';
 
     switch (type) {
-        case '神': {
+        case '八神': {
             const d = QimenDataService.getShen(cleanLabel);
             if (d) {
-                title = cleanLabel; // 值符
-                subTitle = '八神';
+                title = cleanLabel;
+                // subTitle = '八神';
                 content = [
+                    d.五行 && `【五行】\n${d.五行}`,
                     d.概念 && `【概念】\n${d.概念}`,
-                    d.内容 && `【内容】\n${d.内容}`,
+                    d.象意 && `【象意】\n${d.象意}`,
                     d.性情 && `【性情】\n${d.性情}`,
-                    d.人物 && `【人物】\n${d.人物}`,
-                    d.形态 && `【形态】\n${d.形态}`,
-                    d.延伸 && `【延伸】\n${d.延伸}`,
+                    d.相貌 && `【相貌】\n${d.相貌}`,
+                    d.吉凶 && `【吉凶】\n${d.吉凶}`,
                 ].filter(Boolean).join('\n\n');
             }
             break;
         }
-        case '星': {
+        case '九星': {
             const d = QimenDataService.getXing(cleanLabel);
             if (d) {
-                title = cleanLabel + (cleanLabel.endsWith('星') ? '' : '星');
-                subTitle = d.吉凶 || '九星';
-                if (d.五行) tags.push(d.五行);
-                if (d.吉凶) tags.push(d.吉凶);
+                title = cleanLabel;
+                // subTitle = '九星';
                 content = [
-                    d.歌诀 && `【歌诀】\n${d.歌诀}`,
+                    d.五行 && `【五行】\n${d.五行}`,
                     d.概念 && `【概念】\n${d.概念}`,
-                    d.内容 && `【内容】\n${d.内容}`,
+                    d.象意 && `【象意】\n${d.象意}`,
                     d.性情 && `【性情】\n${d.性情}`,
-                    d.人物 && `【人物】\n${d.人物}`,
-                    d.形态 && `【形态】\n${d.形态}`,
+                    d.相貌 && `【相貌】\n${d.相貌}`,
+                    d.吉凶 && `【吉凶】\n${d.吉凶}`,
                 ].filter(Boolean).join('\n\n');
             }
             break;
         }
-        case '星时': {
-            // cleanLabel is "天蓬", timeZhi is "子"
-            if (timeZhi) {
-                const d = QimenDataService.getXingTime(cleanLabel, timeZhi);
-                if (d) {
-                    title = fullLabel; // "天蓬值子时"
-                    subTitle = '九星值时克应';
-                    content = [
-                        d.解读 && `【解读】\n${d.解读}`,
-                        d.原文 && `【原文】\n${d.原文}`,
-                    ].filter(Boolean).join('\n\n');
-                } else {
-                    content = '暂无此时辰的克应数据。';
-                }
+        case '九星值时': {
+            const starName = cleanLabel.split('值')[0]; // 天蓬值子时 -> 天蓬
+            const d = QimenDataService.getXingTime(starName, timeZhi || '');
+            if (d) {
+                // label 如 "天蓬值子时"，这里 title 用 label 即可
+                title = label;
+                // subTitle = '九星值时';
+                content = [
+                    d.时辰克应 && `【时辰克应】\n${d.时辰克应}`,
+                    d.解释 && `【解释】\n${d.解释}`,
+                ].filter(Boolean).join('\n\n');
             }
             break;
         }
-        case '门': {
+        case '八门': {
             const d = QimenDataService.getMen(cleanLabel);
             if (d) {
-                title = cleanLabel + (cleanLabel.endsWith('门') ? '' : '门');
-                subTitle = '八门';
+                title = cleanLabel;
+                // subTitle = '八门';
                 content = [
+                    d.五行 && `【五行】\n${d.五行}`,
                     d.概念 && `【概念】\n${d.概念}`,
-                    d.内容 && `【内容】\n${d.内容}`,
+                    d.象意 && `【象意】\n${d.象意}`,
                     d.性情 && `【性情】\n${d.性情}`,
-                    d.人物 && `【人物】\n${d.人物}`,
-                    d.形态 && `【形态】\n${d.形态}`,
-                    d.延伸 && `【延伸】\n${d.延伸}`,
+                    d.相貌 && `【相貌】\n${d.相貌}`,
+                    d.吉凶 && `【吉凶】\n${d.吉凶}`,
                 ].filter(Boolean).join('\n\n');
             }
             break;
         }
-        case '宫': {
-            // Need position here
-            if (position) {
-                const d = QimenDataService.getGong(cleanLabel, position);
-                if (d) {
-                    title = fullLabel; // 显示 "乾六宫"
-                    subTitle = '九宫';
-                    content = [
-                        d.description && `【内容】\n${d.description}`,
-                        // Gong JSON mainly has description.
-                        // If it has other fields, add them.
-                    ].filter(Boolean).join('\n\n');
-                }
-            }
+        case '九宫': {
+            // Gong data usually just simple description or derived?
+            // Assuming we might have data or just generic
+            title = cleanLabel;
+            // subTitle = '九宫';
+            content = `【九宫】\n${cleanLabel}的相关信息...`; // TODO: Add Gong specific data source if available
+            // Actually, usually gong links to Bagua or just position. 
+            // Let's check DataService. If no specific Gong data, maybe show Bagua data instead?
+            // Or just leave as is for now.
             break;
         }
-        case '卦': {
+        case '八卦': {
             const d = QimenDataService.getBagua(cleanLabel);
             if (d) {
                 title = cleanLabel + '卦';
-                subTitle = '八卦';
+                // subTitle = '八卦';
                 content = [
                     d.内容 && `【内容】\n${d.内容}`,
                     d.象意 && `【象意】\n${d.象意}`,
@@ -158,14 +153,14 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
             }
             break;
         }
-        case '天':
-        case '地':
-        case '暗':
+        case '天盘干':
+        case '地盘干':
+        case '暗干':
         case '寄': {
             const d = QimenDataService.getGan(cleanLabel);
             if (d) {
                 title = cleanLabel; // 甲
-                subTitle = '十天干';
+                // subTitle = '十天干';
                 content = [
                     d.概念 && `【概念】\n${d.概念}`,
                     d.内容 && `【内容】\n${d.内容}`,
@@ -182,7 +177,7 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
             const d = QimenDataService.getGan('甲');
             if (d) {
                 title = label; // "甲遁壬下"
-                subTitle = '甲（遁于' + label.charAt(2) + '下）';
+                // subTitle = '甲（遁于' + label.charAt(2) + '下）';
                 content = [
                     d.概念 && `【概念】\n${d.概念}`,
                     d.内容 && `【内容】\n${d.内容}`,
@@ -201,7 +196,7 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
                 const d = QimenDataService.getShenMen(shen, men);
                 if (d) {
                     title = cleanLabel;
-                    subTitle = '神门克应';
+                    // subTitle = '神门克应';
                     content = [
                         d.描述 && `【描述】\n${d.描述}`
                     ].filter(Boolean).join('\n\n');
@@ -219,7 +214,7 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
                 const d = QimenDataService.getGanCombo(g1, g2);
                 if (d) {
                     title = label;
-                    subTitle = d.格局名称 || '扩展克应';
+                    // subTitle = d.格局名称 || '扩展克应';
                     if (d.格局名称) tags.push(d.格局名称);
                     content = [
                         d.详解 && `【详解】\n${d.详解}`,
@@ -238,7 +233,7 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
                 const d = QimenDataService.getMenGan(men, gan);
                 if (d) {
                     title = cleanLabel;
-                    subTitle = '门干克应';
+                    // subTitle = '门干克应';
                     content = [
                         d.描述 && `【描述】\n${d.描述}`
                     ].filter(Boolean).join('\n\n');
@@ -248,14 +243,14 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
             }
             break;
         }
-        case '格': {
+        case '十干克应': {
             // Label comes as "乙+丙"
             if (cleanLabel.includes('+')) {
                 const [tian, di] = cleanLabel.split('+');
                 const d = QimenDataService.getGanCombo(tian, di);
                 if (d) {
                     title = cleanLabel;
-                    subTitle = d.格局名称 || '克应';
+                    // subTitle = d.格局名称 || '克应';
                     if (d.格局名称) tags.push(d.格局名称);
                     content = [
                         d.详解 && `【详解】\n${d.详解}`,
@@ -270,17 +265,89 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
         }
         case '门门': {
             if (cleanLabel.includes('+')) {
-                const [orig, curr] = cleanLabel.split('+');
-                const d = QimenDataService.getMenMen(orig, curr);
+                const [m1, m2] = cleanLabel.split('+');
+                const d = QimenDataService.getMenMen(m1, m2);
                 if (d) {
                     title = cleanLabel;
-                    subTitle = '门门克应';
+                    // subTitle = '门门克应';
                     content = [
-                        d.静应 && `【静应】\n${d.静应}`,
-                        d.动应 && `【动应】\n${d.动应}`
+                        d.吉凶 && `【吉凶】\n${d.吉凶}`,
+                        d.详解 && `【详解】\n${d.详解}`,
                     ].filter(Boolean).join('\n\n');
                 } else {
                     content = '暂无该门门组合的详细数据。';
+                }
+            }
+            break;
+        }
+        case '驿马': {
+            const d = QimenDataService.getJuPattern('驿马');
+            if (d) {
+                title = '驿马';
+                subTitle = '马星';
+                const appItems = d.应用 ? Object.entries(d.应用).map(([k, v]) => `• ${k}：${v}`).join('\n') : '';
+                const limaItems = d.临马星含义 ? d.临马星含义.map((item: string) => `• ${item}`).join('\n') : '';
+                content = [
+                    d.描述 && `【描述】\n${d.描述}`,
+                    d.口诀 && `【口诀】\n${d.口诀}`,
+                    d.时上马星 && `【时上马星】\n${d.时上马星}`,
+                    limaItems && `【临马星含义】\n${limaItems}`,
+                    appItems && `【应用】\n${appItems}`,
+                ].filter(Boolean).join('\n\n');
+            }
+            break;
+        }
+        case '空亡': {
+            const d = QimenDataService.getJuPattern('空亡');
+            if (d) {
+                title = '空亡';
+                subTitle = '旬空';
+                const appItems = d.应用 ? Object.entries(d.应用).map(([k, v]) => `• ${k}：${v}`).join('\n') : '';
+                content = [
+                    d.描述 && `【描述】\n${d.描述}`,
+                    d.日干落空亡 && `【日干落空亡】\n${d.日干落空亡}`,
+                    d.时干落空亡 && `【时干落空亡】\n${d.时干落空亡}`,
+                    d.真空假空 && `【真空假空】\n${d.真空假空}`,
+                    appItems && `【应用】\n${appItems}`,
+                ].filter(Boolean).join('\n\n');
+            }
+            break;
+        }
+        // 吉凶格局类型
+        case '吉格':
+        case '凶格': {
+            // fullLabel 初始传入的是格局名称，如 "三奇贵人升殿" 或 "天遁"
+            // 对于九遁类，label 格式为 "天遁(九遁)"
+            let patternKey = cleanLabel;
+            let subPatternKey = '';
+
+            // 解析子格局，如 "天遁(九遁)" -> patternKey="九遁", subPatternKey="天遁"
+            const subMatch = cleanLabel.match(/^(.+)\((.+)\)$/);
+            if (subMatch) {
+                subPatternKey = subMatch[1];
+                patternKey = subMatch[2];
+            }
+
+            const d = QimenDataService.getJuPattern(patternKey);
+            if (d) {
+                title = subPatternKey || patternKey;
+                // subTitle = type === '吉格' ? '吉格' : '凶格'; // 移除吉凶定性
+                // tags.push(type); // 移除吉凶标签
+
+                // 如果是子格局（如九遁中的天遁），直接取子项文本
+                if (subPatternKey && d[subPatternKey]) {
+                    content = `【${subPatternKey}】\n${d[subPatternKey]}`;
+                } else {
+                    // 通用格局展示
+                    content = [
+                        d.定义 && `【定义】\n${d.定义}`,
+                        d.原文 && `【原文】\n${d.原文}`,
+                        d.含义 && `【含义】\n${d.含义}`,
+                        d.详解 && (typeof d.详解 === 'string' ? `【详解】\n${d.详解}` : ''),
+                        d.应用 && `【应用】\n${d.应用}`,
+                        d.条件 && `【条件】\n${d.条件}`,
+                        d.注意 && `【注意】\n${d.注意}`,
+                    ].filter(Boolean).join('\n\n');
                 }
             }
             break;
@@ -294,8 +361,7 @@ function getDetailDisplayData(type: string, label: string, fullLabel: string, po
     return { title, subTitle, tags, content };
 }
 
-
-export default function QimenPalaceDetail({ palace, timeZhi }: QimenPalaceDetailProps) {
+export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXing, siZhu, xunShou }: QimenPalaceDetailProps) {
     const [selectedTab, setSelectedTab] = useState<string>('gong');
 
     // Reset tab when palace changes? Not necessarily, user might want to keep viewing "Shen" across palaces.
@@ -319,32 +385,31 @@ export default function QimenPalaceDetail({ palace, timeZhi }: QimenPalaceDetail
     const originalMen = QimenDataService.getOriginalMen(palace.position);
     const menuItems = [
         // 核心单项
-        palace.shen && { id: 'shen', label: palace.shen, type: '神' },
-        palace.xing && { id: 'xing', label: palace.xing, type: '星' },
+        palace.shen && { id: 'shen', label: palace.shen, type: '八神' },
+        palace.xing && { id: 'xing', label: palace.xing, type: '九星' },
 
         // 九星值时 (如果有时间支) : 天蓬值子时
-        (palace.xing && timeZhi) && { id: 'xing_time', label: `${palace.xing}值${timeZhi}时`, type: '星时' },
+        (palace.xing && timeZhi) && { id: 'xing_time', label: `${palace.xing}值${timeZhi}时`, type: '九星值时' },
 
-        palace.men && { id: 'men', label: palace.men, type: '门' },
-        { id: 'gong', label: palace.gongName + palace.position + '宫', type: '宫' },
-        { id: 'gua', label: palace.gongName + '卦', type: '卦' }, // Added Bagua
+        palace.men && { id: 'men', label: palace.men, type: '八门' },
+        { id: 'gong', label: palace.gongName + palace.position + '宫', type: '九宫' },
+        { id: 'gua', label: palace.gongName + '卦', type: '八卦' },
 
         // 天干
-        palace.tianPan && { id: 'tian', label: getGanLabel(palace.tianPan) + (palace.tianPanShiErCS ? ` (${palace.tianPanShiErCS})` : ''), type: '天' },
+        palace.tianPan && { id: 'tian', label: getGanLabel(palace.tianPan) + (palace.tianPanShiErCS ? ` (${palace.tianPanShiErCS})` : ''), type: '天盘干' },
 
         // 旬首甲遁 (仅在值符宫显示)
         (palace.shen === '值符' && palace.tianPan) && { id: 'jia_dun', label: '甲遁' + palace.tianPan + '下', type: '遁' },
 
-        palace.diPan && { id: 'di', label: getGanLabel(palace.diPan) + (palace.diPanShiErCS ? ` (${palace.diPanShiErCS})` : ''), type: '地' },
-        palace.anGan && { id: 'an', label: '暗干' + getGanLabel(palace.anGan), type: '暗' },
+        palace.diPan && { id: 'di', label: getGanLabel(palace.diPan) + (palace.diPanShiErCS ? ` (${palace.diPanShiErCS})` : ''), type: '地盘干' },
+        palace.anGan && { id: 'an', label: '暗干' + getGanLabel(palace.anGan), type: '暗干' },
 
-        // 寄宫 (如果有)
         // 寄宫 (如果有)
         palace.jiGongTianPan && { id: 'ji_tian', label: '天寄' + getGanLabel(palace.jiGongTianPan), type: '寄' },
         palace.jiGongDiPan && { id: 'ji_di', label: '地寄' + getGanLabel(palace.jiGongDiPan), type: '寄' },
 
         // 格局组合
-        (palace.tianPan && palace.diPan) && { id: 'ge_td', label: `${palace.tianPan}+${palace.diPan}`, type: '格' },
+        (palace.tianPan && palace.diPan) && { id: 'ge_td', label: `${palace.tianPan}+${palace.diPan}`, type: '十干克应' },
 
         // 扩展格局: 暗干+天盘, 暗干+地盘, 暗干+寄天, 暗干+寄地, 天盘+寄地, 寄天+地盘, 天盘+暗干
         (palace.anGan && palace.tianPan) && { id: 'ge_at', label: `暗${palace.anGan}+天${palace.tianPan}`, type: '扩展格局' },
@@ -358,6 +423,25 @@ export default function QimenPalaceDetail({ palace, timeZhi }: QimenPalaceDetail
         (palace.shen && palace.men) && { id: 'ge_sm', label: `${palace.shen}+${palace.men}`, type: '神门' },
         (palace.men && palace.tianPan) && { id: 'ge_mt', label: `${palace.men}+${palace.tianPan}`, type: '门干' },
         (originalMen && palace.men) && { id: 'ge_mm', label: `${originalMen}+${palace.men}`, type: '门门' },
+
+        // 局势格局：驿马、空亡（只有当前宫位有时才显示）
+        (palace.maKong?.includes('马')) && { id: 'yima', label: '驿马', type: '驿马' },
+        (palace.maKong?.includes('〇')) && { id: 'kongwang', label: '空亡', type: '空亡' },
+
+        // 吉凶格局（动态检测）
+        ...detectPalacePatterns(palace, zhiShiMen, {
+            zhiShiMen,
+            zhiFuXing,
+            yearGan: siZhu?.year?.charAt(0),
+            monthGan: siZhu?.month?.charAt(0),
+            dayGan: siZhu?.day?.charAt(0),
+            hourGan: siZhu?.hour?.charAt(0),
+            xunShou,
+        } as PatternContext).map((p, i) => ({
+            id: `pattern_${i}_${p.name}`,
+            label: p.name === '九遁' ? `${p.label}(九遁)` : p.label,
+            type: p.type
+        })),
     ].filter(Boolean) as { id: string; label: string; type: string }[];
 
     // 如果当前选中的 tab 不在 menuItems 中，默认选第一项
@@ -427,8 +511,34 @@ export default function QimenPalaceDetail({ palace, timeZhi }: QimenPalaceDetail
                 {/* 滚动文本区 */}
                 <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
                     <div className="prose prose-invert prose-sm max-w-none">
-                        <div className="whitespace-pre-wrap leading-loose text-foreground/80 font-light text-base">
-                            {detailData.content}
+                        <div className="leading-loose text-foreground/90 font-normal text-base">
+                            {/* 解析并渲染内容，将【标题】格式化为标签 */}
+                            {typeof detailData.content === 'string' ? (
+                                detailData.content.split('\n\n').map((block, idx) => {
+                                    const match = block.match(/^【(.+)】\n([\s\S]+)$/);
+                                    if (match) {
+                                        const [, title, text] = match;
+                                        return (
+                                            <div key={idx} className="mb-6 last:mb-0">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <div className="w-1 h-3.5 bg-primary/80 rounded-full" />
+                                                    <div className="text-base font-bold text-foreground font-serif">
+                                                        {title}
+                                                    </div>
+                                                </div>
+                                                <div className="whitespace-pre-wrap pl-3 text-secondary-foreground/60">
+                                                    {text}
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    return (
+                                        <div key={idx} className="whitespace-pre-wrap mb-4 last:mb-0">
+                                            {block}
+                                        </div>
+                                    );
+                                })
+                            ) : detailData.content}
                         </div>
                     </div>
 

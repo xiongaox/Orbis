@@ -3,7 +3,7 @@
  * 三栏布局：左侧案例列表、中间九宫盘式、右侧宫位详情
  * 响应式设计：大屏全展开，中等屏幕变窄，小屏幕折叠侧边栏
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import QimenCaseList from './QimenCaseList';
 import QimenChart, { type QimenPalace } from './QimenChart';
 import QimenPalaceDetail from './QimenPalaceDetail';
@@ -18,6 +18,8 @@ import {
     type PaiPanMethod
 } from '../../../lib/csp-qimen/qimenService';
 import { qimenCaseService, type QimenCase } from '../../../services/qimenCaseService';
+import { detectGlobalPatterns, type GlobalPattern } from '../../../lib/csp-qimen/patternDetector';
+import { QimenDataService } from '../../../lib/csp-qimen/qimenDataService';
 
 // 默认空的宫位数据
 const EMPTY_PALACES: QimenPalace[] = Array.from({ length: 9 }, (_, i) => ({
@@ -65,6 +67,19 @@ export default function QimenPage() {
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [editingCase, setEditingCase] = useState<QimenCase | null>(null);
     const [currentCase, setCurrentCase] = useState<QimenCase | null>(null);
+
+    // 全局格局弹窗状态
+    const [selectedPattern, setSelectedPattern] = useState<GlobalPattern | null>(null);
+
+    // 计算全局格局
+    const globalPatterns = useMemo(() => {
+        if (!header.siZhu?.day) return [];
+        return detectGlobalPatterns({
+            dayGan: header.siZhu.day.charAt(0),
+            hourGan: header.siZhu.hour.charAt(0),
+            siZhu: header.siZhu,
+        }, palaces);
+    }, [header.siZhu, palaces]);
 
     // 根据指定日期计算奇门盘
     const calculateQimenByDate = useCallback(async (date: Date) => {
@@ -221,6 +236,8 @@ export default function QimenPage() {
                     onMethodChange={setPaiPanMethod}
                     onResetToNow={calculateNow}
                     onOpenDatePicker={() => setIsDatePickerOpen(true)}
+                    globalPatterns={globalPatterns}
+                    onPatternClick={setSelectedPattern}
                 />
             </main>
 
@@ -230,6 +247,10 @@ export default function QimenPage() {
                     <QimenPalaceDetail
                         palace={selectedPalaceData}
                         timeZhi={header?.siZhu?.hour?.slice(1, 2)}
+                        zhiShiMen={header?.zhiShi ? header.zhiShi + '门' : ''}
+                        zhiFuXing={header?.zhiFu}
+                        siZhu={header?.siZhu}
+                        xunShou={header?.xunShou}
                     />
                 ) : (
                     <QimenJuInfo
@@ -271,6 +292,81 @@ export default function QimenPage() {
                         setRefreshTrigger(prev => prev + 1);
                     }}
                 />
+            )}
+
+            {/* 全局格局详情弹窗 */}
+            {selectedPattern && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    {/* 背景遮罩 */}
+                    <div
+                        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                        onClick={() => setSelectedPattern(null)}
+                    />
+                    {/* 弹窗内容 */}
+                    <div className="relative bg-card rounded-xl border border-border shadow-2xl w-[90vw] max-w-lg max-h-[80vh] overflow-hidden">
+                        {/* 头部 */}
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                            <div>
+                                <h3 className="text-lg font-serif font-bold text-foreground">
+                                    {selectedPattern.fullLabel}
+                                </h3>
+                            </div>
+                            <button
+                                onClick={() => setSelectedPattern(null)}
+                                className="p-1 hover:bg-muted rounded-lg transition-colors"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M18 6 6 18" /><path d="m6 6 12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        {/* 内容 */}
+                        <div className="p-5 overflow-y-auto max-h-[60vh] text-sm text-foreground/90 leading-relaxed whitespace-pre-wrap font-serif">
+                            {(() => {
+                                const data = QimenDataService.getJuPattern(selectedPattern.name);
+                                if (!data) return '暂无详细数据。';
+
+                                // 定义核心字段顺序
+                                const coreFields = ['定义', '原文', '含义', '总论'];
+                                // 定义尾部字段顺序
+                                const tailFields = ['应用', '详解', '注意', '特别注意', '参考'];
+
+                                // 获取所有数据字段，过滤掉 name
+                                const allKeys = Object.keys(data).filter(k => k !== 'name' && typeof data[k] === 'string');
+
+                                // 剩余字段（既不在核心也不在尾部）
+                                const otherKeys = allKeys.filter(k => !coreFields.includes(k) && !tailFields.includes(k));
+
+                                // 最终显示顺序：核心 -> 其他 -> 尾部
+                                const displayKeys = [
+                                    ...coreFields.filter(k => allKeys.includes(k)),
+                                    ...otherKeys,
+                                    ...tailFields.filter(k => allKeys.includes(k))
+                                ];
+
+                                const sections = displayKeys.map(key => {
+                                    const value = data[key];
+                                    if (!value) return null;
+                                    return (
+                                        <div key={key} className="mb-5 last:mb-0">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <div className="w-1 h-3.5 bg-primary/80 rounded-full" />
+                                                <div className="text-base font-bold text-foreground font-serif">
+                                                    {key}
+                                                </div>
+                                            </div>
+                                            <div className="whitespace-pre-wrap leading-relaxed text-secondary-foreground/60 font-normal pl-3">
+                                                {value}
+                                            </div>
+                                        </div>
+                                    );
+                                }).filter(Boolean);
+
+                                return sections.length > 0 ? sections : '暂无详细数据。';
+                            })()}
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
