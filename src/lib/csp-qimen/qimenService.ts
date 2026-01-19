@@ -325,6 +325,27 @@ function parseCspOutput(output: string): CspParsedData | null {
 // 宫位名称映射
 const GONG_NAMES = ['', '坎', '坤', '震', '巽', '中', '乾', '兑', '艮', '离'];
 
+// 地支与宫位映射 (用于手动计算马星和空亡位置)
+// 1:子, 8:丑寅, 3:卯, 4:辰巳, 9:午, 2:未申, 7:酉, 6:戌亥
+const ZHI_PALACE_MAP: Record<string, number> = {
+    '子': 1,
+    '丑': 8, '寅': 8,
+    '卯': 3,
+    '辰': 4, '巳': 4,
+    '午': 9,
+    '未': 2, '申': 2,
+    '酉': 7,
+    '戌': 6, '亥': 6
+};
+
+// 驿马查找表 (时支 -> 马星)
+const MA_XING_MAP: Record<string, string> = {
+    '申': '寅', '子': '寅', '辰': '寅',
+    '寅': '申', '午': '申', '戌': '申',
+    '巳': '亥', '酉': '亥', '丑': '亥',
+    '亥': '巳', '卯': '巳', '未': '巳',
+};
+
 // 地盘干顺序：戊己庚辛壬癸丁丙乙
 // 用来补全中宫地盘干（虽然 Demo 逻辑中直接置空，但保留此逻辑可防止 UI 数据缺失）
 const DI_PAN_GAN_SHUN = ['戊', '己', '庚', '辛', '壬', '癸', '丁', '丙', '乙'];
@@ -423,26 +444,22 @@ function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResu
         cspZhiShi: parsed.zhiShi
     });
 
-    // 马星: WASM 输出在宫位中 (isMa)，这里使用 lunarUtil 其实更稳
-    // 但 Demo 已验证 WASM 是对的，所以这里仅作 Header 辅助
-    const dayZhi = siZhu.day.slice(1);
-    const MA_MAP: Record<string, string> = {
-        '申': '寅', '子': '寅', '辰': '寅',
-        '寅': '申', '午': '申', '戌': '申',
-        '巳': '亥', '酉': '亥', '丑': '亥',
-        '亥': '巳', '卯': '巳', '未': '巳',
-    };
-    const maXingChar = MA_MAP[dayZhi] || '';
-
-    // 旬首
-    // 如果 CSP 解析不到（目前正则可能没抓取），可以算一下
     const hourGanZhi = siZhu.hour;
     const xunShou = hourGanZhi ? LunarUtil.getXun(hourGanZhi) : '';
 
+    // 马星: 时家奇门使用时支计算 (之前误用了日支)
+    // 申子辰马在寅, 寅午戌马在申, 巳酉丑马在亥, 亥卯未马在巳
+    const hourZhi = siZhu.hour.slice(1);
+    const maXingChar = MA_XING_MAP[hourZhi] || '';
+
     // 空亡：只显示时柱空亡 (用户需求)
-    // parsed.kongWang 是 "寅卯 午未 ..." (年 月 日 时)，比较乱
-    // 直接算时柱空亡更稳
     const kongWang = hourGanZhi ? LunarUtil.getXunKong(hourGanZhi) : '';
+
+    // 计算马星和空亡所在的宫位 (覆盖 WASM 输出)
+    const maPalacePos = ZHI_PALACE_MAP[maXingChar] || 0;
+    const kongObjs = kongWang.split('').map(k => ({ zhi: k, pos: ZHI_PALACE_MAP[k] || 0 }));
+
+
 
     // 构建 header
     const header: QimenHeader = {
@@ -480,7 +497,18 @@ function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResu
             jiGongTianPan: pos === 5 ? '' : (cspPalace?.tianPanJi || ''),
             jiGongDiPan: pos === 5 ? '' : (cspPalace?.diPanJi || ''),
             // 驿马/空亡
-            maKong: pos === 5 ? '' : (cspPalace?.isMa ? '马' : (cspPalace?.isKong ? '空' : '')),
+            // 手动计算 isKong 和 isMa
+            maKong: pos === 5 ? '' : (
+                (() => {
+                    const isMa = pos === maPalacePos;
+                    const isKong = kongObjs.some(k => k.pos === pos);
+
+                    if (isMa && isKong) return '〇/马';
+                    if (isKong) return '〇';
+                    if (isMa) return '马';
+                    return '';
+                })()
+            ),
             // 旺相休囚（CSP 不输出，留空）
             shenWang: '',
             xingWang: '',
