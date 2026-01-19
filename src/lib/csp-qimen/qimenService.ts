@@ -23,6 +23,7 @@ export interface QimenHeader {
     lunarDate: string;       // 农历日期 (暂空，除非做额外转换)
     time: string;            // 时间 HH:MM
     ju: string;              // 局数（如 "阳遁五局"）
+    jieQi: string;           // 节气 (如 "小寒下元")
     xunShou: string;         // 旬首 (从值符推导或暂空)
     zhiFu: string;           // 值符
     zhiShi: string;          // 值使
@@ -468,6 +469,7 @@ function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResu
         lunarDate: lunarInfo ? `${lunarInfo.monthInChinese}月${lunarInfo.dayInChinese}` : '',
         time: `${String(time.hour).padStart(2, '0')}:${String(time.minute).padStart(2, '0')}`,
         ju: parsed.ju,
+        jieQi: parsed.jieQi + parsed.sanYuan + '元', // Combine for display: "小寒下元"
         xunShou: xunShou || parsed.xunShou || '',
         zhiFu: parsed.zhiFu,
         zhiShi: parsed.zhiShi,

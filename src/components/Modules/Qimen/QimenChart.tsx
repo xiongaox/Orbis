@@ -219,7 +219,7 @@ export default function QimenChart({
                                         <button
                                             type="button"
                                             onClick={() => setIsMethodOpen(!isMethodOpen)}
-                                            className="flex items-center gap-1 pl-3 pr-2 py-0.5 rounded-full border border-border text-primary text-xs 2xl:text-sm font-serif hover:bg-muted/10 transition-colors"
+                                            className="flex items-center gap-1 pl-3 pr-2 py-0.5 rounded-full border border-border text-muted-foreground text-xs 2xl:text-sm font-serif hover:bg-muted/10 transition-colors"
                                         >
                                             <span>
                                                 {METHODS.find(m => m.value === method)?.label}
@@ -248,8 +248,8 @@ export default function QimenChart({
                                                                 setIsMethodOpen(false);
                                                             }}
                                                             className={`block w-full text-left px-3.5 py-2 text-xs 2xl:text-sm font-serif whitespace-nowrap transition-colors ${method === m.value
-                                                                    ? 'bg-primary/10 text-primary font-medium'
-                                                                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                                                                ? 'bg-primary/10 text-primary font-medium'
+                                                                : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                                                                 }`}
                                                         >
                                                             {m.label}

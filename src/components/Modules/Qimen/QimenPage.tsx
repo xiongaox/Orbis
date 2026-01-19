@@ -9,6 +9,7 @@ import QimenChart, { type QimenPalace } from './QimenChart';
 import QimenPalaceDetail from './QimenPalaceDetail';
 import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
 import QimenNewCaseModal from './QimenNewCaseModal';
+import QimenJuInfo from './QimenJuInfo';
 import {
     calculateQimen,
     calculateQimenNow,
@@ -35,6 +36,7 @@ const DEFAULT_HEADER: QimenHeader = {
     lunarDate: '',
     time: '',
     ju: '',
+    jieQi: '',
     xunShou: '',
     zhiFu: '',
     zhiShi: '',
@@ -62,6 +64,7 @@ export default function QimenPage() {
     const [paiPanMethod, setPaiPanMethod] = useState<PaiPanMethod>('zhirun');
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [editingCase, setEditingCase] = useState<QimenCase | null>(null);
+    const [currentCase, setCurrentCase] = useState<QimenCase | null>(null);
 
     // 根据指定日期计算奇门盘
     const calculateQimenByDate = useCallback(async (date: Date) => {
@@ -176,6 +179,7 @@ export default function QimenPage() {
                     selectedCaseId={selectedCaseId}
                     onSelectCase={(id, caseItem) => {
                         setSelectedCaseId(id);
+                        setCurrentCase(caseItem); // Save full case object for info panel
                         if (caseItem.test_date) {
                             calculateQimenByDate(new Date(caseItem.test_date));
                         }
@@ -221,8 +225,16 @@ export default function QimenPage() {
             </main>
 
             {/* 右侧宫位详情 */}
-            <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 overflow-hidden hidden xl:block">
-                <QimenPalaceDetail palace={selectedPalaceData} />
+            <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 overflow-hidden hidden xl:block border-l border-border/50 bg-card/10">
+                {selectedPalaceData ? (
+                    <QimenPalaceDetail palace={selectedPalaceData} />
+                ) : (
+                    <QimenJuInfo
+                        date={selectedDate}
+                        header={header}
+                        caseData={currentCase}
+                    />
+                )}
             </div>
 
             {/* 时间选择器弹窗 */}
