@@ -42,9 +42,9 @@ const navItems: { id: ChartType; name: string; icon: ComponentType<{ className?:
   { id: 'wannianli', name: '万年历', icon: Calendar, priority: 'core' },
   { id: 'ziwei', name: '紫薇', icon: Star, priority: 'extra' },
   { id: 'daliuren', name: '大六壬', icon: Moon, priority: 'extra' },
-  { id: 'xiaoliuren', name: '小六壬', icon: Sun, priority: 'extra' },
   { id: 'meihua', name: '梅花', icon: Flower2, priority: 'extra' },
   { id: 'sanyuan', name: '三元天星', icon: Sparkles, priority: 'extra' },
+  { id: 'xiaoliuren', name: '案例学习', icon: Sun, priority: 'extra' },
 ];
 
 // 核心菜单项（小屏幕始终显示）

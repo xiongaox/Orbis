@@ -5,8 +5,7 @@
 import { useState, useEffect } from 'react';
 import { Search, ChevronDown, Pencil, Trash2 } from 'lucide-react';
 import { qimenCaseService, type QimenCase, QIMEN_CATEGORIES } from '../../../services/qimenCaseService';
-
-
+import QimenCaseLibraryModal, { QIMEN_CASES_CHANGED_EVENT } from './QimenCaseLibraryModal';
 
 interface QimenCaseListProps {
     selectedCaseId: string | null;
@@ -21,6 +20,7 @@ interface QimenCaseListProps {
 export default function QimenCaseList({
     selectedCaseId,
     onSelectCase,
+    onLoginClick,
     onOpenDatePicker,
     onDeleteCase,
     onEditCase,
@@ -29,26 +29,37 @@ export default function QimenCaseList({
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+    const [showLibraryModal, setShowLibraryModal] = useState(false);
 
     // Real Data State
     const [cases, setCases] = useState<QimenCase[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
     // Fetch Cases
+    const fetchCases = async () => {
+        setIsLoading(true);
+        try {
+            const data = await qimenCaseService.getCases();
+            setCases(data);
+        } catch (error) {
+            console.error("Fetch cases failed", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchCases = async () => {
-            setIsLoading(true);
-            try {
-                const data = await qimenCaseService.getCases();
-                setCases(data);
-            } catch (error) {
-                console.error("Fetch cases failed", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
         fetchCases();
     }, [refreshTrigger]);
+
+    // Listen for case changes (e.g. from Library Modal)
+    useEffect(() => {
+        const handleCasesChanged = () => {
+            fetchCases();
+        };
+        window.addEventListener(QIMEN_CASES_CHANGED_EVENT, handleCasesChanged);
+        return () => window.removeEventListener(QIMEN_CASES_CHANGED_EVENT, handleCasesChanged);
+    }, []);
 
     // 筛选案例
     const filteredCases = cases.filter(c => {
@@ -64,16 +75,16 @@ export default function QimenCaseList({
 
     return (
         <aside className="w-full h-full bg-sidebar border-r border-sidebar-border flex flex-col min-h-0">
-
-
             {/* 标题栏与操作 */}
             <div className="p-4 border-b border-sidebar-border space-y-3">
                 <div className="flex items-center justify-between">
                     <button
                         type="button"
-                        className="font-display text-base font-medium text-foreground hover:text-primary transition-colors"
+                        onClick={() => setShowLibraryModal(true)}
+                        className="font-display text-base font-medium text-foreground hover:text-primary transition-colors flex items-center gap-2 group"
                     >
                         案例库
+                        <Search className="w-3.5 h-3.5 opacity-0 -ml-1 group-hover:opacity-50 transition-opacity" />
                     </button>
 
                     <div className="relative">
@@ -132,7 +143,8 @@ export default function QimenCaseList({
                 <div className="flex gap-2">
                     <button
                         type="button"
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border opacity-50 cursor-not-allowed"
+                        title="暂未开放导入"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
                         导入
@@ -146,13 +158,15 @@ export default function QimenCaseList({
                         新建
                     </button>
                 </div>
-
-
             </div>
 
             {/* 案例列表 */}
             <div className="flex-1 overflow-y-auto p-3">
-                {filteredCases.length === 0 ? (
+                {isLoading ? (
+                    <div className="text-center text-muted-foreground text-sm py-8">
+                        加载中...
+                    </div>
+                ) : filteredCases.length === 0 ? (
                     <div className="text-center text-muted-foreground text-sm py-8">
                         暂无案例
                     </div>
@@ -221,6 +235,17 @@ export default function QimenCaseList({
                     </div>
                 )}
             </div>
+
+            {/* 案例库弹窗 */}
+            <QimenCaseLibraryModal
+                isOpen={showLibraryModal}
+                onClose={() => setShowLibraryModal(false)}
+                selectedCaseId={selectedCaseId}
+                onSelectCase={(id, k) => {
+                    if (id && k) onSelectCase(id, k);
+                }}
+                onLoginClick={onLoginClick}
+            />
         </aside>
     );
 }

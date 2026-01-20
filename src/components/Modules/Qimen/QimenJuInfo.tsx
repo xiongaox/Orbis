@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react';
 import { Solar } from 'lunar-typescript';
-import { Eye, EyeOff, FileText } from 'lucide-react';
+import { Eye, EyeOff, FileText, Pencil, Save, X } from 'lucide-react';
 import { type QimenHeader } from '../../../lib/csp-qimen/qimenService';
-import { type QimenCase } from '../../../services/qimenCaseService';
+import { type QimenCase, qimenCaseService } from '../../../services/qimenCaseService';
 import { getEightCharFromDate } from '../../../utils/lunarUtil';
 
 interface QimenJuInfoProps {
     date: Date;
     header: QimenHeader;
     caseData: QimenCase | null;
+    onCaseUpdated?: (updatedCase: QimenCase) => void;
 }
 
 // 马星查找表
@@ -63,8 +64,53 @@ const formatSolarTime = (s: Solar) => {
     return `${y}.${m}.${d} ${h}:${min}`;
 };
 
-export default function QimenJuInfo({ date, header, caseData }: QimenJuInfoProps) {
+export default function QimenJuInfo({ date, header, caseData, onCaseUpdated }: QimenJuInfoProps) {
     const [isPrivacyMode, setIsPrivacyMode] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [editData, setEditData] = useState({
+        description: caseData?.description || '',
+        feedback: caseData?.feedback || '',
+        analysis: caseData?.analysis || '',
+    });
+
+    // 当 caseData 变化时，更新编辑数据
+    useMemo(() => {
+        if (caseData) {
+            setEditData({
+                description: caseData.description || '',
+                feedback: caseData.feedback || '',
+                analysis: caseData.analysis || '',
+            });
+        }
+    }, [caseData?.id, caseData?.description, caseData?.feedback, caseData?.analysis]);
+
+    const handleSave = async () => {
+        if (!caseData) return;
+        setIsSaving(true);
+        try {
+            const updatedCase = await qimenCaseService.updateCase(caseData.id, {
+                description: editData.description,
+                feedback: editData.feedback,
+                analysis: editData.analysis,
+            });
+            onCaseUpdated?.(updatedCase);
+            setIsEditMode(false);
+        } catch (error) {
+            console.error('保存失败:', error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleCancel = () => {
+        setEditData({
+            description: caseData?.description || '',
+            feedback: caseData?.feedback || '',
+            analysis: caseData?.analysis || '',
+        });
+        setIsEditMode(false);
+    };
 
     const info = useMemo(() => {
         const solar = Solar.fromDate(date);
@@ -140,36 +186,36 @@ export default function QimenJuInfo({ date, header, caseData }: QimenJuInfoProps
                     </div>
                 </div>
 
-                {/* 节气时间表 - 大气版 */}
-                <div className="bg-muted/20 rounded-xl p-5 border border-border/40 shadow-sm space-y-4">
+                {/* 节气时间表 - 紧凑版 */}
+                <div className="bg-muted/20 rounded-lg p-3 border border-border/40 shadow-sm space-y-2">
                     {/* 上一节气 */}
-                    <div className="flex items-center justify-between text-muted-foreground/80">
-                        <div className="flex items-center gap-3">
-                            <span className="text-xs bg-muted/50 px-1.5 py-0.5 rounded text-muted-foreground">上</span>
-                            <span className="font-medium text-base">{info.prevJieQi.name}</span>
+                    <div className="flex items-center justify-between text-muted-foreground/80 text-sm">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs bg-muted/50 px-1 py-0.5 rounded text-muted-foreground">上</span>
+                            <span className="font-medium">{info.prevJieQi.name}</span>
                         </div>
-                        <span className="font-mono text-sm tracking-wider opacity-80">{info.prevJieQi.time}</span>
+                        <span className="font-mono text-xs tracking-wider opacity-80">{info.prevJieQi.time}</span>
                     </div>
 
                     {/* 现在节气 (Highlight) */}
                     <div className="flex items-center justify-between text-primary relative">
                         {/* 左侧装饰条 */}
-                        <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full opacity-80" />
+                        <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-primary rounded-r-full opacity-80" />
 
-                        <div className="flex items-center gap-3">
-                            <span className="text-xs bg-primary/10 px-1.5 py-0.5 rounded font-bold">今</span>
-                            <span className="font-bold text-lg tracking-wide">{info.currentJieQi.name}</span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs bg-primary/10 px-1 py-0.5 rounded font-bold">今</span>
+                            <span className="font-bold text-base tracking-wide">{info.currentJieQi.name}</span>
                         </div>
-                        <span className="font-mono text-base font-bold tracking-wider">{info.currentJieQi.time}</span>
+                        <span className="font-mono text-sm font-bold tracking-wider">{info.currentJieQi.time}</span>
                     </div>
 
                     {/* 下一节气 */}
-                    <div className="flex items-center justify-between text-muted-foreground/80">
-                        <div className="flex items-center gap-3">
-                            <span className="text-xs bg-muted/50 px-1.5 py-0.5 rounded text-muted-foreground">下</span>
-                            <span className="font-medium text-base">{info.nextJieQi.name}</span>
+                    <div className="flex items-center justify-between text-muted-foreground/80 text-sm">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs bg-muted/50 px-1 py-0.5 rounded text-muted-foreground">下</span>
+                            <span className="font-medium">{info.nextJieQi.name}</span>
                         </div>
-                        <span className="font-mono text-sm tracking-wider opacity-80">{info.nextJieQi.time}</span>
+                        <span className="font-mono text-xs tracking-wider opacity-80">{info.nextJieQi.time}</span>
                     </div>
                 </div>
 
@@ -232,27 +278,68 @@ export default function QimenJuInfo({ date, header, caseData }: QimenJuInfoProps
                             <FileText className="w-5 h-5" />
                             案例详情
                         </h3>
-                        <button
-                            onClick={() => setIsPrivacyMode(!isPrivacyMode)}
-                            className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted/50"
-                            title={isPrivacyMode ? "显示明文" : "隐藏信息"}
-                        >
-                            {isPrivacyMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
+                        <div className="flex items-center gap-1">
+                            {isEditMode ? (
+                                <>
+                                    <button
+                                        onClick={handleSave}
+                                        disabled={isSaving}
+                                        className="text-emerald-500 hover:text-emerald-400 transition-colors p-1.5 rounded-md hover:bg-emerald-500/10 disabled:opacity-50"
+                                        title="保存"
+                                    >
+                                        <Save className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={handleCancel}
+                                        disabled={isSaving}
+                                        className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-muted/50 disabled:opacity-50"
+                                        title="取消"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={() => setIsEditMode(true)}
+                                        className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-muted/50"
+                                        title="编辑"
+                                    >
+                                        <Pencil className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => setIsPrivacyMode(!isPrivacyMode)}
+                                        className="text-muted-foreground hover:text-foreground transition-colors p-1.5 rounded-md hover:bg-muted/50"
+                                        title={isPrivacyMode ? "显示明文" : "隐藏信息"}
+                                    >
+                                        {isPrivacyMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                </>
+                            )}
+                        </div>
                     </div>
 
-                    <div className={isPrivacyMode ? "blur-sm opacity-60 select-none transition-all duration-300" : "transition-all duration-300"}>
+                    <div className={isPrivacyMode && !isEditMode ? "blur-sm opacity-60 select-none transition-all duration-300" : "transition-all duration-300"}>
                         {/* 事情描述 */}
                         <div className="space-y-2 mb-4">
                             <h4 className="text-xs font-medium text-muted-foreground flex items-center gap-2">
                                 <span className="w-1.5 h-1.5 bg-primary/80 rounded-full" />
                                 事情描述
                             </h4>
-                            <div className="text-sm leading-relaxed p-3.5 bg-muted/30 border border-border/30 rounded-lg min-h-[60px] whitespace-pre-wrap text-foreground/90 shadow-sm">
-                                {isPrivacyMode
-                                    ? '•'.repeat(Math.min((caseData.description?.length || 0), 100)) + ((caseData.description?.length || 0) > 100 ? '...' : '')
-                                    : (caseData.description || '无描述')}
-                            </div>
+                            {isEditMode ? (
+                                <textarea
+                                    value={editData.description}
+                                    onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                                    className="w-full text-sm leading-relaxed p-3.5 bg-muted/30 border border-primary/40 rounded-lg min-h-[80px] whitespace-pre-wrap text-foreground/90 shadow-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                    placeholder="输入事情描述..."
+                                />
+                            ) : (
+                                <div className="text-sm leading-relaxed p-3.5 bg-muted/30 border border-border/30 rounded-lg min-h-[60px] whitespace-pre-wrap text-foreground/90 shadow-sm">
+                                    {isPrivacyMode
+                                        ? '•'.repeat(Math.min((caseData.description?.length || 0), 100)) + ((caseData.description?.length || 0) > 100 ? '...' : '')
+                                        : (caseData.description || '无描述')}
+                                </div>
+                            )}
                         </div>
 
                         {/* 事件反馈 */}
@@ -261,11 +348,20 @@ export default function QimenJuInfo({ date, header, caseData }: QimenJuInfoProps
                                 <span className="w-1.5 h-1.5 bg-emerald-500/80 rounded-full" />
                                 事件反馈
                             </h4>
-                            <div className="text-sm leading-relaxed p-3.5 bg-muted/30 border border-border/30 rounded-lg min-h-[60px] whitespace-pre-wrap text-foreground/90 shadow-sm">
-                                {isPrivacyMode
-                                    ? '•'.repeat(Math.min((caseData.feedback?.length || 0), 60))
-                                    : (caseData.feedback || '暂无反馈')}
-                            </div>
+                            {isEditMode ? (
+                                <textarea
+                                    value={editData.feedback}
+                                    onChange={(e) => setEditData({ ...editData, feedback: e.target.value })}
+                                    className="w-full text-sm leading-relaxed p-3.5 bg-muted/30 border border-emerald-500/40 rounded-lg min-h-[80px] whitespace-pre-wrap text-foreground/90 shadow-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                                    placeholder="输入事件反馈..."
+                                />
+                            ) : (
+                                <div className="text-sm leading-relaxed p-3.5 bg-muted/30 border border-border/30 rounded-lg min-h-[60px] whitespace-pre-wrap text-foreground/90 shadow-sm">
+                                    {isPrivacyMode
+                                        ? '•'.repeat(Math.min((caseData.feedback?.length || 0), 60))
+                                        : (caseData.feedback || '暂无反馈')}
+                                </div>
+                            )}
                         </div>
 
                         {/* 案例断法 */}
@@ -274,11 +370,20 @@ export default function QimenJuInfo({ date, header, caseData }: QimenJuInfoProps
                                 <span className="w-1.5 h-1.5 bg-indigo-500/80 rounded-full" />
                                 案例断法
                             </h4>
-                            <div className="text-sm leading-relaxed p-3.5 bg-muted/30 border border-border/30 rounded-lg min-h-[80px] whitespace-pre-wrap text-foreground/90 shadow-sm">
-                                {isPrivacyMode
-                                    ? '•'.repeat(Math.min((caseData.analysis?.length || 0), 80))
-                                    : (caseData.analysis || '暂无断语')}
-                            </div>
+                            {isEditMode ? (
+                                <textarea
+                                    value={editData.analysis}
+                                    onChange={(e) => setEditData({ ...editData, analysis: e.target.value })}
+                                    className="w-full text-sm leading-relaxed p-3.5 bg-muted/30 border border-indigo-500/40 rounded-lg min-h-[100px] whitespace-pre-wrap text-foreground/90 shadow-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                                    placeholder="输入案例断法..."
+                                />
+                            ) : (
+                                <div className="text-sm leading-relaxed p-3.5 bg-muted/30 border border-border/30 rounded-lg min-h-[80px] whitespace-pre-wrap text-foreground/90 shadow-sm">
+                                    {isPrivacyMode
+                                        ? '•'.repeat(Math.min((caseData.analysis?.length || 0), 80))
+                                        : (caseData.analysis || '暂无断语')}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

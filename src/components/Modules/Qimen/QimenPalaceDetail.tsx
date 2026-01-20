@@ -372,7 +372,7 @@ function getDetailDisplayData(type: string, label: string, position: number | un
 }
 
 export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXing, siZhu, xunShou }: QimenPalaceDetailProps) {
-    const [selectedTab, setSelectedTab] = useState<string>('gong');
+    const [selectedTab, setSelectedTab] = useState<string>('');
 
     // Reset tab when palace changes? Not necessarily, user might want to keep viewing "Shen" across palaces.
     // But if current tab (e.g. combo) doesn't exist in new palace, we should switch.
