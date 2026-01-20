@@ -13,6 +13,7 @@ import GanZhiLiuYiPanel from './components/Common/GanZhiLiuYiPanel';
 import PlaceholderChart from './components/Common/PlaceholderChart';
 import BaziPage from './components/Modules/Bazi/BaziPage';
 import QimenPage from './components/Modules/Qimen/QimenPage';
+import CaseStudyPage from './components/Modules/CaseStudy/CaseStudyPage';
 import AuthModal from './components/Auth/AuthModal';
 import CaseLibraryModal from './components/Common/CaseLibraryModal';
 import { useInsightContent } from './hooks/useInsightContent';
@@ -58,66 +59,68 @@ function AppContent() {
   });
 
   // 渲染主内容区域
-  const renderMainContent = () => {
+  const renderContent = () => {
     switch (activeChart) {
-      case 'bazi':
-        return <BaziPage />;
       case 'qimen':
-        // 奇门模块使用独立的三栏布局，直接返回
         return <QimenPage />;
+      case 'xiaoliuren':
+        return <CaseStudyPage />;
+      case 'bazi':
+        return (
+          <MainLayout
+            sidebar={showSidebar ? (
+              <CaseList
+                selectedCaseId={bazi.selectedCaseId}
+                onSelectCase={bazi.handleSelectCase}
+                onLoginClick={handleLoginClick}
+                onOpenLibrary={() => setShowCaseLibraryModal(true)}
+              />
+            ) : undefined}
+            liuYiPanel={showInsights ? <GanZhiLiuYiPanel data={ganZhiLiuYiData} /> : undefined}
+            insightPanel={
+              showInsights ? (
+                <InsightPanel
+                  books={INSIGHT_BOOKS}
+                  activeBook={activeBookId}
+                  onBookChange={setActiveBookId}
+                  content={insightContent}
+                />
+              ) : undefined
+            }
+          >
+            <BaziPage />
+          </MainLayout>
+        );
       default:
-        return <PlaceholderChart chart={activeChart} />;
+        return (
+          <MainLayout
+            sidebar={showSidebar ? (
+              <CaseList
+                selectedCaseId={bazi.selectedCaseId}
+                onSelectCase={bazi.handleSelectCase}
+                onLoginClick={handleLoginClick}
+                onOpenLibrary={() => setShowCaseLibraryModal(true)}
+              />
+            ) : undefined}
+          >
+            <PlaceholderChart chart={activeChart} />
+          </MainLayout>
+        );
     }
   };
 
-  // 奇门模块使用独立布局
-  if (activeChart === 'qimen') {
-    return (
-      <div className="h-screen overflow-hidden bg-background flex flex-col">
-        <Navbar
-          activeChart={activeChart}
-          onChartChange={setActiveChart}
-          onLoginClick={handleLoginClick}
-        />
-        {renderMainContent()}
-        <AuthModal
-          isOpen={showAuthModal}
-          onClose={() => setShowAuthModal(false)}
-        />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen w-screen overflow-hidden bg-background flex flex-col">
       <Navbar
         activeChart={activeChart}
         onChartChange={setActiveChart}
         onLoginClick={handleLoginClick}
       />
-      <MainLayout
-        sidebar={showSidebar ? (
-          <CaseList
-            selectedCaseId={bazi.selectedCaseId}
-            onSelectCase={bazi.handleSelectCase}
-            onLoginClick={handleLoginClick}
-            onOpenLibrary={() => setShowCaseLibraryModal(true)}
-          />
-        ) : undefined}
-        liuYiPanel={showInsights ? <GanZhiLiuYiPanel data={ganZhiLiuYiData} /> : undefined}
-        insightPanel={
-          showInsights ? (
-            <InsightPanel
-              books={INSIGHT_BOOKS}
-              activeBook={activeBookId}
-              onBookChange={setActiveBookId}
-              content={insightContent}
-            />
-          ) : undefined
-        }
-      >
-        {renderMainContent()}
-      </MainLayout>
+
+      {/* Main Content Area */}
+      <div className="flex-1 min-h-0 min-w-0 overflow-hidden relative flex flex-col">
+        {renderContent()}
+      </div>
 
       {/* 登录/注册 Modal */}
       <AuthModal
@@ -125,7 +128,7 @@ function AppContent() {
         onClose={() => setShowAuthModal(false)}
       />
 
-      {/* 案例库弹窗 */}
+      {/* 案例库弹窗 (仅在 MainLayout 模式下使用，虽在此处全局渲染但仅由 CaseList 触发) */}
       <CaseLibraryModal
         isOpen={showCaseLibraryModal}
         onClose={() => setShowCaseLibraryModal(false)}
