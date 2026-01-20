@@ -95,7 +95,7 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-[105] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="w-full max-w-md bg-card border border-border rounded-xl shadow-2xl animate-in zoom-in-95 duration-200">
                 {/* 标题栏 */}
                 <div className="flex items-center justify-between p-4 border-b border-border/50">

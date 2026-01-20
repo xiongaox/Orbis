@@ -203,7 +203,7 @@ export default function QimenPage() {
     return (
         <div className="flex flex-1 h-full min-h-0 overflow-hidden relative">
             {/* 左侧案例列表 */}
-            <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 overflow-hidden hidden lg:block">
+            <div className="w-56 flex-shrink-0 overflow-hidden hidden lg:block">
                 <QimenCaseList
                     selectedCaseId={selectedCaseId}
                     onSelectCase={(id, caseItem) => {
@@ -272,6 +272,10 @@ export default function QimenPage() {
                         date={selectedDate}
                         header={header}
                         caseData={currentCase}
+                        onCaseUpdated={(updatedCase) => {
+                            setCurrentCase(updatedCase);
+                            setRefreshTrigger(prev => prev + 1);
+                        }}
                     />
                 )}
             </div>

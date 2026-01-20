@@ -26,7 +26,7 @@ export const chartMeta: Record<ChartType, ChartMeta> = {
     liuyao: { title: '六爻', icon: BookOpen },
     ziwei: { title: '紫薇', icon: Star },
     daliuren: { title: '大六壬', icon: Moon },
-    xiaoliuren: { title: '小六壬', icon: Sun },
+    xiaoliuren: { title: '案例学习', icon: Sun },
     meihua: { title: '梅花', icon: Flower2 },
     wannianli: { title: '万年历', icon: Calendar },
     sanyuan: { title: '三元天星', icon: Sparkles },
