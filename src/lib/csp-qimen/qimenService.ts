@@ -5,6 +5,15 @@
  */
 
 import type { QimenPalace } from '../../components/Modules/Qimen/QimenChart';
+// 导入格局检测
+import { detectGlobalPatterns, type GlobalPattern } from './patternDetector';
+
+export interface QimenResult {
+    header: QimenHeader;
+    palaces: QimenPalace[];
+    globalPatterns: GlobalPattern[];
+}
+
 import { getEightCharFromDate, getSolarToLunarInfo } from '../../utils/lunarUtil';
 import { LunarUtil } from 'lunar-typescript';
 import { getXingWang, getMenWang, getGanShiErCS } from './qimenUtils';
@@ -666,7 +675,24 @@ function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResu
 
     console.log('[AnGan] Applied:', palaces.map(p => `${p.position}:${p.anGan}`));
 
-    return { header, palaces };
+
+    // 计算全局格局
+    const patternCtx = {
+        zhiShiMen: parsed.zhiShi,
+        zhiFuXing: parsed.zhiFu,
+        yearGan: siZhu.year[0],
+        monthGan: siZhu.month[0],
+        dayGan: siZhu.day[0],
+        hourGan: hourGan,
+        xunShou: xunShou || parsed.xunShou,
+        siZhu: siZhu,
+        allPalaces: palaces
+    };
+
+    // 只在非中宫进行统计，但这里 detectGlobalPatterns 会自动处理
+    const globalPatterns = detectGlobalPatterns(patternCtx, palaces);
+
+    return { header, palaces, globalPatterns };
 }
 
 // ============ 公开 API ============

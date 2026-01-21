@@ -7,14 +7,18 @@ import { extractBazi } from '../../../../lib/caseStudy/parsers';
 import { AUTHOR_MAP } from '../../../../lib/caseStudy/types';
 
 // 加载案例文件
+// 加载案例文件
 const rawCasesLishuanglin = import.meta.glob('../../../../data/cases/lishuanglin/**/*.md', { query: '?raw', import: 'default', eager: true });
 const rawCasesNanxuanzi = import.meta.glob('../../../../data/cases/nanxuanzi/**/*.md', { query: '?raw', import: 'default', eager: true });
+const rawCasesBuchuiniu = import.meta.glob('../../../../data/cases/buchuiniu/**/*.md', { query: '?raw', import: 'default', eager: true });
 
 // 加载作者介绍文件
 const authorIntroFiles = import.meta.glob('../../../../data/cases/*/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
 // 合并所有案例
-const rawCases = { ...rawCasesLishuanglin, ...rawCasesNanxuanzi };
+const rawCases = { ...rawCasesLishuanglin, ...rawCasesNanxuanzi, ...rawCasesBuchuiniu };
+
+import { calculateQimen, type QimenResult } from '../../../../lib/csp-qimen/qimenService';
 
 export interface CaseItem {
     id: string;
@@ -23,6 +27,7 @@ export interface CaseItem {
     content: string;
     dayMaster: string;
     author: string;
+    category: 'bazi' | 'qimen';
 }
 
 const ALL_CASES: CaseItem[] = Object.entries(rawCases)
@@ -31,23 +36,54 @@ const ALL_CASES: CaseItem[] = Object.entries(rawCases)
         return c.trim().length > 0 && path.includes('/');
     })
     .map(([path, content]) => {
+        const strContent = content as string;
         const pathParts = path.split('/');
         const filename = pathParts.pop()?.replace('.md', '') || '无标题';
         const dayMasterCategory = pathParts[pathParts.length - 1] || '未分类';
-        const authorKey = path.includes('lishuanglin') ? 'lishuanglin' : path.includes('nanxuanzi') ? 'nanxuanzi' : '';
+        const authorKey = path.includes('lishuanglin') ? 'lishuanglin' : path.includes('nanxuanzi') ? 'nanxuanzi' : path.includes('buchuiniu') ? 'buchuiniu' : '';
         const author = AUTHOR_MAP[authorKey] || '未知';
-        const bazi = extractBazi(content as string);
+
+        // Determine category based on author/path
+        const category = path.includes('buchuiniu') ? 'qimen' : 'bazi';
+
+        let bazi = extractBazi(strContent);
+        if (category === 'qimen') {
+            const match = strContent.match(/公元[：:]\s*(\d{4}年\d{1,2}月\d{1,2}日\d{1,2}时)/);
+            if (match) {
+                bazi = match[1];
+            } else {
+                bazi = '未知时间';
+            }
+        }
+
         return {
             id: path,
             title: filename,
             bazi: bazi,
-            content: content as string,
+            content: strContent,
             dayMaster: dayMasterCategory,
-            author: author
+            author: author,
+            category: category
         };
     });
 
 const ITEMS_PER_PAGE = 13;
+
+// Helper to parse Qimen time from content
+// Format example: 公元：2009年7月9日20时43分47秒
+function parseQimenTime(content: string): { year: number, month: number, day: number, hour: number, minute: number } | null {
+    const match = content.match(/公元[：:]\s*(\d{4})年(\d{1,2})月(\d{1,2})日(\d{1,2})时(\d{1,2})分/);
+    if (match) {
+        return {
+            year: parseInt(match[1]),
+            month: parseInt(match[2]),
+            day: parseInt(match[3]),
+            hour: parseInt(match[4]),
+            minute: parseInt(match[5])
+        };
+    }
+    return null;
+}
 
 export function useCaseStudy() {
     // 基础状态
@@ -66,6 +102,9 @@ export function useCaseStudy() {
     const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
+    // 奇门排盘结果
+    const [qimenResult, setQimenResult] = useState<QimenResult | null>(null);
+
     // 获取作者介绍内容
     const authorIntroContent = useMemo(() => {
         if (!selectedAuthor) return null;
@@ -83,11 +122,14 @@ export function useCaseStudy() {
     // 筛选案例
     const filteredCases = useMemo(() => {
         return ALL_CASES.filter(c => {
+            // Filter by selected category (tab)
+            if (c.category !== selectedCategory) return false;
+
             const matchDayMaster = selectedDayMaster === 'all' || c.dayMaster === selectedDayMaster;
             const matchSearch = searchTerm === '' || c.title.includes(searchTerm) || c.content.includes(searchTerm);
             return matchDayMaster && matchSearch;
         });
-    }, [searchTerm, selectedDayMaster]);
+    }, [searchTerm, selectedDayMaster, selectedCategory]);
 
     const totalPages = Math.ceil(filteredCases.length / ITEMS_PER_PAGE);
     const displayCases = filteredCases.slice(
@@ -100,6 +142,21 @@ export function useCaseStudy() {
         return ALL_CASES.find(c => c.id === selectedCaseId);
     }, [selectedCaseId]);
 
+    // 当选中案例变化时，如果是奇门案例，进行排盘计算
+    useMemo(async () => {
+        if (activeCase && activeCase.category === 'qimen') {
+            const time = parseQimenTime(activeCase.content);
+            if (time) {
+                const result = await calculateQimen(time);
+                setQimenResult(result);
+            } else {
+                setQimenResult(null);
+            }
+        } else {
+            setQimenResult(null);
+        }
+    }, [activeCase]);
+
     // 搜索重置页码
     useMemo(() => {
         setCurrentPage(1);
@@ -111,6 +168,16 @@ export function useCaseStudy() {
         setSelectedLiuNianYear(null);
         setDaYunPage(0);
     }, [selectedCaseId]);
+
+    // 分类切换时重置筛选
+    useMemo(() => {
+        setSelectedDayMaster('all');
+        setSelectedAuthor(null);
+        setSearchTerm('');
+        setCurrentPage(1);
+        setSelectedCaseId(null);
+        setQimenResult(null);
+    }, [selectedCategory]);
 
     // 选择案例时清除作者
     const handleSelectCase = (id: string) => {
@@ -172,6 +239,9 @@ export function useCaseStudy() {
         setSelectedDaYunIndex,
         selectedLiuNianYear,
         setSelectedLiuNianYear,
+
+        // 奇门结果
+        qimenResult,
     };
 }
 
