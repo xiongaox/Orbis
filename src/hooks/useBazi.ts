@@ -21,6 +21,7 @@ export function useBazi() {
     const [selectedDaYunIndex, setSelectedDaYunIndex] = useState<number | null>(null);
     const [selectedLiuNianYear, setSelectedLiuNianYear] = useState<number | null>(null);
     const [selectedLiuYueIndex, setSelectedLiuYueIndex] = useState<number | null>(null);
+    const [isTransient, setIsTransient] = useState(false);
 
     // 加载案例数据
     const loadCase = useCallback(async (caseId: string) => {
@@ -101,7 +102,11 @@ export function useBazi() {
     }, [baziData, loading, loadBaziData]);
 
     // 监听案例选择变化
+
+
     useEffect(() => {
+        if (isTransient) return; // Skip loading if transient
+
         if (selectedCaseId === null) {
             setSelectedCase(null);
             loadBaziData(null);
@@ -114,7 +119,7 @@ export function useBazi() {
         };
 
         fetchData();
-    }, [selectedCaseId, loadCase, loadBaziData]);
+    }, [selectedCaseId, isTransient, loadCase, loadBaziData]);
 
     useEffect(() => {
         const handleCasesChanged = () => {
@@ -132,8 +137,16 @@ export function useBazi() {
 
     // 处理案例选择
     const handleSelectCase = (caseId: string | null) => {
+        setIsTransient(false);
         setSelectedCaseId(caseId);
     };
+
+    const handleSetTransientCase = useCallback((caseData: Case) => {
+        setIsTransient(true);
+        setSelectedCaseId('temp');
+        setSelectedCase(caseData);
+        loadBaziData(caseData);
+    }, [loadBaziData]);
 
     return {
         // 状态
@@ -150,6 +163,7 @@ export function useBazi() {
         setSelectedLiuNianYear,
         setSelectedLiuYueIndex,
         handleSelectCase,
+        handleSetTransientCase,
         initializeBazi,
     };
 }

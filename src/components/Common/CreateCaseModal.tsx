@@ -13,9 +13,10 @@ interface CreateCaseModalProps {
     isOpen: boolean;
     onClose: () => void;
     onCreated: () => void;
+    onPreview?: (data: CreateCaseInput) => void;
 }
 
-export default function CreateCaseModal({ isOpen, onClose, onCreated }: CreateCaseModalProps) {
+export default function CreateCaseModal({ isOpen, onClose, onCreated, onPreview }: CreateCaseModalProps) {
     const [name, setName] = useState('');
     const [gender, setGender] = useState<'male' | 'female'>('male');
     const [birthDate, setBirthDate] = useState('');
@@ -27,36 +28,46 @@ export default function CreateCaseModal({ isOpen, onClose, onCreated }: CreateCa
 
     if (!isOpen) return null;
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError(null);
-
-        // 验证
-        if (!name.trim()) {
-            setError('请输入案例名称');
-            return;
-        }
-
+    const validateForm = () => {
+        // Name is optional now, auto-filled if empty
         if (!birthDate) {
             setError('请选择出生日期');
-            return;
+            return null;
         }
+        return true;
+    };
+
+    const getInputData = () => {
+        // 计算八字数据
+        const baziData = calculateBazi(birthDate, gender);
+
+        // Auto-generate name if empty
+        let finalName = name.trim();
+        if (!finalName && baziData.year_pillar) {
+            const genderStr = gender === 'male' ? '乾造' : '坤造';
+            finalName = `${baziData.year_pillar}年${genderStr}人`;
+        }
+
+        return {
+            name: finalName || '未命名案例', // Fallback just in case
+            gender,
+            birth_date: new Date(birthDate).toISOString(),
+            tags,
+            notes: notes.trim() || undefined,
+            bazi_data: baziData as Record<string, unknown>,
+        };
+    };
+
+    const handleSave = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        setError(null);
+
+        if (!validateForm()) return;
 
         setLoading(true);
 
         try {
-            // 计算八字数据
-            const baziData = calculateBazi(birthDate, gender);
-
-            const input: CreateCaseInput = {
-                name: name.trim(),
-                gender,
-                birth_date: new Date(birthDate).toISOString(),
-                tags,
-                notes: notes.trim() || undefined,
-                bazi_data: baziData as Record<string, unknown>,
-            };
-
+            const input = getInputData();
             await baziCaseService.createCase(input);
 
             // 重置表单
@@ -69,6 +80,25 @@ export default function CreateCaseModal({ isOpen, onClose, onCreated }: CreateCa
             setLoading(false);
         }
     };
+
+    const handlePreviewClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        setError(null); // Clear previous errors
+
+        if (!validateForm()) return;
+
+        // No loading state typically needed for local preview construction, but good practice if calc is heavy
+        try {
+            const input = getInputData();
+            if (onPreview) {
+                onPreview(input);
+                onClose();
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : '排盘预览失败');
+        }
+    };
+
 
     const resetForm = () => {
         setName('');
@@ -89,10 +119,10 @@ export default function CreateCaseModal({ isOpen, onClose, onCreated }: CreateCa
             <div className="modal-card" style={{ maxWidth: '480px' }}>
                 <h2 className="modal-title">新建案例</h2>
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSave}>
                     {/* 姓名 */}
                     <div className="modal-field">
-                        <label className="modal-label">案例名称 *</label>
+                        <label className="modal-label">案例名称 (可选，默认自动生成)</label>
                         <input
                             type="text"
                             value={name}
@@ -198,23 +228,40 @@ export default function CreateCaseModal({ isOpen, onClose, onCreated }: CreateCa
                     )}
 
                     {/* 按钮 */}
-                    <div className="modal-actions">
-                        <button
-                            type="button"
-                            onClick={handleClose}
-                            className="modal-btn"
-                            disabled={loading}
-                        >
-                            取消
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="modal-btn primary flex items-center gap-2"
-                        >
-                            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                            创建
-                        </button>
+                    <div className="flex items-center justify-between mt-6">
+                        {/* 左侧：立即排盘 */}
+                        <div>
+                            {onPreview && (
+                                <button
+                                    type="button"
+                                    onClick={handlePreviewClick}
+                                    disabled={loading}
+                                    className="modal-btn hover:bg-primary/5 hover:border-primary/50 hover:text-primary transition-colors text-primary border-primary/30"
+                                >
+                                    立即排盘
+                                </button>
+                            )}
+                        </div>
+
+                        {/* 右侧：取消 & 保存 */}
+                        <div className="flex items-center gap-3">
+                            <button
+                                type="button"
+                                onClick={handleClose}
+                                className="modal-btn"
+                                disabled={loading}
+                            >
+                                取消
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="modal-btn primary flex items-center gap-2"
+                            >
+                                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                                保存到案例库
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>

@@ -74,6 +74,7 @@ function AppContent() {
                 onSelectCase={bazi.handleSelectCase}
                 onLoginClick={handleLoginClick}
                 onOpenLibrary={() => setShowCaseLibraryModal(true)}
+                onPreviewCase={bazi.handleSetTransientCase}
               />
             ) : undefined}
             liuYiPanel={showInsights ? <GanZhiLiuYiPanel data={ganZhiLiuYiData} /> : undefined}

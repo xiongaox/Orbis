@@ -23,6 +23,7 @@ interface BaziContextValue {
     setSelectedLiuNianYear: (year: number | null) => void;
     setSelectedLiuYueIndex: (index: number | null) => void;
     handleSelectCase: (caseId: string | null) => void;
+    handleSetTransientCase: (caseData: Case) => void;
     initializeBazi: () => void;
 }
 

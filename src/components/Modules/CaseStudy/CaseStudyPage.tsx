@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { Compass, Grid3X3, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Compass, Grid3X3, Search, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
+import { Lunar } from 'lunar-typescript';
 // Bazi calculation imports
 import {
     DI_ZHI_CANG_GAN,
@@ -14,7 +15,8 @@ import {
 } from '../../../lib/xuan-bazi/maps';
 import { getXunKong, getShiShenAbbr } from '../../../lib/xuan-bazi/utils';
 import { getElementColor } from '../../../lib/xuan-bazi/maps/baziStyleMap';
-import type { HiddenStem } from '../../../types/bazi';
+import type { HiddenStem, BaziApiResponse } from '../../../types/bazi';
+import { calculateBazi } from '../../../services/bazi/baziCalculator';
 
 // 模拟数据：分类列表
 const CATEGORIES = [
@@ -24,27 +26,97 @@ const CATEGORIES = [
     { id: 'ziwei', label: '命理', name: '紫薇' },
 ];
 
-// Helper to extract Bazi from content
-// Matches patterns like "坤造：乙丑年，癸未月，甲寅日，戊辰时" or table format
-// Simplified regex for the "text" line format as seen in the file
+// ====== 案例元数据解析 ======
+// 从案例头部元数据提取信息
+// 格式示例：
+// 命主生辰: 1985/07/14 08:00 (GMT+8)
+// 性别: 坤造
+// 日主: 甲木
+// 格局: 身弱
+// 令地: 失令 得地
+
+interface CaseMetadata {
+    birthDateTime: string | null;  // 1985/07/14 08:00
+    gender: '乾造' | '坤造' | null;
+    dayMasterElement: string | null;  // 甲木
+    pattern: string | null;  // 身弱
+    seasonStatus: string | null;  // 失令 得地
+}
+
+// 从头部元数据解析案例信息
+const parseCaseMetadata = (content: string): CaseMetadata => {
+    const birthMatch = content.match(/命主生辰[：:]\s*([^\n]+)/);
+    const genderMatch = content.match(/性别[：:]\s*([乾坤]造)/);
+    const dayMasterMatch = content.match(/日主[：:]\s*([^\n]+)/);
+    const patternMatch = content.match(/格局[：:]\s*([^\n]+)/);
+    const seasonMatch = content.match(/令地[：:]\s*([^\n]+)/);
+
+    return {
+        birthDateTime: birthMatch ? birthMatch[1].trim() : null,
+        gender: genderMatch ? (genderMatch[1] as '乾造' | '坤造') : null,
+        dayMasterElement: dayMasterMatch ? dayMasterMatch[1].trim() : null,
+        pattern: patternMatch ? patternMatch[1].trim() : null,
+        seasonStatus: seasonMatch ? seasonMatch[1].trim() : null,
+    };
+};
+
+// 从头部元数据解析出生年月日时
+const parseBirthFromMetadata = (birthDateTime: string): { year: number; month: number; day: number; hour: number | null } | null => {
+    // 格式1: "1985/07/14 08:00 (GMT+8)" 带时间
+    const matchWithTime = birthDateTime.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})/);
+    if (matchWithTime) {
+        return {
+            year: parseInt(matchWithTime[1], 10),
+            month: parseInt(matchWithTime[2], 10),
+            day: parseInt(matchWithTime[3], 10),
+            hour: parseInt(matchWithTime[4], 10),
+        };
+    }
+    // 格式2: "2001/11/09 (GMT+8)" 只有日期没有时间
+    const matchDateOnly = birthDateTime.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+    if (matchDateOnly) {
+        return {
+            year: parseInt(matchDateOnly[1], 10),
+            month: parseInt(matchDateOnly[2], 10),
+            day: parseInt(matchDateOnly[3], 10),
+            hour: null, // 没有时间
+        };
+    }
+    return null;
+};
+
+// 过滤掉头部元数据，只保留正文内容用于显示
+const filterContentForDisplay = (content: string): string => {
+    // 移除头部元数据行（命主生辰、性别、日主、格局、令地）
+    const metadataPattern = /^(命主生辰|性别|日主|格局|令地)[：:][^\n]*\n?/gm;
+    let filtered = content.replace(metadataPattern, '');
+    // 移除第一个一级标题（# 标题），因为已在代码中渲染
+    filtered = filtered.replace(/^#\s+[^\n]+\n?/, '');
+    // 移除开头的多余空行
+    return filtered.replace(/^\n+/, '');
+};
+
+// Helper to extract Bazi summary for list display
 const extractBazi = (content: string): string => {
-    // Try to find the line starting with 坤造 or 乾造
-    // Example: #### 坤造：乙丑年，癸未月，甲寅日，戊辰时
-    const match = content.match(/[乾坤]造[：:]\s*([^\n]+)/);
+    // 优先从头部元数据获取日主信息
+    const metadata = parseCaseMetadata(content);
+    if (metadata.birthDateTime && metadata.dayMasterElement) {
+        const birth = parseBirthFromMetadata(metadata.birthDateTime);
+        if (birth) {
+            return `${birth.year}/${birth.month}/${birth.day} ${metadata.dayMasterElement}`;
+        }
+    }
+
+    // 回退：从正文中查找 "乾造：" 或 "坤造：" 格式
+    const match = content.match(/[乾坤]造[：:]\s*([^\n(（]+)/);
     if (match) {
-        // Remove 年 月 日 时 and punctuation to just get characters
-        // "乙丑年，癸未月，甲寅日，戊辰时" -> "乙丑 癸未 甲寅 戊辰"
         let bazi = match[1].replace(/[年月日时，,、\s]+/g, ' ').trim();
-        // If it looks too long or messy, try to just take the first 4 pairs if possible
         const pillars = bazi.split(/\s+/);
         if (pillars.length >= 4) {
             return pillars.slice(0, 4).join(' ');
         }
         return bazi;
     }
-    // Fallback: try to find table row with #xx# format
-    // |1985/07/14-08:00|#坤造#|#甲木#|#身弱#|
-    // This doesn't contain the pillars directly usually.
     return "未知八字";
 };
 
@@ -53,12 +125,105 @@ interface ParsedBaziInfo {
     gender: '乾造' | '坤造' | null;
     pillars: { ganZhi: string; tiangan: string; dizhi: string; label: string }[];
     daYun: string[];
+    birthYear: number | null;
+    birthMonth: number | null;
+    birthDay: number | null;
+    birthHour: number | null;
+    isLunar: boolean; // 是否为农历
+    baziData: BaziApiResponse | null; // 计算得到的完整八字数据
 }
 
+// 农历月份映射
+const LUNAR_MONTH_MAP: Record<string, number> = {
+    '正': 1, '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6,
+    '七': 7, '八': 8, '九': 9, '十': 10, '十一': 11, '冬': 11, '十二': 12, '腊': 12
+};
+
+// 农历日期映射
+const LUNAR_DAY_MAP: Record<string, number> = {
+    '初一': 1, '初二': 2, '初三': 3, '初四': 4, '初五': 5, '初六': 6, '初七': 7, '初八': 8, '初九': 9, '初十': 10,
+    '十一': 11, '十二': 12, '十三': 13, '十四': 14, '十五': 15, '十六': 16, '十七': 17, '十八': 18, '十九': 19, '二十': 20,
+    '廿一': 21, '廿二': 22, '廿三': 23, '廿四': 24, '廿五': 25, '廿六': 26, '廿七': 27, '廿八': 28, '廿九': 29, '三十': 30,
+    '三十一': 31
+};
+
+// 时辰映射
+const HOUR_MAP: Record<string, number> = {
+    '子': 0, '丑': 2, '寅': 4, '卯': 6, '辰': 8, '巳': 10,
+    '午': 12, '未': 14, '申': 16, '酉': 18, '戌': 20, '亥': 22
+};
+
 const parseBaziInfo = (content: string): ParsedBaziInfo => {
-    // Gender
-    const genderMatch = content.match(/([乾坤])造/);
-    const gender = genderMatch ? (genderMatch[1] === '乾' ? '乾造' : '坤造') : null;
+    // 优先从头部元数据解析
+    const metadata = parseCaseMetadata(content);
+
+    // Gender - 优先使用元数据
+    const gender = metadata.gender || (() => {
+        const genderMatch = content.match(/([乾坤])造/);
+        return genderMatch ? (genderMatch[1] === '乾' ? '乾造' : '坤造') as '乾造' | '坤造' : null;
+    })();
+
+    // 解析出生日期 - 优先使用头部元数据（公历格式）
+    let birthYear: number | null = null;
+    let birthMonth: number | null = null;
+    let birthDay: number | null = null;
+    let birthHour: number | null = null;
+    let isLunar = false;
+
+    // 优先：从头部元数据获取公历日期（格式: "1985/07/14 08:00 (GMT+8)"）
+    if (metadata.birthDateTime) {
+        const birth = parseBirthFromMetadata(metadata.birthDateTime);
+        if (birth) {
+            birthYear = birth.year;
+            birthMonth = birth.month;
+            birthDay = birth.day;
+            birthHour = birth.hour;
+            isLunar = false; // 元数据中的日期是公历
+        }
+    }
+
+    // 回退格式1: "农历1987年四月初八中午8点" 或 "农历1981年12月17日下午4：30"
+    if (!birthYear) {
+        const lunarMatch1 = content.match(/农历\s*(\d{4})年\s*(正|一|二|三|四|五|六|七|八|九|十|十一|冬|十二|腊)月\s*(初一|初二|初三|初四|初五|初六|初七|初八|初九|初十|十一|十二|十三|十四|十五|十六|十七|十八|十九|二十|廿一|廿二|廿三|廿五|廿六|廿七|廿八|廿九|三十|三十一)\s*(?:(上午|下午|中午|晚上|午夜|凌晨|早上)?\s*(\d{1,2}))?/i);
+        if (lunarMatch1) {
+            isLunar = true;
+            birthYear = parseInt(lunarMatch1[1], 10);
+            birthMonth = LUNAR_MONTH_MAP[lunarMatch1[2]] || null;
+            birthDay = LUNAR_DAY_MAP[lunarMatch1[3]] || null;
+            if (lunarMatch1[5]) {
+                let hour = parseInt(lunarMatch1[5], 10);
+                const period = lunarMatch1[4];
+                if (period === '下午' && hour < 12) hour += 12;
+                if (period === '上午' && hour === 12) hour = 0;
+                if (period === '中午') hour = 12;
+                birthHour = hour;
+            }
+        }
+    }
+
+    // 回退格式2: "农历1981年12月17日" + "下午4:30"
+    if (!birthYear) {
+        const lunarMatch2 = content.match(/农历\s*(\d{4})年\s*(\d{1,2})月\s*(\d{1,2})日/);
+        if (lunarMatch2) {
+            isLunar = true;
+            birthYear = parseInt(lunarMatch2[1], 10);
+            birthMonth = parseInt(lunarMatch2[2], 10);
+            birthDay = parseInt(lunarMatch2[3], 10);
+        }
+    }
+
+    // 解析时辰 - "下午4:30" 或 "中午12点" 或时柱中的地支
+    if (!birthHour) {
+        const hourMatch = content.match(/(上午|下午|中午|晚上|午夜|凌晨|早上)?\s*(\d{1,2})\s*[点时:]/i);
+        if (hourMatch) {
+            let hour = parseInt(hourMatch[2], 10);
+            const period = hourMatch[1];
+            if (period === '下午' && hour !== 12) hour += 12;
+            if (period === '上午' && hour === 12) hour = 0;
+            if (period === '中午') hour = 12;
+            birthHour = hour;
+        }
+    }
 
     // Pillars - match "乙丑年，癸未月，甲寅日，戊辰时" or similar
     const pillars: ParsedBaziInfo['pillars'] = [];
@@ -81,6 +246,14 @@ const parseBaziInfo = (content: string): ParsedBaziInfo => {
         }
     }
 
+    // 从时柱提取时辰（如果还没有）
+    if (!birthHour && pillars.length >= 4) {
+        const timeZhi = pillars[3].dizhi;
+        if (timeZhi && HOUR_MAP[timeZhi] !== undefined) {
+            birthHour = HOUR_MAP[timeZhi];
+        }
+    }
+
     // Da Yun - match "大运：甲申，乙酉，丙戌"
     const daYun: string[] = [];
     const daYunMatch = content.match(/大运[：:]\s*([^\n]+)/);
@@ -89,7 +262,58 @@ const parseBaziInfo = (content: string): ParsedBaziInfo => {
         daYun.push(...parts);
     }
 
-    return { gender, pillars, daYun };
+    // 尝试计算完整的八字数据
+    let baziData: BaziApiResponse | null = null;
+    if (birthYear && birthMonth && birthDay && birthHour !== null) {
+        try {
+            let solarYear = birthYear;
+            let solarMonth = birthMonth;
+            let solarDay = birthDay;
+
+            // 如果是农历，转换为公历
+            if (isLunar) {
+                const lunar = Lunar.fromYmd(birthYear, birthMonth, birthDay);
+                const solar = lunar.getSolar();
+                solarYear = solar.getYear();
+                solarMonth = solar.getMonth();
+                solarDay = solar.getDay();
+            }
+
+            baziData = calculateBazi({
+                year: solarYear,
+                month: solarMonth,
+                day: solarDay,
+                hour: birthHour,
+                minute: 0,
+                gender: gender === '乾造' ? 'male' : 'female'
+            });
+        } catch (e) {
+            console.warn('计算八字失败:', e);
+        }
+    }
+
+    // 如果正则提取失败（例如缺"时"字），且已成功计算八字，则使用计算结果填充
+    if (baziData && baziData.pillars && pillars.length < 4) {
+        const labels = ['年柱', '月柱', '日柱', '时柱'];
+        const newPillars = [];
+        for (let i = 0; i < 4; i++) {
+            const p = baziData.pillars[i];
+            if (p && p.ganZhi) {
+                newPillars.push({
+                    ganZhi: p.ganZhi,
+                    tiangan: p.ganZhi[0],
+                    dizhi: p.ganZhi[1],
+                    label: labels[i]
+                });
+            }
+        }
+        if (newPillars.length === 4) {
+            pillars.length = 0; // 清空旧数据
+            pillars.push(...newPillars);
+        }
+    }
+
+    return { gender, pillars, daYun, birthYear, birthMonth, birthDay, birthHour, isLunar, baziData };
 };
 
 // 天干地支表
@@ -232,37 +456,104 @@ function SimplePillarCard({
 
 // Start loading cases
 // This needs to be outside or memoized, but for simple Vite HMR, we can just do it here
-const rawCases = import.meta.glob('../../../data/cases/bazi/*.md', { as: 'raw', eager: true });
+const rawCasesLishuanglin = import.meta.glob('../../../data/cases/lishuanglin/**/*.md', { query: '?raw', import: 'default', eager: true });
+const rawCasesNanxuanzi = import.meta.glob('../../../data/cases/nanxuanzi/**/*.md', { query: '?raw', import: 'default', eager: true });
 
-const ALL_CASES = Object.entries(rawCases).map(([path, content]) => {
-    // path is something like "../../../data/cases/bazi/Title.md"
-    const filename = path.split('/').pop()?.replace('.md', '') || '无标题';
-    const bazi = extractBazi(content as string);
-    return {
-        id: path, // unique id
-        title: filename,
-        bazi: bazi,
-        content: content as string
-    };
-});
+// 作者映射
+const AUTHOR_MAP: Record<string, string> = {
+    'lishuanglin': '李双林',
+    'nanxuanzi': '南玄子',
+};
+
+// 加载作者介绍文件
+const authorIntroFiles = import.meta.glob('../../../data/cases/*/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+
+// 合并所有案例
+const rawCases = { ...rawCasesLishuanglin, ...rawCasesNanxuanzi };
+
+// 日主分类列表（从目录结构提取）
+const DAY_MASTER_CATEGORIES = [
+    { id: 'all', label: '全部' },
+    { id: '甲日命造', label: '甲日' },
+    { id: '乙日命造', label: '乙日' },
+    { id: '丙日命造', label: '丙日' },
+    { id: '丁日命造', label: '丁日' },
+    { id: '戊日命造', label: '戊日' },
+    { id: '己日命造', label: '己日' },
+    { id: '庚日命造', label: '庚日' },
+    { id: '辛日命造', label: '辛日' },
+    { id: '壬日命造', label: '壬日' },
+    { id: '癸日命造', label: '癸日' },
+    { id: '特殊格局', label: '特殊格局' },
+];
+
+const ALL_CASES = Object.entries(rawCases)
+    .filter(([path, content]) => {
+        // 过滤掉空文件和非案例文件（如 李双林.md）
+        const c = content as string;
+        return c.trim().length > 0 && path.includes('/');
+    })
+    .map(([path, content]) => {
+        // path 类似 "../../../data/cases/lishuanglin/甲日命造/案例标题.md"
+        const pathParts = path.split('/');
+        const filename = pathParts.pop()?.replace('.md', '') || '无标题';
+        // 提取日主分类（倒数第二个目录）
+        const dayMasterCategory = pathParts[pathParts.length - 1] || '未分类';
+        // 提取作者（从路径中判断）
+        const authorKey = path.includes('lishuanglin') ? 'lishuanglin' : path.includes('nanxuanzi') ? 'nanxuanzi' : '';
+        const author = AUTHOR_MAP[authorKey] || '未知';
+        const bazi = extractBazi(content as string);
+        return {
+            id: path, // unique id
+            title: filename,
+            bazi: bazi,
+            content: content as string,
+            dayMaster: dayMasterCategory, // 日主分类
+            author: author // 作者
+        };
+    });
+
+
 
 const ITEMS_PER_PAGE = 13;
 
 export default function CaseStudyPage() {
     const [selectedCategory, setSelectedCategory] = useState<string>('bazi');
+    const [selectedDayMaster, setSelectedDayMaster] = useState<string>('all'); // 日主筛选
     const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [daYunPage, setDaYunPage] = useState(0); // 大运分页
     const [selectedDaYunIndex, setSelectedDaYunIndex] = useState<number | null>(null); // 选中的大运索引
     const [selectedLiuNianYear, setSelectedLiuNianYear] = useState<number | null>(null); // 选中的流年
+    const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null); // 选中的作者（显示介绍）
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false); // 下拉菜单开关
+
+    // 获取作者介绍内容
+    const authorIntroContent = useMemo(() => {
+        if (!selectedAuthor) return null;
+        // 查找作者介绍文件
+        const introPath = Object.keys(authorIntroFiles).find(path =>
+            path.includes(`/${selectedAuthor}.md`) && !path.includes('/')
+        ) || Object.keys(authorIntroFiles).find(path =>
+            path.endsWith(`${selectedAuthor}.md`)
+        );
+        if (introPath && authorIntroFiles[introPath]) {
+            return authorIntroFiles[introPath];
+        }
+        return null;
+    }, [selectedAuthor]);
 
     // Filter and Paginate
     const filteredCases = useMemo(() => {
-        return ALL_CASES.filter(c =>
-            c.title.includes(searchTerm) || c.content.includes(searchTerm)
-        );
-    }, [searchTerm]);
+        return ALL_CASES.filter(c => {
+            // 日主分类筛选
+            const matchDayMaster = selectedDayMaster === 'all' || c.dayMaster === selectedDayMaster;
+            // 搜索筛选
+            const matchSearch = searchTerm === '' || c.title.includes(searchTerm) || c.content.includes(searchTerm);
+            return matchDayMaster && matchSearch;
+        });
+    }, [searchTerm, selectedDayMaster]);
 
     const totalPages = Math.ceil(filteredCases.length / ITEMS_PER_PAGE);
     const displayCases = filteredCases.slice(
@@ -286,8 +577,10 @@ export default function CaseStudyPage() {
         setSelectedLiuNianYear(null);
         setDaYunPage(0);
     }, [selectedCaseId]);
+
     return (
-        <div className="flex w-full h-full overflow-hidden bg-background">
+        <div className="flex w-full h-full overflow-hidden bg-background relative">
+
             {/* 1. 术数分类 (5%) - 仿Vertical Tab样式 */}
             <div className="w-[5%] min-w-[80px] border-r border-border/40 bg-card/30 flex flex-col">
                 <div className="py-4 text-center border-b border-border/40 bg-card/50">
@@ -328,15 +621,76 @@ export default function CaseStudyPage() {
             <div className="w-[15%] border-r border-border bg-card flex flex-col min-w-[200px]">
                 <div className="p-3 border-b border-border space-y-2">
                     <h3 className="font-medium text-sm">案例列表</h3>
+                    {/* 日主分类选择器 */}
+                    {/* 自定义日主分类下拉菜单 */}
+                    <div className="relative group">
+                        {/* 遮罩层，用于点击外部关闭 */}
+                        {isDropdownOpen && (
+                            <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setIsDropdownOpen(false)}
+                            />
+                        )}
+
+                        {/* 触发按钮 */}
+                        <div
+                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                            className="w-full px-3 py-2 text-sm bg-muted/40 border border-border/60 rounded-lg cursor-pointer hover:bg-muted/60 flex items-center justify-between transition-all"
+                        >
+                            <span className="truncate flex items-center gap-2">
+                                <span className={selectedDayMaster === 'all' ? 'font-medium' : ''}>
+                                    {DAY_MASTER_CATEGORIES.find(c => c.id === selectedDayMaster)?.label || '全部'}
+                                </span>
+                                <span className="text-muted-foreground/60 text-xs">
+                                    {selectedDayMaster === 'all'
+                                        ? ALL_CASES.length
+                                        : ALL_CASES.filter(c => c.dayMaster === selectedDayMaster).length}
+                                </span>
+                            </span>
+                            <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground/70 transition-transform duration-200 group-hover:text-foreground ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                        </div>
+
+                        {/* 下拉列表 */}
+                        {isDropdownOpen && (
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-popover border border-border shadow-md rounded-lg z-20 max-h-[300px] overflow-y-auto py-1 animate-in fade-in zoom-in-95 duration-100">
+                                {DAY_MASTER_CATEGORIES.map(cat => {
+                                    const count = cat.id === 'all'
+                                        ? ALL_CASES.length
+                                        : ALL_CASES.filter(c => c.dayMaster === cat.id).length;
+                                    const isSelected = selectedDayMaster === cat.id;
+
+                                    return (
+                                        <div
+                                            key={cat.id}
+                                            onClick={() => {
+                                                setSelectedDayMaster(cat.id);
+                                                setCurrentPage(1);
+                                                setIsDropdownOpen(false);
+                                            }}
+                                            className={`
+                                                px-3 py-2 text-sm cursor-pointer flex items-center justify-between transition-colors
+                                                ${isSelected ? 'bg-muted text-foreground font-medium' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'}
+                                            `}
+                                        >
+                                            <span>{cat.label}</span>
+                                            <span className={`text-xs ${isSelected ? 'text-foreground/80' : 'text-muted-foreground/50'}`}>
+                                                {count}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
                     {/* Search Input */}
                     <div className="relative">
-                        <Search className="absolute left-2 top-1.5 w-3.5 h-3.5 text-muted-foreground" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <input
                             type="text"
                             placeholder="搜索案例..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-7 pr-2 py-1 text-xs bg-muted/30 border border-border/50 rounded-md focus:outline-none focus:ring-1 focus:ring-primary/30"
+                            className="w-full pl-9 pr-3 py-2 text-sm bg-muted/40 border border-border/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-all hover:bg-muted/60"
                         />
                     </div>
                 </div>
@@ -350,10 +704,25 @@ export default function CaseStudyPage() {
                                     ? 'bg-primary/10 border-primary/30 text-primary'
                                     : 'border-transparent text-muted-foreground hover:bg-muted/30 hover:text-foreground'
                                     }`}
-                                onClick={() => setSelectedCaseId(item.id)}
+                                onClick={() => {
+                                    setSelectedCaseId(item.id);
+                                    setSelectedAuthor(null); // 清除作者选择
+                                }}
                             >
                                 <div className="truncate font-medium text-foreground">{item.title}</div>
-                                <div className="text-xs opacity-70 mt-1 truncate font-mono">{item.bazi}</div>
+                                <div className="flex justify-between items-center mt-1">
+                                    <span className="text-xs opacity-70 truncate font-mono">{item.bazi}</span>
+                                    <span
+                                        className="text-xs text-muted-foreground/70 hover:text-primary flex-shrink-0 ml-2 cursor-pointer hover:underline transition-colors"
+                                        onClick={(e) => {
+                                            e.stopPropagation(); // 阻止触发卡片的点击事件
+                                            setSelectedAuthor(item.author);
+                                            setSelectedCaseId(null); // 清除选中的案例
+                                        }}
+                                    >
+                                        作者：{item.author}
+                                    </span>
+                                </div>
                             </div>
                         ))
                     ) : (
@@ -423,7 +792,43 @@ export default function CaseStudyPage() {
                                         strong: ({ node, ...props }) => <strong className="text-primary" {...props} />,
                                     }}
                                 >
-                                    {activeCase.content}
+                                    {filterContentForDisplay(activeCase.content)}
+                                </ReactMarkdown>
+                            </div>
+                        </div>
+                    </div>
+                ) : selectedAuthor && authorIntroContent ? (
+                    // 显示作者介绍
+                    <div className="flex-1 overflow-y-auto p-8">
+                        <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
+                            <h1 className="text-2xl font-serif font-bold text-center text-primary/90 pb-4 border-b border-border/40">
+                                {selectedAuthor}
+                            </h1>
+                            <div className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed text-[18px]">
+                                <ReactMarkdown
+                                    rehypePlugins={[rehypeRaw]}
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                        h1: ({ node, ...props }) => (
+                                            <div className="mt-8 mb-6">
+                                                <h1 className="text-xl font-bold text-primary inline-block" {...props} />
+                                                <div className="w-full h-0.5 bg-primary/30 mt-2 rounded-full" />
+                                            </div>
+                                        ),
+                                        h2: ({ node, ...props }) => (
+                                            <div className="mt-6 mb-4">
+                                                <h2 className="text-lg font-bold text-primary/80 inline-block" {...props} />
+                                                <div className="w-full h-0.5 bg-primary/20 mt-1.5 rounded-full" />
+                                            </div>
+                                        ),
+                                        p: ({ node, ...props }) => <p className="mb-4 text-justify text-[18px] leading-8 indent-8 text-foreground/75" {...props} />,
+                                        ol: ({ node, ...props }) => <ol className="list-decimal space-y-4 mb-6 pl-6" {...props} />,
+                                        ul: ({ node, ...props }) => <ul className="list-disc space-y-3 mb-4 pl-6" {...props} />,
+                                        li: ({ node, ...props }) => <li className="text-[17px] leading-7 text-foreground/70 pb-3 border-b border-border/20 marker:text-primary marker:font-bold" {...props} />,
+                                        strong: ({ node, ...props }) => <strong className="text-primary" {...props} />,
+                                    }}
+                                >
+                                    {filterContentForDisplay(authorIntroContent)}
                                 </ReactMarkdown>
                             </div>
                         </div>
@@ -495,36 +900,25 @@ export default function CaseStudyPage() {
 
                                             {/* 选中的流年柱 (最左边) */}
                                             {selectedLiuNianYear !== null && selectedDaYunIndex !== null && (() => {
-                                                const yearGan = baziInfo.pillars[0]?.tiangan || '';
-                                                const startAge = selectedDaYunIndex * 10 + 1;
-                                                const baseYear = new Date().getFullYear() - (new Date().getFullYear() % 60);
-
-                                                // 找到选中的流年干支
-                                                for (let j = 0; j < 10; j++) {
-                                                    const liuNianAge = startAge + j;
-                                                    const ganIndex = (liuNianAge - 1 + TIAN_GAN.indexOf(yearGan)) % 10;
-                                                    const zhiIndex = (liuNianAge - 1 + DI_ZHI.indexOf(baziInfo.pillars[0]?.dizhi || '')) % 12;
-                                                    const year = baseYear + liuNianAge;
-                                                    if (year === selectedLiuNianYear) {
-                                                        const ganZhi = TIAN_GAN[ganIndex] + DI_ZHI[zhiIndex];
-                                                        const details = computePillarDetails(ganZhi, dayGan, true);
-                                                        return (
-                                                            <SimplePillarCard
-                                                                key="liunian"
-                                                                label="流年"
-                                                                tiangan={ganZhi[0]}
-                                                                dizhi={ganZhi[1]}
-                                                                tianganShiShen={details.tianganShiShen}
-                                                                zanggan={details.zanggan}
-                                                                diShi={details.diShi}
-                                                                ziZuo={details.ziZuo}
-                                                                kongWang={details.kongWang}
-                                                                naYin={details.naYin}
-                                                            />
-                                                        );
-                                                    }
-                                                }
-                                                return null;
+                                                // 根据选中的流年年份计算干支
+                                                const ganIndex = (selectedLiuNianYear - 4) % 10;
+                                                const zhiIndex = (selectedLiuNianYear - 4) % 12;
+                                                const ganZhi = TIAN_GAN[ganIndex >= 0 ? ganIndex : ganIndex + 10] + DI_ZHI[zhiIndex >= 0 ? zhiIndex : zhiIndex + 12];
+                                                const details = computePillarDetails(ganZhi, dayGan, true);
+                                                return (
+                                                    <SimplePillarCard
+                                                        key="liunian"
+                                                        label="流年"
+                                                        tiangan={ganZhi[0]}
+                                                        dizhi={ganZhi[1]}
+                                                        tianganShiShen={details.tianganShiShen}
+                                                        zanggan={details.zanggan}
+                                                        diShi={details.diShi}
+                                                        ziZuo={details.ziZuo}
+                                                        kongWang={details.kongWang}
+                                                        naYin={details.naYin}
+                                                    />
+                                                );
                                             })()}
 
                                             {/* 选中的大运柱 */}
@@ -573,168 +967,270 @@ export default function CaseStudyPage() {
                                         </div>
                                     </div>
 
-                                    {/* 大运列表 - 带分页的彩色显示 */}
-                                    {baziInfo.daYun.length > 0 && (() => {
-                                        const ITEMS_PER_VIEW = 8;
-                                        const yearGan = baziInfo.pillars[0]?.tiangan || '';
-                                        const fullDaYun = extendDaYun(baziInfo.daYun[0], baziInfo.gender, yearGan, 16);
-                                        const totalDaYunPages = Math.ceil(fullDaYun.length / ITEMS_PER_VIEW);
-                                        const visibleDaYun = fullDaYun.slice(daYunPage * ITEMS_PER_VIEW, (daYunPage + 1) * ITEMS_PER_VIEW);
+                                    {/* 大运列表 - 使用 baziData 或回退到旧逻辑 */}
+                                    {(() => {
+                                        // 优先使用 baziData 中的大运数据
+                                        const daYunList = baziInfo.baziData?.daYun || [];
 
-                                        return (
-                                            <div className="bg-card overflow-hidden border-b border-border/50">
-                                                {/* Header with pagination */}
-                                                <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/50 bg-muted/20">
-                                                    <span className="text-xs font-medium text-muted-foreground">大运</span>
-                                                    {totalDaYunPages > 1 && (
-                                                        <div className="flex items-center gap-1">
-                                                            <button
-                                                                onClick={() => setDaYunPage(Math.max(0, daYunPage - 1))}
-                                                                disabled={daYunPage === 0}
-                                                                className="p-0.5 rounded hover:bg-muted disabled:opacity-30"
-                                                            >
-                                                                <ChevronLeft className="w-3 h-3" />
-                                                            </button>
-                                                            <span className="text-[10px] text-muted-foreground">{daYunPage + 1}/{totalDaYunPages}</span>
-                                                            <button
-                                                                onClick={() => setDaYunPage(Math.min(totalDaYunPages - 1, daYunPage + 1))}
-                                                                disabled={daYunPage === totalDaYunPages - 1}
-                                                                className="p-0.5 rounded hover:bg-muted disabled:opacity-30"
-                                                            >
-                                                                <ChevronRight className="w-3 h-3" />
-                                                            </button>
-                                                        </div>
-                                                    )}
+                                        if (daYunList.length > 0) {
+                                            // 使用计算得到的正确大运数据
+                                            const ITEMS_PER_VIEW = 8;
+                                            // 过滤掉索引为 0 或 -1 的"小运"项
+                                            const realDaYun = daYunList.filter(dy => dy.index > 0);
+                                            const totalDaYunPages = Math.ceil(realDaYun.length / ITEMS_PER_VIEW);
+                                            const visibleDaYun = realDaYun.slice(daYunPage * ITEMS_PER_VIEW, (daYunPage + 1) * ITEMS_PER_VIEW);
+
+                                            return (
+                                                <div className="bg-card overflow-hidden border-b border-border/50">
+                                                    <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/50 bg-muted/20">
+                                                        <span className="text-xs font-medium text-muted-foreground">大运</span>
+                                                        {totalDaYunPages > 1 && (
+                                                            <div className="flex items-center gap-1">
+                                                                <button
+                                                                    onClick={() => setDaYunPage(Math.max(0, daYunPage - 1))}
+                                                                    disabled={daYunPage === 0}
+                                                                    className="p-0.5 rounded hover:bg-muted disabled:opacity-30"
+                                                                >
+                                                                    <ChevronLeft className="w-3 h-3" />
+                                                                </button>
+                                                                <span className="text-[10px] text-muted-foreground">{daYunPage + 1}/{totalDaYunPages}</span>
+                                                                <button
+                                                                    onClick={() => setDaYunPage(Math.min(totalDaYunPages - 1, daYunPage + 1))}
+                                                                    disabled={daYunPage === totalDaYunPages - 1}
+                                                                    className="p-0.5 rounded hover:bg-muted disabled:opacity-30"
+                                                                >
+                                                                    <ChevronRight className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex">
+                                                        {visibleDaYun.map((dy) => {
+                                                            const tiangan = dy.tiangan || '';
+                                                            const dizhi = dy.dizhi || '';
+                                                            const details = computePillarDetails(dy.ganZhi || '', dayGan, true);
+                                                            const dizhiShiShen = details.zanggan[0]?.shiShen || '';
+                                                            const isSelected = selectedDaYunIndex === dy.index;
+                                                            return (
+                                                                <div
+                                                                    key={dy.index}
+                                                                    className={`flex-1 border-r border-border/30 last:border-r-0 text-center py-2 cursor-pointer transition-colors ${isSelected ? 'bg-primary/10' : 'hover:bg-muted/30'}`}
+                                                                    onClick={() => {
+                                                                        if (isSelected) {
+                                                                            setSelectedDaYunIndex(null);
+                                                                            setSelectedLiuNianYear(null);
+                                                                        } else {
+                                                                            setSelectedDaYunIndex(dy.index);
+                                                                            setSelectedLiuNianYear(null);
+                                                                        }
+                                                                    }}
+                                                                >
+                                                                    <div className="text-xs text-muted-foreground mb-1">{dy.startAge}岁</div>
+                                                                    <div className="flex flex-col items-center gap-1">
+                                                                        <div className="flex items-baseline justify-center gap-0.5">
+                                                                            <span className="text-lg font-display font-semibold" style={{ color: getElementColor(tiangan) }}>
+                                                                                {tiangan}
+                                                                            </span>
+                                                                            <span className="text-xs text-muted-foreground">{details.tianganShiShen}</span>
+                                                                        </div>
+                                                                        <div className="flex items-baseline justify-center gap-0.5">
+                                                                            <span className="text-lg font-display font-semibold" style={{ color: getElementColor(dizhi) }}>
+                                                                                {dizhi}
+                                                                            </span>
+                                                                            <span className="text-xs text-muted-foreground">{dizhiShiShen}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
-                                                {/* Da Yun Items */}
-                                                <div className="flex">
-                                                    {visibleDaYun.map((dy, i) => {
-                                                        const tiangan = dy[0];
-                                                        const dizhi = dy[1];
-                                                        const details = computePillarDetails(dy, dayGan, true);
-                                                        // 计算地支的十神 (藏干主气)
-                                                        const dizhiShiShen = details.zanggan[0]?.shiShen || '';
-                                                        const globalDaYunIndex = daYunPage * ITEMS_PER_VIEW + i;
-                                                        const startAge = globalDaYunIndex * 10 + 1;
-                                                        const isSelected = selectedDaYunIndex === globalDaYunIndex;
-                                                        return (
-                                                            <div
-                                                                key={i}
-                                                                className={`flex-1 border-r border-border/30 last:border-r-0 text-center py-2 cursor-pointer transition-colors ${isSelected ? 'bg-primary/10' : 'hover:bg-muted/30'
-                                                                    }`}
-                                                                onClick={() => {
-                                                                    if (isSelected) {
-                                                                        setSelectedDaYunIndex(null);
-                                                                        setSelectedLiuNianYear(null);
-                                                                    } else {
-                                                                        setSelectedDaYunIndex(globalDaYunIndex);
-                                                                        setSelectedLiuNianYear(null);
-                                                                    }
-                                                                }}
-                                                            >
-                                                                <div className="text-xs text-muted-foreground mb-1">{startAge}岁</div>
-                                                                <div className="flex flex-col items-center gap-1">
-                                                                    {/* 天干 + 十神 */}
+                                            );
+                                        } else if (baziInfo.daYun.length > 0) {
+                                            // 回退到旧逻辑
+                                            const ITEMS_PER_VIEW = 8;
+                                            const yearGan = baziInfo.pillars[0]?.tiangan || '';
+                                            const fullDaYun = extendDaYun(baziInfo.daYun[0], baziInfo.gender, yearGan, 16);
+                                            const totalDaYunPages = Math.ceil(fullDaYun.length / ITEMS_PER_VIEW);
+                                            const visibleDaYun = fullDaYun.slice(daYunPage * ITEMS_PER_VIEW, (daYunPage + 1) * ITEMS_PER_VIEW);
+
+                                            return (
+                                                <div className="bg-card overflow-hidden border-b border-border/50">
+                                                    <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/50 bg-muted/20">
+                                                        <span className="text-xs font-medium text-muted-foreground">大运</span>
+                                                        {totalDaYunPages > 1 && (
+                                                            <div className="flex items-center gap-1">
+                                                                <button onClick={() => setDaYunPage(Math.max(0, daYunPage - 1))} disabled={daYunPage === 0} className="p-0.5 rounded hover:bg-muted disabled:opacity-30">
+                                                                    <ChevronLeft className="w-3 h-3" />
+                                                                </button>
+                                                                <span className="text-[10px] text-muted-foreground">{daYunPage + 1}/{totalDaYunPages}</span>
+                                                                <button onClick={() => setDaYunPage(Math.min(totalDaYunPages - 1, daYunPage + 1))} disabled={daYunPage === totalDaYunPages - 1} className="p-0.5 rounded hover:bg-muted disabled:opacity-30">
+                                                                    <ChevronRight className="w-3 h-3" />
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex">
+                                                        {visibleDaYun.map((dy, i) => {
+                                                            const tiangan = dy[0];
+                                                            const dizhi = dy[1];
+                                                            const details = computePillarDetails(dy, dayGan, true);
+                                                            const dizhiShiShen = details.zanggan[0]?.shiShen || '';
+                                                            const globalDaYunIndex = daYunPage * ITEMS_PER_VIEW + i + 1;
+                                                            const startAge = globalDaYunIndex * 10 + 1;
+                                                            const isSelected = selectedDaYunIndex === globalDaYunIndex;
+                                                            return (
+                                                                <div key={i} className={`flex-1 border-r border-border/30 last:border-r-0 text-center py-2 cursor-pointer transition-colors ${isSelected ? 'bg-primary/10' : 'hover:bg-muted/30'}`}
+                                                                    onClick={() => {
+                                                                        if (isSelected) { setSelectedDaYunIndex(null); setSelectedLiuNianYear(null); }
+                                                                        else { setSelectedDaYunIndex(globalDaYunIndex); setSelectedLiuNianYear(null); }
+                                                                    }}
+                                                                >
+                                                                    <div className="text-xs text-muted-foreground mb-1">{startAge}岁</div>
+                                                                    <div className="flex flex-col items-center gap-1">
+                                                                        <div className="flex items-baseline justify-center gap-0.5">
+                                                                            <span className="text-lg font-display font-semibold" style={{ color: getElementColor(tiangan) }}>{tiangan}</span>
+                                                                            <span className="text-xs text-muted-foreground">{details.tianganShiShen}</span>
+                                                                        </div>
+                                                                        <div className="flex items-baseline justify-center gap-0.5">
+                                                                            <span className="text-lg font-display font-semibold" style={{ color: getElementColor(dizhi) }}>{dizhi}</span>
+                                                                            <span className="text-xs text-muted-foreground">{dizhiShiShen}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+
+                                    {/* 流年列表 - 使用 baziData 或回退到旧逻辑 */}
+                                    {selectedDaYunIndex !== null && baziInfo.pillars.length >= 4 && (() => {
+                                        // 优先使用 baziData 中的流年数据
+                                        const liuNianData = baziInfo.baziData?.liuNian || [];
+                                        const daYunData = baziInfo.baziData?.daYun || [];
+
+                                        if (liuNianData.length > 0) {
+                                            // 找到该大运对应的流年
+                                            const liuNianList = liuNianData.filter(ln => ln.dayunIndex === selectedDaYunIndex);
+                                            if (liuNianList.length === 0) return null;
+
+                                            // 获取选中的大运名称
+                                            const selectedDaYun = daYunData.find(dy => dy.index === selectedDaYunIndex);
+                                            const selectedDaYunGanZhi = selectedDaYun?.ganZhi || '';
+
+                                            return (
+                                                <div className="bg-card overflow-hidden border-b border-border/50">
+                                                    <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/50 bg-muted/20">
+                                                        <span className="text-xs font-medium text-muted-foreground">
+                                                            流年（{selectedDaYunGanZhi}运）
+                                                        </span>
+                                                    </div>
+                                                    <div className="grid grid-cols-10 gap-0">
+                                                        {liuNianList.map((ln) => {
+                                                            const tiangan = ln.tiangan || '';
+                                                            const dizhi = ln.dizhi || '';
+                                                            const details = computePillarDetails(ln.ganZhi || '', dayGan, true);
+                                                            const dizhiShiShen = details.zanggan[0]?.shiShen || '';
+                                                            const isSelected = selectedLiuNianYear === ln.year;
+                                                            return (
+                                                                <div
+                                                                    key={ln.year}
+                                                                    className={`border-r border-b border-border/30 text-center py-1.5 cursor-pointer transition-colors ${isSelected ? 'bg-primary/10' : 'hover:bg-muted/30'}`}
+                                                                    onClick={() => setSelectedLiuNianYear(isSelected ? null : ln.year)}
+                                                                >
+                                                                    <div className="text-xs text-muted-foreground">{ln.year}</div>
                                                                     <div className="flex items-baseline justify-center gap-0.5">
-                                                                        <span
-                                                                            className="text-lg font-display font-semibold"
-                                                                            style={{ color: getElementColor(tiangan) }}
-                                                                        >
+                                                                        <span className="text-base font-display font-semibold" style={{ color: getElementColor(tiangan) }}>
                                                                             {tiangan}
                                                                         </span>
                                                                         <span className="text-xs text-muted-foreground">{details.tianganShiShen}</span>
                                                                     </div>
-                                                                    {/* 地支 + 十神 */}
                                                                     <div className="flex items-baseline justify-center gap-0.5">
-                                                                        <span
-                                                                            className="text-lg font-display font-semibold"
-                                                                            style={{ color: getElementColor(dizhi) }}
-                                                                        >
+                                                                        <span className="text-base font-display font-semibold" style={{ color: getElementColor(dizhi) }}>
                                                                             {dizhi}
                                                                         </span>
                                                                         <span className="text-xs text-muted-foreground">{dizhiShiShen}</span>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                        );
-                                                    })}
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })()}
+                                            );
+                                        } else {
+                                            // 回退到旧逻辑
+                                            const yearGan = baziInfo.pillars[0]?.tiangan || '';
+                                            const yearZhi = baziInfo.pillars[0]?.dizhi || '';
+                                            const fullDaYun = extendDaYun(baziInfo.daYun[0], baziInfo.gender, yearGan, 16);
+                                            const selectedDaYunGanZhi = fullDaYun[selectedDaYunIndex - 1];
+                                            if (!selectedDaYunGanZhi) return null;
 
-                                    {/* 流年列表 - 当选中大运时显示 */}
-                                    {selectedDaYunIndex !== null && baziInfo.pillars.length >= 4 && (() => {
-                                        const yearGan = baziInfo.pillars[0]?.tiangan || '';
-                                        const fullDaYun = extendDaYun(baziInfo.daYun[0], baziInfo.gender, yearGan, 16);
-                                        const selectedDaYunGanZhi = fullDaYun[selectedDaYunIndex];
-                                        if (!selectedDaYunGanZhi) return null;
+                                            // 使用出生年份计算
+                                            let birthYear = baziInfo.birthYear;
+                                            if (!birthYear) {
+                                                const currentYear = new Date().getFullYear();
+                                                const yearGanIndex = TIAN_GAN.indexOf(yearGan);
+                                                const yearZhiIndex = DI_ZHI.indexOf(yearZhi);
+                                                for (let y = currentYear; y > currentYear - 120; y--) {
+                                                    if ((y - 4) % 10 === yearGanIndex && (y - 4) % 12 === yearZhiIndex) {
+                                                        birthYear = y;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            if (!birthYear) birthYear = new Date().getFullYear() - 30;
 
-                                        // 计算该大运对应的10年流年
-                                        const startAge = selectedDaYunIndex * 10 + 1;
-                                        // 假设起始年份（可以根据实际生日计算，这里简化处理）
-                                        const currentYear = new Date().getFullYear();
-                                        const liuNianList: { year: number; ganZhi: string }[] = [];
+                                            const startAge = selectedDaYunIndex * 10 + 1;
+                                            const liuNianList: { year: number; ganZhi: string }[] = [];
+                                            for (let j = 0; j < 10; j++) {
+                                                const liuNianAge = startAge + j;
+                                                const liuNianYear = birthYear + liuNianAge - 1;
+                                                const ganIndex = (liuNianYear - 4) % 10;
+                                                const zhiIndex = (liuNianYear - 4) % 12;
+                                                liuNianList.push({
+                                                    year: liuNianYear,
+                                                    ganZhi: TIAN_GAN[ganIndex >= 0 ? ganIndex : ganIndex + 10] + DI_ZHI[zhiIndex >= 0 ? zhiIndex : zhiIndex + 12]
+                                                });
+                                            }
 
-                                        // 根据当前年份和索引推算流年
-                                        const baseYear = currentYear - (currentYear % 60); // 60年周期基准
-                                        for (let j = 0; j < 10; j++) {
-                                            const liuNianAge = startAge + j;
-                                            // 简化：使用年龄对应的干支（实际应基于出生年）
-                                            const ganIndex = (liuNianAge - 1 + TIAN_GAN.indexOf(yearGan)) % 10;
-                                            const zhiIndex = (liuNianAge - 1 + DI_ZHI.indexOf(baziInfo.pillars[0]?.dizhi || '')) % 12;
-                                            liuNianList.push({
-                                                year: baseYear + liuNianAge,
-                                                ganZhi: TIAN_GAN[ganIndex] + DI_ZHI[zhiIndex]
-                                            });
+                                            return (
+                                                <div className="bg-card overflow-hidden border-b border-border/50">
+                                                    <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/50 bg-muted/20">
+                                                        <span className="text-xs font-medium text-muted-foreground">
+                                                            流年（{selectedDaYunGanZhi}运）
+                                                        </span>
+                                                    </div>
+                                                    <div className="grid grid-cols-10 gap-0">
+                                                        {liuNianList.map((ln, i) => {
+                                                            const tiangan = ln.ganZhi[0];
+                                                            const dizhi = ln.ganZhi[1];
+                                                            const details = computePillarDetails(ln.ganZhi, dayGan, true);
+                                                            const dizhiShiShen = details.zanggan[0]?.shiShen || '';
+                                                            const isSelected = selectedLiuNianYear === ln.year;
+                                                            return (
+                                                                <div key={i} className={`border-r border-b border-border/30 text-center py-1.5 cursor-pointer transition-colors ${isSelected ? 'bg-primary/10' : 'hover:bg-muted/30'}`}
+                                                                    onClick={() => setSelectedLiuNianYear(isSelected ? null : ln.year)}
+                                                                >
+                                                                    <div className="text-xs text-muted-foreground">{ln.year}</div>
+                                                                    <div className="flex items-baseline justify-center gap-0.5">
+                                                                        <span className="text-base font-display font-semibold" style={{ color: getElementColor(tiangan) }}>{tiangan}</span>
+                                                                        <span className="text-xs text-muted-foreground">{details.tianganShiShen}</span>
+                                                                    </div>
+                                                                    <div className="flex items-baseline justify-center gap-0.5">
+                                                                        <span className="text-base font-display font-semibold" style={{ color: getElementColor(dizhi) }}>{dizhi}</span>
+                                                                        <span className="text-xs text-muted-foreground">{dizhiShiShen}</span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
                                         }
-
-                                        return (
-                                            <div className="bg-card overflow-hidden border-b border-border/50">
-                                                <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/50 bg-muted/20">
-                                                    <span className="text-xs font-medium text-muted-foreground">
-                                                        流年（{selectedDaYunGanZhi}运）
-                                                    </span>
-                                                </div>
-                                                <div className="grid grid-cols-10 gap-0">
-                                                    {liuNianList.map((ln, i) => {
-                                                        const tiangan = ln.ganZhi[0];
-                                                        const dizhi = ln.ganZhi[1];
-                                                        const details = computePillarDetails(ln.ganZhi, dayGan, true);
-                                                        const dizhiShiShen = details.zanggan[0]?.shiShen || '';
-                                                        const isSelected = selectedLiuNianYear === ln.year;
-                                                        return (
-                                                            <div
-                                                                key={i}
-                                                                className={`border-r border-b border-border/30 text-center py-1.5 cursor-pointer transition-colors ${isSelected ? 'bg-primary/10' : 'hover:bg-muted/30'
-                                                                    }`}
-                                                                onClick={() => setSelectedLiuNianYear(isSelected ? null : ln.year)}
-                                                            >
-                                                                <div className="text-xs text-muted-foreground">{ln.year}</div>
-                                                                <div className="flex items-baseline justify-center gap-0.5">
-                                                                    <span
-                                                                        className="text-base font-display font-semibold"
-                                                                        style={{ color: getElementColor(tiangan) }}
-                                                                    >
-                                                                        {tiangan}
-                                                                    </span>
-                                                                    <span className="text-xs text-muted-foreground">{details.tianganShiShen}</span>
-                                                                </div>
-                                                                <div className="flex items-baseline justify-center gap-0.5">
-                                                                    <span
-                                                                        className="text-base font-display font-semibold"
-                                                                        style={{ color: getElementColor(dizhi) }}
-                                                                    >
-                                                                        {dizhi}
-                                                                    </span>
-                                                                    <span className="text-xs text-muted-foreground">{dizhiShiShen}</span>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        );
                                     })()}
                                 </div>
                             );

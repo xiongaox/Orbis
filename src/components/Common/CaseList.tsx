@@ -6,8 +6,9 @@ import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronRight, ChevronLeft, Plus, Search, LogIn, Pencil, Trash2, Upload } from 'lucide-react';
 import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../utils/lunarUtil';
 import { useAuth } from '../../contexts/AuthContext';
-import { baziCaseService, CASE_TAGS, type BaziCase, type CaseTag } from '../../services/baziCaseService';
+import { baziCaseService, CASE_TAGS, type BaziCase, type CaseTag, type CreateCaseInput } from '../../services/baziCaseService';
 import { TIAN_GAN_WU_XING } from '../../lib/xuan-bazi/maps';
+import type { Case } from '../../types';
 import ConfirmModal from './ConfirmModal';
 
 import CreateCaseModal from './CreateCaseModal';
@@ -30,6 +31,7 @@ interface CaseListProps {
   onSelectCase?: (caseId: string | null) => void;
   onLoginClick?: () => void;
   onOpenLibrary?: () => void;
+  onPreviewCase?: (caseData: Case) => void;
 }
 
 // 五行背景色常量
@@ -50,7 +52,7 @@ const ELEMENT_TEXT_COLOR: Record<string, string> = {
   水: 'var(--element-water-text)',
 };
 
-export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, onOpenLibrary }: CaseListProps) {
+export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, onOpenLibrary, onPreviewCase }: CaseListProps) {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [search, setSearch] = useState('');
   const [cases, setCases] = useState<BaziCase[]>([]);
@@ -107,6 +109,19 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
   // 处理案例创建成功
   const handleCaseCreated = () => {
     loadCases();
+  };
+
+  const handlePreviewCase = (input: CreateCaseInput) => {
+    // Map input to Case
+    const tempCase: Case = {
+      id: 'temp',
+      name: input.name,
+      gender: input.gender,
+      birth_date: input.birth_date,
+      created_at: new Date().toISOString(),
+    };
+    onPreviewCase?.(tempCase);
+    setShowCreateModal(false);
   };
 
   useEffect(() => {
@@ -457,6 +472,7 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onCreated={handleCaseCreated}
+        onPreview={onPreviewCase ? handlePreviewCase : undefined}
       />
 
       {/* 导入案例 Modal */}
