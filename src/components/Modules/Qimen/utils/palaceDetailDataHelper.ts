@@ -165,7 +165,8 @@ export function getDetailDisplayData(
             }
             break;
         }
-        case '遁': {
+        case '遁':
+        case '遁藏': {
             const d = QimenDataService.getGan('甲');
             if (d) {
                 title = label;

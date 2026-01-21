@@ -142,7 +142,7 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
 
                 <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
                     <div className="prose prose-invert prose-sm max-w-none">
-                        <div className="leading-loose text-foreground/90 font-normal text-base">
+                        <div className="leading-loose text-foreground/60 font-normal text-base">
                             {typeof detailData.content === 'string' ? (
                                 detailData.content.split('\n\n').map((block, idx) => {
                                     const match = block.match(/^【(.+)】\n([\s\S]+)$/);
@@ -154,7 +154,7 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
                                                     <div className="w-1 h-3.5 bg-primary/80 rounded-full" />
                                                     <div className="text-base font-bold text-foreground font-serif">{title}</div>
                                                 </div>
-                                                <div className="whitespace-pre-wrap pl-3 text-secondary-foreground/60">{text}</div>
+                                                <div className="whitespace-pre-wrap pl-3 text-foreground/60">{text}</div>
                                             </div>
                                         );
                                     }
