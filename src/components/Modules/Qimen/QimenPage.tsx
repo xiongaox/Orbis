@@ -3,7 +3,7 @@
  * 三栏布局：左侧案例列表、中间九宫盘式、右侧宫位详情
  * 响应式设计：大屏全展开，中等屏幕变窄，小屏幕折叠侧边栏
  */
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import QimenCaseList from './QimenCaseList';
 import QimenChart, { type QimenPalace } from './QimenChart';
 import QimenPalaceDetail from './QimenPalaceDetail';
@@ -18,7 +18,7 @@ import {
     type PaiPanMethod
 } from '../../../lib/csp-qimen/qimenService';
 import { qimenCaseService, type QimenCase } from '../../../services/qimenCaseService';
-import { detectGlobalPatterns, type GlobalPattern } from '../../../lib/csp-qimen/patternDetector';
+import { type GlobalPattern } from '../../../lib/csp-qimen/patternDetector';
 import { QimenDataService } from '../../../lib/csp-qimen/qimenDataService';
 
 // 默认空的宫位数据
@@ -67,21 +67,11 @@ export default function QimenPage() {
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [editingCase, setEditingCase] = useState<QimenCase | null>(null);
     const [currentCase, setCurrentCase] = useState<QimenCase | null>(null);
-
-
+    // 全局格局状态
+    const [globalPatterns, setGlobalPatterns] = useState<GlobalPattern[]>([]);
 
     // 全局格局弹窗状态
     const [selectedPattern, setSelectedPattern] = useState<GlobalPattern | null>(null);
-
-    // 计算全局格局
-    const globalPatterns = useMemo(() => {
-        if (!header.siZhu?.day) return [];
-        return detectGlobalPatterns({
-            dayGan: header.siZhu.day.charAt(0),
-            hourGan: header.siZhu.hour.charAt(0),
-            siZhu: header.siZhu,
-        }, palaces);
-    }, [header.siZhu, palaces]);
 
     // 根据指定日期计算奇门盘
     const calculateQimenByDate = useCallback(async (date: Date) => {
@@ -101,6 +91,7 @@ export default function QimenPage() {
             if (result) {
                 setPalaces(result.palaces);
                 setHeader(result.header);
+                setGlobalPatterns(result.globalPatterns);
             } else {
                 setError('计算失败');
             }
@@ -123,6 +114,7 @@ export default function QimenPage() {
             if (result) {
                 setPalaces(result.palaces);
                 setHeader(result.header);
+                setGlobalPatterns(result.globalPatterns);
             } else {
                 setError('计算失败');
             }

@@ -126,6 +126,8 @@ export default function QimenChart({
                                         isZhiShi={palace.men === header.zhiShi}
                                         isDayStem={palace.tianPan === targetDayStem}
                                         isHourStem={palace.tianPan === targetHourStem}
+                                        isJiGongDayStem={palace.jiGongTianPan === targetDayStem}
+                                        isJiGongHourStem={palace.jiGongTianPan === targetHourStem}
                                     />
                                 ))}
                             </div>

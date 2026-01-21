@@ -74,9 +74,11 @@ export const TIAN_GAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛',
 export const DI_ZHI = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
 
 // 作者映射
+// 作者映射
 export const AUTHOR_MAP: Record<string, string> = {
     'lishuanglin': '李双林',
     'nanxuanzi': '南玄子',
+    'buchuiniu': '不吹牛',
 };
 
 // 日主分类列表

@@ -3,7 +3,7 @@
  * 所有状态管理已移至 useCaseStudy hook
  * UI 组件已提取到 components/ 目录
  */
-import { Compass, Grid3X3 } from 'lucide-react';
+import { Compass } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
@@ -21,10 +21,14 @@ import { caseMarkdownComponents, authorMarkdownComponents } from './components/M
 // 案例学习专用八字组件
 import CaseStudyBaziChart from './components/CaseStudyBaziChart';
 import CaseStudyDayunPanel from './components/CaseStudyDayunPanel';
+
+// 案例学习专用奇门组件 - 精简版
+import CaseStudyQimenChart from './components/CaseStudyQimenChart';
 import type { BaziApiResponse, DaYunPeriod, PillarData } from '../../../types/bazi';
 
 // Hook 导入
 import { useCaseStudy } from './hooks/useCaseStudy';
+
 
 // 构造 BaziApiResponse 的辅助函数
 const getBaziData = (baziInfo: ReturnType<typeof parseBaziInfo>): BaziApiResponse | null => {
@@ -158,6 +162,7 @@ export default function CaseStudyPage() {
         setSelectedDaYunIndex,
         selectedLiuNianYear,
         setSelectedLiuNianYear,
+        qimenResult, // Get result
     } = useCaseStudy();
 
     // 构造 BaziData
@@ -269,10 +274,27 @@ export default function CaseStudyPage() {
                             <Compass className="w-12 h-12 mx-auto mb-2 opacity-20" />
                             <p className="text-sm">选择案例查看排盘</p>
                         </div>
+                    ) : selectedCategory === 'qimen' && activeCase ? (
+                        /* 使用真实数据 */
+                        qimenResult ? (
+                            <div className="h-full flex flex-col overflow-hidden">
+                                <CaseStudyQimenChart
+                                    palaces={qimenResult.palaces}
+                                    selectedPalace={null}
+                                    onSelectPalace={() => { }}
+                                    header={qimenResult.header}
+                                    globalPatterns={qimenResult.globalPatterns}
+                                />
+                            </div>
+                        ) : (
+                            <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
+                                <p className="text-sm">排盘计算中或无时间信息...</p>
+                            </div>
+                        )
                     ) : selectedCategory === 'qimen' ? (
                         <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
-                            <Grid3X3 className="w-12 h-12 mx-auto mb-2 opacity-20" />
-                            <p className="text-sm">奇门排盘区域</p>
+                            <Compass className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                            <p className="text-sm">选择案例查看排盘</p>
                         </div>
                     ) : (
                         <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
