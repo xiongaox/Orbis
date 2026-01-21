@@ -18,9 +18,9 @@ import CategoryTabs from './components/CategoryTabs';
 import CaseListSidebar from './components/CaseListSidebar';
 import { caseMarkdownComponents, authorMarkdownComponents } from './components/MarkdownRenderers';
 
-// 八字模块组件复用
-import BaziChart from '../../Modules/Bazi/BaziChart';
-import DayunLiunianPanel from '../../Modules/Bazi/DayunLiunianPanel';
+// 案例学习专用八字组件
+import CaseStudyBaziChart from './components/CaseStudyBaziChart';
+import CaseStudyDayunPanel from './components/CaseStudyDayunPanel';
 import type { BaziApiResponse, DaYunPeriod, PillarData } from '../../../types/bazi';
 
 // Hook 导入
@@ -246,23 +246,21 @@ export default function CaseStudyPage() {
                         <>
                             {/* 八字盘面 - 移除 min-h 限制，自适应高度 */}
                             <div className="flex-shrink-0">
-                                <BaziChart
+                                <CaseStudyBaziChart
                                     data={baziData}
                                     selectedDaYunIndex={selectedDaYunIndex}
                                     selectedLiuNianYear={selectedLiuNianYear}
-                                    showTaiMingShen={false}
                                 />
                             </div>
 
-                            {/* 大运流年面板 - 填充剩余空间 */}
-                            <div className="flex-1 mt-2">
-                                <DayunLiunianPanel
+                            {/* 大运流年面板 - 顶部边框连接 */}
+                            <div className="flex-1 border-t border-border">
+                                <CaseStudyDayunPanel
                                     data={baziData}
                                     selectedDaYunIndex={selectedDaYunIndex}
                                     selectedLiuNianYear={selectedLiuNianYear}
                                     onSelectDaYun={setSelectedDaYunIndex}
                                     onSelectLiuNian={setSelectedLiuNianYear}
-                                    onSelectLiuYue={() => { }}
                                 />
                             </div>
                         </>
