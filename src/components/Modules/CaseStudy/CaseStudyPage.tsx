@@ -7,6 +7,7 @@ import { Compass } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
 import { useMemo } from 'react';
 
 // 从提取的模块导入
@@ -208,7 +209,7 @@ export default function CaseStudyPage() {
                             <div className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed text-[18px]">
                                 <ReactMarkdown
                                     rehypePlugins={[rehypeRaw]}
-                                    remarkPlugins={[remarkGfm]}
+                                    remarkPlugins={[remarkGfm, remarkBreaks]}
                                     components={caseMarkdownComponents}
                                 >
                                     {activeCase.content.replace(/^(命主生辰|性别|日主|格局|令地)[：:][^\n]*\n?/gm, '').replace(/^#\s+[^\n]+\n?/, '').replace(/^\n+/, '')}
@@ -225,7 +226,7 @@ export default function CaseStudyPage() {
                             <div className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed text-[18px]">
                                 <ReactMarkdown
                                     rehypePlugins={[rehypeRaw]}
-                                    remarkPlugins={[remarkGfm]}
+                                    remarkPlugins={[remarkGfm, remarkBreaks]}
                                     components={authorMarkdownComponents}
                                 >
                                     {authorIntroContent.replace(/^(命主生辰|性别|日主|格局|令地)[：:][^\n]*\n?/gm, '').replace(/^#\s+[^\n]+\n?/, '').replace(/^\n+/, '')}

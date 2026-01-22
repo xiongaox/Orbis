@@ -25,7 +25,7 @@ export const caseMarkdownComponents: Components = {
     ),
     blockquote: ({ node, ...props }) => (
         <blockquote
-            className="border-l-4 border-primary/30 pl-8 pr-8 py-4 my-6 bg-primary/15 dark:bg-primary/5 rounded-r text-[16px] font-medium text-foreground/50 leading-7 [&>p:last-child]:mb-0 [&_p]:indent-0"
+            className="border-l-4 border-primary/40 pl-6 pr-6 py-4 my-6 bg-primary/10 dark:bg-primary/5 rounded-r-lg text-[16px] font-medium text-foreground/70 leading-relaxed [&>p]:indent-0 [&>p]:mb-3 [&>p:last-child]:mb-0 space-y-2"
             {...props}
         />
     ),

@@ -20,6 +20,7 @@ import {
 import { qimenCaseService, type QimenCase } from '../../../services/qimenCaseService';
 import { type GlobalPattern } from '../../../lib/csp-qimen/patternDetector';
 import { QimenDataService } from '../../../lib/csp-qimen/qimenDataService';
+import CustomJuModal from './components/CustomJuModal';
 
 // 默认空的宫位数据
 const EMPTY_PALACES: QimenPalace[] = Array.from({ length: 9 }, (_, i) => ({
@@ -73,11 +74,18 @@ export default function QimenPage() {
     // 全局格局弹窗状态
     const [selectedPattern, setSelectedPattern] = useState<GlobalPattern | null>(null);
 
+    // 自定义局数状态
+    const [customJu, setCustomJu] = useState<number>(0);  // 0=自动计算
+    const [isCustomJuModalOpen, setIsCustomJuModalOpen] = useState(false);
+
     // 根据指定日期计算奇门盘
-    const calculateQimenByDate = useCallback(async (date: Date) => {
+    const calculateQimenByDate = useCallback(async (date: Date, juOverride?: number) => {
         setIsLoading(true);
         setError(null);
         setSelectedDate(date);
+
+        // 使用传入的 juOverride 或当前 customJu 状态
+        const effectiveJu = juOverride !== undefined ? juOverride : customJu;
 
         try {
             const result = await calculateQimen({
@@ -86,7 +94,7 @@ export default function QimenPage() {
                 day: date.getDate(),
                 hour: date.getHours(),
                 minute: date.getMinutes(),
-            }, paiPanMethod);
+            }, paiPanMethod, effectiveJu);
 
             if (result) {
                 setPalaces(result.palaces);
@@ -101,13 +109,15 @@ export default function QimenPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [paiPanMethod]);
+    }, [paiPanMethod, customJu]);
 
     // 计算当前时间的奇门盘
     const calculateNow = useCallback(async () => {
         setIsLoading(true);
         setError(null);
         setSelectedDate(new Date());
+        // 重置自定义局数为自动计算
+        setCustomJu(0);
 
         try {
             const result = await calculateQimenNow(paiPanMethod);
@@ -242,6 +252,7 @@ export default function QimenPage() {
                     onMethodChange={setPaiPanMethod}
                     onResetToNow={calculateNow}
                     onOpenDatePicker={() => setIsDatePickerOpen(true)}
+                    onJuClick={() => setIsCustomJuModalOpen(true)}
                     globalPatterns={globalPatterns}
                     onPatternClick={setSelectedPattern}
 
@@ -379,6 +390,19 @@ export default function QimenPage() {
                     </div>
                 </div>
             )}
+
+            {/* 自定义局数弹窗 */}
+            <CustomJuModal
+                isOpen={isCustomJuModalOpen}
+                currentJu={header.ju}
+                onClose={() => setIsCustomJuModalOpen(false)}
+                onConfirm={(newCustomJu) => {
+                    setCustomJu(newCustomJu);
+                    setIsCustomJuModalOpen(false);
+                    // 使用新的自定义局数重新排盘
+                    calculateQimenByDate(selectedDate, newCustomJu);
+                }}
+            />
         </div>
     );
 }
