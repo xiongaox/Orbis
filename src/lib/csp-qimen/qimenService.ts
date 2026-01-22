@@ -135,8 +135,9 @@ export async function initCspWasm(): Promise<boolean> {
 
 /**
  * 调用 CSP WASM 进行排盘
+ * @param customJu 自定义局数：0=自动计算, 1~9=阳遁1-9局, -1~-9=阴遁1-9局
  */
-function callCspWasm(time: QimenTime, type: number): string {
+function callCspWasm(time: QimenTime, type: number, customJu: number = 0): string {
     if (!wasmModule) return '';
 
     try {
@@ -159,21 +160,21 @@ function callCspWasm(time: QimenTime, type: number): string {
         // Format YYYY-MM-DD HH:mm:ss
         param.str_dt = `${time.year}-${pad(time.month)}-${pad(time.day)} ${pad(time.hour)}:${pad(time.minute)}:00`;
 
-        // Manual Mode
-        param.is_auto = false;
-
-        // Native Calculation for ALL types (ZhiRun, YinPan, ChaiBu, MaoShan)
-        // By passing ju=0, we trigger WASM's internal cal_ju() logic
-        param.ju = 0;
+        // 局数参数：
+        // 0 = 自动计算（触发 WASM 内部 cal_ju() 逻辑）
+        // 1~9 = 阳遏1-9局
+        // -1~-9 = 阴遁1-9局
+        param.ju = customJu;
         param.type = type;
 
-        console.log('[QimenDebug] Native WASM Call - Inputs:', {
+        console.log('[QimenDebug] WASM Call - Inputs:', {
             inputTime: time,
             paramJu: param.ju,
             paramType: param.type,
             paramMonth: param.mon,
             paramStrDt: param.str_dt,
-            paramZone: param.zone
+            paramZone: param.zone,
+            customJu: customJu
         });
 
         const qm = new wasmModule.CQimenUse();
@@ -708,10 +709,12 @@ const METHOD_TO_TYPE: Record<PaiPanMethod, number> = {
 
 /**
  * 计算奇门遁甲盘
+ * @param customJu 自定义局数：0=自动计算, 1~9=阳遁1-9局, -1~-9=阴遁1-9局
  */
 export async function calculateQimen(
     time: QimenTime,
-    method: PaiPanMethod = 'zhirun'
+    method: PaiPanMethod = 'zhirun',
+    customJu: number = 0
 ): Promise<QimenResult | null> {
     // 确保 WASM 已加载
     const loaded = await initCspWasm();
@@ -722,7 +725,7 @@ export async function calculateQimen(
 
     // 调用 WASM
     const type = METHOD_TO_TYPE[method];
-    const output = callCspWasm(time, type);
+    const output = callCspWasm(time, type, customJu);
 
     if (!output) {
         console.error('WASM returned empty output');

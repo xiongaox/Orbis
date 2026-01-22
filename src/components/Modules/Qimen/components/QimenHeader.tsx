@@ -32,6 +32,7 @@ interface QimenHeaderProps {
     onOpenDatePicker?: () => void;
     onPrevHour?: () => void;
     onNextHour?: () => void;
+    onJuClick?: () => void;  // 新增：点击局数打开自定义弹窗
     globalPatterns: GlobalPattern[];
     onPatternClick?: (pattern: GlobalPattern) => void;
     showChangSheng: boolean;
@@ -46,6 +47,7 @@ export default function QimenHeader({
     onOpenDatePicker,
     onPrevHour,
     onNextHour,
+    onJuClick,
     globalPatterns,
     onPatternClick,
     showChangSheng,
@@ -92,16 +94,26 @@ export default function QimenHeader({
                     <div className="h-6 2xl:h-10 w-px bg-border/60 ml-4 2xl:ml-8 mr-4 2xl:mr-10" />
                     <div className="grid grid-cols-3 gap-y-0.5 2xl:gap-y-1 gap-x-3 2xl:gap-x-8 text-xs 2xl:text-base">
                         {[
-                            { label: header.ju.substring(0, 2), value: header.ju.substring(2), bold: true },
-                            { label: '旬首', value: header.xunShou },
-                            { label: '马星', value: header.maXing },
-                            { label: '值符', value: header.zhiFu },
-                            { label: '值使', value: header.zhiShi },
-                            { label: '空亡', value: header.kongWang },
+                            { label: header.ju.substring(0, 2), value: header.ju.substring(2), bold: true, clickable: true },
+                            { label: '旬首', value: header.xunShou, bold: false, clickable: false },
+                            { label: '马星', value: header.maXing, bold: false, clickable: false },
+                            { label: '值符', value: header.zhiFu, bold: false, clickable: false },
+                            { label: '值使', value: header.zhiShi, bold: false, clickable: false },
+                            { label: '空亡', value: header.kongWang, bold: false, clickable: false },
                         ].map((item, i) => (
                             <div key={i} className="flex items-center gap-1 2xl:gap-2">
                                 <span className="text-muted-foreground font-light">{item.label}:</span>
-                                <span className={`text-foreground font-serif ${item.bold ? 'font-bold' : ''}`}>{item.value}</span>
+                                {item.clickable ? (
+                                    <button
+                                        onClick={onJuClick}
+                                        className="text-primary font-serif font-bold hover:underline underline-offset-2 transition-colors cursor-pointer"
+                                        title="点击自定义局数"
+                                    >
+                                        {item.value}
+                                    </button>
+                                ) : (
+                                    <span className={`text-foreground font-serif ${item.bold ? 'font-bold' : ''}`}>{item.value}</span>
+                                )}
                             </div>
                         ))}
                     </div>

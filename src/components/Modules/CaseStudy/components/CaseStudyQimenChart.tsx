@@ -41,6 +41,7 @@ interface CaseStudyQimenChartProps {
     onSelectPalace: (position: number) => void;
     method?: PaiPanMethod;
     onMethodChange?: (method: PaiPanMethod) => void;
+    onJuClick?: () => void;  // 新增：点击局数打开自定义弹窗
     header: {
         solarDate: string;
         lunarDate: string;
@@ -73,6 +74,7 @@ export default function CaseStudyQimenChart({
     onSelectPalace,
     method = 'zhirun',
     onMethodChange,
+    onJuClick,
     header,
     globalPatterns = [],
     onPatternClick,
@@ -96,6 +98,7 @@ export default function CaseStudyQimenChart({
                         header={header}
                         method={method}
                         onMethodChange={onMethodChange}
+                        onJuClick={onJuClick}
                         globalPatterns={globalPatterns}
                         onPatternClick={onPatternClick}
                         showChangSheng={showChangSheng}

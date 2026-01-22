@@ -43,6 +43,7 @@ interface QimenChartProps {
     onMethodChange?: (method: PaiPanMethod) => void;
     onResetToNow?: () => void;
     onOpenDatePicker?: () => void;
+    onJuClick?: () => void;  // 新增：点击局数打开自定义弹窗
     header: {
         solarDate: string;
         lunarDate: string;
@@ -79,6 +80,7 @@ export default function QimenChart({
     onMethodChange,
     onResetToNow,
     onOpenDatePicker,
+    onJuClick,
     header,
     globalPatterns = [],
     onPatternClick,
@@ -104,6 +106,7 @@ export default function QimenChart({
                             onOpenDatePicker={onOpenDatePicker}
                             onPrevHour={onPrevHour}
                             onNextHour={onNextHour}
+                            onJuClick={onJuClick}
                             globalPatterns={globalPatterns}
                             onPatternClick={onPatternClick}
                             showChangSheng={showChangSheng}

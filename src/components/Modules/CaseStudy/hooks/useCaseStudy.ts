@@ -48,7 +48,7 @@ const ALL_CASES: CaseItem[] = Object.entries(rawCases)
 
         let bazi = extractBazi(strContent);
         if (category === 'qimen') {
-            const match = strContent.match(/公元[：:]\s*(\d{4}年\d{1,2}月\d{1,2}日\d{1,2}时)/);
+            const match = strContent.match(/(?:\*\*)?公元(?:\*\*)?[：:]\s*(\d{4}年\d{1,2}月\d{1,2}日\d{1,2}时)/);
             if (match) {
                 bazi = match[1];
             } else {
@@ -72,7 +72,7 @@ const ITEMS_PER_PAGE = 13;
 // Helper to parse Qimen time from content
 // Format example: 公元：2009年7月9日20时43分47秒
 function parseQimenTime(content: string): { year: number, month: number, day: number, hour: number, minute: number } | null {
-    const match = content.match(/公元[：:]\s*(\d{4})年(\d{1,2})月(\d{1,2})日(\d{1,2})时(\d{1,2})分/);
+    const match = content.match(/(?:\*\*)?公元(?:\*\*)?[：:]\s*(\d{4})年(\d{1,2})月(\d{1,2})日(\d{1,2})时(\d{1,2})分/);
     if (match) {
         return {
             year: parseInt(match[1]),
@@ -102,8 +102,9 @@ export function useCaseStudy() {
     const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-    // 奇门排盘结果
+    // 奇门排盘结果和自定义局数
     const [qimenResult, setQimenResult] = useState<QimenResult | null>(null);
+    const [customJu, setCustomJu] = useState<number>(0);  // 0=自动计算, 正数=阳遏, 负数=阴遏
 
     // 获取作者介绍内容
     const authorIntroContent = useMemo(() => {
@@ -142,12 +143,12 @@ export function useCaseStudy() {
         return ALL_CASES.find(c => c.id === selectedCaseId);
     }, [selectedCaseId]);
 
-    // 当选中案例变化时，如果是奇门案例，进行排盘计算
+    // 当选中案例或自定义局数变化时，如果是奇门案例，进行排盘计算
     useMemo(async () => {
         if (activeCase && activeCase.category === 'qimen') {
             const time = parseQimenTime(activeCase.content);
             if (time) {
-                const result = await calculateQimen(time);
+                const result = await calculateQimen(time, 'zhirun', customJu);
                 setQimenResult(result);
             } else {
                 setQimenResult(null);
@@ -155,7 +156,7 @@ export function useCaseStudy() {
         } else {
             setQimenResult(null);
         }
-    }, [activeCase]);
+    }, [activeCase, customJu]);
 
     // 搜索重置页码
     useMemo(() => {
@@ -177,6 +178,7 @@ export function useCaseStudy() {
         setCurrentPage(1);
         setSelectedCaseId(null);
         setQimenResult(null);
+        setCustomJu(0);  // 重置自定义局数
     }, [selectedCategory]);
 
     // 选择案例时清除作者
@@ -240,8 +242,10 @@ export function useCaseStudy() {
         selectedLiuNianYear,
         setSelectedLiuNianYear,
 
-        // 奇门结果
+        // 奇门结果和自定义局数
         qimenResult,
+        customJu,
+        setCustomJu,
     };
 }
 
