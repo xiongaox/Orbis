@@ -27,6 +27,9 @@ import CaseStudyDayunPanel from './components/CaseStudyDayunPanel';
 import CaseStudyQimenChart from './components/CaseStudyQimenChart';
 import type { BaziApiResponse, DaYunPeriod, PillarData } from '../../../types/bazi';
 
+// 断法模块
+import DuanFaPage from './DuanFaPage';
+
 // Hook 导入
 import { useCaseStudy } from './hooks/useCaseStudy';
 
@@ -172,6 +175,24 @@ export default function CaseStudyPage() {
         const info = parseBaziInfo(activeCase.content);
         return getBaziData(info);
     }, [activeCase?.content]);
+
+    // 断法模块使用独立布局
+    if (selectedCategory === 'duanfa') {
+        return (
+            <div className="flex w-full h-full overflow-hidden bg-background relative">
+                {/* 1. 术数分类 (5%) */}
+                <CategoryTabs
+                    categories={CATEGORIES}
+                    selectedId={selectedCategory}
+                    onSelect={setSelectedCategory}
+                />
+                {/* 断法独立布局 */}
+                <div className="flex-1 flex overflow-hidden">
+                    <DuanFaPage />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex w-full h-full overflow-hidden bg-background relative">
