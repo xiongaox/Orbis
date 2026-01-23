@@ -1,6 +1,5 @@
 /**
- * 李双林八字旺衰算法 V32 (TypeScript Port)
- * 移植自 wangshuai.py
+ * 李双林八字旺衰算法 V36 (TypeScript Port)
  * 包含：严谨定格、物理引擎（化气、从格、燥土防从、战克检测）、智能防御系统
  */
 
@@ -40,6 +39,16 @@ const RAW_HIDDEN_STEMS: Record<string, HiddenStemWeight> = {
     '午': { '丁': 20, '己': 10 }, '未': { '己': 18, '丁': 9, '乙': 3 },
     '申': { '庚': 18, '壬': 9, '戊': 3 }, '酉': { '辛': 30 },
     '戌': { '戊': 18, '辛': 9, '丁': 3 }, '亥': { '壬': 18, '甲': 12 }
+};
+
+// 禄刃映射表 (模块级常量)
+const LU_MAP: Record<string, string> = {
+    '甲': '寅', '乙': '卯', '丙': '巳', '丁': '午', '戊': '巳',
+    '己': '午', '庚': '申', '辛': '酉', '壬': '亥', '癸': '子'
+};
+const REN_MAP: Record<string, string> = {
+    '甲': '卯', '乙': '寅', '丙': '午', '丁': '巳', '戊': '午',
+    '己': '巳', '庚': '酉', '辛': '申', '壬': '子', '癸': '亥'
 };
 
 // 使用公共常量构建五行映射
@@ -83,14 +92,13 @@ function getElement(char: string): Element | null {
     return ELEMENT_MAP[char] || null;
 }
 
-function getTenGod(targetStem: string, dmStem: string): string {
-    const dm = STEMS_INFO[dmStem];
+function getTenGod(targetStem: string, dmStemVal: string): string {
+    const dm = STEMS_INFO[dmStemVal];
     const tg = STEMS_INFO[targetStem];
     if (!dm || !tg) return "未知";
 
-    const elements: Element[] = ['木', '火', '土', '金', '水'];
-    const dmIdx = elements.indexOf(dm.el);
-    const tgIdx = elements.indexOf(tg.el);
+    const dmIdx = WU_XING_LIST.indexOf(dm.el);
+    const tgIdx = WU_XING_LIST.indexOf(tg.el);
 
     // JS/TS取模负数问题处理: (a % n + n) % n
     const diff = (tgIdx - dmIdx + 5) % 5;
@@ -171,18 +179,6 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
         if (!STEMS_INFO[dmStem]) return "未知";
 
         const mainQi = hidden[0];
-
-        // 1. 禄刃判定 (直接映射表)
-        const LU_MAP: Record<string, string> = {
-            '甲': '寅', '乙': '卯', '丙': '巳', '丁': '午', '戊': '巳',
-            '己': '午', '庚': '申', '辛': '酉', '壬': '亥', '癸': '子'
-        };
-        // 羊刃 (阳干：帝旺；阴干：通常不论羊刃格，或论月刃)
-        // 这里采用宽泛定义：只要是帝旺位即视为月刃/羊刃
-        const REN_MAP: Record<string, string> = {
-            '甲': '卯', '乙': '寅', '丙': '午', '丁': '巳', '戊': '午',
-            '己': '巳', '庚': '酉', '辛': '申', '壬': '子', '癸': '亥'
-        };
 
         if (LU_MAP[dmStem] === monthBranch) return "建禄格 (月令建禄)";
         if (REN_MAP[dmStem] === monthBranch) return "羊刃格 (月令帝旺)";
@@ -529,14 +525,13 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
     }
 
     // 5. 旺衰评分 (Z-Score)
-    const cycle: Element[] = ['木', '火', '土', '金', '水'];
-    const idx = cycle.indexOf(dmEl);
+    const idx = WU_XING_LIST.indexOf(dmEl);
     const textRelation = {
         'Self': dmEl,
-        'Output': cycle[(idx + 1) % 5],
-        'Wealth': cycle[(idx + 2) % 5],
-        'Official': cycle[(idx + 3) % 5],
-        'Resource': cycle[(idx + 4) % 5]
+        'Output': WU_XING_LIST[(idx + 1) % 5],
+        'Wealth': WU_XING_LIST[(idx + 2) % 5],
+        'Official': WU_XING_LIST[(idx + 3) % 5],
+        'Resource': WU_XING_LIST[(idx + 4) % 5]
     };
     const relations: Record<string, Element> = textRelation; // 为了方便查找 Key
 
@@ -703,7 +698,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
         // 月令克日主，但检查是否有流通链
         if (hasFlowChain(monthMainEl, dmEl, stems)) {
             isMonthHostile = false; // 通关，不判敌对
-            physicsLog.push(`🔄 官印相生：${monthMainEl}生${cycle[(cycle.indexOf(monthMainEl) + 1) % 5]}，印透干生身，月令之克被化解`);
+            physicsLog.push(`🔄 官印相生：${monthMainEl}生${WU_XING_LIST[(WU_XING_LIST.indexOf(monthMainEl) + 1) % 5]}，印透干生身，月令之克被化解`);
         } else {
             isMonthHostile = true;
         }
@@ -711,8 +706,29 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
 
     Object.entries(monthRoots).forEach(([root, weight]) => {
         const rootEl = getElement(root);
-        if (rootEl === dmEl) monthScore += (isMonthHostile ? weight * 0.3 : weight);
-        else if (supportEls.includes(rootEl!)) monthScore += (isMonthHostile ? weight * 0.7 * 0.3 : weight * 0.7);
+        const isSelf = rootEl === dmEl;
+        // V35 修正：真正定义的印星 (Resource)
+        const resourceEl = WU_XING_LIST[(idx + 4) % 5];
+        const isResource = rootEl === resourceEl;
+
+        let finalWeight = weight;
+
+        if (isMonthHostile) {
+            // 月令克身，所有支持力量打折
+            if (isSelf || isResource) finalWeight *= 0.3;
+        } else {
+            // 月令生身或同气
+            if (isResource) {
+                // 印星打7折（因为印不如比劫直接，且有火月燥土不生金等风险）
+                finalWeight *= 0.7;
+            }
+            // 比劫 (isSelf) 保持 1.0 权重
+        }
+
+        // 只有同党才加分
+        if (isSelf || isResource) {
+            monthScore += finalWeight;
+        }
     });
 
     // 根气得分
@@ -740,9 +756,221 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
         }
     });
 
+    // -------------------------------------------------------------------------
+    // 9. V33 核心算法升级：党众势力对比与月令修正
+    // -------------------------------------------------------------------------
+    let totalSameParty = 0; // 同党 (Self, Resource)
+    let totalOppositeParty = 0; // 异党 (Output, Wealth, Official)
+
+    // 辅助函数：计算单元素分数
+    const addScore = (el: Element, weight: number) => {
+        if (el === dmEl) {
+            // 比劫：帮身最强 (1.0)
+            totalSameParty += weight;
+        } else if (supportEls.includes(el)) {
+            // 印星：帮身稍弱 (0.7)，且需检查有效性
+            // V33.1: 剔除无效印星 (如燥土不生金)
+            const { ineffective } = isResourceIneffective(
+                dmEl, el, monthBranch, branches, stems
+            );
+            if (ineffective) {
+                // 无效印星 (如燥土)
+                // V33.2 修正: 虽不生身，但仍属同党阵营 (有人头)，
+                // 故给予 0.8 权重 (视为存在)，防止“异党成势”判罚。
+                // 这样能保留其“防从”的特性，使分数回归“偏弱”而非“假从”。
+                totalSameParty += weight * 0.8;
+            } else {
+                totalSameParty += weight * 0.7;
+            }
+        } else {
+            totalOppositeParty += weight;
+        }
+    };
+
+    // 统计地支藏干总分
+    branches.forEach(b => {
+        const roots = RAW_HIDDEN_STEMS[b] || {};
+        Object.entries(roots).forEach(([h, w]) => {
+            const hEl = getElement(h);
+            if (hEl) {
+                let adjustedWeight = w;
+                // V35 修正：火月土重但不失强根的特殊处理
+                // 如果是火月(午/巳)，地支中的土(戌/未)不应作为强力压制，
+                // 因为火土同宫，土能卫火，且土能生金。
+                // 暂时对食伤(Output)在同五行得令月给予 0.8 折扣，减小异党得分
+                if (hEl === relations['Output'] && ['午', '巳'].includes(monthBranch)) {
+                    adjustedWeight *= 0.8;
+                }
+                addScore(hEl, adjustedWeight);
+            }
+        });
+    });
+
+    // 统计天干总分 (加权)
+    stems.forEach((s, i) => {
+        if (i !== 2) {
+            const sEl = getElement(s);
+            if (sEl) {
+                // 天干权重设为 12 (略高于地支中气)
+                addScore(sEl, 12);
+            }
+        }
+    });
+
+    // 月令修正逻辑
+    let monthCorrectionFactor = 1.0;
+    let extraPenalty = 0;
+
+    // 规则1: 异党成势检测
+    // 如果异党力量是同党 1.5 倍以上，月令支持力打 6 折，且扣分
+    if (totalOppositeParty > totalSameParty * 1.5) {
+        // V35 修正：如果日主得令（月令主气帮身）且地支有强根，减半惩罚
+        const isDeLing = monthMainEl === dmEl;
+        const hasStrongRootInBranches = branches.some(b => {
+            const roots = RAW_HIDDEN_STEMS[b] || {};
+            return Object.entries(roots).some(([h, w]) => STEMS_INFO[h]?.el === dmEl && w >= 18);
+        });
+
+        if (isDeLing && hasStrongRootInBranches) {
+            monthCorrectionFactor *= 0.8; // 从 0.6 提升到 0.8
+            extraPenalty += 1.0; // 从 2.0 降低到 1.0
+            physicsLog.push(`⚠️ 异党虽众(1.5x)，但日主得令且有强根，惩罚力度减半：月令折扣0.8`);
+        } else {
+            monthCorrectionFactor *= 0.6;
+            extraPenalty += 2.0;
+            physicsLog.push(`⚠️ 异党成势：异党得分${totalOppositeParty} vs 同党${totalSameParty}，印比失势，月令折扣0.6`);
+        }
+    } else if (totalOppositeParty > totalSameParty * 1.2) {
+        monthCorrectionFactor *= 0.8;
+        extraPenalty += 1.0;
+    }
+
+    // 规则2: 官杀混杂且无制，强力克身
+    const hasVisibleOutput = counts[relations['Output']] > 0;
+    // V35 修正：检查地支藏干中是否有中气以上的食伤 (权重 >= 9)
+    let hasHiddenOutput = false;
+    for (const br of branches) {
+        const roots = RAW_HIDDEN_STEMS[br] || {};
+        for (const [h, w] of Object.entries(roots)) {
+            if (getElement(h) === relations['Output'] && w >= 9) {
+                hasHiddenOutput = true;
+                break;
+            }
+        }
+    }
+
+    if (counts[relations['Official']] >= 3 && !hasVisibleOutput && !hasHiddenOutput) {
+        // 如果得令有强根，减免部分权重
+        const isDeLing = monthMainEl === dmEl;
+        if (isDeLing) {
+            extraPenalty += 0.5;
+            physicsLog.push("⚔️ 官杀虽众且无制，但日主得令有根，抗压能力强，减免扣分");
+        } else {
+            extraPenalty += 1.5;
+            physicsLog.push("⚔️ 官杀混杂无制：克身太过，额外扣分");
+        }
+    }
+
+    // 应用修正
+    monthScore *= monthCorrectionFactor;
+
+    // 规则 1.5: V35 新增：阳刃/得令专项加分 (Lu/Ren Bonus)
+    let luRenBonus = 0;
+    if (monthBranch === REN_MAP[dmStem] || monthBranch === LU_MAP[dmStem]) {
+        luRenBonus += 1.0; // 得令之威力
+        physicsLog.push(`✨ 得令加成：日主生于${monthBranch}月，得${monthBranch === REN_MAP[dmStem] ? '刃' : '禄'}气，气势雄厚`);
+
+        // 检查地支是否有更多重复的禄刃
+        const otherBranches = [branches[0], branches[2], branches[3]];
+        const repeatCount = otherBranches.filter(b => b === monthBranch).length;
+        if (repeatCount > 0) {
+            luRenBonus += repeatCount * 0.8;
+            physicsLog.push(`✨ 禄刃重逢：地支另见${repeatCount}个${monthBranch}，日主极旺`);
+        }
+    }
+
+    // 规则3: 同党成势补偿 (得势不虚)
+    // 如果同党力量 > 异党，且月令得分低（失令），给予补偿
+    let extraBonus = 0;
+    if (totalSameParty > totalOppositeParty) {
+        if (monthScore < 10) {
+            // 失令但得势
+            if (totalSameParty > totalOppositeParty * 1.5) {
+                extraBonus += 2.5; // 强力补偿
+                physicsLog.push(`💪 得势不虚：同党得分${totalSameParty} >> 异党${totalOppositeParty}，虽失令但党众极强，强力加分`);
+            } else {
+                extraBonus += 1.5;
+                physicsLog.push(`📈 得势补偿：同党得分${totalSameParty} > 异党${totalOppositeParty}，虽失令但有帮扶，给予补偿`);
+            }
+        } else {
+            // 得令且得势，锦上添花
+            if (totalSameParty > totalOppositeParty * 2.0) {
+                extraBonus += 1.0; // 专旺前兆
+            }
+        }
+    }
+
+    // 规则4: V35 新增：三合/三会局全局加分/扣分 (Formation Score)
+    let formationScore = 0;
+    const checkFormationV35 = (): { score: number; log: string } => {
+        let score = 0;
+        let log = "";
+
+        const formations: Record<Element, { fang: string[], ju: string[] }> = {
+            '木': { fang: ['寅', '卯', '辰'], ju: ['亥', '卯', '未'] },
+            '火': { fang: ['巳', '午', '未'], ju: ['寅', '午', '戌'] },
+            '金': { fang: ['申', '酉', '戌'], ju: ['巳', '酉', '丑'] },
+            '水': { fang: ['亥', '子', '丑'], ju: ['申', '子', '辰'] },
+            '土': { fang: [], ju: [] }
+        };
+
+        for (const [el, config] of Object.entries(formations)) {
+            const currentEl = el as Element;
+            const hasFang = config.fang.length > 0 && config.fang.every(b => branches.includes(b));
+            const hasJu = config.ju.length > 0 && config.ju.every(b => branches.includes(b));
+
+            if (hasFang || hasJu) {
+                const typeName = hasFang ? "三会" : "三合";
+                const bList = hasFang ? config.fang : config.ju;
+                const isTransmitted = stems.some(s => STEMS_INFO[s]?.el === currentEl);
+
+                // 判断局的性质：同党 vs 异党
+                const isSelfParty = currentEl === dmEl || supportEls.includes(currentEl);
+                const isDirectSelf = currentEl === dmEl;
+
+                if (isDirectSelf) {
+                    // 日主同五行局：强力加分
+                    const b = isTransmitted ? 4.5 : 3.0;
+                    score += b;
+                    log += `🏗️ ${typeName}${currentEl}局：地支${bList.join('')}，${isTransmitted ? '天干透出，力大无穷' : '天干未透，气势已成'} (+${b})`;
+                } else if (isSelfParty) {
+                    // 印局：中力加分
+                    const b = isTransmitted ? 2.5 : 1.5;
+                    score += b;
+                    log += `🏗️ ${typeName}${currentEl}印局：地支${bList.join('')}，生身有力 (+${b})`;
+                } else {
+                    // 异党局（财官食伤）：强力扣分
+                    const p = isTransmitted ? 3.5 : 2.0;
+                    score -= p;
+                    log += `🌪️ ${typeName}${currentEl}异党局：地支${bList.join('')}，${isTransmitted ? '天干透出，克泄交加' : '地支暗涌'} (-${p})`;
+                }
+            }
+        }
+
+        return { score, log };
+    };
+
+    const { score: fScore, log: fLog } = checkFormationV35();
+    if (fScore !== 0) {
+        formationScore = fScore;
+        physicsLog.push(fLog);
+    }
+
+
     // Round to 2 decimals
-    let zScore = (0.1585 * monthScore) + (0.0139 * rootsScore) + (0.0336 * stemsScore) - 2.2463;
+    let zScore = (0.1585 * monthScore) + (0.0139 * rootsScore) + (0.0336 * stemsScore) - 2.2463 - extraPenalty + extraBonus + formationScore + luRenBonus;
     if (isEarthDominant) zScore += 5.0;
+
 
     zScore = Math.round(zScore * 100) / 100;
     let verdict = zScore > 0 ? "身强" : "身弱";
@@ -772,11 +1000,10 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
         patternCode = "Transform";
 
         // 化气格喜忌
-        const cycle = ['木', '火', '土', '金', '水'];
-        const transIdx = cycle.indexOf(transformGodElement);
-        const xieShen = cycle[(transIdx + 1) % 5];
-        const keShen = cycle[(transIdx + 3) % 5];
-        const shengKe = cycle[(transIdx + 2) % 5];
+        const transIdx = WU_XING_LIST.indexOf(transformGodElement);
+        const xieShen = WU_XING_LIST[(transIdx + 1) % 5];
+        const keShen = WU_XING_LIST[(transIdx + 3) % 5];
+        const shengKe = WU_XING_LIST[(transIdx + 2) % 5];
 
         forcedYongShen = [transformGodElement! as string, xieShen as string];
         transformJiShen = [keShen as Element, shengKe as Element];
@@ -795,156 +1022,228 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
     } else if (isZhuanWang) {
         calcPattern = zhuanWangName;
         patternCode = "Follow_Strong";
+
     } else if (zScore < -1.5) {
-        // === 从格判定 (V32 核心修复逻辑) ===
-
-        // 1. 强根 vs 弱根检测
-        let hasStrongRoot = false;
-        let hasWeakRoot = false;
-
-        branches.forEach(b => {
-            const roots = RAW_HIDDEN_STEMS[b] || {};
-            // 日干在藏干
-            if (roots[dmStem]) {
-                if (roots[dmStem] >= 18) hasStrongRoot = true;
-                else if (roots[dmStem] >= 3) hasWeakRoot = true;
-            }
-            // 同五行
-            Object.entries(roots).forEach(([hidden, weight]) => {
-                const hInfo = STEMS_INFO[hidden];
-                if (hInfo && hInfo.el === dmEl) {
-                    if (weight >= 18) hasStrongRoot = true;
-                    else if (weight >= 9) hasWeakRoot = true;
-                }
-            });
-        });
-
-        // 2. 燥土防从逻辑
-        const dryEarthInBranches = branches.filter(b => DRY_EARTH.includes(b));
-        const hasDryEarth = dryEarthInBranches.length > 0;
-        let dryEarthWeakened = false;
-
-        if (hasDryEarth) {
-            // 辰戌冲，丑未冲
-            if ((branches.includes('辰') && branches.includes('戌')) ||
-                (branches.includes('丑') && branches.includes('未'))) {
-                dryEarthWeakened = true;
-                const pair = branches.includes('辰') ? '辰戌' : '丑未';
-                physicsLog.push(`🔀 ${pair}相冲：燥土力量削弱，可入从格`);
-            }
-            // 月令水旺克燥土
-            if (['亥', '子'].includes(monthBranch) && !dryEarthWeakened) {
-                dryEarthWeakened = true;
-                physicsLog.push(`💧 月令${monthBranch}水旺：燥土被水克，力量削弱`);
-            }
-        }
-
-        const isYangStem = ['甲', '丙', '戊', '庚', '壬'].includes(dmStem);
-
-        // 3. 阳干比劫检测 (V32 Fix) - 增加根气检测
-        let hasBijieInStems = false;
-        let bijieHasRoot = false;  // 新增：比劫是否有根
-        const bijieStems: string[] = [];
-        stems.forEach((s, i) => {
-            if (i !== 2) {
-                const sInfo = STEMS_INFO[s];
-                if (sInfo && sInfo.el === dmEl) {
-                    hasBijieInStems = true;
-                    bijieStems.push(s);
+        // === V34 新增：硬性防从检测 (Hard Defense) ===
+        // 规则1: 日支坐比肩/劫财/禄神，绝不入从
+        const getDaySeatDefense = (dayBr: string): { isDefense: boolean; reason: string } => {
+            const dayBranchRoots = RAW_HIDDEN_STEMS[dayBr] || {};
+            // 必须是本气强根 (>=18)
+            const mainQi = Object.entries(dayBranchRoots).find(([_, w]) => w >= 18);
+            if (mainQi) {
+                const mainQiStem = mainQi[0];
+                const mainQiInfo = STEMS_INFO[mainQiStem];
+                if (mainQiInfo && mainQiInfo.el === dmEl) {
+                    return { isDefense: true, reason: `日支${dayBr}本气${mainQiStem}为日主同五行(${dmEl})，坐禄/比/劫，根气强劲，绝不入从` };
                 }
             }
-        });
+            return { isDefense: false, reason: '' };
+        };
 
-        // 检测比劫是否有根气
-        if (hasBijieInStems) {
-            branches.forEach(b => {
-                const roots = RAW_HIDDEN_STEMS[b] || {};
-                Object.entries(roots).forEach(([hidden, weight]) => {
+        // 规则2: 地支同气根数量 >= 2 (不论强弱，只要中气以上即可)
+        const countSamePartyBranches = (): number => {
+            let count = 0;
+            for (const br of branches) {
+                const roots = RAW_HIDDEN_STEMS[br] || {};
+                let hasRoot = false;
+                for (const [hidden, weight] of Object.entries(roots)) {
                     const hInfo = STEMS_INFO[hidden];
-                    // 比劫五行在地支有藏干且权重>=9，视为有根
+                    // V34调整: 只要有根且权重>=3(余气)都算有根? 
+                    // 李双林案例: "地支两个劫财...不可能假从"，子水中藏癸水(30)。
+                    // 建议此处标准：中气以上(>=9) 或 本气(>=18)。余气暂不算强力防从。
+                    // 子: 癸30; 卯: 乙30; 寅: 甲18...
                     if (hInfo && hInfo.el === dmEl && weight >= 9) {
-                        bijieHasRoot = true;
+                        hasRoot = true;
                     }
+                }
+                if (hasRoot) count++;
+            }
+            return count;
+        };
+
+        const { isDefense: daySeatDefense, reason: daySeatReason } = getDaySeatDefense(branches[2]); // branches[2] is Day Branch
+        const samePartyBranchCount = countSamePartyBranches();
+
+        if (daySeatDefense) {
+            physicsLog.push(`🛡️ 硬性防从：${daySeatReason}`);
+            calcPattern = "身弱 (日座有根)";
+            patternCode = "Normal";
+        } else if (samePartyBranchCount >= 2) {
+            physicsLog.push(`🛡️ 硬性防从：地支有${samePartyBranchCount}个日主同五行根气(中气以上)，根重不入从`);
+            calcPattern = "身弱 (根众)";
+            patternCode = "Normal";
+        } else {
+            // === V35.4 新增：透干印星防从 (Indented/Resource Defense) ===
+            const resourceElement = relations['Resource'];
+            const resourceStems = stems.filter(s => getElement(s) === resourceElement);
+            const hasResourceRoot = branches.some(b => {
+                const roots = RAW_HIDDEN_STEMS[b] || {};
+                return Object.entries(roots).some(([h]) => {
+                    const hEl = getElement(h);
+                    // 只要地支有印星的同五行(甚至是木生火这种资助)
+                    // 为简化，此处检查地支是否有印星的同党或源头
+                    // 针对己生子月丙火：检查地支是否有寅/卯/午/巳
+                    return hEl === resourceElement || (resourceElement === '火' && (hEl === '木' || hEl === '火'));
                 });
             });
-        }
 
-        // 阳干透比劫且**有根**时，才不入从格
-        if (hasBijieInStems && isYangStem && bijieHasRoot) {
-            physicsLog.push(`🔥 天干透比劫[${bijieStems.join(', ')}]且有根：阳干有帮身，不入从格`);
-        } else if (hasBijieInStems && isYangStem && !bijieHasRoot) {
-            physicsLog.push(`💨 天干透比劫[${bijieStems.join(', ')}]但无根：比劫虚浮，可入从格`);
-        }
-
-        const effectiveHasDryEarth = hasDryEarth && !dryEarthWeakened;
-
-        // === 判定条件 ===
-        // 只有阳干透比劫且**有根**时，才不能断从格
-        const canEnterCong = !hasStrongRoot && !effectiveHasDryEarth && !(hasBijieInStems && isYangStem && bijieHasRoot);
-
-        if (canEnterCong) {
-            // 细分从格类型
-            let congType = "从弱";
-            let congElement: Element | null = null;
-
-            const stemGodCounts = { 'Wealth': 0, 'Official': 0, 'Output': 0 };
-            stemGods.forEach(g => {
-                if (g === 'Wealth') stemGodCounts['Wealth']++;
-                else if (g === 'Official') stemGodCounts['Official']++;
-                else if (g === 'Output') stemGodCounts['Output']++;
-            });
-
-            // 从杀 > 从财 > 从儿
-            if (stemGodCounts['Official'] > 0 && counts[relations['Official']] >= 2) {
-                congType = "从杀格";
-                congElement = relations['Official'];
-            } else if (stemGodCounts['Wealth'] > 0 && counts[relations['Wealth']] >= 2) {
-                congType = "从财格";
-                congElement = relations['Wealth'];
-            } else if (stemGodCounts['Output'] > 0 && counts[relations['Output']] >= 2) {
-                congType = "从儿格";
-                congElement = relations['Output'];
-            }
-
-            if (hasWeakRoot && isYangStem) {
-                calcPattern = `假${congType} (余气微根)`;
-                patternCode = "Fake_Follow";
-                physicsLog.push(`🌀 假从格：${dmStem}为阳干，地支仅有余气微根，形成假${congType}`);
-                physicsLog.push("⚠️ 假从格注意：大运喜忌具有动态性，需结合行运判断吉凶");
-
-                // 假从格用神 (V32)
-                if (congElement) {
-                    const cycle = ['木', '火', '土', '金', '水'];
-                    const cIdx = cycle.indexOf(congElement);
-                    const shengCong = cycle[(cIdx - 1 + 5) % 5];
-                    forcedYongShen = [congElement as string, shengCong as string];
-                }
-            } else if (!hasWeakRoot) {
-                calcPattern = `真${congType} (弃命相从)`;
-                patternCode = "Follow_Weak";
-                if (congElement) {
-                    const cycle = ['木', '火', '土', '金', '水'];
-                    const cIdx = cycle.indexOf(congElement);
-                    const shengCong = cycle[(cIdx - 1 + 5) % 5];
-                    forcedYongShen = [congElement as string, shengCong as string];
-                }
+            if (resourceStems.length >= 2) {
+                physicsLog.push(`🛡️ 硬性防从：天干透出${resourceStems.length}个印星[${resourceStems.join('')}]，保护神显露，不入从格`);
+                calcPattern = "身弱 (印星双透)";
+                patternCode = "Normal";
+            } else if (resourceStems.length === 1 && hasResourceRoot) {
+                physicsLog.push(`🛡️ 硬性防从：天干透出印星[${resourceStems[0]}]且地支有生扶，绝不入从`);
+                calcPattern = "身弱 (印星有根)";
+                patternCode = "Normal";
             } else {
-                calcPattern = "假从格 / 极弱";
-                patternCode = "Fake_Follow";
-            }
+                // === 原有从格判定逻辑 (V32) ===
 
-        } else if (hasDryEarth && !(hasBijieInStems && isYangStem)) {
-            physicsLog.push(`🏜️ 燥土防从：地支有[${dryEarthInBranches.join(', ')}]燥土，可助日干，不入真从`);
-            calcPattern = "假从格 (燥土微根)";
-            patternCode = "Fake_Follow";
-            physicsLog.push("⚠️ 假从格注意：大运喜忌具有动态性，需结合行运判断吉凶");
-        } else if (!(hasBijieInStems && isYangStem)) {
-            calcPattern = "假从格 / 极弱";
-            patternCode = "Fake_Follow";
+                // 1. 强根 vs 弱根检测
+                let hasStrongRoot = false;
+                let hasWeakRoot = false;
+
+                branches.forEach(b => {
+                    const roots = RAW_HIDDEN_STEMS[b] || {};
+                    // 日干在藏干
+                    if (roots[dmStem]) {
+                        if (roots[dmStem] >= 18) hasStrongRoot = true;
+                        else if (roots[dmStem] >= 3) hasWeakRoot = true;
+                    }
+                    // 同五行
+                    Object.entries(roots).forEach(([hidden, weight]) => {
+                        const hInfo = STEMS_INFO[hidden];
+                        if (hInfo && hInfo.el === dmEl) {
+                            if (weight >= 18) hasStrongRoot = true;
+                            else if (weight >= 9) hasWeakRoot = true;
+                        }
+                    });
+                });
+
+                // 2. 燥土防从逻辑
+                const dryEarthInBranches = branches.filter(b => DRY_EARTH.includes(b));
+                const hasDryEarth = dryEarthInBranches.length > 0;
+                let dryEarthWeakened = false;
+
+                if (hasDryEarth) {
+                    // 辰戌冲，丑未冲
+                    if ((branches.includes('辰') && branches.includes('戌')) ||
+                        (branches.includes('丑') && branches.includes('未'))) {
+                        dryEarthWeakened = true;
+                        const pair = branches.includes('辰') ? '辰戌' : '丑未';
+                        physicsLog.push(`🔀 ${pair}相冲：燥土力量削弱，可入从格`);
+                    }
+                    // 月令水旺克燥土
+                    if (['亥', '子'].includes(monthBranch) && !dryEarthWeakened) {
+                        dryEarthWeakened = true;
+                        physicsLog.push(`💧 月令${monthBranch}水旺：燥土被水克，力量削弱`);
+                    }
+                }
+
+                const isYangStem = ['甲', '丙', '戊', '庚', '壬'].includes(dmStem);
+
+                // 3. 阳干比劫检测 (V32 Fix) - 增加根气检测
+                let hasBijieInStems = false;
+                let bijieHasRoot = false;  // 新增：比劫是否有根
+                const bijieStems: string[] = [];
+                stems.forEach((s, i) => {
+                    if (i !== 2) {
+                        const sInfo = STEMS_INFO[s];
+                        if (sInfo && sInfo.el === dmEl) {
+                            hasBijieInStems = true;
+                            bijieStems.push(s);
+                        }
+                    }
+                });
+
+                // 检测比劫是否有根气
+                if (hasBijieInStems) {
+                    branches.forEach(b => {
+                        const roots = RAW_HIDDEN_STEMS[b] || {};
+                        Object.entries(roots).forEach(([hidden, weight]) => {
+                            const hInfo = STEMS_INFO[hidden];
+                            // 比劫五行在地支有藏干且权重>=9，视为有根
+                            if (hInfo && hInfo.el === dmEl && weight >= 9) {
+                                bijieHasRoot = true;
+                            }
+                        });
+                    });
+                }
+
+                // 阳干透比劫且**有根**时，才不入从格
+                if (hasBijieInStems && isYangStem && bijieHasRoot) {
+                    physicsLog.push(`🔥 天干透比劫[${bijieStems.join(', ')}]且有根：阳干有帮身，不入从格`);
+                } else if (hasBijieInStems && isYangStem && !bijieHasRoot) {
+                    physicsLog.push(`💨 天干透比劫[${bijieStems.join(', ')}]但无根：比劫虚浮，可入从格`);
+                }
+
+                const effectiveHasDryEarth = hasDryEarth && !dryEarthWeakened;
+
+                // === 判定条件 ===
+                // 只有阳干透比劫且**有根**时，才不能断从格
+                const canEnterCong = !hasStrongRoot && !effectiveHasDryEarth && !(hasBijieInStems && isYangStem && bijieHasRoot);
+
+                if (canEnterCong) {
+                    // 细分从格类型
+                    let congType = "从弱";
+                    let congElement: Element | null = null;
+
+                    const stemGodCounts = { 'Wealth': 0, 'Official': 0, 'Output': 0 };
+                    stemGods.forEach(g => {
+                        if (g === 'Wealth') stemGodCounts['Wealth']++;
+                        else if (g === 'Official') stemGodCounts['Official']++;
+                        else if (g === 'Output') stemGodCounts['Output']++;
+                    });
+
+                    // 从杀 > 从财 > 从儿
+                    if (stemGodCounts['Official'] > 0 && counts[relations['Official']] >= 2) {
+                        congType = "从杀格";
+                        congElement = relations['Official'];
+                    } else if (stemGodCounts['Wealth'] > 0 && counts[relations['Wealth']] >= 2) {
+                        congType = "从财格";
+                        congElement = relations['Wealth'];
+                    } else if (stemGodCounts['Output'] > 0 && counts[relations['Output']] >= 2) {
+                        congType = "从儿格";
+                        congElement = relations['Output'];
+                    }
+
+                    if (hasWeakRoot && isYangStem) {
+                        calcPattern = `假${congType} (余气微根)`;
+                        patternCode = "Fake_Follow";
+                        physicsLog.push(`🌀 假从格：${dmStem}为阳干，地支仅有余气微根，形成假${congType}`);
+                        physicsLog.push("⚠️ 假从格注意：大运喜忌具有动态性，需结合行运判断吉凶");
+
+                        // 假从格用神 (V32)
+                        if (congElement) {
+                            const cIdx = WU_XING_LIST.indexOf(congElement);
+                            const shengCong = WU_XING_LIST[(cIdx - 1 + 5) % 5];
+                            forcedYongShen = [congElement as string, shengCong as string];
+                        }
+                    } else if (!hasWeakRoot) {
+                        calcPattern = `真${congType} (弃命相从)`;
+                        patternCode = "Follow_Weak";
+                        if (congElement) {
+                            const cIdx = WU_XING_LIST.indexOf(congElement);
+                            const shengCong = WU_XING_LIST[(cIdx - 1 + 5) % 5];
+                            forcedYongShen = [congElement as string, shengCong as string];
+                        }
+                    } else {
+                        calcPattern = "假从格 / 极弱";
+                        patternCode = "Fake_Follow";
+                    }
+
+                } else if (hasDryEarth && !(hasBijieInStems && isYangStem)) {
+                    physicsLog.push(`🏜️ 燥土防从：地支有[${dryEarthInBranches.join(', ')}]燥土，可助日干，不入真从`);
+                    calcPattern = "假从格 (燥土微根)";
+                    patternCode = "Fake_Follow";
+                    physicsLog.push("⚠️ 假从格注意：大运喜忌具有动态性，需结合行运判断吉凶");
+                } else if (!(hasBijieInStems && isYangStem)) {
+                    calcPattern = "假从格 / 极弱";
+                }
+            }
         }
-    } else if (zScore > 3.0) {
-        calcPattern = "专旺格";
-        patternCode = "Follow_Strong";
+        // } else if (zScore > 3.0) {
+        //     calcPattern = "专旺格";
+        //     patternCode = "Follow_Strong";
     }
 
     // 7. 智能防御 (战克检测)
@@ -1081,13 +1380,11 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
     // 8.2 用神打分筛选 (Yong Shen Scoring & Filtering)
     // -------------------------------------------------------------------------
     const sheng = (a: Element, b: Element): boolean => {
-        const elCycle: Element[] = ['木', '火', '土', '金', '水'];
-        return elCycle[(elCycle.indexOf(a) + 1) % 5] === b;
+        return WU_XING_LIST[(WU_XING_LIST.indexOf(a) + 1) % 5] === b;
     };
 
     const ke = (a: Element, b: Element): boolean => {
-        const elCycle: Element[] = ['木', '火', '土', '金', '水'];
-        return elCycle[(elCycle.indexOf(a) + 2) % 5] === b;
+        return WU_XING_LIST[(WU_XING_LIST.indexOf(a) + 2) % 5] === b;
     };
 
     const checkTongguan = (yongEl: Element, jiList: Element[]): number => {

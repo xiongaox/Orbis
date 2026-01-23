@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { BaziApiResponse } from '../../../types/bazi';
 import {
     getMingGua,
@@ -14,6 +14,7 @@ import {
 } from '../../../lib/xuan-bazi/utils/baziExtendUtil';
 import { getNaYin } from '../../../lib/xuan-bazi/utils/baziJichuUtil';
 import { calculateWangShuai } from '../../../lib/xuan-bazi/utils/wangShuaiUtil';
+import PhysicsLogModal from '../../Common/PhysicsLogModal';
 
 
 interface BaziBasicInfoPanelProps {
@@ -21,6 +22,8 @@ interface BaziBasicInfoPanelProps {
 }
 
 export default function BaziBasicInfoPanel({ baziData }: BaziBasicInfoPanelProps) {
+    const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+
     const info = useMemo(() => {
         if (!baziData) return null;
 
@@ -144,10 +147,27 @@ export default function BaziBasicInfoPanel({ baziData }: BaziBasicInfoPanelProps
         '午': '火', '未': '土', '申': '金', '酉': '金', '戌': '土', '亥': '水'
     };
 
-    const Item = ({ label, value, valueClass = "", labelClass = "text-muted-foreground w-20 flex-shrink-0 text-right pr-2" }: { label: string; value: React.ReactNode; valueClass?: string; labelClass?: string }) => (
-        <div className="flex items-center text-sm p-1">
+    const Item = ({
+        label,
+        value,
+        valueClass = "",
+        labelClass = "text-muted-foreground w-20 flex-shrink-0 text-right pr-2",
+        onClick
+    }: {
+        label: string;
+        value: React.ReactNode;
+        valueClass?: string;
+        labelClass?: string;
+        onClick?: () => void;
+    }) => (
+        <div
+            className={`flex items-center text-sm p-1 ${onClick ? 'cursor-pointer hover:bg-muted/50 rounded transition-colors group' : ''}`}
+            onClick={onClick}
+        >
             <span className={labelClass}>{label}</span>
-            <span className={`font-medium ${valueClass} truncate`}>{value}</span>
+            <span className={`font-medium ${valueClass} truncate ${onClick ? 'underline decoration-dotted underline-offset-4 decoration-border group-hover:decoration-foreground/30' : ''}`}>
+                {value}
+            </span>
         </div>
     );
 
@@ -169,7 +189,12 @@ export default function BaziBasicInfoPanel({ baziData }: BaziBasicInfoPanelProps
 
             {/* 第二行 */}
             <div className="grid grid-cols-2 gap-x-4">
-                <Item label="身体强弱" value={info.bodyStrength} />
+                <Item
+                    label="身体强弱"
+                    value={info.bodyStrength}
+                    valueClass="text-primary font-bold"
+                    onClick={() => setIsLogModalOpen(true)}
+                />
                 <Item label="人元司令" value={info.renYuanSiLing} valueClass={getWuxingColor(info.renYuanSiLing)} />
                 <Item label="胎元胎息" value={`${info.taiYuan.split('（')[0]} ${info.taiXi}`} />
                 <Item label="命宫身宫" value={info.mingShenGong} />
@@ -220,6 +245,15 @@ export default function BaziBasicInfoPanel({ baziData }: BaziBasicInfoPanelProps
                 <Item label="出生节" value={`${info.solarTerms.prevJie.name}后${info.solarTerms.prevJie.diff}、${info.solarTerms.nextJie.name}前${info.solarTerms.nextJie.diff}`} />
                 <Item label="出生气" value={`${info.solarTerms.prevQi.name}后${info.solarTerms.prevQi.diff}、${info.solarTerms.nextQi.name}前${info.solarTerms.nextQi.diff}`} />
             </div>
+            {/* 物理逻辑日志弹窗 */}
+            <PhysicsLogModal
+                isOpen={isLogModalOpen}
+                onClose={() => setIsLogModalOpen(false)}
+                logs={info.physicsLog}
+                title="旺衰物理逻辑日志"
+                description={info.bodyStrength}
+                highlightColor="text-primary"
+            />
         </div>
     );
 }
