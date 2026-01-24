@@ -80,6 +80,7 @@ export const AUTHOR_MAP: Record<string, string> = {
     'lishuanglin': '李双林',
     'nanxuanzi': '南玄子',
     'buchuiniu': '不吹牛',
+    'zhangzhichun': '张志春',
 };
 
 // 日主分类列表
@@ -96,4 +97,24 @@ export const DAY_MASTER_CATEGORIES = [
     { id: '壬日命造', label: '壬日' },
     { id: '癸日命造', label: '癸日' },
     { id: '特殊格局', label: '特殊格局' },
+];
+
+// 奇门分类列表
+export const QIMEN_CATEGORIES = [
+    { id: 'all', label: '全部' },
+    { id: '恋爱婚姻', label: '恋爱婚姻' },
+    { id: '工作事业', label: '工作事业' },
+    { id: '经营求财', label: '经营求财' },
+    { id: '出行出国', label: '出行出国' },
+    { id: '失物丢人', label: '失物丢人' },
+    { id: '怀孕分娩', label: '怀孕分娩' },
+    { id: '官司诉讼', label: '官司诉讼' },
+    { id: '求学考试', label: '求学考试' },
+    { id: '人体疾病', label: '人体疾病' },
+    { id: '人生机遇', label: '人生机遇' },
+    { id: '体育竞赛', label: '体育竞赛' },
+    { id: '其他杂项', label: '其他杂项' },
+    { id: '军事事件', label: '军事事件' },
+    { id: '地理环境', label: '地理环境' },
+    { id: '天时气象', label: '天时气象' },
 ];

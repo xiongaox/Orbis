@@ -58,6 +58,7 @@ export const duanfaMarkdownComponents: Components = {
         <li className="text-[18px] leading-8 text-foreground/75 !indent-0 [&>p]:!indent-0 [&::marker]:!text-primary [&::marker]:!font-bold" {...props} />
     ),
     strong: ({ node, ...props }) => <strong className="text-primary" {...props} />,
+    hr: ({ node, ...props }) => <hr className="my-8 border-t border-border" {...props} />,
 };
 
 /**

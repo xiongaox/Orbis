@@ -605,7 +605,7 @@ function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResu
             tianPan: pos === 5 ? '' : (cspPalace?.tianPan || ''),
             diPan: pos === 5 ? getZhongGongDiPan(parsed.ju) : (cspPalace?.diPan || ''),
             men: pos === 5 ? '' : (cspPalace?.men ? `${cspPalace.men}门` : ''),
-            xing: pos === 5 ? '' : (cspPalace?.xing || ''),
+            xing: pos === 5 ? '' : (cspPalace?.xing === '天芮' ? '禽芮' : (cspPalace?.xing || '')),
             shen: pos === 5 ? '' : (cspPalace?.shen || ''),
             anGan: '', // 将在后续填充
             // 寄宫干支
