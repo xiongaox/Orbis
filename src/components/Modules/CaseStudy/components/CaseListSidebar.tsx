@@ -1,9 +1,6 @@
-/**
- * 案例列表侧边栏 - 包含日主筛选、搜索、列表、分页
- */
 import { useState } from 'react';
 import { Search, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
-import { DAY_MASTER_CATEGORIES } from '../../../../lib/caseStudy/types';
+import { DAY_MASTER_CATEGORIES, QIMEN_CATEGORIES } from '../../../../lib/caseStudy/types';
 
 interface CaseItem {
     id: string;
@@ -12,6 +9,7 @@ interface CaseItem {
     content: string;
     dayMaster: string;
     author: string;
+    category: 'bazi' | 'qimen';
 }
 
 interface CaseListSidebarProps {
@@ -22,6 +20,7 @@ interface CaseListSidebarProps {
     searchTerm: string;
     currentPage: number;
     totalPages: number;
+    selectedCategory: string;
     onSelectCase: (id: string) => void;
     onSelectDayMaster: (id: string) => void;
     onSearchChange: (term: string) => void;
@@ -37,6 +36,7 @@ export default function CaseListSidebar({
     searchTerm,
     currentPage,
     totalPages,
+    selectedCategory,
     onSelectCase,
     onSelectDayMaster,
     onSearchChange,
@@ -44,6 +44,12 @@ export default function CaseListSidebar({
     onSelectAuthor,
 }: CaseListSidebarProps) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+    // 根据选中的术数类别决定显示的筛选列表
+    const categories = selectedCategory === 'qimen' ? QIMEN_CATEGORIES : DAY_MASTER_CATEGORIES;
+
+    // 计算当前分类下的总数
+    const currentCategoryTotal = allCases.filter(c => c.category === selectedCategory).length;
 
     return (
         <div className="w-[15%] border-r border-border bg-card flex flex-col min-w-[200px]">
@@ -65,12 +71,12 @@ export default function CaseListSidebar({
                     >
                         <span className="truncate flex items-center gap-2">
                             <span className={selectedDayMaster === 'all' ? 'font-medium' : ''}>
-                                {DAY_MASTER_CATEGORIES.find(c => c.id === selectedDayMaster)?.label || '全部'}
+                                {categories.find(c => c.id === selectedDayMaster)?.label || '全部'}
                             </span>
                             <span className="text-muted-foreground/60 text-xs">
                                 {selectedDayMaster === 'all'
-                                    ? allCases.length
-                                    : allCases.filter(c => c.dayMaster === selectedDayMaster).length}
+                                    ? currentCategoryTotal
+                                    : allCases.filter(c => c.dayMaster === selectedDayMaster && c.category === selectedCategory).length}
                             </span>
                         </span>
                         <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground/70 transition-transform duration-200 group-hover:text-foreground ${isDropdownOpen ? 'rotate-180' : ''}`} />
@@ -78,10 +84,10 @@ export default function CaseListSidebar({
 
                     {isDropdownOpen && (
                         <div className="absolute top-full left-0 right-0 mt-2 bg-popover border border-border shadow-md rounded-lg z-20 max-h-[300px] overflow-y-auto py-1 animate-in fade-in zoom-in-95 duration-100">
-                            {DAY_MASTER_CATEGORIES.map(cat => {
+                            {categories.map(cat => {
                                 const count = cat.id === 'all'
-                                    ? allCases.length
-                                    : allCases.filter(c => c.dayMaster === cat.id).length;
+                                    ? currentCategoryTotal
+                                    : allCases.filter(c => c.dayMaster === cat.id && c.category === selectedCategory).length;
                                 const isSelected = selectedDayMaster === cat.id;
 
                                 return (

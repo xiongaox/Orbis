@@ -11,12 +11,13 @@ import { AUTHOR_MAP } from '../../../../lib/caseStudy/types';
 const rawCasesLishuanglin = import.meta.glob('../../../../data/cases/lishuanglin/**/*.md', { query: '?raw', import: 'default', eager: true });
 const rawCasesNanxuanzi = import.meta.glob('../../../../data/cases/nanxuanzi/**/*.md', { query: '?raw', import: 'default', eager: true });
 const rawCasesBuchuiniu = import.meta.glob('../../../../data/cases/buchuiniu/**/*.md', { query: '?raw', import: 'default', eager: true });
+const rawCasesZhangzhichun = import.meta.glob('../../../../data/cases/zhangzhichun/**/*.md', { query: '?raw', import: 'default', eager: true });
 
 // 加载作者介绍文件
 const authorIntroFiles = import.meta.glob('../../../../data/cases/*/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
 
 // 合并所有案例
-const rawCases = { ...rawCasesLishuanglin, ...rawCasesNanxuanzi, ...rawCasesBuchuiniu };
+const rawCases = { ...rawCasesLishuanglin, ...rawCasesNanxuanzi, ...rawCasesBuchuiniu, ...rawCasesZhangzhichun };
 
 import { calculateQimen, type QimenResult } from '../../../../lib/csp-qimen/qimenService';
 
@@ -33,18 +34,31 @@ export interface CaseItem {
 const ALL_CASES: CaseItem[] = Object.entries(rawCases)
     .filter(([path, content]) => {
         const c = content as string;
-        return c.trim().length > 0 && path.includes('/');
+        // Filter empty files
+        if (c.trim().length === 0 || !path.includes('/')) return false;
+
+        // Filter author profile files (e.g. "李双林.md", "不吹牛.md")
+        const pathParts = path.split('/');
+        const filename = pathParts.pop()?.replace('.md', '');
+
+        // Check if filename matches any author name
+        const isAuthorProfile = Object.values(AUTHOR_MAP).some(authorName => filename === authorName);
+
+        return !isAuthorProfile;
     })
     .map(([path, content]) => {
         const strContent = content as string;
         const pathParts = path.split('/');
         const filename = pathParts.pop()?.replace('.md', '') || '无标题';
         const dayMasterCategory = pathParts[pathParts.length - 1] || '未分类';
-        const authorKey = path.includes('lishuanglin') ? 'lishuanglin' : path.includes('nanxuanzi') ? 'nanxuanzi' : path.includes('buchuiniu') ? 'buchuiniu' : '';
+        const authorKey = path.includes('lishuanglin') ? 'lishuanglin' :
+            path.includes('nanxuanzi') ? 'nanxuanzi' :
+                path.includes('buchuiniu') ? 'buchuiniu' :
+                    path.includes('zhangzhichun') ? 'zhangzhichun' : '';
         const author = AUTHOR_MAP[authorKey] || '未知';
 
         // Determine category based on author/path
-        const category = path.includes('buchuiniu') ? 'qimen' : 'bazi';
+        const category = (path.includes('buchuiniu') || path.includes('zhangzhichun')) ? 'qimen' : 'bazi';
 
         let bazi = extractBazi(strContent);
         if (category === 'qimen') {

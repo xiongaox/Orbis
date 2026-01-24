@@ -8,7 +8,7 @@ import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 // 从提取的模块导入
 import { CATEGORIES, TIAN_GAN, DI_ZHI } from '../../../lib/caseStudy/types';
@@ -25,6 +25,7 @@ import CaseStudyDayunPanel from './components/CaseStudyDayunPanel';
 
 // 案例学习专用奇门组件 - 精简版
 import CaseStudyQimenChart from './components/CaseStudyQimenChart';
+import JuSelectDialog from './components/JuSelectDialog';
 import type { BaziApiResponse, DaYunPeriod, PillarData } from '../../../types/bazi';
 
 // 断法模块
@@ -167,7 +168,12 @@ export default function CaseStudyPage() {
         selectedLiuNianYear,
         setSelectedLiuNianYear,
         qimenResult, // Get result
+        customJu,
+        setCustomJu,
     } = useCaseStudy();
+
+    // 局数选择弹窗状态
+    const [isJuDialogOpen, setIsJuDialogOpen] = useState(false);
 
     // 构造 BaziData
     const baziData = useMemo(() => {
@@ -207,6 +213,7 @@ export default function CaseStudyPage() {
             <CaseListSidebar
                 allCases={allCases}
                 displayCases={displayCases}
+                selectedCategory={selectedCategory}
                 selectedCaseId={selectedCaseId}
                 selectedDayMaster={selectedDayMaster}
                 searchTerm={searchTerm}
@@ -306,6 +313,7 @@ export default function CaseStudyPage() {
                                     onSelectPalace={() => { }}
                                     header={qimenResult.header}
                                     globalPatterns={qimenResult.globalPatterns}
+                                    onJuClick={() => setIsJuDialogOpen(true)}
                                 />
                             </div>
                         ) : (
@@ -326,6 +334,14 @@ export default function CaseStudyPage() {
                     )}
                 </div>
             </div>
+
+            {/* 局数选择弹窗 */}
+            <JuSelectDialog
+                isOpen={isJuDialogOpen}
+                onClose={() => setIsJuDialogOpen(false)}
+                currentJu={customJu}
+                onSelectJu={setCustomJu}
+            />
         </div>
     );
 }
