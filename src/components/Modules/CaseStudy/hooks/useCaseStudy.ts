@@ -8,10 +8,10 @@ import { AUTHOR_MAP } from '../../../../lib/caseStudy/types';
 
 // 加载案例文件
 // 加载案例文件
-const rawCasesLishuanglin = import.meta.glob('../../../../data/cases/lishuanglin/**/*.md', { query: '?raw', import: 'default', eager: true });
-const rawCasesNanxuanzi = import.meta.glob('../../../../data/cases/nanxuanzi/**/*.md', { query: '?raw', import: 'default', eager: true });
-const rawCasesBuchuiniu = import.meta.glob('../../../../data/cases/buchuiniu/**/*.md', { query: '?raw', import: 'default', eager: true });
-const rawCasesZhangzhichun = import.meta.glob('../../../../data/cases/zhangzhichun/**/*.md', { query: '?raw', import: 'default', eager: true });
+const rawCasesLishuanglin = import.meta.glob('../../../../data/cases/study/bazi/lishuanglin/**/*.md', { query: '?raw', import: 'default', eager: true });
+const rawCasesNanxuanzi = import.meta.glob('../../../../data/cases/study/bazi/nanxuanzi/**/*.md', { query: '?raw', import: 'default', eager: true });
+const rawCasesBuchuiniu = import.meta.glob('../../../../data/cases/study/qimen/buchuiniu/**/*.md', { query: '?raw', import: 'default', eager: true });
+const rawCasesZhangzhichun = import.meta.glob('../../../../data/cases/study/qimen/zhangzhichun/**/*.md', { query: '?raw', import: 'default', eager: true });
 
 // 加载作者介绍文件
 const authorIntroFiles = import.meta.glob('../../../../data/cases/*/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
@@ -83,21 +83,7 @@ const ALL_CASES: CaseItem[] = Object.entries(rawCases)
 
 const ITEMS_PER_PAGE = 13;
 
-// Helper to parse Qimen time from content
-// Format example: 公元：2009年7月9日20时43分47秒
-function parseQimenTime(content: string): { year: number, month: number, day: number, hour: number, minute: number } | null {
-    const match = content.match(/(?:\*\*)?公元(?:\*\*)?[：:]\s*(\d{4})年(\d{1,2})月(\d{1,2})日(\d{1,2})时(\d{1,2})分/);
-    if (match) {
-        return {
-            year: parseInt(match[1]),
-            month: parseInt(match[2]),
-            day: parseInt(match[3]),
-            hour: parseInt(match[4]),
-            minute: parseInt(match[5])
-        };
-    }
-    return null;
-}
+
 
 export function useCaseStudy() {
     // 基础状态
@@ -106,6 +92,9 @@ export function useCaseStudy() {
     const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
+
+    // 多排盘支持
+    const [activeChartIndex, setActiveChartIndex] = useState<number>(0);
 
     // 大运/流年状态
     const [daYunPage, setDaYunPage] = useState(0);
@@ -119,6 +108,7 @@ export function useCaseStudy() {
     // 奇门排盘结果和自定义局数
     const [qimenResult, setQimenResult] = useState<QimenResult | null>(null);
     const [customJu, setCustomJu] = useState<number>(0);  // 0=自动计算, 正数=阳遏, 负数=阴遏
+    const [chartCount, setChartCount] = useState<number>(0); // 当前案例包含的排盘数量
 
     // 获取作者介绍内容
     const authorIntroContent = useMemo(() => {
@@ -157,20 +147,46 @@ export function useCaseStudy() {
         return ALL_CASES.find(c => c.id === selectedCaseId);
     }, [selectedCaseId]);
 
-    // 当选中案例或自定义局数变化时，如果是奇门案例，进行排盘计算
+    // 当选中案例改变时，重置排盘索引
+    useMemo(() => {
+        setActiveChartIndex(0);
+        setCustomJu(0);
+    }, [selectedCaseId]);
+
+    // 计算排盘数量和当前结果
     useMemo(async () => {
-        if (activeCase && activeCase.category === 'qimen') {
-            const time = parseQimenTime(activeCase.content);
-            if (time) {
+        if (!activeCase) {
+            setQimenResult(null);
+            setChartCount(0);
+            return;
+        }
+
+        if (activeCase.category === 'qimen') {
+            const { parseAllQimenTime } = await import('../../../../lib/caseStudy/parsers');
+            const times = parseAllQimenTime(activeCase.content);
+            setChartCount(times.length);
+
+            if (times.length > 0) {
+                // 确保索引在有效范围内
+                const index = activeChartIndex >= times.length ? 0 : activeChartIndex;
+                const time = times[index];
                 const result = await calculateQimen(time, 'zhirun', customJu);
                 setQimenResult(result);
             } else {
                 setQimenResult(null);
             }
         } else {
+            // 八字的多排盘逻辑（如果需要支持）
+            // 目前主要针对奇门，八字暂保持原样或后续添加 parseAllBaziInfo 支持
+            // 如果八字也需要支持多盘，可以在这里调用 parseAllBaziInfo
+            const { parseAllBaziInfo } = await import('../../../../lib/caseStudy/parsers');
+            const infos = parseAllBaziInfo(activeCase.content);
+            setChartCount(infos.length);
+            // 八字的数据计算是在 UI 层通过 parseBaziInfo 做的，这里只需更新计数
+            // 注意：CaseStudyPage 中的八字数据计算也需要更新以支持 activeChartIndex
             setQimenResult(null);
         }
-    }, [activeCase, customJu]);
+    }, [activeCase, activeChartIndex, customJu]);
 
     // 搜索重置页码
     useMemo(() => {
@@ -193,6 +209,7 @@ export function useCaseStudy() {
         setSelectedCaseId(null);
         setQimenResult(null);
         setCustomJu(0);  // 重置自定义局数
+        setActiveChartIndex(0);
     }, [selectedCategory]);
 
     // 选择案例时清除作者
@@ -260,6 +277,11 @@ export function useCaseStudy() {
         qimenResult,
         customJu,
         setCustomJu,
+
+        // 多排盘支持
+        activeChartIndex,
+        setActiveChartIndex,
+        chartCount,
     };
 }
 

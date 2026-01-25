@@ -11,8 +11,9 @@ import remarkBreaks from 'remark-breaks';
 import { useMemo, useState } from 'react';
 
 // 从提取的模块导入
+// 从提取的模块导入
 import { CATEGORIES, TIAN_GAN, DI_ZHI } from '../../../lib/caseStudy/types';
-import { parseBaziInfo, extendDaYun } from '../../../lib/caseStudy/parsers';
+import { parseBaziInfo, parseAllBaziInfo, extendDaYun, computePillarDetails } from '../../../lib/caseStudy/parsers';
 
 // 子组件导入
 import CategoryTabs from './components/CategoryTabs';
@@ -40,35 +41,69 @@ const getBaziData = (baziInfo: ReturnType<typeof parseBaziInfo>): BaziApiRespons
     if (baziInfo.baziData) return baziInfo.baziData;
     if (baziInfo.pillars.length < 4) return null;
 
-    // 构造 Pillars
-    const pillars: PillarData[] = baziInfo.pillars.map(p => ({
-        label: p.label,
-        ganZhi: p.ganZhi,
-        tiangan: p.tiangan,
-        dizhi: p.dizhi,
-        tianganElement: '', // 简化
-        dizhiElement: '',
-        tianganShiShen: '',
-        dizhiShiShen: [],
-        zanggan: [],
-        diShi: '',
-        naYin: '',
-        kongWang: '',
-    }));
+    const dayGan = baziInfo.pillars[2].tiangan;
 
-    // 获取出生年份 (优先从 baziInfo 获取，否则尝试推算)
+    // 构造 Pillars
+    const pillars: PillarData[] = baziInfo.pillars.map((p, index) => {
+        // 如果没有详细数据，尝试计算
+        const details = computePillarDetails(p.ganZhi, dayGan);
+        return {
+            label: p.label,
+            ganZhi: p.ganZhi,
+            tiangan: p.tiangan,
+            dizhi: p.dizhi,
+            tianganElement: '', // 可选: 即使这里为空，UI组件似乎主要是用颜色区分，或者后续再补全
+            dizhiElement: '',
+            tianganShiShen: details.tianganShiShen,
+            dizhiShiShen: [], // UI组件如果不直接使用此字段而是用 zanggan 显示，则可保留空；但检查 SimplePillarCard 发现没用到 dizhiShiShen
+            zanggan: details.zanggan,
+            diShi: details.diShi,
+            naYin: details.naYin,
+            kongWang: details.kongWang,
+            ziZuo: details.ziZuo, // 添加自坐
+        };
+    });
+
+    // 获取出生年份
     let birthYear = baziInfo.birthYear;
     if (!birthYear) {
-        // 如果没有出生年份，尝试从 pillars 推算（这里暂且保持当前年倒推的兜底逻辑，但在案例数据完善的情况下应该总是有 birthYear）
         const currentYear = new Date().getFullYear();
         birthYear = currentYear - 30;
     }
 
     // 构造 DaYun
-    const yearGan = pillars[0].tiangan;
-    const fullDaYun = baziInfo.daYun.length > 0
-        ? extendDaYun(baziInfo.daYun[0], baziInfo.gender, yearGan, 12)
-        : [];
+    // 如果 baziInfo.daYun 为空，但我们有性别和年/月柱，可以尝试推算
+    let fullDaYun: string[] = [];
+    if (baziInfo.daYun.length > 0) {
+        const yearGan = pillars[0].tiangan;
+        fullDaYun = extendDaYun(baziInfo.daYun[0], baziInfo.gender, yearGan, 14);
+    } else if (baziInfo.gender && pillars.length >= 2) {
+        // 自动推算大运: 月柱为起点
+        // 阳年男、阴年女顺行；阴年男、阳年女逆行
+        const yearGan = pillars[0].tiangan;
+        const monthPillar = pillars[1].ganZhi;
+
+        const yangGan = ['甲', '丙', '戊', '庚', '壬'];
+        const isYangYear = yangGan.includes(yearGan);
+        const isMale = baziInfo.gender === '乾造';
+        const isForward = (isYangYear && isMale) || (!isYangYear && !isMale);
+
+        // 计算第一步大运
+        const ganIndex = TIAN_GAN.indexOf(monthPillar[0]);
+        const zhiIndex = DI_ZHI.indexOf(monthPillar[1]);
+
+        let nextGanIndex, nextZhiIndex;
+        if (isForward) {
+            nextGanIndex = (ganIndex + 1) % 10;
+            nextZhiIndex = (zhiIndex + 1) % 12;
+        } else {
+            nextGanIndex = (ganIndex - 1 + 10) % 10;
+            nextZhiIndex = (zhiIndex - 1 + 12) % 12;
+        }
+        const firstDaYun = TIAN_GAN[nextGanIndex] + DI_ZHI[nextZhiIndex];
+
+        fullDaYun = extendDaYun(firstDaYun, baziInfo.gender, yearGan, 14);
+    }
 
     // 假设起运岁数为 1 岁 (如果没有具体信息)
     const startYunAge = 1;
@@ -170,6 +205,9 @@ export default function CaseStudyPage() {
         qimenResult, // Get result
         customJu,
         setCustomJu,
+        activeChartIndex,
+        setActiveChartIndex,
+        chartCount,
     } = useCaseStudy();
 
     // 局数选择弹窗状态
@@ -178,9 +216,20 @@ export default function CaseStudyPage() {
     // 构造 BaziData
     const baziData = useMemo(() => {
         if (!activeCase?.content) return null;
-        const info = parseBaziInfo(activeCase.content);
+        // 如果 activeChartIndex >= 0，尝试获取第 N 个八字
+        // 为了支持多八字，这里使用 parseAllBaziInfo
+        const infos = parseAllBaziInfo(activeCase.content);
+        const index = activeChartIndex >= infos.length ? 0 : activeChartIndex;
+        // 确保 info 存在
+        const info = infos[index] || parseBaziInfo(activeCase.content);
         return getBaziData(info);
-    }, [activeCase?.content]);
+    }, [activeCase?.content, activeChartIndex]);
+
+    // 数字转中文数字辅助函数
+    const toChineseNum = (num: number) => {
+        const chineseRaw = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
+        return chineseRaw[num] || num.toString();
+    };
 
     // 断法模块使用独立布局
     if (selectedCategory === 'duanfa') {
@@ -272,8 +321,29 @@ export default function CaseStudyPage() {
 
             {/* 4. 排盘区 (25%) */}
             <div className="w-[25%] bg-muted/10 flex flex-col overflow-hidden border-l border-border/50">
-                <div className="p-2 border-b border-border bg-muted/20">
+                <div className="p-2 border-b border-border bg-muted/20 flex justify-between items-center h-[40px]">
                     <span className="text-xs font-medium text-muted-foreground">排盘信息</span>
+
+                    {/* 多排盘切换按钮 */}
+                    {activeCase && chartCount > 1 && (
+                        <div className="flex space-x-1">
+                            {Array.from({ length: chartCount }).map((_, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => setActiveChartIndex(i)}
+                                    className={`
+                                        text-[10px] px-2 py-0.5 rounded border transition-colors
+                                        ${activeChartIndex === i
+                                            ? 'bg-primary text-primary-foreground border-primary'
+                                            : 'bg-background text-muted-foreground border-border hover:bg-muted'
+                                        }
+                                    `}
+                                >
+                                    盘式{toChineseNum(i + 1)}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
                 <div className="flex-1 overflow-y-auto p-0 scrollbar-thin scrollbar-thumb-border/40 scrollbar-track-transparent flex flex-col">
                     {selectedCategory === 'bazi' && activeCase ? (
