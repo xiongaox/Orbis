@@ -3,7 +3,7 @@
  * 支持 Supabase 云端同步
  */
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronRight, ChevronLeft, Plus, Search, LogIn, Pencil, Trash2, Upload } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Search, LogIn, Pencil, Trash2, Import } from 'lucide-react';
 import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../utils/lunarUtil';
 import { useAuth } from '../../contexts/AuthContext';
 import { baziCaseService, CASE_TAGS, type BaziCase, type CaseTag, type CreateCaseInput } from '../../services/baziCaseService';
@@ -295,17 +295,17 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
             <button
               type="button"
               onClick={() => setShowImportModal(true)}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-secondary/50 hover:bg-secondary text-foreground/80 hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
             >
-              <Upload className="w-4 h-4" />
+              <Import className="w-3.5 h-3.5" />
               导入
             </button>
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-primary/12 hover:bg-primary/18 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/40"
+              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/30"
             >
-              <Plus className="w-4 h-4" />
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
               新建
             </button>
           </div>

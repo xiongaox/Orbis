@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from 'react';
-import { Loader2, Upload, FileJson, Check, X, AlertCircle, LayoutTemplate } from 'lucide-react';
+import { Upload, FileJson, Check, X, AlertCircle, LayoutTemplate } from 'lucide-react';
 
 export interface JsonImportModalProps<T> {
     isOpen: boolean;
@@ -23,6 +23,11 @@ export interface JsonImportModalProps<T> {
         render?: (item: T) => React.ReactNode;
         width?: string;
     }[];
+    /**
+     * Optional custom grid class for card layout.
+     * Default: "grid-cols-2"
+     */
+    gridClassName?: string;
 }
 
 type ImportStep = 'upload' | 'preview' | 'importing' | 'result';
@@ -36,7 +41,8 @@ export default function JsonImportModal<T>({
     onFinish,
     templateData,
     previewColumns,
-    renderCard
+    renderCard,
+    gridClassName = "grid-cols-2"
 }: JsonImportModalProps<T>) {
     const [step, setStep] = useState<ImportStep>('upload');
     const [parsedData, setParsedData] = useState<T[]>([]);
@@ -156,15 +162,15 @@ export default function JsonImportModal<T>({
 
                 {/* LEFT SIDEBAR: Context & Timeline */}
                 <div className="w-[220px] bg-zinc-900/50 border-r border-white/5 flex flex-col p-6 relative overflow-hidden flex-shrink-0">
-                    {/* Background Pattern */}
+                    {/* Background Pattern - Removed as per request */}
                     <div className="absolute inset-0 opacity-20 pointer-events-none">
-                        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-orange-500/20 via-transparent to-transparent" />
+                        {/* Clean dark background, no gradient */}
                     </div>
 
                     {/* Logo/Icon */}
                     <div className="mb-8 relative z-10">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 flex items-center justify-center shadow-lg mb-3">
-                            <FileJson className="w-5 h-5 text-orange-500" />
+                            <FileJson className="w-5 h-5 text-primary" />
                         </div>
                         <h2 className="text-lg font-bold text-white tracking-tight">{title}</h2>
                         <p className="text-xs text-zinc-500 mt-1.5">支持批量导入 JSON 格式数据</p>
@@ -182,7 +188,7 @@ export default function JsonImportModal<T>({
                                         <div className={`
                                             w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border transition-all duration-300 z-10
                                             ${isActive
-                                                ? 'bg-orange-500 border-orange-500 text-white shadow-[0_0_15px_-3px_rgba(249,115,22,0.5)]'
+                                                ? 'bg-primary border-primary text-primary-foreground shadow-sm'
                                                 : isCompleted
                                                     ? 'bg-zinc-800 border-zinc-700 text-zinc-400'
                                                     : 'bg-zinc-900 border-zinc-800 text-zinc-600'
@@ -241,7 +247,7 @@ export default function JsonImportModal<T>({
                                     className={`
                                         flex-1 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all duration-300 cursor-pointer relative overflow-hidden group
                                         ${dragOver
-                                            ? 'border-orange-500 bg-orange-500/5'
+                                            ? 'border-primary bg-primary/5'
                                             : 'border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/30'
                                         }
                                     `}
@@ -250,8 +256,8 @@ export default function JsonImportModal<T>({
                                     onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
                                     onClick={() => fileInputRef.current?.click()}
                                 >
-                                    <div className={`w-16 h-16 mb-4 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center transition-transform duration-500 ${dragOver ? 'scale-110 shadow-2xl shadow-orange-500/20' : 'group-hover:scale-105'}`}>
-                                        <Upload className={`w-7 h-7 ${dragOver ? 'text-orange-500' : 'text-zinc-400'}`} />
+                                    <div className={`w-16 h-16 mb-4 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center transition-transform duration-500 ${dragOver ? 'scale-110 shadow-lg' : 'group-hover:scale-105'}`}>
+                                        <Upload className={`w-7 h-7 ${dragOver ? 'text-primary' : 'text-zinc-400'}`} />
                                     </div>
                                     <div className="text-center space-y-1.5">
                                         <p className="text-base font-medium text-zinc-200">点击上传或将文件拖到这里</p>
@@ -295,7 +301,7 @@ export default function JsonImportModal<T>({
                                     <div className="absolute inset-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] p-3">
                                         {renderCard ? (
                                             /* CARD GRID VIEW */
-                                            <div className="grid grid-cols-2 gap-3 auto-rows-min">
+                                            <div className={`grid ${gridClassName} gap-3 auto-rows-min`}>
                                                 {parsedData.map((item, i) => (
                                                     <div key={i} className="animate-in fade-in zoom-in-95 fill-mode-both" style={{ animationDelay: `${i * 30}ms` }}>
                                                         {renderCard(item, i)}
@@ -357,7 +363,7 @@ export default function JsonImportModal<T>({
                             <div className="h-full flex flex-col items-center justify-center animate-in fade-in duration-500">
                                 <div className="relative">
                                     <div className="w-20 h-20 rounded-full border-4 border-zinc-800" />
-                                    <div className="absolute top-0 left-0 w-20 h-20 rounded-full border-4 border-orange-500 border-t-transparent animate-spin" />
+                                    <div className="absolute top-0 left-0 w-20 h-20 rounded-full border-4 border-primary border-t-transparent animate-spin" />
                                 </div>
                                 <h3 className="mt-8 text-xl font-medium text-white">正在处理...</h3>
                             </div>
