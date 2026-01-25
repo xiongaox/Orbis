@@ -1,4 +1,4 @@
-import { GitBranch, ArrowRightLeft } from 'lucide-react';
+import { GitBranch, ArrowRightLeft, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { baziCaseService } from '../../../services/baziCaseService';
@@ -7,6 +7,7 @@ import type { Case } from '../../../types';
 import type { BaziApiResponse } from '../../../types/bazi';
 import GanZhiDiagramModal from './GanZhiDiagramModal';
 import GanZhiLiuTongModal from './GanZhiLiuTongModal';
+import AiPromptModal from './AiPromptModal';
 
 interface BaziCaseInfoProps {
   caseData: Case | null;
@@ -27,6 +28,7 @@ export default function BaziCaseInfo({
   const [saving, setSaving] = useState(false);
   const [showDiagram, setShowDiagram] = useState(false);
   const [showLiuTong, setShowLiuTong] = useState(false);
+  const [showAiPrompt, setShowAiPrompt] = useState(false);
 
   // 使用 API 返回的数据，如果没有则使用 case 数据
   const displayName = caseData?.name || '当前时间';
@@ -211,6 +213,15 @@ export default function BaziCaseInfo({
               <ArrowRightLeft className="w-4 h-4" />
               干支流通
             </button>
+            <button
+              type="button"
+              onClick={() => setShowAiPrompt(true)}
+              disabled={!baziData}
+              className="px-3 py-2 text-sm rounded-lg border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 text-amber-500 flex items-center gap-1.5 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <Sparkles className="w-4 h-4" />
+              AI提示词
+            </button>
           </div>
         </div>
       </div>
@@ -233,6 +244,15 @@ export default function BaziCaseInfo({
         selectedDaYunIndex={selectedDaYunIndex ?? null}
         selectedLiuNianYear={selectedLiuNianYear ?? null}
         currentYear={currentYear}
+      />
+
+      {/* AI 提示词弹窗 */}
+      <AiPromptModal
+        isOpen={showAiPrompt}
+        onClose={() => setShowAiPrompt(false)}
+        data={baziData}
+        selectedLiuNianYear={selectedLiuNianYear ?? null}
+        selectedDaYunIndex={selectedDaYunIndex ?? null}
       />
     </>
   );

@@ -1,7 +1,7 @@
 /**
  * 三命通会数据查询工具
  */
-import sanmingData from '../../../data/sanmingtonghui.json';
+import sanmingData from '../../../data/book/sanmingtonghui.json';
 
 interface NaYinInfo {
     nayin: string;

@@ -1,5 +1,5 @@
-import ditiansuiData from '../../../data/ditiansui.json';
-import ditiansuiMonthlyData from '../../../data/ditiansui-monthly.json';
+import ditiansuiData from '../../../data/book/ditiansui.json';
+import ditiansuiMonthlyData from '../../../data/book/ditiansui-monthly.json';
 
 export interface DiTianSuiEntry {
     poem: string;
