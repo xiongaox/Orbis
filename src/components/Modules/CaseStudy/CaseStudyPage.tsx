@@ -44,7 +44,7 @@ const getBaziData = (baziInfo: ReturnType<typeof parseBaziInfo>): BaziApiRespons
     const dayGan = baziInfo.pillars[2].tiangan;
 
     // 构造 Pillars
-    const pillars: PillarData[] = baziInfo.pillars.map((p, index) => {
+    const pillars: PillarData[] = baziInfo.pillars.map((p) => {
         // 如果没有详细数据，尝试计算
         const details = computePillarDetails(p.ganZhi, dayGan);
         return {

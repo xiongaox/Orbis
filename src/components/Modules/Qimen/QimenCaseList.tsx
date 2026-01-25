@@ -2,11 +2,11 @@
  * 奇门遁甲模块 - 案例列表组件
  * 左侧显示案例列表，支持起盘功能
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, ChevronDown, Pencil, Trash2, Import as ImportIcon } from 'lucide-react';
 import { qimenCaseService, type QimenCase, QIMEN_CATEGORIES } from '../../../services/qimenCaseService';
 import QimenCaseLibraryModal, { QIMEN_CASES_CHANGED_EVENT } from './QimenCaseLibraryModal';
-import { parseQimenImportData } from '../../../utils/qimenImportUtils';
+import QimenImportModal from './QimenImportModal';
 
 interface QimenCaseListProps {
     selectedCaseId: string | null;
@@ -31,10 +31,7 @@ export default function QimenCaseList({
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
     const [showLibraryModal, setShowLibraryModal] = useState(false);
-
-    // File input ref
-    const fileInputRef = useRef<HTMLInputElement>(null);
-    const [isImporting, setIsImporting] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
 
     // Real Data State
     const [cases, setCases] = useState<QimenCase[]>([]);
@@ -66,62 +63,6 @@ export default function QimenCaseList({
         return () => window.removeEventListener(QIMEN_CASES_CHANGED_EVENT, handleCasesChanged);
     }, []);
 
-    // Handle File Import
-    const handleImportClick = () => {
-        if (fileInputRef.current) {
-            fileInputRef.current.value = ''; // Reset
-            fileInputRef.current.click();
-        }
-    };
-
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setIsImporting(true);
-        try {
-            const text = await file.text();
-            let jsonData;
-            try {
-                jsonData = JSON.parse(text);
-            } catch (err) {
-                alert('文件格式错误：必须是有效的 JSON 格式');
-                return;
-            }
-
-            const validInputs = parseQimenImportData(jsonData);
-
-            if (validInputs.length === 0) {
-                alert('未找到有效的案例数据。请检查字段名是否正确（如：公历时间、事情描述等）。');
-                return;
-            }
-
-            let successCount = 0;
-            // 逐个创建
-            for (const input of validInputs) {
-                try {
-                    await qimenCaseService.createCase(input);
-                    successCount++;
-                } catch (err) {
-                    console.error('Failed to import case:', input.title, err);
-                }
-            }
-
-            if (successCount > 0) {
-                alert(`成功导入 ${successCount} 个案例！`);
-                fetchCases(); // Refresh list
-            } else {
-                alert('导入失败，未能保存任何案例。请检查控制台了解详情。');
-            }
-
-        } catch (error: any) {
-            console.error('Import error:', error);
-            alert(`导入过程中发生错误: ${error.message || '未知错误'}`);
-        } finally {
-            setIsImporting(false);
-        }
-    };
-
     // 筛选案例
     const filteredCases = cases.filter(c => {
         const matchesSearch = c.title.toLowerCase().includes(search.toLowerCase());
@@ -136,14 +77,7 @@ export default function QimenCaseList({
 
     return (
         <aside className="w-full h-full bg-sidebar border-r border-sidebar-border flex flex-col min-h-0">
-            {/* Hidden File Input */}
-            <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept=".json,application/json"
-                onChange={handleFileChange}
-            />
+
 
             {/* 标题栏与操作 */}
             <div className="p-4 border-b border-sidebar-border space-y-3">
@@ -213,13 +147,12 @@ export default function QimenCaseList({
                 <div className="flex gap-2">
                     <button
                         type="button"
-                        onClick={handleImportClick}
-                        disabled={isImporting}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border disabled:opacity-70 disabled:cursor-wait"
+                        onClick={() => setShowImportModal(true)}
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
                         title="导入JSON格式案例"
                     >
                         <ImportIcon className="w-3.5 h-3.5" />
-                        {isImporting ? '导入中...' : '导入'}
+                        导入
                     </button>
                     <button
                         type="button"
@@ -317,6 +250,15 @@ export default function QimenCaseList({
                     if (id && k) onSelectCase(id, k);
                 }}
                 onLoginClick={onLoginClick}
+            />
+
+            {/* 导入案例弹窗 */}
+            <QimenImportModal
+                isOpen={showImportModal}
+                onClose={() => setShowImportModal(false)}
+                onImported={() => {
+                    fetchCases(); // Refresh list on import success
+                }}
             />
         </aside>
     );

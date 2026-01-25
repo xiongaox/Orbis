@@ -54,10 +54,10 @@ export default function ImportCaseModal({ isOpen, onClose, onImported }: ImportC
     const renderCard = (item: CreateCaseInput, index: number) => {
         const isMale = item.gender === 'male';
         return (
-            <div className="group relative p-3 rounded-lg border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900 hover:border-orange-500/30 transition-all duration-200">
+            <div className="group relative p-3 rounded-lg border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900 hover:border-primary/50 transition-all duration-200">
                 {/* Header: Name + Index */}
                 <div className="flex justify-between items-center mb-1.5">
-                    <span className="font-semibold text-sm text-zinc-100 group-hover:text-orange-400 transition-colors truncate max-w-[120px]">{item.name}</span>
+                    <span className="font-semibold text-sm text-zinc-100 group-hover:text-primary transition-colors truncate max-w-[120px]">{item.name}</span>
                     <span className="text-xs text-zinc-600 font-mono">#{index + 1}</span>
                 </div>
 
