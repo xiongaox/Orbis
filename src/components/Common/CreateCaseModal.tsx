@@ -6,13 +6,13 @@ import { useState } from 'react';
 import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
 import TagSelector from './TagSelector';
 import AdvancedDatePicker from './AdvancedDatePicker';
-import { baziCaseService, type CaseTag, type CreateCaseInput } from '../../services/baziCaseService';
+import { baziCaseService, type CaseTag, type CreateCaseInput, type BaziCase } from '../../services/baziCaseService';
 import { calculateBazi } from '../../services/bazi/caseHelper';
 
 interface CreateCaseModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onCreated: () => void;
+    onCreated: (caseData: BaziCase) => void;
     onPreview?: (data: CreateCaseInput) => void;
 }
 
@@ -68,11 +68,11 @@ export default function CreateCaseModal({ isOpen, onClose, onCreated, onPreview 
 
         try {
             const input = getInputData();
-            await baziCaseService.createCase(input);
+            const newCase = await baziCaseService.createCase(input);
 
             // 重置表单
             resetForm();
-            onCreated();
+            onCreated(newCase);
             onClose();
         } catch (err) {
             setError(err instanceof Error ? err.message : '创建失败，请稍后重试');

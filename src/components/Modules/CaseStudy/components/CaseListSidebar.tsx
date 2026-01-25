@@ -122,7 +122,7 @@ export default function CaseListSidebar({
                         placeholder="搜索案例..."
                         value={searchTerm}
                         onChange={(e) => onSearchChange(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 text-sm bg-muted/40 border border-border/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-all hover:bg-muted/60"
+                        className="w-full pl-9 pr-3 py-2 text-sm bg-muted/40 border border-border/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/50 transition-all hover:bg-muted/60 placeholder:text-muted-foreground/50"
                     />
                 </div>
             </div>

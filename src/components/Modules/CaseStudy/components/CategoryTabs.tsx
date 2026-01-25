@@ -17,7 +17,7 @@ interface CategoryTabsProps {
 export default function CategoryTabs({ categories, selectedId, onSelect }: CategoryTabsProps) {
     return (
         <div className="w-[5%] min-w-[80px] border-r border-border/40 bg-card/30 flex flex-col">
-            <div className="py-4 text-center border-b border-border/40 bg-card/50">
+            <div className="py-3 text-center border-b border-border/40 bg-card/50">
                 <span className="font-serif font-bold text-foreground/80">术数</span>
             </div>
             {categories.map(cat => {
