@@ -107,8 +107,11 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
   }, [isAuthenticated, loadCases]);
 
   // 处理案例创建成功
-  const handleCaseCreated = () => {
+  const handleCaseCreated = (newCase?: BaziCase) => {
     loadCases();
+    if (newCase) {
+      onSelectCase?.(newCase.id);
+    }
   };
 
   const handlePreviewCase = (input: CreateCaseInput) => {

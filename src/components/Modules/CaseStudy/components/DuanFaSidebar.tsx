@@ -11,10 +11,10 @@ interface DuanFaSidebarProps {
 
 export default function DuanFaSidebar({ files, selectedFileId, onSelectFile }: DuanFaSidebarProps) {
     return (
-        <div className="w-[15%] min-w-[140px] border-r border-border/40 bg-card/30 flex flex-col overflow-hidden">
+        <div className="w-[160px] min-w-[160px] border-r border-border/40 bg-card/30 flex flex-col overflow-hidden">
             {/* 标题 */}
             <div className="py-3 px-4 border-b border-border/40 bg-card/50 flex-shrink-0">
-                <span className="font-serif font-bold text-foreground/80">奇门断法</span>
+                <span className="font-serif font-bold text-foreground/80">断法列表</span>
             </div>
 
             {/* 主题列表 */}

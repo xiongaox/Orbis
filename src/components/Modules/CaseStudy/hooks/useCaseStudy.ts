@@ -14,7 +14,9 @@ const rawCasesBuchuiniu = import.meta.glob('../../../../data/cases/study/qimen/b
 const rawCasesZhangzhichun = import.meta.glob('../../../../data/cases/study/qimen/zhangzhichun/**/*.md', { query: '?raw', import: 'default', eager: true });
 
 // 加载作者介绍文件
-const authorIntroFiles = import.meta.glob('../../../../data/cases/*/*.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+// 之前使用单独的 glob，但因为路径问题（太深）导致匹配失败
+// ex: ../../../../data/cases/*/*.md 只匹配两层，但实际位置在 cases/study/bazi/lishuanglin/李双林.md (4层)
+// 既然 rawCases 已经加载了所有 md 文件（包括 authors），我们可以直接从 rawCases 中查找
 
 // 合并所有案例
 const rawCases = { ...rawCasesLishuanglin, ...rawCasesNanxuanzi, ...rawCasesBuchuiniu, ...rawCasesZhangzhichun };
@@ -58,7 +60,7 @@ const ALL_CASES: CaseItem[] = Object.entries(rawCases)
         const author = AUTHOR_MAP[authorKey] || '未知';
 
         // Determine category based on author/path
-        const category = (path.includes('buchuiniu') || path.includes('zhangzhichun')) ? 'qimen' : 'bazi';
+        const category = ((path.includes('buchuiniu') || path.includes('zhangzhichun')) ? 'qimen' : 'bazi') as 'bazi' | 'qimen';
 
         let bazi = extractBazi(strContent);
         if (category === 'qimen') {
@@ -79,6 +81,25 @@ const ALL_CASES: CaseItem[] = Object.entries(rawCases)
             author: author,
             category: category
         };
+    })
+    .sort((a, b) => {
+        const TIAN_GAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+
+        const getTianganIndex = (str: string) => {
+            for (let i = 0; i < TIAN_GAN.length; i++) {
+                if (str.includes(TIAN_GAN[i])) return i;
+            }
+            return 999;
+        };
+
+        const idxA = getTianganIndex(a.dayMaster);
+        const idxB = getTianganIndex(b.dayMaster);
+
+        if (idxA !== idxB) {
+            return idxA - idxB;
+        }
+
+        return a.title.localeCompare(b.title, 'zh-CN');
     });
 
 const ITEMS_PER_PAGE = 13;
@@ -113,15 +134,13 @@ export function useCaseStudy() {
     // 获取作者介绍内容
     const authorIntroContent = useMemo(() => {
         if (!selectedAuthor) return null;
-        const introPath = Object.keys(authorIntroFiles).find(path =>
-            path.includes(`/${selectedAuthor}.md`) && !path.includes('/')
-        ) || Object.keys(authorIntroFiles).find(path =>
-            path.endsWith(`${selectedAuthor}.md`)
-        );
-        if (introPath && authorIntroFiles[introPath]) {
-            return authorIntroFiles[introPath];
-        }
-        return null;
+
+        // 查找路径以 "/作者名.md" 结尾的文件
+        const entry = Object.entries(rawCases).find(([path]) => {
+            return path.endsWith(`/${selectedAuthor}.md`);
+        });
+
+        return entry ? (entry[1] as string) : null;
     }, [selectedAuthor]);
 
     // 筛选案例
@@ -285,4 +304,4 @@ export function useCaseStudy() {
     };
 }
 
-export { ALL_CASES, authorIntroFiles };
+export { ALL_CASES };

@@ -112,7 +112,7 @@ export const extractBazi = (content: string): string => {
  * 格式示例: 公元：2009年7月9日20时43分47秒
  */
 export function parseAllQimenTime(content: string): Array<{ year: number, month: number, day: number, hour: number, minute: number }> {
-    const matches = Array.from(content.matchAll(/(?:^|\n|[\s，。；])(?:公元[：:])?\s*(\d{4})年(\d{1,2})月(\d{1,2})日(\d{1,2})时(\d{1,2})分/g));
+    const matches = Array.from(content.matchAll(/(?:^|\n|[\s，。；])(?:(?:公元|公历)[：:])?\s*(\d{4})年(\d{1,2})月(\d{1,2})日(\d{1,2})时(\d{1,2})分/g));
 
     if (matches.length > 0) {
         return matches.map(match => ({
@@ -351,7 +351,7 @@ export const parseAllBaziInfo = (content: string): ParsedBaziInfo[] => {
 
     let secMatch;
     while ((secMatch = secondaryRegex.exec(content)) !== null) {
-        const [fullStr, y, m, d, h] = secMatch;
+        const [, y, m, d, h] = secMatch;
         const pillars = [
             { label: '年柱', ganZhi: y, tiangan: y[0], dizhi: y[1] },
             { label: '月柱', ganZhi: m, tiangan: m[0], dizhi: m[1] },

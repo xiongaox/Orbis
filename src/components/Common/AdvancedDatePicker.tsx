@@ -215,7 +215,7 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm }
                         {mode === 'solar' && (
                             <div className="relative group">
                                 <input
-                                    className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-sm text-center text-foreground placeholder-muted-foreground/40 focus:outline-none focus:border-primary/50 focus:bg-accent transition-all font-mono tracking-wider"
+                                    className="w-full bg-transparent border border-white/10 rounded-xl px-4 py-2.5 text-sm text-center text-foreground placeholder-muted-foreground/40 focus:outline-none focus:border-white/20 focus:bg-white/5 transition-all font-mono tracking-wider"
                                     placeholder="输入如 199303271030"
                                     value={manualInput}
                                     onChange={e => {
@@ -259,7 +259,7 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm }
                     /* Solar/Lunar Picker Area */
                     <div className="relative bg-popover" style={{ height: PICKER_HEIGHT }}>
                         {/* Highlight Bar */}
-                        <div className="absolute top-1/2 left-0 right-0 -mt-[20px] h-[40px] bg-primary/15 pointer-events-none z-10 border-y border-primary/30" />
+                        <div className="absolute top-1/2 left-0 right-0 -mt-[20px] h-[40px] bg-primary/20 pointer-events-none z-10 border-y border-primary/30" />
 
                         {/* Gradient Masks */}
                         <div className="absolute top-0 left-0 right-0 h-[80px] bg-gradient-to-b from-popover to-transparent pointer-events-none z-10" />
