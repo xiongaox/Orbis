@@ -39,19 +39,21 @@ export default function CaseStudyDayunPanel({
     const selectedLiuNianYear = propLiuNianYear !== undefined ? propLiuNianYear : internalLiuNianYear;
 
     // 数据提取
-    const daYun = data?.daYun ?? [];
+    const rawDaYun = data?.daYun ?? [];
+    const daYun = rawDaYun.slice(0, 14);
+
     const liuNian = data?.liuNian ?? [];
     const pillars = data?.pillars ?? [];
     const dayMaster = pillars[2]?.tiangan || '丙';
 
-    // 每页显示8个大运，共2页（16个大运）
-    const ITEMS_PER_PAGE = 8;
+    // 每页显示7个大运
+    const ITEMS_PER_PAGE = 7;
     const displayDaYun = useMemo(() => {
         const startIdx = daYunPage * ITEMS_PER_PAGE;
         return daYun.slice(startIdx, startIdx + ITEMS_PER_PAGE);
     }, [daYun, daYunPage]);
 
-    const totalDaYunPages = useMemo(() => Math.ceil(Math.min(daYun.length, 16) / ITEMS_PER_PAGE), [daYun]);
+    const totalDaYunPages = useMemo(() => Math.ceil(daYun.length / ITEMS_PER_PAGE), [daYun]);
 
     // 自动确定当前大运
     const autoDaYunIndex = useMemo(() => {
@@ -193,9 +195,9 @@ export default function CaseStudyDayunPanel({
                             )}
                         </div>
 
-                        {/* 大运格子 - 8列 */}
+                        {/* 大运格子 - 7列 */}
                         <div className="flex-1 min-w-0 overflow-x-auto flex flex-col">
-                            <div className="grid grid-cols-8 min-w-0 w-full flex-1">
+                            <div className="grid grid-cols-7 min-w-0 w-full flex-1">
                                 {displayDaYun.map((item) => {
                                     const isActive = item.index === activeDaYunIndex;
                                     return (

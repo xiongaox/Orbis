@@ -105,6 +105,43 @@ export const extractBazi = (content: string): string => {
     return "未知八字";
 };
 
+// ====== 奇门时间解析 ======
+
+/**
+ * 解析内容中所有出现的奇门时间
+ * 格式示例: 公元：2009年7月9日20时43分47秒
+ */
+export function parseAllQimenTime(content: string): Array<{ year: number, month: number, day: number, hour: number, minute: number }> {
+    const matches = Array.from(content.matchAll(/(?:^|\n|[\s，。；])(?:公元[：:])?\s*(\d{4})年(\d{1,2})月(\d{1,2})日(\d{1,2})时(\d{1,2})分/g));
+
+    if (matches.length > 0) {
+        return matches.map(match => ({
+            year: parseInt(match[1]),
+            month: parseInt(match[2]),
+            day: parseInt(match[3]),
+            hour: parseInt(match[4]),
+            minute: parseInt(match[5])
+        }));
+    }
+
+    // 尝试备用格式 (可能没有"公元")
+    const backupMatches = Array.from(content.matchAll(/(\d{4})年(\d{1,2})月(\d{1,2})日(\d{1,2})时/g));
+    if (backupMatches.length > 0) {
+        // 过滤掉已经在上面匹配过的 (简单去重，如果位置重叠)
+        // 这里简化处理，直接返回备用匹配结果，但在实际混合情况可能需要更复杂逻辑
+        // 鉴于目前案例格式比较统一，先只支持一种主要格式或备用格式
+        return backupMatches.map(match => ({
+            year: parseInt(match[1]),
+            month: parseInt(match[2]),
+            day: parseInt(match[3]),
+            hour: parseInt(match[4]),
+            minute: 0
+        }));
+    }
+
+    return [];
+}
+
 // ====== 八字解析 ======
 
 /**
@@ -269,6 +306,122 @@ export const parseBaziInfo = (content: string): ParsedBaziInfo => {
     }
 
     return { gender, pillars, daYun, birthYear, birthMonth, birthDay, birthHour, isLunar, baziData };
+};
+
+/**
+ * 解析内容中所有出现的八字信息
+ */
+export const parseAllBaziInfo = (content: string): ParsedBaziInfo[] => {
+    const results: ParsedBaziInfo[] = [];
+
+    // 1. 简化的主八字解析逻辑
+    // 为了避免将同一案例的"头部元数据"和"正文排盘"识别为两个不同的八字，
+    // 我们不再根据 "乾造/坤造" 进行拆分，只根据 "命主生辰" 拆分（如果有多个案例合并在同一文件的情况）
+    // 但通常每个文件只有一个案例，所以主要依赖 parseBaziInfo 直接解析全文。
+
+    const indices: number[] = [];
+    const headerRegex = /(?:命主生辰)[：:]/g;
+    let headerMatch;
+    while ((headerMatch = headerRegex.exec(content)) !== null) {
+        indices.push(headerMatch.index);
+    }
+
+    if (indices.length > 1) {
+        // 只有当存在多个 "命主生辰" 时才拆分 (罕见情况)
+        for (let i = 0; i < indices.length; i++) {
+            const start = indices[i];
+            const end = i < indices.length - 1 ? indices[i + 1] : content.length;
+            results.push(parseBaziInfo(content.substring(start, end)));
+        }
+    } else {
+        // 标准情况：单案例文件
+        const mainInfo = parseBaziInfo(content);
+        if (mainInfo.pillars.length > 0 || mainInfo.birthYear) {
+            results.push(mainInfo);
+        }
+    }
+
+    // 2. 新增逻辑：解析强调格式的八字 【**甲子，乙丑，丙寅，丁卯**】
+    // Format: 【**YZ，MZ，RZ，HZ**】
+    const GZ = '[甲乙丙丁戊己庚辛壬癸][子丑寅卯辰巳午未申酉戌亥]';
+    const SEP = '[\\s,，、]+';
+    // Capture context before the match for gender inference
+    // Note: JS RegExp lookbehind support is good in modern Node, but safer to use exec index
+    const secondaryRegex = new RegExp(`【\\*\\*\\s*(${GZ})${SEP}(${GZ})${SEP}(${GZ})${SEP}(${GZ})\\s*\\*\\*】`, 'g');
+
+    let secMatch;
+    while ((secMatch = secondaryRegex.exec(content)) !== null) {
+        const [fullStr, y, m, d, h] = secMatch;
+        const pillars = [
+            { label: '年柱', ganZhi: y, tiangan: y[0], dizhi: y[1] },
+            { label: '月柱', ganZhi: m, tiangan: m[0], dizhi: m[1] },
+            { label: '日柱', ganZhi: d, tiangan: d[0], dizhi: d[1] },
+            { label: '时柱', ganZhi: h, tiangan: h[0], dizhi: h[1] },
+        ];
+
+        // De-dupe: Check if these pillars already exist in results
+        const isDuplicate = results.some(r =>
+            r.pillars.length >= 4 &&
+            r.pillars[0].ganZhi === y &&
+            r.pillars[1].ganZhi === m &&
+            r.pillars[2].ganZhi === d &&
+            r.pillars[3].ganZhi === h
+        );
+
+        if (!isDuplicate) {
+            // Infer Gender from context (preceding 20 chars)
+            // Infer Gender from context (preceding 50 chars)
+            // Fix: Do not include fullStr in context to avoid matching '子' in Bazi characters
+            const contextStart = Math.max(0, secMatch.index - 50);
+            const contextEnd = secMatch.index;
+            const context = content.substring(contextStart, contextEnd);
+
+            let gender: '乾造' | '坤造' | null = null;
+
+            // Priority 1: Explicit markers
+            if (/乾造/.test(context)) {
+                gender = '乾造';
+            } else if (/坤造/.test(context)) {
+                gender = '坤造';
+            } else {
+                // Priority 2: Keywords
+                // Fix: Use specific words instead of character class [子] which matches 'Rat' in Bazi
+                const maleKeywords = /丈夫|老公|男友|前夫|父亲|爸爸|儿子|爷爷|公公|男/;
+                const femaleKeywords = /妻子|老婆|女友|前妻|母亲|妈妈|女儿|奶奶|婆婆|女/;
+
+                // Check occurrences or proximity if needed, but simple precedence might work
+                const hasMale = maleKeywords.test(context);
+                const hasFemale = femaleKeywords.test(context);
+
+                if (hasMale && !hasFemale) {
+                    gender = '乾造';
+                } else if (hasFemale && !hasMale) {
+                    gender = '坤造';
+                } else if (hasMale && hasFemale) {
+                    // If both, check which one is closer to the end of context?
+                    // Simple heuristic: Last mention wins
+                    const lastMale = Math.max(...['丈夫', '老公', '男友', '前夫', '父亲', '爸爸', '儿子', '男'].map(k => context.lastIndexOf(k)));
+                    const lastFemale = Math.max(...['妻子', '老婆', '女友', '前妻', '母亲', '妈妈', '女儿', '女'].map(k => context.lastIndexOf(k)));
+                    gender = lastMale > lastFemale ? '乾造' : '坤造';
+                }
+            }
+
+            results.push({
+                gender,
+                pillars,
+                daYun: [], // No explicit DaYun in this format usually
+                birthYear: null,
+                birthMonth: null,
+                birthDay: null,
+                birthHour: null,
+                isLunar: false,
+                baziData: null
+            });
+        }
+    }
+
+    // Filter out invalid results
+    return results.filter(r => r.pillars.length >= 4);
 };
 
 // ====== 大运计算 ======

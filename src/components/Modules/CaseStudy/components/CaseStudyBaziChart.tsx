@@ -34,7 +34,7 @@ function SimplePillarCard({
                 <span className={`text-xs ${isYunPillar ? 'text-foreground/70 font-medium' : 'text-muted-foreground'}`}>{pillar.label}</span>
             </div>
             <div className="h-10 flex items-center justify-center border-b border-border">
-                <span className="text-sm text-foreground">{pillar.tianganShiShen || genderLabel}</span>
+                <span className="text-sm text-foreground">{isDayMaster ? genderLabel : pillar.tianganShiShen}</span>
             </div>
             <div className="h-14 flex items-center justify-center border-b border-border">
                 <span
