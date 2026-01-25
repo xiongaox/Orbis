@@ -8,10 +8,10 @@ import { AUTHOR_MAP } from '../../../../lib/caseStudy/types';
 
 // 加载案例文件
 // 加载案例文件
-const rawCasesLishuanglin = import.meta.glob('../../../../data/cases/study/bazi/lishuanglin/**/*.md', { query: '?raw', import: 'default', eager: true });
-const rawCasesNanxuanzi = import.meta.glob('../../../../data/cases/study/bazi/nanxuanzi/**/*.md', { query: '?raw', import: 'default', eager: true });
-const rawCasesBuchuiniu = import.meta.glob('../../../../data/cases/study/qimen/buchuiniu/**/*.md', { query: '?raw', import: 'default', eager: true });
-const rawCasesZhangzhichun = import.meta.glob('../../../../data/cases/study/qimen/zhangzhichun/**/*.md', { query: '?raw', import: 'default', eager: true });
+const rawCasesLishuanglin = import.meta.glob('../../../../data/cases/bazi/lishuanglin/**/*.md', { query: '?raw', import: 'default', eager: true });
+const rawCasesNanxuanzi = import.meta.glob('../../../../data/cases/bazi/nanxuanzi/**/*.md', { query: '?raw', import: 'default', eager: true });
+const rawCasesBuchuiniu = import.meta.glob('../../../../data/cases/qimen/buchuiniu/**/*.md', { query: '?raw', import: 'default', eager: true });
+const rawCasesZhangzhichun = import.meta.glob('../../../../data/cases/qimen/zhangzhichun/**/*.md', { query: '?raw', import: 'default', eager: true });
 
 // 加载作者介绍文件
 // 之前使用单独的 glob，但因为路径问题（太深）导致匹配失败

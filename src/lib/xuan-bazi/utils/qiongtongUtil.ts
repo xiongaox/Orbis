@@ -2,7 +2,7 @@
  * 穷通宝鉴数据查询工具
  * 根据日主和月份获取调候用神信息
  */
-import qiongtongData from '../../../data/qiongtongbaojian.json';
+import qiongtongData from '../../../data/book/qiongtongbaojian.json';
 
 export interface QiongtongEntry {
     title: string;
