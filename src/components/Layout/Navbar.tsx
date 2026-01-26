@@ -6,16 +6,12 @@
  */
 import { useState, useEffect } from 'react';
 import {
-  BookOpen,
   Calendar,
   Compass,
-  Flower2,
   Grid3X3,
   LogOut,
   Moon,
   Settings,
-  Sparkles,
-  Star,
   Sun,
   User,
   Loader2,
@@ -36,15 +32,10 @@ type ChartType =
   | 'sanyuan';
 
 const navItems: { id: ChartType; name: string; icon: ComponentType<{ className?: string }>; priority: 'core' | 'extra' }[] = [
-  { id: 'bazi', name: '八字', icon: Compass, priority: 'core' },
-  { id: 'qimen', name: '奇门', icon: Grid3X3, priority: 'core' },
-  { id: 'liuyao', name: '六爻', icon: BookOpen, priority: 'core' },
-  { id: 'wannianli', name: '万年历', icon: Calendar, priority: 'core' },
-  { id: 'ziwei', name: '紫薇', icon: Star, priority: 'extra' },
-  { id: 'daliuren', name: '大六壬', icon: Moon, priority: 'extra' },
-  { id: 'meihua', name: '梅花', icon: Flower2, priority: 'extra' },
-  { id: 'sanyuan', name: '三元天星', icon: Sparkles, priority: 'extra' },
-  { id: 'xiaoliuren', name: '案例学习', icon: Sun, priority: 'extra' },
+  { id: 'wannianli', name: '万年通历', icon: Calendar, priority: 'core' },
+  { id: 'bazi', name: '四柱八字', icon: Compass, priority: 'core' },
+  { id: 'qimen', name: '奇门遁甲', icon: Grid3X3, priority: 'core' },
+  { id: 'xiaoliuren', name: '案例学习', icon: Sun, priority: 'core' },
 ];
 
 // 核心菜单项（小屏幕始终显示）
