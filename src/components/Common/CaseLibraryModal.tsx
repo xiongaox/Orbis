@@ -208,7 +208,7 @@ export default function CaseLibraryModal({
                                 <button
                                     type="button"
                                     onClick={() => setShowImportModal(true)}
-                                    className="flex items-center gap-1.5 px-3 py-2 bg-secondary/50 hover:bg-secondary text-foreground/80 hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-secondary hover:bg-secondary/80 text-foreground hover:text-foreground/90 rounded-lg text-sm font-medium transition-colors border border-border cursor-pointer shadow-sm"
                                 >
                                     <Upload className="w-4 h-4" />
                                     导入
@@ -216,7 +216,7 @@ export default function CaseLibraryModal({
                                 <button
                                     type="button"
                                     onClick={() => setShowCreateModal(true)}
-                                    className="flex items-center gap-1.5 px-3 py-2 bg-primary/12 hover:bg-primary/18 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/40"
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/20 cursor-pointer"
                                 >
                                     <Plus className="w-4 h-4" />
                                     新建

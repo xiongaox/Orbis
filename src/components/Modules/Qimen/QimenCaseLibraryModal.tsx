@@ -23,6 +23,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { qimenCaseService, type QimenCase, QIMEN_CATEGORIES } from '../../../services/qimenCaseService';
 import QimenSortableCaseCard from './QimenSortableCaseCard';
 import QimenNewCaseModal from './QimenNewCaseModal'; // Reusing the existing modal for create/edit
+import QimenImportModal from './QimenImportModal';
 import ConfirmModal from '../../Common/ConfirmModal';
 
 export const QIMEN_CASES_CHANGED_EVENT = 'qimen_cases_changed';
@@ -50,6 +51,7 @@ export default function QimenCaseLibraryModal({
 
     // Sub-modals state
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
     const [editingCase, setEditingCase] = useState<QimenCase | null>(null);
     const [caseToDelete, setCaseToDelete] = useState<QimenCase | null>(null);
     const [deletingCaseId, setDeletingCaseId] = useState<string | null>(null);
@@ -198,9 +200,8 @@ export default function QimenCaseLibraryModal({
                             <>
                                 <button
                                     type="button"
-                                    // onClick={() => setShowImportModal(true)} // TODO: Import not implemented yet
-                                    className="flex items-center gap-1.5 px-3 py-2 bg-secondary/50 hover:bg-secondary text-foreground/80 hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border opacity-50 cursor-not-allowed"
-                                    title="暂未开放导入"
+                                    onClick={(e) => { e.stopPropagation(); setShowImportModal(true); }}
+                                    className="relative z-50 flex items-center gap-1.5 px-3 py-2 bg-secondary active:bg-secondary/70 hover:bg-secondary/90 text-foreground rounded-lg text-sm font-medium transition-all border border-border cursor-pointer shadow-sm hover:shadow"
                                 >
                                     <Upload className="w-4 h-4" />
                                     导入
@@ -298,6 +299,13 @@ export default function QimenCaseLibraryModal({
                     window.dispatchEvent(new CustomEvent(QIMEN_CASES_CHANGED_EVENT));
                     loadCases(); // Refresh
                 }}
+            />
+
+            {/* Import Modal */}
+            <QimenImportModal
+                isOpen={showImportModal}
+                onClose={() => setShowImportModal(false)}
+                onImported={loadCases}
             />
 
             {/* Delete Confirmation */}

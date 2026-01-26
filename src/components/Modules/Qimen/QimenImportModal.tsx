@@ -1,12 +1,6 @@
-/**
- * 奇门案例导入 Modal
- * 封装了通用的 JsonImportModal，使用单列布局以适应详细信息
- */
-import { qimenCaseService, type CreateQimenCaseInput, QIMEN_CATEGORIES } from '../../../services/qimenCaseService';
-import { parseQimenImportData } from '../../../utils/qimenImportUtils';
-// Avoid circular dependency by defining event string locally
-const QIMEN_CASES_CHANGED_EVENT = 'qimen_cases_changed';
+import { useCallback } from 'react';
 import JsonImportModal from '../../Common/JsonImportModal';
+import { qimenCaseService, type CreateQimenCaseInput, QIMEN_CATEGORIES } from '../../../services/qimenCaseService';
 
 interface QimenImportModalProps {
     isOpen: boolean;
@@ -14,98 +8,106 @@ interface QimenImportModalProps {
     onImported: () => void;
 }
 
-// 导入模板
-const IMPORT_TEMPLATE = [
+const TEMPLATE_DATA = [
     {
-        "标题": "失物占测",
-        "分类": "失物",
-        "公历时间": "2024-03-20 15:30",
-        "事情描述": "丢失了钱包，黑色...",
-        "局式": "阴遁三局" // Optional
+        "title": "工作调动预测",
+        "test_date": "2024-03-20T10:30:00.000Z",
+        "category": "work",
+        "description": "想问一下下个月能否顺利调动到总公司？",
+        "feedback": "已成功调动",
+        "analysis": "值符落宫..."
     },
     {
-        "标题": "事业发展咨询",
-        "分类": "事业",
-        "公历时间": "2024-04-15 09:00",
-        "事情描述": "近期有个跳槽机会...",
+        "title": "丢手机",
+        "test_date": "2024-03-21T15:20:00.000Z",
+        "category": "lost",
+        "description": "在商场丢失 iPhone 15",
+        "feedback": "没找到",
+        "analysis": "玄武临门..."
     }
 ];
 
 export default function QimenImportModal({ isOpen, onClose, onImported }: QimenImportModalProps) {
 
-    // 解析逻辑适配
-    const handleParse = (jsonData: any) => {
-        return parseQimenImportData(jsonData);
-    };
-
-    // 保存逻辑适配
-    const handleSave = async (data: CreateQimenCaseInput[]) => {
-        let successCount = 0;
-        for (const input of data) {
-            try {
-                await qimenCaseService.createCase(input);
-                successCount++;
-            } catch (err) {
-                console.error("Failed to save case", input, err);
-            }
+    // 解析并验证 JSON 数据
+    const handleParse = useCallback((jsonData: any): CreateQimenCaseInput[] => {
+        if (!Array.isArray(jsonData)) {
+            throw new Error('JSON 数据必须是数组格式');
         }
-        return successCount;
-    };
 
-    // 完成回调
-    const handleFinish = () => {
-        window.dispatchEvent(new CustomEvent(QIMEN_CASES_CHANGED_EVENT));
-        onImported();
-    };
+        return jsonData.map((item: any, index: number) => {
+            if (!item.title) {
+                throw new Error(`第 ${index + 1} 条数据缺少标题 (title)`);
+            }
+            if (!item.test_date) {
+                throw new Error(`第 ${index + 1} 条数据缺少时间 (test_date)`);
+            }
 
-    // 卡片渲染器 (Single Column View)
+            // 验证并修正分类
+            let category = item.category;
+            const validCategory = QIMEN_CATEGORIES.find(c => c.id === category);
+            if (!validCategory) {
+                category = 'other'; // 默认归为其他
+            }
+
+            return {
+                title: String(item.title),
+                test_date: String(item.test_date),
+                category: category,
+                description: item.description ? String(item.description) : undefined,
+                feedback: item.feedback ? String(item.feedback) : undefined,
+                analysis: item.analysis ? String(item.analysis) : undefined,
+                qimen_data: item.qimen_data || undefined,
+            };
+        });
+    }, []);
+
+    // 保存数据
+    const handleSave = useCallback(async (data: CreateQimenCaseInput[]) => {
+        return await qimenCaseService.createCases(data);
+    }, []);
+
+    // 渲染卡片预览
     const renderCard = (item: CreateQimenCaseInput, index: number) => {
-        const categoryName = QIMEN_CATEGORIES.find(c => c.id === item.category)?.name || item.category;
+        const categoryName = QIMEN_CATEGORIES.find(c => c.id === item.category)?.name || '未知';
 
         return (
-            <div className="group relative p-4 rounded-lg border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900 hover:border-primary/50 transition-all duration-200">
-                <div className="flex flex-col gap-2">
-                    {/* Header: Title + Category + Index */}
-                    <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-2 min-w-0">
-                            <span className="font-semibold text-sm text-zinc-100 group-hover:text-primary transition-colors truncate">{item.title}</span>
-                            <span className="px-1.5 py-0.5 rounded text-[10px] bg-primary/10 text-primary font-medium whitespace-nowrap">
-                                {categoryName}
-                            </span>
-                        </div>
-                        <span className="text-xs text-zinc-600 font-mono flex-shrink-0">#{index + 1}</span>
-                    </div>
+            <div className="group relative p-3 rounded-lg border border-border bg-muted/40 hover:bg-muted hover:border-primary/50 transition-all duration-200">
+                {/* Header: Title + Index */}
+                <div className="flex justify-between items-center mb-1.5">
+                    <span className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors truncate max-w-[120px]">
+                        {item.title}
+                    </span>
+                    <span className="text-xs text-muted-foreground font-mono">#{index + 1}</span>
+                </div>
 
-                    {/* Description */}
-                    {item.description && (
-                        <div className="text-xs text-zinc-400 line-clamp-2 leading-relaxed bg-zinc-950/30 p-2 rounded border border-zinc-800/50">
-                            {item.description}
-                        </div>
-                    )}
+                {/* Date */}
+                <div className="text-xs text-muted-foreground font-mono mb-2 flex items-center gap-1.5">
+                    <span className="w-1 h-1 rounded-full bg-muted-foreground/50"></span>
+                    {item.test_date.replace('T', ' ').substring(0, 16)}
+                </div>
 
-                    {/* Footer: Date */}
-                    <div className="flex items-center gap-2 pt-1 border-t border-zinc-800/50 mt-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-zinc-700"></span>
-                        <div className="text-xs text-zinc-500 font-mono">
-                            {item.test_date.replace('T', ' ').substring(0, 16)}
-                        </div>
-                    </div>
+                {/* Footer: Category */}
+                <div className="flex justify-between items-center pt-2 border-t border-border/50 min-h-[29px]">
+                    <span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs border border-border/50 whitespace-nowrap">
+                        {categoryName}
+                    </span>
                 </div>
             </div>
         );
     };
 
     return (
-        <JsonImportModal<CreateQimenCaseInput>
+        <JsonImportModal
             isOpen={isOpen}
-            onClose={onClose}
             title="导入奇门案例"
+            onClose={onClose}
             onParse={handleParse}
             onSave={handleSave}
-            onFinish={handleFinish}
-            templateData={IMPORT_TEMPLATE}
+            onFinish={onImported}
+            templateData={TEMPLATE_DATA}
             renderCard={renderCard}
-            gridClassName="grid-cols-1" // Use single column layout
+            gridClassName="grid-cols-2"
         />
     );
 }

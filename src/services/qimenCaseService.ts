@@ -87,6 +87,28 @@ export const qimenCaseService = {
         return data;
     },
 
+    async createCases(inputs: CreateQimenCaseInput[]): Promise<number> {
+        const { data: { user } } = await supabase.auth.getUser();
+        const userId = user?.id || 'anonymous';
+
+        const casesToInsert = inputs.map(input => ({
+            ...input,
+            user_id: userId,
+        }));
+
+        const { data, error } = await supabase
+            .from('qimen_cases')
+            .insert(casesToInsert)
+            .select();
+
+        if (error) {
+            console.error('Failed to bulk create qimen cases:', error);
+            throw new Error(error.message);
+        }
+
+        return data?.length || 0;
+    },
+
     /**
      * 更新案例
      */

@@ -54,34 +54,34 @@ export default function ImportCaseModal({ isOpen, onClose, onImported }: ImportC
     const renderCard = (item: CreateCaseInput, index: number) => {
         const isMale = item.gender === 'male';
         return (
-            <div className="group relative p-3 rounded-lg border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900 hover:border-primary/50 transition-all duration-200">
+            <div className="group relative p-3 rounded-lg border border-border bg-muted/40 hover:bg-muted hover:border-primary/50 transition-all duration-200">
                 {/* Header: Name + Index */}
                 <div className="flex justify-between items-center mb-1.5">
-                    <span className="font-semibold text-sm text-zinc-100 group-hover:text-primary transition-colors truncate max-w-[120px]">{item.name}</span>
-                    <span className="text-xs text-zinc-600 font-mono">#{index + 1}</span>
+                    <span className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors truncate max-w-[120px]">{item.name}</span>
+                    <span className="text-xs text-muted-foreground font-mono">#{index + 1}</span>
                 </div>
 
                 {/* Date */}
-                <div className="text-xs text-zinc-500 font-mono mb-2 flex items-center gap-1.5">
-                    <span className="w-1 h-1 rounded-full bg-zinc-700"></span>
+                <div className="text-xs text-muted-foreground font-mono mb-2 flex items-center gap-1.5">
+                    <span className="w-1 h-1 rounded-full bg-muted-foreground/50"></span>
                     {item.birth_date.replace('T', ' ').substring(0, 16)}
                 </div>
 
                 {/* Footer: Gender (Left) + Tags (Right) */}
-                <div className="flex justify-between items-center pt-2 border-t border-zinc-800/50 min-h-[29px]">
-                    <span className={`text-xs font-bold tracking-wider ${isMale ? 'text-blue-400' : 'text-pink-400'}`}>
+                <div className="flex justify-between items-center pt-2 border-t border-border/50 min-h-[29px]">
+                    <span className={`text-xs font-bold tracking-wider ${isMale ? 'text-blue-500 dark:text-blue-400' : 'text-pink-500 dark:text-pink-400'}`}>
                         {isMale ? '男命' : '女命'}
                     </span>
 
                     {item.tags && item.tags.length > 0 && (
                         <div className="flex gap-1 overflow-hidden justify-end ml-auto">
                             {item.tags.slice(0, 2).map((tag, i) => (
-                                <span key={i} className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 text-xs border border-zinc-700/30 whitespace-nowrap">
+                                <span key={i} className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-xs border border-border/50 whitespace-nowrap">
                                     {tag}
                                 </span>
                             ))}
                             {item.tags.length > 2 && (
-                                <span className="text-xs text-zinc-600 self-center">+{item.tags.length - 2}</span>
+                                <span className="text-xs text-muted-foreground self-center">+{item.tags.length - 2}</span>
                             )}
                         </div>
                     )}
