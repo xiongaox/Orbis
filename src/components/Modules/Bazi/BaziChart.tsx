@@ -3,7 +3,7 @@
  * 八字排盘主图表组件
  */
 import { useState, useMemo } from 'react';
-import { BarChart2 } from 'lucide-react';
+
 import type { BaziApiResponse } from '../../../types/bazi';
 import { calculateShenSha, calculateDynamicShenSha, getJiJie, type ShenShaContext } from '../../../lib/xuan-bazi/utils/baziShenShaUtil';
 import { createDefaultShenShaSetting } from '../../../lib/xuan-bazi/settings/baziShenShaSetting';
@@ -114,22 +114,7 @@ export default function BaziChart({
     <div className="min-h-0 min-w-0 overflow-y-auto">
       {/* 主排盘表格 */}
       <div className="bg-card rounded-xl border border-border overflow-hidden mb-4 w-full">
-        {/* Header with AI Button */}
-        <div className="flex border-b border-border bg-secondary/30 h-10 items-center px-2 justify-between">
-          <div className="flex items-center gap-2">
-            {/* Empty left side or title if needed */}
-            <span className="text-xs font-semibold text-muted-foreground pl-2">四柱排盘</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsDiagramOpen(true)}
-              className="flex items-center gap-1.5 px-2 py-1 rounded bg-secondary hover:bg-secondary/80 text-muted-foreground text-[11px] border border-border transition-colors"
-            >
-              <BarChart2 className="w-3 h-3" />
-              干支图解
-            </button>
-          </div>
-        </div>
+
 
         <div className="flex">
           {/* 行标题 */}

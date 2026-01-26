@@ -3,7 +3,7 @@
  * 支持 Supabase 云端同步
  */
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronRight, ChevronLeft, Search, LogIn, Pencil, Trash2, Import } from 'lucide-react';
+import { ChevronRight, Search, LogIn, Pencil, Trash2, Import } from 'lucide-react';
 import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../utils/lunarUtil';
 import { useAuth } from '../../contexts/AuthContext';
 import { baziCaseService, CASE_TAGS, type BaziCase, type CaseTag, type CreateCaseInput } from '../../services/baziCaseService';
@@ -64,10 +64,8 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
   const [caseToDelete, setCaseToDelete] = useState<BaziCase | null>(null);
   const [selectedTag, setSelectedTag] = useState<CaseTag | null>(null);
   const [isTagMenuOpen, setIsTagMenuOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const tagMenuRef = useRef<HTMLDivElement | null>(null);
   const allLabel = '\u5168\u90e8';
-  const PAGE_SIZE = 6;
 
   // 加载案例
   const loadCases = useCallback(async () => {
@@ -178,18 +176,6 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
     }));
   }, [isAuthenticated, cases, search, selectedTag]);
 
-  // 分页计算
-  const totalPages = Math.ceil(displayCases.length / PAGE_SIZE);
-  const paginatedCases = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return displayCases.slice(start, start + PAGE_SIZE);
-  }, [displayCases, currentPage]);
-
-  // 当筛选条件变化时重置页码
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [search, selectedTag]);
-
   const handleDeleteCase = (caseItem: BaziCase) => {
     setCaseToDelete(caseItem);
   };
@@ -214,13 +200,13 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
   };
 
   return (
-    <aside className="w-56 bg-sidebar border-r border-sidebar-border flex flex-col min-h-0">
-      <div className="p-4 border-b border-sidebar-border space-y-3">
+    <aside className="w-56 bg-muted/5 border-r border-border/50 flex flex-col min-h-0">
+      <div className="p-4 border-b border-border/40 space-y-3">
         <div className="flex items-center justify-between">
           <button
             type="button"
             onClick={onOpenLibrary}
-            className="font-display text-base font-medium text-foreground hover:text-primary transition-colors"
+            className="font-display text-base font-medium text-foreground/80 hover:text-foreground transition-colors tracking-tight"
           >
             案例库
           </button>
@@ -230,14 +216,14 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
               onClick={() => setIsTagMenuOpen((prev) => !prev)}
               aria-haspopup="menu"
               aria-expanded={isTagMenuOpen}
-              className="text-xs text-[hsl(var(--text-secondary-light))] hover:text-[hsl(var(--text-primary-light))] dark:text-muted-foreground dark:hover:text-foreground flex items-center gap-1"
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors px-1.5 py-0.5 rounded-md hover:bg-muted/50"
             >
               {selectedTag ?? allLabel}
-              <span className="text-muted-foreground">({selectedTag ? cases.filter(c => c.tags?.includes(selectedTag)).length : cases.length})</span>
+              <span className="text-muted-foreground/60">({selectedTag ? cases.filter(c => c.tags?.includes(selectedTag)).length : cases.length})</span>
               <ChevronRight className={`w-3 h-3 transition-transform ${isTagMenuOpen ? 'rotate-90' : ''}`} />
             </button>
             {isTagMenuOpen && (
-              <div className="absolute right-0 mt-2 w-40 bg-sidebar border border-sidebar-border rounded-lg shadow-lg p-2 z-20">
+              <div className="absolute right-0 mt-2 w-40 bg-popover border border-border shadow-lg rounded-xl p-1.5 z-20 animate-in fade-in zoom-in-95 duration-100">
                 <button
                   type="button"
                   onClick={() => {
@@ -245,14 +231,14 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
                     setIsTagMenuOpen(false);
                   }}
                   className={`w-full flex items-center justify-between px-2 py-1.5 text-xs rounded-md transition-colors ${selectedTag === null
-                    ? 'bg-primary/15 text-primary'
-                    : 'text-foreground hover:bg-sidebar-accent/60'
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'text-foreground hover:bg-muted'
                     }`}
                 >
                   <span>{allLabel}</span>
-                  <span className="text-muted-foreground">{cases.length}</span>
+                  <span className="text-muted-foreground/70">{cases.length}</span>
                 </button>
-                <div className="mt-1 max-h-56 overflow-y-auto">
+                <div className="mt-1 max-h-56 overflow-y-auto scrollbar-none">
                   {CASE_TAGS.map(tag => {
                     const isActive = tag === selectedTag;
                     const count = cases.filter(c => c.tags?.includes(tag)).length;
@@ -265,12 +251,12 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
                           setIsTagMenuOpen(false);
                         }}
                         className={`w-full flex items-center justify-between px-2 py-1.5 text-xs rounded-md transition-colors ${isActive
-                          ? 'bg-primary/15 text-primary'
-                          : 'text-foreground hover:bg-sidebar-accent/60'
+                          ? 'bg-primary/10 text-primary font-medium'
+                          : 'text-foreground hover:bg-muted'
                           }`}
                       >
                         <span>{tag}</span>
-                        {count > 0 && <span className="text-muted-foreground">{count}</span>}
+                        {count > 0 && <span className="text-muted-foreground/70">{count}</span>}
                       </button>
                     );
                   })}
@@ -279,14 +265,14 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
             )}
           </div>
         </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground" />
+        <div className="relative group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
           <input
             type="text"
             placeholder="搜索案例..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            className="w-full bg-[hsl(var(--muted))] dark:bg-secondary/50 border border-[hsl(var(--muted-border))] dark:border-border rounded-lg pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-[hsl(var(--input-placeholder))] dark:placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+            className="w-full bg-card border border-border/40 hover:border-border/60 rounded-lg pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all font-light"
           />
         </div>
 
@@ -332,7 +318,7 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
           </div>
         ) : (
           <>
-            {paginatedCases.map((item) => {
+            {displayCases.map((item) => {
               const pillars = getBaziPillarsFromDateString(item.birthDate ?? item.date);
               const displayPillars = pillars.length === 8 ? [
                 pillars[0], pillars[2], pillars[4], pillars[6],
@@ -357,9 +343,9 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
                       onSelectCase?.(item.id);
                     }
                   }}
-                  className={`w-full text-left p-3 rounded-lg mb-1 transition-all cursor-pointer border ${selectedCaseId === item.id
-                    ? 'bg-sidebar-accent border-primary/30'
-                    : 'bg-card border-border/60 hover:border-border hover:shadow-sm dark:bg-sidebar-accent/30 dark:border-sidebar-border/50 dark:hover:bg-sidebar-accent/50 dark:hover:border-sidebar-border'
+                  className={`group relative w-full text-left p-3 rounded-xl mb-2 transition-all cursor-pointer border ${selectedCaseId === item.id
+                    ? 'bg-card border-primary/40 ring-1 ring-primary/20 shadow-md z-10'
+                    : 'bg-card border-transparent dark:border-border/30 shadow-[0_2px_6px_rgba(0,0,0,0.02)] hover:shadow-[0_6px_12px_rgba(0,0,0,0.06)] hover:z-10 hover:border-border/50'
                     }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -439,33 +425,6 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
                 </div>
               );
             })}
-
-            {/* 分页控件 */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-sidebar-border">
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="p-1.5 rounded-md border border-border hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed"
-                  aria-label="上一页"
-                >
-                  <ChevronLeft className="w-3.5 h-3.5" />
-                </button>
-                <span className="text-xs text-muted-foreground">
-                  {currentPage} / {totalPages}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="p-1.5 rounded-md border border-border hover:bg-secondary disabled:opacity-40 disabled:cursor-not-allowed"
-                  aria-label="下一页"
-                >
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            )}
           </>
         )}
       </div>
