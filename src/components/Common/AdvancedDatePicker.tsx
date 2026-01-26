@@ -7,6 +7,7 @@ interface AdvancedDatePickerProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: (date: Date) => void;
+    hideBazi?: boolean;
 }
 
 type PickerMode = 'solar' | 'lunar' | 'bazi';
@@ -25,7 +26,7 @@ const LUNAR_DAYS = ['初一', '初二', '初三', '初四', '初五', '初六', 
 const PICKER_HEIGHT = 200;
 const ITEM_HEIGHT = 40;
 
-export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm }: AdvancedDatePickerProps) {
+export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm, hideBazi = false }: AdvancedDatePickerProps) {
     const [mode, setMode] = useState<PickerMode>('solar');
     const [displayDate, setDisplayDate] = useState<string>('');
 
@@ -200,7 +201,7 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm }
                     <div className="flex gap-1 bg-muted p-1 rounded-lg">
                         <TabButton active={mode === 'solar'} onClick={() => handleModeChange('solar')}>公历</TabButton>
                         <TabButton active={mode === 'lunar'} onClick={() => handleModeChange('lunar')}>农历</TabButton>
-                        <TabButton active={mode === 'bazi'} onClick={() => handleModeChange('bazi')}>四柱</TabButton>
+                        {!hideBazi && <TabButton active={mode === 'bazi'} onClick={() => handleModeChange('bazi')}>四柱</TabButton>}
                     </div>
                     <button type="button" onClick={handleConfirm} className="text-primary hover:text-primary/80 font-medium transition-colors text-sm px-2 py-1">确定</button>
                 </div>

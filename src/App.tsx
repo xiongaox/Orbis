@@ -23,7 +23,7 @@ import type { ChartType } from './types';
 import { INSIGHT_BOOKS, DEFAULT_BOOK_ID } from './data/booksConfig';
 
 function AppContent() {
-  const [activeChart, setActiveChart] = useState<ChartType>('bazi');
+  const [activeChart, setActiveChart] = useState<ChartType>('wannianli');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCaseLibraryModal, setShowCaseLibraryModal] = useState(false);
   // 默认选中的经典书籍 ID
