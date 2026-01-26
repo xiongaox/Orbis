@@ -13,6 +13,7 @@ import GanZhiLiuYiPanel from './components/Common/GanZhiLiuYiPanel';
 import PlaceholderChart from './components/Common/PlaceholderChart';
 import BaziPage from './components/Modules/Bazi/BaziPage';
 import QimenPage from './components/Modules/Qimen/QimenPage';
+import WannianliPage from './components/Modules/Wannianli/WannianliPage';
 import CaseStudyPage from './components/Modules/CaseStudy/CaseStudyPage';
 import AuthModal from './components/Auth/AuthModal';
 import CaseLibraryModal from './components/Common/CaseLibraryModal';
@@ -65,6 +66,8 @@ function AppContent() {
         return <QimenPage />;
       case 'xiaoliuren':
         return <CaseStudyPage />;
+      case 'wannianli':
+        return <WannianliPage />;
       case 'bazi':
         return (
           <MainLayout
