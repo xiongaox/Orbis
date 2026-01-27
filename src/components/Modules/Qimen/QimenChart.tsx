@@ -58,6 +58,7 @@ interface QimenChartProps {
     };
     globalPatterns?: GlobalPattern[];
     onPatternClick?: (pattern: GlobalPattern) => void;
+    onOpenAiModal?: () => void;
 }
 
 // 洛书九宫布局顺序
@@ -84,6 +85,7 @@ export default function QimenChart({
     header,
     globalPatterns = [],
     onPatternClick,
+    onOpenAiModal,
 }: QimenChartProps) {
     const orderedPalaces = LUOSHU_ORDER.map(pos => palaces.find(p => p.position === pos)!);
     const [showChangSheng, setShowChangSheng] = useState(true);
@@ -109,6 +111,7 @@ export default function QimenChart({
                             onJuClick={onJuClick}
                             globalPatterns={globalPatterns}
                             onPatternClick={onPatternClick}
+                            onOpenAiModal={onOpenAiModal}
                             showChangSheng={showChangSheng}
                             onToggleChangSheng={() => setShowChangSheng(!showChangSheng)}
                         />
