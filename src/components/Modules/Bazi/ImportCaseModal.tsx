@@ -2,10 +2,10 @@
  * 八字案例导入 Modal
  * 封装了通用的 JsonImportModal
  */
-import { baziCaseService, type CreateCaseInput } from '../../services/baziCaseService';
-import { parseBaziImportData } from '../../utils/baziImportUtils';
-import { BAZI_CASES_CHANGED_EVENT } from '../../data/caseConstants';
-import JsonImportModal from './JsonImportModal';
+import { baziCaseService, type CreateCaseInput } from '../../../services/baziCaseService';
+import { parseBaziImportData } from '../../../utils/baziImportUtils';
+import { BAZI_CASES_CHANGED_EVENT } from '../../../data/caseConstants';
+import JsonImportModal from '../../Common/JsonImportModal';
 
 interface ImportCaseModalProps {
     isOpen: boolean;

@@ -184,7 +184,7 @@ export default function HolidayCountdown({ onSelectDate }: { onSelectDate?: (dat
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-4 no-scrollbar">
+            <div className="flex-1 overflow-y-auto px-2 py-3 space-y-2 no-scrollbar">
                 {holidays.map((h) => (
                     <div
                         key={`${h.name}-${h.dateStr}`}

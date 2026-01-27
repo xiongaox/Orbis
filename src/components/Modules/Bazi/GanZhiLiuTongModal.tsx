@@ -9,7 +9,8 @@
  * - 合：只在同柱天干地支之间显示（如己亥合）
  */
 import { useMemo, useState, useEffect } from 'react';
-import { X, ChevronsLeft, ChevronsRight, ChevronsUp, ChevronsDown } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, ChevronsUp, ChevronsDown } from 'lucide-react';
+import BaseModal from '../../UI/BaseModal';
 import { getElementColor } from '../../../lib/xuan-bazi/maps/baziStyleMap';
 import { getShiShen } from '../../../lib/xuan-bazi/utils';
 import { DI_ZHI_CANG_GAN } from '../../../lib/xuan-bazi/maps/baziJichuMap';
@@ -507,165 +508,165 @@ export default function GanZhiLiuTongModal({
         return null;
     };
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-background rounded-xl border border-border shadow-2xl w-full max-w-[720px] max-h-[95vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-
-                <div className="flex items-center justify-between p-4 border-b border-border bg-muted/20">
-                    <h2 className="text-lg font-medium text-foreground">干支流通</h2>
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => setShowLiuNian(!showLiuNian)}
-                                className={`px-3 py-1 text-sm rounded-md border transition-colors ${showLiuNian
-                                    ? 'bg-primary/20 text-primary border-primary/50'
-                                    : 'bg-secondary/50 text-muted-foreground border-border hover:bg-secondary'
-                                    }`}
-                            >
-                                流年
-                            </button>
-                            <button
-                                onClick={() => setShowDaYun(!showDaYun)}
-                                className={`px-3 py-1 text-sm rounded-md border transition-colors ${showDaYun
-                                    ? 'bg-primary/20 text-primary border-primary/50'
-                                    : 'bg-secondary/50 text-muted-foreground border-border hover:bg-secondary'
-                                    }`}
-                            >
-                                大运
-                            </button>
-                        </div>
-                        <div className="w-px h-4 bg-border" />
-                        <button onClick={onClose} className="p-2 hover:bg-secondary rounded-full transition-colors">
-                            <X className="w-5 h-5 text-muted-foreground" />
-                        </button>
-                    </div>
-                </div>
-
-                <div className="flex-1 overflow-auto p-8 flex flex-col items-center justify-center bg-dot-pattern">
-                    {chartData && (
-                        <div className="flex flex-col gap-2">
-                            {/* 天干十神行 */}
-                            <div className="flex items-center">
-                                {chartData.items.map((item: any, idx: number) => (
-                                    <div key={`shishen-gan-${idx}`} className="flex items-center">
-                                        <div className="w-14 text-center" style={{ opacity: isHighlighted(idx, 'gan') ? 1 : 0.3 }}>
-                                            <span className="text-xs text-muted-foreground">
-                                                {getShiShenLabel(item.gan, chartData.dayMaster)}
-                                            </span>
-                                        </div>
-                                        {idx < chartData.items.length - 1 && <div className="w-12" />}
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* 天干行 */}
-                            <div className="flex items-center">
-                                {chartData.items.map((item: any, idx: number) => {
-                                    const isDynamic = item.label === '流年' || item.label === '大运';
-                                    return (
-                                        <div key={`gan-${idx}`} className="flex items-center">
-                                            <div
-                                                className={`w-14 h-14 flex items-center justify-center cursor-pointer transition-all rounded-lg ${isDynamic ? 'border border-dashed border-primary/40' : ''}`}
-                                                style={{
-                                                    opacity: isHighlighted(idx, 'gan') ? 1 : 0.3,
-                                                    backgroundColor: (selectedNode?.idx === idx && selectedNode?.type === 'gan') ? 'hsl(var(--primary) / 0.1)' : 'transparent'
-                                                }}
-                                                onClick={() => setSelectedNode(
-                                                    (selectedNode?.idx === idx && selectedNode?.type === 'gan') ? null : { idx, type: 'gan' }
-                                                )}
-                                            >
-                                                <span className="font-display text-2xl font-bold" style={{ color: getElementColor(item.gan) }}>
-                                                    {item.gan}
-                                                </span>
-                                            </div>
-                                            {idx < chartData.items.length - 1 && (
-                                                <div className="w-12 flex items-center justify-center">
-                                                    {renderHorizontalSymbol(chartData.tianGanAdjacentMap, idx, 'gan')}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {/* 柱标签行 + 同柱合（移除文字标签，仅保留合的位置） */}
-                            <div className="flex items-center relative h-16">
-                                {chartData.items.map((_item: any, idx: number) => (
-                                    <div key={`label-${idx}`} className="flex items-center h-full">
-                                        <div className="w-14 text-center relative h-full flex items-center justify-center" style={{ opacity: isHighlighted(idx, 'both') ? 1 : 0.3 }}>
-                                            {/* 渲染同柱关系（合、生、助） */}
-                                            {renderVerticalSymbol(idx)}
-                                        </div>
-                                        {idx < chartData.items.length - 1 && <div className="w-12" />}
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* 地支行 */}
-                            <div className="flex items-center">
-                                {chartData.items.map((item: any, idx: number) => {
-                                    const isDynamic = item.label === '流年' || item.label === '大运';
-                                    return (
-                                        <div key={`zhi-${idx}`} className="flex items-center">
-                                            <div
-                                                className={`w-14 h-14 flex items-center justify-center cursor-pointer transition-all rounded-lg ${isDynamic ? 'border border-dashed border-primary/40' : ''}`}
-                                                style={{
-                                                    opacity: isHighlighted(idx, 'zhi') ? 1 : 0.3,
-                                                    backgroundColor: (selectedNode?.idx === idx && selectedNode?.type === 'zhi') ? 'hsl(var(--primary) / 0.1)' : 'transparent'
-                                                }}
-                                                onClick={() => setSelectedNode(
-                                                    (selectedNode?.idx === idx && selectedNode?.type === 'zhi') ? null : { idx, type: 'zhi' }
-                                                )}
-                                            >
-                                                <span className="font-display text-2xl font-bold" style={{ color: getElementColor(item.zhi) }}>
-                                                    {item.zhi}
-                                                </span>
-                                            </div>
-                                            {idx < chartData.items.length - 1 && (
-                                                <div className="w-12 flex items-center justify-center">
-                                                    {renderHorizontalSymbol(chartData.diZhiAdjacentMap, idx, 'zhi')}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {/* 地支十神行 */}
-                            <div className="flex items-center">
-                                {chartData.items.map((item: any, idx: number) => (
-                                    <div key={`shishen-zhi-${idx}`} className="flex items-center">
-                                        <div className="w-14 text-center" style={{ opacity: isHighlighted(idx, 'zhi') ? 1 : 0.3 }}>
-                                            <span className="text-xs text-muted-foreground">
-                                                {getShiShenLabel(item.zhi, chartData.dayMaster)}
-                                            </span>
-                                        </div>
-                                        {idx < chartData.items.length - 1 && <div className="w-12" />}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 图例 */}
-                    <div className="flex items-center justify-center gap-6 mt-8">
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#63A103]/10 border border-[#63A103]/20">
-                            <span className="w-4 h-4 flex items-center justify-center rounded-full bg-[#63A103]/20 text-[10px]" style={{ color: FLOW_COLOR }}>✓</span>
-                            <span className="text-xs font-medium" style={{ color: FLOW_COLOR }}>流通</span>
-                            <span className="text-xs text-muted-foreground">合・生・助</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20">
-                            <span className="w-4 h-4 flex items-center justify-center rounded-full bg-red-500/20 text-[10px]" style={{ color: BLOCK_COLOR }}>✗</span>
-                            <span className="text-xs font-medium" style={{ color: BLOCK_COLOR }}>阻塞</span>
-                            <span className="text-xs text-muted-foreground">冲・刑・克・害・破</span>
-                        </div>
-                    </div>
-
-                    <div className="text-xs text-muted-foreground/60 mt-4 text-center">
-                        💡 点击任意柱位可高亮其相关关系，再次点击取消
-                    </div>
-                </div>
+    // Header Content
+    const header = (
+        <div className="flex items-center gap-4">
+            <span className="text-lg font-medium text-foreground">干支流通</span>
+            <div className="flex items-center gap-2">
+                <button
+                    onClick={() => setShowLiuNian(!showLiuNian)}
+                    className={`px-3 py-1 text-sm rounded-md border transition-colors ${showLiuNian
+                        ? 'bg-primary/20 text-primary border-primary/50'
+                        : 'bg-secondary/50 text-muted-foreground border-border hover:bg-secondary'
+                        }`}
+                >
+                    流年
+                </button>
+                <button
+                    onClick={() => setShowDaYun(!showDaYun)}
+                    className={`px-3 py-1 text-sm rounded-md border transition-colors ${showDaYun
+                        ? 'bg-primary/20 text-primary border-primary/50'
+                        : 'bg-secondary/50 text-muted-foreground border-border hover:bg-secondary'
+                        }`}
+                >
+                    大运
+                </button>
             </div>
         </div>
+    );
+
+    return (
+        <BaseModal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={header}
+            maxWidth="max-w-[720px]"
+            bodyClassName="p-0 overflow-hidden flex flex-col bg-dot-pattern min-h-[500px]"
+        >
+            <div className="flex-1 overflow-auto p-8 flex flex-col items-center justify-center">
+                {chartData && (
+                    <div className="flex flex-col gap-2">
+                        {/* 天干十神行 */}
+                        <div className="flex items-center">
+                            {chartData.items.map((item: any, idx: number) => (
+                                <div key={`shishen-gan-${idx}`} className="flex items-center">
+                                    <div className="w-14 text-center" style={{ opacity: isHighlighted(idx, 'gan') ? 1 : 0.3 }}>
+                                        <span className="text-xs text-muted-foreground">
+                                            {getShiShenLabel(item.gan, chartData.dayMaster)}
+                                        </span>
+                                    </div>
+                                    {idx < chartData.items.length - 1 && <div className="w-12" />}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* 天干行 */}
+                        <div className="flex items-center">
+                            {chartData.items.map((item: any, idx: number) => {
+                                const isDynamic = item.label === '流年' || item.label === '大运';
+                                return (
+                                    <div key={`gan-${idx}`} className="flex items-center">
+                                        <div
+                                            className={`w-14 h-14 flex items-center justify-center cursor-pointer transition-all rounded-lg ${isDynamic ? 'border border-dashed border-primary/40' : ''}`}
+                                            style={{
+                                                opacity: isHighlighted(idx, 'gan') ? 1 : 0.3,
+                                                backgroundColor: (selectedNode?.idx === idx && selectedNode?.type === 'gan') ? 'hsl(var(--primary) / 0.1)' : 'transparent'
+                                            }}
+                                            onClick={() => setSelectedNode(
+                                                (selectedNode?.idx === idx && selectedNode?.type === 'gan') ? null : { idx, type: 'gan' }
+                                            )}
+                                        >
+                                            <span className="font-display text-2xl font-bold" style={{ color: getElementColor(item.gan) }}>
+                                                {item.gan}
+                                            </span>
+                                        </div>
+                                        {idx < chartData.items.length - 1 && (
+                                            <div className="w-12 flex items-center justify-center">
+                                                {renderHorizontalSymbol(chartData.tianGanAdjacentMap, idx, 'gan')}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* 柱标签行 + 同柱合（移除文字标签，仅保留合的位置） */}
+                        <div className="flex items-center relative h-16">
+                            {chartData.items.map((_item: any, idx: number) => (
+                                <div key={`label-${idx}`} className="flex items-center h-full">
+                                    <div className="w-14 text-center relative h-full flex items-center justify-center" style={{ opacity: isHighlighted(idx, 'both') ? 1 : 0.3 }}>
+                                        {/* 渲染同柱关系（合、生、助） */}
+                                        {renderVerticalSymbol(idx)}
+                                    </div>
+                                    {idx < chartData.items.length - 1 && <div className="w-12" />}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* 地支行 */}
+                        <div className="flex items-center">
+                            {chartData.items.map((item: any, idx: number) => {
+                                const isDynamic = item.label === '流年' || item.label === '大运';
+                                return (
+                                    <div key={`zhi-${idx}`} className="flex items-center">
+                                        <div
+                                            className={`w-14 h-14 flex items-center justify-center cursor-pointer transition-all rounded-lg ${isDynamic ? 'border border-dashed border-primary/40' : ''}`}
+                                            style={{
+                                                opacity: isHighlighted(idx, 'zhi') ? 1 : 0.3,
+                                                backgroundColor: (selectedNode?.idx === idx && selectedNode?.type === 'zhi') ? 'hsl(var(--primary) / 0.1)' : 'transparent'
+                                            }}
+                                            onClick={() => setSelectedNode(
+                                                (selectedNode?.idx === idx && selectedNode?.type === 'zhi') ? null : { idx, type: 'zhi' }
+                                            )}
+                                        >
+                                            <span className="font-display text-2xl font-bold" style={{ color: getElementColor(item.zhi) }}>
+                                                {item.zhi}
+                                            </span>
+                                        </div>
+                                        {idx < chartData.items.length - 1 && (
+                                            <div className="w-12 flex items-center justify-center">
+                                                {renderHorizontalSymbol(chartData.diZhiAdjacentMap, idx, 'zhi')}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* 地支十神行 */}
+                        <div className="flex items-center">
+                            {chartData.items.map((item: any, idx: number) => (
+                                <div key={`shishen-zhi-${idx}`} className="flex items-center">
+                                    <div className="w-14 text-center" style={{ opacity: isHighlighted(idx, 'zhi') ? 1 : 0.3 }}>
+                                        <span className="text-xs text-muted-foreground">
+                                            {getShiShenLabel(item.zhi, chartData.dayMaster)}
+                                        </span>
+                                    </div>
+                                    {idx < chartData.items.length - 1 && <div className="w-12" />}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* 图例 */}
+                <div className="flex items-center justify-center gap-6 mt-8">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#63A103]/10 border border-[#63A103]/20">
+                        <span className="w-4 h-4 flex items-center justify-center rounded-full bg-[#63A103]/20 text-[10px]" style={{ color: FLOW_COLOR }}>✓</span>
+                        <span className="text-xs font-medium" style={{ color: FLOW_COLOR }}>流通</span>
+                        <span className="text-xs text-muted-foreground">合・生・助</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20">
+                        <span className="w-4 h-4 flex items-center justify-center rounded-full bg-red-500/20 text-[10px]" style={{ color: BLOCK_COLOR }}>✗</span>
+                        <span className="text-xs font-medium" style={{ color: BLOCK_COLOR }}>阻塞</span>
+                        <span className="text-xs text-muted-foreground">冲・刑・克・害・破</span>
+                    </div>
+                </div>
+
+                <div className="text-xs text-muted-foreground/60 mt-4 text-center">
+                    💡 点击任意柱位可高亮其相关关系，再次点击取消
+                </div>
+            </div>
+        </BaseModal>
     );
 }

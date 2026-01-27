@@ -5,9 +5,9 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Pencil, Trash2 } from 'lucide-react';
-import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../utils/lunarUtil';
-import { TIAN_GAN_WU_XING } from '../../lib/xuan-bazi/maps';
-import type { BaziCase } from '../../services/baziCaseService';
+import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../../utils/lunarUtil';
+import { TIAN_GAN_WU_XING } from '../../../lib/xuan-bazi/maps';
+import type { BaziCase } from '../../../services/baziCaseService';
 
 // 五行背景和文字颜色
 const ELEMENT_BG_10: Record<string, string> = {
@@ -82,9 +82,9 @@ export default function SortableCaseCard({
             onClick={onSelect}
             role="button"
             tabIndex={0}
-            className={`p-2.5 rounded-lg transition-all cursor-pointer border ${isSelected
-                ? 'bg-sidebar-accent border-primary/30'
-                : 'bg-card border-border/60 hover:border-border hover:shadow-sm'
+            className={`p-2.5 rounded-xl transition-all cursor-pointer ${isSelected
+                ? 'bg-card border border-primary/40 ring-1 ring-primary/20 shadow-md z-10'
+                : 'bg-card shadow-[0_2px_6px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_16px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 hover:z-10'
                 } ${isDragging ? 'shadow-lg ring-2 ring-primary/30' : ''}`}
         >
             <div className="flex items-start justify-between gap-2">

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { TIAN_GAN } from '../../lib/xuan-bazi/maps/baziJichuMap';
+import { TIAN_GAN } from '../../../lib/xuan-bazi/maps/baziJichuMap';
 import {
   BookOpen,
   ChevronDown,
@@ -279,7 +279,7 @@ export default function InsightPanel({
           // 其他书籍：正常显示
           <>
             {content.summary && (
-              <div className="bg-secondary/30 rounded-lg border border-border">
+              <div className="bg-secondary/30 rounded-xl border border-border transition-all hover:shadow-md hover:-translate-y-0.5">
                 <button
                   type="button"
                   onClick={() => toggleSection('summary')}
@@ -305,7 +305,7 @@ export default function InsightPanel({
               </div>
             )}
             {content.keyPoints && content.keyPoints.length > 0 && (
-              <div className="bg-secondary/30 rounded-lg border border-border">
+              <div className="bg-secondary/30 rounded-xl border border-border transition-all hover:shadow-md hover:-translate-y-0.5">
                 <button
                   type="button"
                   onClick={() => toggleSection('keyPoints')}

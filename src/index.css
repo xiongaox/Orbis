@@ -175,6 +175,23 @@ body {
   font-feature-settings: "palt";
 }
 
+@layer utilities {
+  .focus-ring {
+    @apply focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none;
+  }
+}
+
+:focus-visible {
+  outline: none;
+}
+
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  @apply focus-ring ring-offset-background;
+}
+
 .bg-noise {
   background-image:
     radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.03) 1px, transparent 0),

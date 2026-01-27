@@ -1,8 +1,5 @@
-/**
- * 自定义局数弹窗
- * 允许用户选择阴阳遁和局数（1-9），用于手动指定奇门排盘的局数
- */
 import { useState } from 'react';
+import BaseModal from '../../../UI/BaseModal';
 
 interface CustomJuModalProps {
     isOpen: boolean;
@@ -48,106 +45,88 @@ export default function CustomJuModal({
         onConfirm(customJu);
     };
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-            {/* 背景遮罩 */}
-            <div
-                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+    const footer = (
+        <div className="flex gap-2 w-full">
+            <button
                 onClick={onClose}
-            />
+                className="flex-1 py-2 rounded-lg bg-muted/50 text-muted-foreground font-serif text-sm hover:bg-muted transition-colors focus-ring"
+            >
+                取消
+            </button>
+            <button
+                onClick={handleConfirm}
+                className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground font-serif text-sm hover:bg-primary/90 transition-colors focus-ring"
+            >
+                确认排盘
+            </button>
+        </div>
+    );
 
-            {/* 弹窗内容 */}
-            <div className="relative bg-card rounded-xl border border-border shadow-2xl w-[90vw] max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                {/* 头部 */}
-                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-                    <h3 className="text-lg font-serif font-bold text-foreground">
-                        自定义局数
-                    </h3>
-                    <button
-                        onClick={onClose}
-                        className="p-1 hover:bg-muted rounded-lg transition-colors"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M18 6 6 18" /><path d="m6 6 12 12" />
-                        </svg>
-                    </button>
-                </div>
-
-                {/* 内容 */}
-                <div className="p-5 space-y-5">
-                    {/* 阴阳遁选择 */}
-                    <div className="space-y-2">
-                        <label className="text-sm text-muted-foreground font-serif">遁法</label>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => setIsYang(true)}
-                                className={`flex-1 py-2 rounded-lg font-serif text-sm transition-colors ${isYang
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                                    }`}
-                            >
-                                阳遁
-                            </button>
-                            <button
-                                onClick={() => setIsYang(false)}
-                                className={`flex-1 py-2 rounded-lg font-serif text-sm transition-colors ${!isYang
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                                    }`}
-                            >
-                                阴遁
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* 局数选择 */}
-                    <div className="space-y-2">
-                        <label className="text-sm text-muted-foreground font-serif">局数</label>
-                        <div className="grid grid-cols-3 gap-2">
-                            {JU_LABELS.map((label, idx) => {
-                                const num = idx + 1;
-                                const isSelected = juNum === num;
-                                return (
-                                    <button
-                                        key={num}
-                                        onClick={() => setJuNum(num)}
-                                        className={`py-3 rounded-lg font-serif text-lg transition-colors ${isSelected
-                                            ? 'bg-primary text-primary-foreground font-bold'
-                                            : 'bg-muted/50 text-foreground hover:bg-muted'
-                                            }`}
-                                    >
-                                        {label}局
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* 预览 */}
-                    <div className="text-center py-2 bg-muted/30 rounded-lg">
-                        <span className="text-sm text-muted-foreground">选择结果：</span>
-                        <span className="ml-2 text-lg font-bold font-serif text-primary">
-                            {isYang ? '阳' : '阴'}遁{JU_LABELS[juNum - 1]}局
-                        </span>
+    return (
+        <BaseModal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={<span className="font-serif font-bold">自定义局数</span>}
+            footer={footer}
+            maxWidth="max-w-sm"
+        >
+            <div className="space-y-5">
+                {/* 阴阳遁选择 */}
+                <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground font-serif">遁法</label>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setIsYang(true)}
+                            className={`flex-1 py-2 rounded-lg font-serif text-sm transition-all focus-ring ${isYang
+                                ? 'bg-primary text-primary-foreground shadow-md'
+                                : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                                }`}
+                        >
+                            阳遁
+                        </button>
+                        <button
+                            onClick={() => setIsYang(false)}
+                            className={`flex-1 py-2 rounded-lg font-serif text-sm transition-all focus-ring ${!isYang
+                                ? 'bg-primary text-primary-foreground shadow-md'
+                                : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                                }`}
+                        >
+                            阴遁
+                        </button>
                     </div>
                 </div>
 
-                {/* 底部按钮 */}
-                <div className="flex gap-2 px-5 py-4 border-t border-border">
-                    <button
-                        onClick={onClose}
-                        className="flex-1 py-2 rounded-lg bg-muted/50 text-muted-foreground font-serif text-sm hover:bg-muted transition-colors"
-                    >
-                        取消
-                    </button>
-                    <button
-                        onClick={handleConfirm}
-                        className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground font-serif text-sm hover:bg-primary/90 transition-colors"
-                    >
-                        确认排盘
-                    </button>
+                {/* 局数选择 */}
+                <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground font-serif">局数</label>
+                    <div className="grid grid-cols-3 gap-2">
+                        {JU_LABELS.map((label, idx) => {
+                            const num = idx + 1;
+                            const isSelected = juNum === num;
+                            return (
+                                <button
+                                    key={num}
+                                    onClick={() => setJuNum(num)}
+                                    className={`py-3 rounded-lg font-serif text-lg transition-all focus-ring ${isSelected
+                                        ? 'bg-primary/10 border-2 border-primary text-primary font-bold shadow-sm'
+                                        : 'bg-muted/50 border-2 border-transparent text-foreground hover:bg-muted'
+                                        }`}
+                                >
+                                    {label}局
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* 预览 */}
+                <div className="text-center py-3 bg-muted/30 rounded-lg border border-border/50">
+                    <span className="text-sm text-muted-foreground">选择结果：</span>
+                    <span className="ml-2 text-lg font-bold font-serif text-primary">
+                        {isYang ? '阳' : '阴'}遁{JU_LABELS[juNum - 1]}局
+                    </span>
                 </div>
             </div>
-        </div>
+        </BaseModal>
     );
 }

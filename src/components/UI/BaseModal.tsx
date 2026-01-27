@@ -1,0 +1,105 @@
+import React, { useEffect } from 'react';
+import { X } from 'lucide-react';
+
+interface BaseModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    title?: React.ReactNode;
+    children: React.ReactNode;
+    footer?: React.ReactNode;
+    maxWidth?: string; // e.g. 'max-w-sm', 'max-w-md', 'max-w-4xl'
+    closeOnBackdropClick?: boolean;
+    showCloseButton?: boolean;
+    className?: string; // For the modal card itself
+    bodyClassName?: string; // For the content wrapper
+}
+
+export default function BaseModal({
+    isOpen,
+    onClose,
+    title,
+    children,
+    footer,
+    maxWidth = 'max-w-md',
+    closeOnBackdropClick = true,
+    showCloseButton = true,
+    className = '',
+    bodyClassName = '',
+}: BaseModalProps) {
+
+    // Handle Escape key
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isOpen) {
+                onClose();
+            }
+        };
+
+        if (isOpen) {
+            document.addEventListener('keydown', handleKeyDown);
+            // Lock body scroll
+            document.body.style.overflow = 'hidden';
+        }
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            document.body.style.overflow = '';
+        };
+    }, [isOpen, onClose]);
+
+    if (!isOpen) return null;
+
+    return (
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-[2px] animate-in fade-in duration-200"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={title ? "modal-title" : undefined}
+            onClick={(e) => {
+                if (e.target === e.currentTarget && closeOnBackdropClick) {
+                    onClose();
+                }
+            }}
+        >
+            <div
+                className={`
+                    bg-background border border-border rounded-xl shadow-2xl flex flex-col 
+                    w-full ${maxWidth} max-h-[85vh] 
+                    animate-in zoom-in-95 duration-200 
+                    ${className}
+                `}
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Header */}
+                {(title || showCloseButton) && (
+                    <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+                        <div className="text-lg font-semibold text-foreground" id="modal-title">
+                            {title}
+                        </div>
+                        {showCloseButton && (
+                            <button
+                                onClick={onClose}
+                                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus-ring ml-auto"
+                                aria-label="Close"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {/* Body */}
+                <div className={`overflow-y-auto flex-1 ${bodyClassName || 'p-6'}`}>
+                    {children}
+                </div>
+
+                {/* Footer */}
+                {footer && (
+                    <div className="p-4 border-t border-border bg-muted/10 flex justify-end gap-3 shrink-0">
+                        {footer}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}

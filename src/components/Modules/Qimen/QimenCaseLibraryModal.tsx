@@ -18,13 +18,14 @@ import {
     sortableKeyboardCoordinates,
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { X, Search, Plus, Upload, LogIn } from 'lucide-react';
+import { Search, Plus, Upload, LogIn } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { qimenCaseService, type QimenCase, QIMEN_CATEGORIES } from '../../../services/qimenCaseService';
 import QimenSortableCaseCard from './QimenSortableCaseCard';
 import QimenNewCaseModal from './QimenNewCaseModal'; // Reusing the existing modal for create/edit
 import QimenImportModal from './QimenImportModal';
 import ConfirmModal from '../../Common/ConfirmModal';
+import BaseModal from '../../UI/BaseModal';
 
 export const QIMEN_CASES_CHANGED_EVENT = 'qimen_cases_changed';
 
@@ -154,28 +155,24 @@ export default function QimenCaseLibraryModal({
 
     return (
         <>
-            <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && onClose()}>
-                <div className="max-w-xl w-full bg-card border border-border rounded-xl shadow-2xl flex flex-col h-[70vh] p-6 animate-in zoom-in-95 fade-in duration-200">
-                    {/* Header */}
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="font-display text-lg font-semibold text-foreground">
-                            案例库
-                            <span className="ml-2 text-sm font-normal text-muted-foreground">
+            return (
+            <>
+                <BaseModal
+                    isOpen={isOpen}
+                    onClose={onClose}
+                    title={
+                        <div className="flex items-center gap-2">
+                            <span>案例库</span>
+                            <span className="text-sm font-normal text-muted-foreground">
                                 ({cases.length})
                             </span>
-                        </h2>
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="p-1.5 rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground"
-                            aria-label="关闭"
-                        >
-                            <X className="w-5 h-5" />
-                        </button>
-                    </div>
-
+                        </div>
+                    }
+                    maxWidth="max-w-2xl"
+                    bodyClassName="flex flex-col h-[70vh] p-4 sm:p-6 overflow-hidden"
+                >
                     {/* Search & Actions */}
-                    <div className="flex gap-2 mb-4">
+                    <div className="flex gap-2 mb-4 shrink-0">
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <input
@@ -183,7 +180,7 @@ export default function QimenCaseLibraryModal({
                                 placeholder="搜索案例..."
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="w-full bg-secondary/50 border border-border rounded-lg pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+                                className="w-full bg-secondary/50 border border-border rounded-lg pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus-ring"
                             />
                         </div>
 
@@ -191,7 +188,7 @@ export default function QimenCaseLibraryModal({
                             <button
                                 type="button"
                                 onClick={onLoginClick}
-                                className="flex items-center gap-2 px-4 py-2 bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
+                                className="flex items-center gap-2 px-4 py-2 bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border focus-ring"
                             >
                                 <LogIn className="w-4 h-4" />
                                 登录
@@ -201,7 +198,7 @@ export default function QimenCaseLibraryModal({
                                 <button
                                     type="button"
                                     onClick={(e) => { e.stopPropagation(); setShowImportModal(true); }}
-                                    className="relative z-50 flex items-center gap-1.5 px-3 py-2 bg-secondary active:bg-secondary/70 hover:bg-secondary/90 text-foreground rounded-lg text-sm font-medium transition-all border border-border cursor-pointer shadow-sm hover:shadow"
+                                    className="relative z-50 flex items-center gap-1.5 px-3 py-2 bg-secondary active:bg-secondary/70 hover:bg-secondary/90 text-foreground rounded-lg text-sm font-medium transition-all border border-border cursor-pointer shadow-sm hover:shadow focus-ring"
                                 >
                                     <Upload className="w-4 h-4" />
                                     导入
@@ -209,7 +206,7 @@ export default function QimenCaseLibraryModal({
                                 <button
                                     type="button"
                                     onClick={() => setShowCreateModal(true)}
-                                    className="flex items-center gap-1.5 px-3 py-2 bg-primary/12 hover:bg-primary/18 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/40"
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-primary/12 hover:bg-primary/18 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/40 focus-ring"
                                 >
                                     <Plus className="w-4 h-4" />
                                     新建
@@ -221,7 +218,7 @@ export default function QimenCaseLibraryModal({
                     {/* Main Content */}
                     <div className="flex gap-4 flex-1 min-h-0">
                         {/* Sidebar Categories */}
-                        <div className="w-28 shrink-0 flex flex-col gap-0.5 overflow-y-auto max-h-[55vh] custom-scrollbar">
+                        <div className="w-28 shrink-0 flex flex-col gap-0.5 overflow-y-auto pr-1">
                             {allCategories.map((cat) => {
                                 const isActive = cat.id === selectedCategory;
                                 const count = getCategoryCount(cat.id);
@@ -230,7 +227,7 @@ export default function QimenCaseLibraryModal({
                                         key={cat.id}
                                         type="button"
                                         onClick={() => setSelectedCategory(cat.id)}
-                                        className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors ${isActive
+                                        className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors focus-ring ${isActive
                                             ? 'bg-primary/10 text-primary font-medium'
                                             : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                                             }`}
@@ -245,7 +242,7 @@ export default function QimenCaseLibraryModal({
                         </div>
 
                         {/* Case Grid */}
-                        <div className="flex-1 min-w-0 overflow-y-auto max-h-[55vh] custom-scrollbar">
+                        <div className="flex-1 min-w-0 overflow-y-auto">
                             {loading ? (
                                 <div className="text-center text-muted-foreground py-12">加载中...</div>
                             ) : filteredCases.length === 0 ? (
@@ -282,8 +279,44 @@ export default function QimenCaseLibraryModal({
                             )}
                         </div>
                     </div>
-                </div>
-            </div>
+                </BaseModal>
+
+                {/* Create/Edit Modal */}
+                <QimenNewCaseModal
+                    isOpen={showCreateModal || !!editingCase}
+                    initialData={editingCase}
+                    onClose={() => {
+                        setShowCreateModal(false);
+                        setEditingCase(null);
+                    }}
+                    onConfirm={() => {
+                        setShowCreateModal(false);
+                        setEditingCase(null);
+                        window.dispatchEvent(new CustomEvent(QIMEN_CASES_CHANGED_EVENT));
+                        loadCases(); // Refresh
+                    }}
+                />
+
+                {/* Import Modal */}
+                <QimenImportModal
+                    isOpen={showImportModal}
+                    onClose={() => setShowImportModal(false)}
+                    onImported={loadCases}
+                />
+
+                {/* Delete Confirmation */}
+                <ConfirmModal
+                    isOpen={!!caseToDelete}
+                    onClose={() => setCaseToDelete(null)}
+                    onConfirm={executeDelete}
+                    title="删除确认"
+                    description={<>确定要删除案例 <span className="font-medium text-foreground">「{caseToDelete?.title}」</span> 吗？此操作无法撤销。</>}
+                    confirmText="删除"
+                    variant="destructive"
+                    loading={!!deletingCaseId}
+                />
+            </>
+            );
 
             {/* Create/Edit Modal */}
             <QimenNewCaseModal

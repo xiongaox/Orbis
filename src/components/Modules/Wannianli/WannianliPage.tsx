@@ -224,7 +224,7 @@ export default function WannianliPage() {
                                         "relative rounded-xl p-1 md:p-2 flex flex-col justify-center transition-all duration-200 cursor-pointer group",
                                         // 基础卡片样式：Light Mode 下使用阴影+白底+微边框，Dark Mode 下使用边框
                                         "bg-card shadow-[0_2px_6px_rgba(0,0,0,0.02)] border border-border/40 dark:border-border/40 dark:shadow-none",
-                                        "hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] hover:z-10 dark:hover:border-primary/30",
+                                        "hover:shadow-[0_8px_16px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 hover:z-10",
 
                                         // 背景色逻辑：选中 > 节日(叠加)
                                         day.isSelected
@@ -272,7 +272,7 @@ export default function WannianliPage() {
                                             {day.bottomText}
                                         </span>
 
-                                        <span className="text-[16px] text-muted-foreground/60 font-serif leading-none mt-1 transform scale-90">
+                                        <span className="text-[14.4px] text-muted-foreground/60 font-serif leading-none mt-1">
                                             {day.ganZhi}
                                         </span>
                                     </div>
@@ -379,7 +379,7 @@ export default function WannianliPage() {
                     {/* 宜忌 - 卡片式设计 */}
                     <div className="space-y-3">
                         {/* 宜 */}
-                        <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4 transition-all hover:shadow-md hover:bg-emerald-500/10">
+                        <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4 transition-all hover:shadow-md hover:bg-emerald-500/10 hover:-translate-y-0.5">
                             <div className="flex items-start gap-3">
                                 <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-base shrink-0 mt-0.5 font-serif">
                                     宜
@@ -395,7 +395,7 @@ export default function WannianliPage() {
                         </div>
 
                         {/* 忌 */}
-                        <div className="bg-rose-500/5 border border-rose-500/10 rounded-xl p-4 transition-all hover:shadow-md hover:bg-rose-500/10">
+                        <div className="bg-rose-500/5 border border-rose-500/10 rounded-xl p-4 transition-all hover:shadow-md hover:bg-rose-500/10 hover:-translate-y-0.5">
                             <div className="flex items-start gap-3">
                                 <div className="w-8 h-8 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold text-base shrink-0 mt-0.5 font-serif">
                                     忌

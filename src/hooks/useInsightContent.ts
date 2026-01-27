@@ -4,7 +4,7 @@
  * 从 App.tsx 提取的业务逻辑
  */
 import { useMemo } from 'react';
-import type { InsightContent } from '../components/Common/InsightPanel';
+import type { InsightContent } from '../components/Modules/Bazi/InsightPanel';
 import type { BaziApiResponse } from '../types/bazi';
 import { getQiongtongEntry } from '../lib/xuan-bazi/utils/qiongtongUtil';
 import { getDiZhiCangGan } from '../lib/xuan-bazi/utils/baziJichuUtil';
