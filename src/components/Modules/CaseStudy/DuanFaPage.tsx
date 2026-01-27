@@ -19,6 +19,7 @@ export default function DuanFaPage() {
         handleSelectShuShu,
         handleSelectFile,
         handleOutlineClick,
+        setOutline,
     } = useDuanFa();
 
     return (
@@ -41,6 +42,7 @@ export default function DuanFaPage() {
                 <DuanFaContent
                     content={selectedFile?.content || ''}
                     title={selectedFile?.name || (selectedShuShuId === 'qimen' ? '奇门断法' : '暂无内容')}
+                    onOutlineChange={setOutline}
                 />
             </div>
 
