@@ -1,10 +1,9 @@
 /**
  * 断法模块状态管理 Hook - MD 版本
  */
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
     DUANFA_FILES,
-    generateOutlineFromMd,
     type DuanFaFile,
     type DuanFaOutlineItem
 } from '../../../../lib/caseStudy/duanfaData';
@@ -42,15 +41,19 @@ export function useDuanFa() {
     // 当前选中的标题 ID（用于高亮大纲）
     const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
 
+    // 大纲数据（由正文 DOM 生成）
+    const [outline, setOutline] = useState<DuanFaOutlineItem[]>([]);
+
     // 获取当前选中的文件
     const selectedFile = useMemo<DuanFaFile | null>(() => {
         return filteredFiles.find(f => f.id === selectedFileId) || null;
     }, [filteredFiles, selectedFileId]);
 
-    // 生成大纲
-    const outline = useMemo<DuanFaOutlineItem[]>(() => {
-        if (!selectedFile) return [];
-        return generateOutlineFromMd(selectedFile.content);
+    useEffect(() => {
+        if (!selectedFile) {
+            setOutline([]);
+            return;
+        }
     }, [selectedFile]);
 
     // 选择术数分类
@@ -62,6 +65,7 @@ export function useDuanFa() {
     const handleSelectFile = useCallback((fileId: string) => {
         setSelectedFileId(fileId);
         setActiveSectionId(null);
+        setOutline([]);
     }, []);
 
     // 点击大纲项，滚动到对应标题
@@ -90,5 +94,6 @@ export function useDuanFa() {
         handleSelectFile,
         handleOutlineClick,
         setActiveSectionId,
+        setOutline,
     };
 }
