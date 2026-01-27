@@ -37,6 +37,7 @@ interface QimenHeaderProps {
     onPatternClick?: (pattern: GlobalPattern) => void;
     showChangSheng: boolean;
     onToggleChangSheng: () => void;
+    onOpenAiModal?: () => void;
 }
 
 export default function QimenHeader({
@@ -52,6 +53,7 @@ export default function QimenHeader({
     onPatternClick,
     showChangSheng,
     onToggleChangSheng,
+    onOpenAiModal,
 }: QimenHeaderProps) {
     const [isMethodOpen, setIsMethodOpen] = useState(false);
 
@@ -69,6 +71,10 @@ export default function QimenHeader({
                 <div className="flex items-center gap-1 2xl:gap-2">
                     <button onClick={onResetToNow} className="px-2 2xl:px-3 py-0.5 2xl:py-1 text-xs 2xl:text-sm bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors font-serif">现在</button>
                     <button onClick={onOpenDatePicker} className="px-2 2xl:px-3 py-0.5 2xl:py-1 text-xs 2xl:text-sm bg-secondary text-muted-foreground rounded-md hover:bg-secondary/80 transition-colors font-serif border border-border">重新选择</button>
+                    <button onClick={onOpenAiModal} className="px-2 2xl:px-3 py-0.5 2xl:py-1 text-xs 2xl:text-sm bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/30 rounded-md transition-all font-serif flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
+                        <span>AI 提示</span>
+                    </button>
                 </div>
             </div>
 
@@ -151,7 +157,6 @@ export default function QimenHeader({
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 2xl:w-3.5 2xl:h-3.5"><path d="m9 18 6-6-6-6" /></svg>
                     </button>
                     <button onClick={onToggleChangSheng} className={`px-2 2xl:px-3.5 py-0.5 text-xs 2xl:text-sm rounded-full transition-colors font-serif border border-border ${showChangSheng ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'}`}>长生状态</button>
-                    <button className="px-2 2xl:px-3.5 py-0.5 text-xs 2xl:text-sm bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors font-serif border border-border">设置</button>
                 </div>
             </div>
         </div>

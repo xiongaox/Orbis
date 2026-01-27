@@ -21,6 +21,15 @@ import { qimenCaseService, type QimenCase } from '../../../services/qimenCaseSer
 import { type GlobalPattern } from '../../../lib/csp-qimen/patternDetector';
 import { QimenDataService } from '../../../lib/csp-qimen/qimenDataService';
 import CustomJuModal from './components/CustomJuModal';
+import QimenAiPromptModal from './QimenAiPromptModal';
+
+// 方法标签映射
+const METHOD_LABELS: Record<PaiPanMethod, string> = {
+    'zhirun': '时家转盘置润法',
+    'yinpan': '时家转盘阴盘法',
+    'chaibu': '时家转盘拆补法',
+    'maoshan': '时家茅山法',
+};
 
 // 默认空的宫位数据
 const EMPTY_PALACES: QimenPalace[] = Array.from({ length: 9 }, (_, i) => ({
@@ -77,6 +86,9 @@ export default function QimenPage() {
     // 自定义局数状态
     const [customJu, setCustomJu] = useState<number>(0);  // 0=自动计算
     const [isCustomJuModalOpen, setIsCustomJuModalOpen] = useState(false);
+
+    // AI 提示词弹窗状态
+    const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
     // 根据指定日期计算奇门盘
     const calculateQimenByDate = useCallback(async (date: Date, juOverride?: number) => {
@@ -255,6 +267,7 @@ export default function QimenPage() {
                     onJuClick={() => setIsCustomJuModalOpen(true)}
                     globalPatterns={globalPatterns}
                     onPatternClick={setSelectedPattern}
+                    onOpenAiModal={() => setIsAiModalOpen(true)}
 
                 />
             </main>
@@ -402,6 +415,17 @@ export default function QimenPage() {
                     // 使用新的自定义局数重新排盘
                     calculateQimenByDate(selectedDate, newCustomJu);
                 }}
+            />
+
+            {/* AI 提示词弹窗 */}
+            <QimenAiPromptModal
+                isOpen={isAiModalOpen}
+                onClose={() => setIsAiModalOpen(false)}
+                header={header}
+                palaces={palaces}
+                globalPatterns={globalPatterns}
+                selectedPalace={selectedPalace}
+                methodLabel={METHOD_LABELS[paiPanMethod]}
             />
         </div>
     );
