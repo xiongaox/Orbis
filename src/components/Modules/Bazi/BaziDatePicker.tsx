@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Loader2, Search, ChevronRight } from 'lucide-react';
-import { baziReverseSearch, type BaziSearchResult } from '../../lib/xuan-bazi/utils/baziSearchUtil';
-import { TIAN_GAN, DI_ZHI } from '../../lib/xuan-bazi/maps/baziJichuMap';
-import { getElementTextColor, getElementBgColor } from '../../lib/xuan-bazi/maps/baziStyleMap';
+import { baziReverseSearch, type BaziSearchResult } from '../../../lib/xuan-bazi/utils/baziSearchUtil';
+import { TIAN_GAN, DI_ZHI } from '../../../lib/xuan-bazi/maps/baziJichuMap';
+import { getElementTextColor, getElementBgColor } from '../../../lib/xuan-bazi/maps/baziStyleMap';
 
 interface BaziDatePickerProps {
     onChange?: (val: any) => void;

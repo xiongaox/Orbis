@@ -1,5 +1,6 @@
 /**
  * 奇门可拖拽案例卡片
+ * 统一样式与八字案例卡片一致
  */
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -55,61 +56,64 @@ export default function QimenSortableCaseCard({
             onClick={onSelect}
             role="button"
             tabIndex={0}
-            className={`p-3 rounded-lg transition-all cursor-pointer border relative group ${isSelected
-                ? 'bg-sidebar-accent border-primary/30'
-                : 'bg-card border-border/60 hover:border-border hover:shadow-sm'
+            className={`p-2.5 rounded-xl transition-all cursor-pointer ${isSelected
+                ? 'bg-card border border-primary/40 ring-1 ring-primary/20 shadow-md z-10'
+                : 'bg-card shadow-[0_2px_6px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_16px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 hover:z-10'
                 } ${isDragging ? 'shadow-lg ring-2 ring-primary/30' : ''}`}
         >
-            <div className="flex flex-col gap-2">
-                {/* 标题 + 分类 */}
-                <div className="flex items-center gap-1.5 mb-1 pr-14">
-                    <button
-                        type="button"
-                        {...attributes}
-                        {...listeners}
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-0.5 rounded hover:bg-secondary/50 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0"
-                        aria-label="拖拽排序"
-                    >
-                        <GripVertical className="w-3.5 h-3.5" />
-                    </button>
-                    <span className="text-sm font-medium text-foreground truncate">{caseData.title}</span>
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary/80 shrink-0">
+            <div className="flex items-start justify-between gap-2">
+                {/* 左侧内容 */}
+                <div className="min-w-0">
+                    {/* 标题 + 拖拽 */}
+                    <div className="flex items-center gap-1.5 mb-1">
+                        <button
+                            type="button"
+                            {...attributes}
+                            {...listeners}
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-0.5 rounded hover:bg-secondary/50 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground shrink-0"
+                            aria-label="拖拽排序"
+                        >
+                            <GripVertical className="w-3 h-3" />
+                        </button>
+                        <span className="text-sm font-medium text-foreground truncate">{caseData.title}</span>
+                    </div>
+                    {/* 描述摘要 */}
+                    {caseData.description && (
+                        <div className="text-xs text-muted-foreground line-clamp-1 mb-1.5">
+                            {caseData.description}
+                        </div>
+                    )}
+                    {/* 日期 */}
+                    <div className="text-xs text-muted-foreground">{displayDate}</div>
+                </div>
+
+                {/* 右侧内容 */}
+                <div className="flex flex-col items-end justify-between shrink-0 self-stretch">
+                    {/* 顶部：分类标签 */}
+                    <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary/80">
                         {categoryName}
                     </span>
-                </div>
-
-                {/* 描述摘要 */}
-                {caseData.description && (
-                    <div className="text-xs text-muted-foreground line-clamp-2 mb-2 leading-relaxed">
-                        {caseData.description}
+                    {/* 底部：操作按钮 */}
+                    <div className="flex gap-1.5">
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+                            className="p-1.5 rounded-md border border-border hover:border-primary/50 hover:bg-primary/10 text-muted-foreground hover:text-primary"
+                            aria-label="编辑"
+                        >
+                            <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                            className="p-1.5 rounded-md border border-border hover:border-red-400 hover:bg-red-100 dark:hover:bg-destructive/20 text-muted-foreground hover:text-red-500"
+                            aria-label="删除"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                     </div>
-                )}
-
-                {/* 日期 - 放在底部，为了不遮挡按钮可能需要 padding-right */}
-                <div className="text-xs text-muted-foreground/70 font-mono pr-16">
-                    {displayDate}
                 </div>
-            </div>
-
-            {/* 右下角操作按钮 - 绝对定位 */}
-            <div className="absolute bottom-3 right-3 flex gap-1 z-10 transition-opacity">
-                <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onEdit(); }}
-                    className="p-1.5 rounded-md border border-border bg-card/80 backdrop-blur hover:border-primary/50 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
-                    aria-label="编辑"
-                >
-                    <Pencil className="w-3.5 h-3.5" />
-                </button>
-                <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                    className="p-1.5 rounded-md border border-border bg-card/80 backdrop-blur hover:border-red-400 hover:bg-red-100 dark:hover:bg-destructive/20 text-muted-foreground hover:text-red-500 transition-colors"
-                    aria-label="删除"
-                >
-                    <Trash2 className="w-3.5 h-3.5" />
-                </button>
             </div>
         </div>
     );

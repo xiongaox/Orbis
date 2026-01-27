@@ -33,7 +33,7 @@ export default function TagSelector({ selectedTags, onChange, disabled }: TagSel
                         disabled={disabled}
                         className={`
                             px-3 py-1.5 text-xs rounded-lg transition-all
-                            border
+                            border focus-ring
                             ${isSelected
                                 ? 'bg-[hsl(var(--accent-primary)/0.18)] border-[hsl(var(--accent-primary)/0.4)] text-[hsl(var(--accent-primary))] dark:bg-primary/20 dark:border-primary/50 dark:text-primary'
                                 : 'bg-[hsl(var(--muted))] border-[hsl(var(--muted-border))] text-[hsl(var(--text-secondary-light))] hover:text-[hsl(var(--text-primary-light))] hover:border-[hsl(var(--accent-primary)/0.35)] hover:bg-[hsl(var(--muted-hover))] dark:bg-secondary/50 dark:border-border dark:text-muted-foreground dark:hover:text-foreground dark:hover:border-primary/30'

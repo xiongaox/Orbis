@@ -14,7 +14,7 @@ import {
 } from '../../../lib/xuan-bazi/utils/baziExtendUtil';
 import { getNaYin } from '../../../lib/xuan-bazi/utils/baziJichuUtil';
 import { calculateWangShuai } from '../../../lib/xuan-bazi/utils/wangShuaiUtil';
-import PhysicsLogModal from '../../Common/PhysicsLogModal';
+import PhysicsLogModal from './PhysicsLogModal';
 
 
 interface BaziBasicInfoPanelProps {

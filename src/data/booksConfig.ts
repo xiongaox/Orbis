@@ -2,7 +2,7 @@
  * 书籍配置
  * 定义智能咨询参考面板可选的经典书籍列表
  */
-import type { InsightBook } from '../components/Common/InsightPanel';
+import type { InsightBook } from '../components/Modules/Bazi/InsightPanel';
 
 /**
  * 默认选中的书籍 ID

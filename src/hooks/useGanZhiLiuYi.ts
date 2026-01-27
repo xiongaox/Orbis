@@ -4,7 +4,7 @@
  * 从 App.tsx 提取的业务逻辑
  */
 import { useMemo } from 'react';
-import type { GanZhiLiuYiData } from '../components/Common/GanZhiLiuYiPanel';
+import type { GanZhiLiuYiData } from '../components/Modules/Bazi/GanZhiLiuYiPanel';
 import type { BaziApiResponse } from '../types/bazi';
 import {
     calculateTianGanLiuYi,

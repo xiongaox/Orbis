@@ -3,7 +3,7 @@
  * 从 InsightPanel.tsx 提取的渲染辅助组件
  */
 import type { ReactNode } from 'react';
-import { TIAN_GAN } from '../../lib/xuan-bazi/maps/baziJichuMap';
+import { TIAN_GAN } from '../../../lib/xuan-bazi/maps/baziJichuMap';
 import { BookOpen } from 'lucide-react';
 
 // 天干列表

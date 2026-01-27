@@ -4,16 +4,16 @@
  */
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronRight, Search, LogIn, Pencil, Trash2, Import } from 'lucide-react';
-import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../utils/lunarUtil';
-import { useAuth } from '../../contexts/AuthContext';
-import { baziCaseService, CASE_TAGS, type BaziCase, type CaseTag, type CreateCaseInput } from '../../services/baziCaseService';
-import { TIAN_GAN_WU_XING } from '../../lib/xuan-bazi/maps';
-import type { Case } from '../../types';
-import ConfirmModal from './ConfirmModal';
+import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../../utils/lunarUtil';
+import { useAuth } from '../../../contexts/AuthContext';
+import { baziCaseService, CASE_TAGS, type BaziCase, type CaseTag, type CreateCaseInput } from '../../../services/baziCaseService';
+import { TIAN_GAN_WU_XING } from '../../../lib/xuan-bazi/maps';
+import type { Case } from '../../../types';
+import ConfirmModal from '../../Common/ConfirmModal';
 
 import CreateCaseModal from './CreateCaseModal';
 import ImportCaseModal from './ImportCaseModal';
-import { BAZI_CASES_CHANGED_EVENT } from '../../data/caseConstants';
+import { BAZI_CASES_CHANGED_EVENT } from '../../../data/caseConstants';
 import EditCaseModal from './EditCaseModal';
 
 type ChartType =
@@ -345,7 +345,7 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
                   }}
                   className={`group relative w-full text-left p-3 rounded-xl mb-2 transition-all cursor-pointer border ${selectedCaseId === item.id
                     ? 'bg-card border-primary/40 ring-1 ring-primary/20 shadow-md z-10'
-                    : 'bg-card border-transparent dark:border-border/30 shadow-[0_2px_6px_rgba(0,0,0,0.02)] hover:shadow-[0_6px_12px_rgba(0,0,0,0.06)] hover:z-10 hover:border-border/50'
+                    : 'bg-card border-transparent dark:border-border/30 shadow-[0_2px_6px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_16px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 hover:z-10 hover:border-border/50'
                     }`}
                 >
                   <div className="flex items-start justify-between gap-3">

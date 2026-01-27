@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getLunarToSolarDate, getSolarToLunarInfo } from '../../utils/lunarUtil';
-import BaziDatePicker from './BaziDatePicker';
+import BaziDatePicker from '../Modules/Bazi/BaziDatePicker';
 
 interface AdvancedDatePickerProps {
     value?: string | Date; // Can be ISO string or Date object

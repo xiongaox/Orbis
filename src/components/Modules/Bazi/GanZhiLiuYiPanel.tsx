@@ -5,7 +5,7 @@
  */
 import { Link2 } from 'lucide-react';
 
-import type { GanZhiLiuYiResult } from '../../lib/xuan-bazi/utils/baziGanZhiLiuYiUtil';
+import type { GanZhiLiuYiResult } from '../../../lib/xuan-bazi/utils/baziGanZhiLiuYiUtil';
 
 export interface GanZhiLiuYiData {
     /** 天干留意内容 */

@@ -7,16 +7,16 @@ import { AuthProvider } from './contexts/AuthContext';
 import { BaziProvider, useBaziContext } from './contexts/BaziContext';
 import Navbar from './components/Layout/Navbar';
 import MainLayout from './components/Layout/MainLayout';
-import CaseList from './components/Common/CaseList';
-import InsightPanel from './components/Common/InsightPanel';
-import GanZhiLiuYiPanel from './components/Common/GanZhiLiuYiPanel';
+import BaziCaseList from './components/Modules/Bazi/BaziCaseList';
+import InsightPanel from './components/Modules/Bazi/InsightPanel';
+import GanZhiLiuYiPanel from './components/Modules/Bazi/GanZhiLiuYiPanel';
 import PlaceholderChart from './components/Common/PlaceholderChart';
 import BaziPage from './components/Modules/Bazi/BaziPage';
 import QimenPage from './components/Modules/Qimen/QimenPage';
 import WannianliPage from './components/Modules/Wannianli/WannianliPage';
 import CaseStudyPage from './components/Modules/CaseStudy/CaseStudyPage';
 import AuthModal from './components/Auth/AuthModal';
-import CaseLibraryModal from './components/Common/CaseLibraryModal';
+import BaziCaseLibraryModal from './components/Modules/Bazi/BaziCaseLibraryModal';
 import { useInsightContent } from './hooks/useInsightContent';
 import { useGanZhiLiuYi } from './hooks/useGanZhiLiuYi';
 import type { ChartType } from './types';
@@ -72,7 +72,7 @@ function AppContent() {
         return (
           <MainLayout
             sidebar={showSidebar ? (
-              <CaseList
+              <BaziCaseList
                 selectedCaseId={bazi.selectedCaseId}
                 onSelectCase={bazi.handleSelectCase}
                 onLoginClick={handleLoginClick}
@@ -99,7 +99,7 @@ function AppContent() {
         return (
           <MainLayout
             sidebar={showSidebar ? (
-              <CaseList
+              <BaziCaseList
                 selectedCaseId={bazi.selectedCaseId}
                 onSelectCase={bazi.handleSelectCase}
                 onLoginClick={handleLoginClick}
@@ -133,7 +133,7 @@ function AppContent() {
       />
 
       {/* 案例库弹窗 (仅在 MainLayout 模式下使用，虽在此处全局渲染但仅由 CaseList 触发) */}
-      <CaseLibraryModal
+      <BaziCaseLibraryModal
         isOpen={showCaseLibraryModal}
         onClose={() => setShowCaseLibraryModal(false)}
         selectedCaseId={bazi.selectedCaseId}
