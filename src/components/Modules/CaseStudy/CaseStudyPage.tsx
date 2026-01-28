@@ -8,7 +8,10 @@ import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect, useCallback } from 'react';
+
+// 认证上下文
+import { useAuth } from '../../../contexts/AuthContext';
 
 // 从提取的模块导入
 // 从提取的模块导入
@@ -33,7 +36,14 @@ import type { BaziApiResponse, DaYunPeriod, PillarData } from '../../../types/ba
 import DuanFaPage from './DuanFaPage';
 
 // Hook 导入
-import { useCaseStudy } from './hooks/useCaseStudy';
+import { useCaseStudy, ALL_CASES } from './hooks/useCaseStudy';
+import { useReadingProgress } from './hooks/useReadingProgress';
+
+// 学习面板组件
+import LearningPanelFAB from './components/LearningPanelFAB';
+import LearningPanelModal from './components/LearningPanelModal';
+import FavoriteButton from './components/FavoriteButton';
+import ReadingProgressButton from './components/ReadingProgressButton';
 
 
 // 构造 BaziApiResponse 的辅助函数
@@ -213,6 +223,38 @@ export default function CaseStudyPage() {
     // 局数选择弹窗状态
     const [isJuDialogOpen, setIsJuDialogOpen] = useState(false);
 
+    // 认证状态
+    const { isAuthenticated } = useAuth();
+
+    // 学习面板状态
+    const [isLearningPanelOpen, setIsLearningPanelOpen] = useState(false);
+
+    // 内容区滚动容器 ref（用于进度追踪）
+    const contentScrollRef = useRef<HTMLDivElement>(null);
+
+    // 阅读进度同步
+    const { savedProgress, restoreProgress, currentProgress } = useReadingProgress({
+        articleId: activeCase?.id || null,
+        scrollContainerRef: contentScrollRef,
+        enabled: isAuthenticated,
+    });
+
+    // 进入文章时重置滚动位置到顶部
+    useEffect(() => {
+        if (activeCase && contentScrollRef.current) {
+            contentScrollRef.current.scrollTo({ top: 0 });
+        }
+    }, [activeCase?.id]);
+
+    // 获取文章信息的辅助函数（供学习面板使用）
+    const getArticleInfo = useCallback((articleId: string): { title: string; author: string } => {
+        const caseItem = ALL_CASES.find(c => c.id === articleId);
+        return {
+            title: caseItem?.title || '未知标题',
+            author: caseItem?.author || '未知作者',
+        };
+    }, []);
+
     // 构造 BaziData
     const baziData = useMemo(() => {
         if (!activeCase?.content) return null;
@@ -278,11 +320,17 @@ export default function CaseStudyPage() {
             {/* 3. 内容区 (55%) */}
             <div className="w-[55%] flex flex-col bg-background/50 relative overflow-hidden">
                 {activeCase ? (
-                    <div className="flex-1 overflow-y-auto p-8">
+                    <div ref={contentScrollRef} className="flex-1 overflow-y-auto p-8">
                         <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
-                            <h1 className="text-2xl font-serif font-bold text-center text-primary/90 pb-4 border-b border-border/40">
-                                {activeCase.title}
-                            </h1>
+                            {/* 标题行：标题 + 收藏按钮 */}
+                            <div className="flex items-center justify-center gap-3 pb-4 border-b border-border/40">
+                                <h1 className="text-2xl font-serif font-bold text-primary/90">
+                                    {activeCase.title}
+                                </h1>
+                                {isAuthenticated && (
+                                    <FavoriteButton articleId={activeCase.id} />
+                                )}
+                            </div>
                             <div className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed text-[18px]">
                                 <ReactMarkdown
                                     rehypePlugins={[rehypeRaw]}
@@ -315,6 +363,20 @@ export default function CaseStudyPage() {
                     <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground/40">
                         <Compass className="w-16 h-16 mb-4 opacity-20" />
                         <span className="text-sm font-serif">请选择左侧案例查看详情</span>
+                    </div>
+                )}
+
+                {/* 学习面板 FAB - 仅登录用户可见 */}
+                {isAuthenticated && (
+                    <div className="absolute right-4 bottom-4 z-10 flex flex-col items-center gap-3">
+                        {/* 进度环按钮 - 点击跳转进度 */}
+                        <ReadingProgressButton
+                            progress={currentProgress}
+                            savedProgress={savedProgress}
+                            isFinished={currentProgress > 0 ? currentProgress >= 90 : savedProgress >= 90}
+                            onRestore={restoreProgress}
+                        />
+                        <LearningPanelFAB onClick={() => setIsLearningPanelOpen(true)} />
                     </div>
                 )}
             </div>
@@ -411,6 +473,14 @@ export default function CaseStudyPage() {
                 onClose={() => setIsJuDialogOpen(false)}
                 currentJu={customJu}
                 onSelectJu={setCustomJu}
+            />
+
+            {/* 学习面板弹窗 */}
+            <LearningPanelModal
+                isOpen={isLearningPanelOpen}
+                onClose={() => setIsLearningPanelOpen(false)}
+                onSelectArticle={handleSelectCase}
+                getArticleInfo={getArticleInfo}
             />
         </div>
     );

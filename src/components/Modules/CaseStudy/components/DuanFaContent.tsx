@@ -1,9 +1,4 @@
-/**
- * 断法正文内容组件 - MD 版本
- * 使用 ReactMarkdown 渲染，和八字/奇门案例保持一致
- */
-
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
@@ -22,8 +17,12 @@ interface DuanFaContentProps {
  * 预解析内容，提取所有标题并分配 id
  * 这样可以确保每次渲染使用相同的 id
  */
-export default function DuanFaContent({ content, title, onOutlineChange }: DuanFaContentProps) {
+const DuanFaContent = forwardRef<HTMLDivElement, DuanFaContentProps>(({ content, title, onOutlineChange }, ref) => {
     const contentRef = useRef<HTMLDivElement>(null);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+    // 暴露滚动容器给父组件
+    useImperativeHandle(ref, () => scrollContainerRef.current as HTMLDivElement);
 
     // 仅当正文首行 H1 与页面标题一致时，才视作“重复标题”并移除。
     // 注意：断法文章会把原 h2/h3 提级写回 Markdown 源文件，因此正文可能以多个 H1 章节开头，不能一概移除。
@@ -144,35 +143,38 @@ export default function DuanFaContent({ content, title, onOutlineChange }: DuanF
     }, [content, title, hasTitleH1, onOutlineChange]);
 
     return (
-        <div className="flex-1 overflow-y-auto p-8 scrollbar-none">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-8 scrollbar-none">
             {!content ? (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground/50">
                     <span className="font-serif">暂无内容</span>
                 </div>
             ) : (
                 <div ref={contentRef} className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
-                {/* 页面标题 - 对应第 0 个标题的 ID (仅当实际上有 H1 时) */}
-                <h1
-                    id={hasTitleH1 ? 'duanfa-heading-0' : undefined}
-                    data-duanfa-heading={hasTitleH1 ? 'true' : undefined}
-                    data-heading-level={hasTitleH1 ? '1' : undefined}
-                    className="text-2xl font-serif font-bold text-center text-primary/90 pb-4 border-b border-border/40 scroll-mt-8"
-                >
-                    {title}
-                </h1>
-
-                {/* Markdown 内容 */}
-                <div className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed">
-                    <ReactMarkdown
-                        rehypePlugins={[rehypeRaw]}
-                        remarkPlugins={[remarkGfm, remarkBreaks]}
-                        components={components}
+                    {/* 页面标题 - 对应第 0 个标题的 ID (仅当实际上有 H1 时) */}
+                    <h1
+                        id={hasTitleH1 ? 'duanfa-heading-0' : undefined}
+                        data-duanfa-heading={hasTitleH1 ? 'true' : undefined}
+                        data-heading-level={hasTitleH1 ? '1' : undefined}
+                        className="text-2xl font-serif font-bold text-center text-primary/90 pb-4 border-b border-border/40 scroll-mt-8"
                     >
-                        {processedContent}
-                    </ReactMarkdown>
+                        {title}
+                    </h1>
+
+                    {/* Markdown 内容 */}
+                    <div className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed">
+                        <ReactMarkdown
+                            rehypePlugins={[rehypeRaw]}
+                            remarkPlugins={[remarkGfm, remarkBreaks]}
+                            components={components}
+                        >
+                            {processedContent}
+                        </ReactMarkdown>
+                    </div>
                 </div>
-            </div>
             )}
         </div>
     );
-}
+});
+
+DuanFaContent.displayName = 'DuanFaContent';
+export default DuanFaContent;
