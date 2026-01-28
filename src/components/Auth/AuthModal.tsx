@@ -3,7 +3,7 @@
  * 支持：密码登录、注册、忘记密码、验证码登录
  */
 import { useState, useEffect } from 'react';
-import { Mail, Lock, Eye, EyeOff, Loader2, ArrowLeft, KeyRound } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader2, ArrowLeft, KeyRound, LogIn, UserPlus } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import BaseModal from '../UI/BaseModal';
 
@@ -205,27 +205,34 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         }
     };
 
-    const header = (
-        <div className="flex items-center gap-2">
-            {(mode === 'forgot' || mode === 'otp') && (
+    const getTitleIcon = () => {
+        // 当有返回按钮时（forgot/otp 模式），返回按钮作为图标位置
+        if (mode === 'forgot' || mode === 'otp') {
+            return (
                 <button
                     type="button"
                     onClick={() => switchMode('login')}
-                    className="p-1 -ml-2 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted/50 transition-colors"
+                    className="p-1 -ml-1 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted/50 transition-colors"
                     aria-label="返回登录"
                 >
                     <ArrowLeft className="w-4 h-4" />
                 </button>
-            )}
-            <span>{getTitle()}</span>
-        </div>
-    );
+            );
+        }
+        // 登录/注册模式显示对应图标
+        switch (mode) {
+            case 'login': return <LogIn className="w-5 h-5" />;
+            case 'register': return <UserPlus className="w-5 h-5" />;
+            default: return null;
+        }
+    };
 
     return (
         <BaseModal
             isOpen={isOpen}
             onClose={onClose}
-            title={header}
+            title={getTitle()}
+            titleIcon={getTitleIcon()}
             maxWidth="max-w-[380px]"
         >
             {/* ========== 登录模式 ========== */}

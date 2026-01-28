@@ -18,7 +18,7 @@ import {
     sortableKeyboardCoordinates,
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Search, Plus, Upload, LogIn } from 'lucide-react';
+import { Search, Plus, Upload, LogIn, Library } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { baziCaseService, CASE_TAGS, type BaziCase, type CaseTag } from '../../../services/baziCaseService';
 import { BAZI_CASES_CHANGED_EVENT } from '../../../data/caseConstants';
@@ -177,12 +177,15 @@ export default function CaseLibraryModal({
         </div>
     );
 
+    const headerIcon = <Library className="w-5 h-5" />;
+
     return (
         <>
             <BaseModal
                 isOpen={isOpen}
                 onClose={onClose}
                 title={header}
+                titleIcon={headerIcon}
                 maxWidth="max-w-2xl"
                 bodyClassName="flex flex-col h-[70vh] p-4 sm:p-6 overflow-hidden"
             >

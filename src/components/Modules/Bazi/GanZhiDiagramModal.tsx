@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-
+import { Share2 } from 'lucide-react';
 import BaseModal from '../../UI/BaseModal';
 import { createDefaultGanZhiLiuYiSetting } from '../../../lib/xuan-bazi/settings/baziGanZhiLiuYiSetting';
 import {
@@ -363,6 +363,7 @@ export default function GanZhiDiagramModal({
             isOpen={isOpen}
             onClose={onClose}
             title={header}
+            titleIcon={<Share2 className="w-5 h-5" />}
             maxWidth="max-w-[720px]"
             bodyClassName="p-0 overflow-hidden flex flex-col bg-dot-pattern min-h-[500px]"
         >

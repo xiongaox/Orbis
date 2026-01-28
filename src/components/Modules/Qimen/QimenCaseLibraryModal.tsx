@@ -18,7 +18,7 @@ import {
     sortableKeyboardCoordinates,
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Search, Plus, Upload, LogIn } from 'lucide-react';
+import { Search, Plus, Upload, LogIn, Library } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { qimenCaseService, type QimenCase, QIMEN_CATEGORIES } from '../../../services/qimenCaseService';
 import QimenSortableCaseCard from './QimenSortableCaseCard';
@@ -168,6 +168,7 @@ export default function QimenCaseLibraryModal({
                             </span>
                         </div>
                     }
+                    titleIcon={<Library className="w-5 h-5" />}
                     maxWidth="max-w-2xl"
                     bodyClassName="flex flex-col h-[70vh] p-4 sm:p-6 overflow-hidden"
                 >

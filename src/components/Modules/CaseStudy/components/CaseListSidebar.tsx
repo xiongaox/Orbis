@@ -54,7 +54,31 @@ export default function CaseListSidebar({
     return (
         <div className="w-[15%] border-r border-border bg-card flex flex-col min-w-[200px]">
             <div className="p-3 border-b border-border space-y-2">
-                <h3 className="font-medium text-sm">案例列表</h3>
+                <div className="flex items-center justify-between">
+                    <h3 className="font-medium text-sm">案例列表</h3>
+                    {/* 分页控件 */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                                disabled={currentPage === 1}
+                                className="p-0.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                <ChevronLeft className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="text-xs text-muted-foreground font-mono min-w-[36px] text-center">
+                                {currentPage}/{totalPages}
+                            </span>
+                            <button
+                                onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+                                disabled={currentPage === totalPages}
+                                className="p-0.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                                <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    )}
+                </div>
 
                 {/* 日主分类下拉菜单 */}
                 <div className="relative group">
@@ -133,9 +157,9 @@ export default function CaseListSidebar({
                     displayCases.map((item) => (
                         <div
                             key={item.id}
-                            className={`p-2 rounded text-sm cursor-pointer transition-all border ${selectedCaseId === item.id
-                                ? 'bg-primary/10 border-primary/30 text-primary'
-                                : 'border-transparent text-muted-foreground hover:bg-muted/30 hover:text-foreground'
+                            className={`p-2.5 rounded-lg text-sm cursor-pointer transition-[box-shadow,transform,background-color,border-color] duration-300 border ${selectedCaseId === item.id
+                                ? 'bg-primary/10 border-primary/30 text-primary shadow-md shadow-primary/10'
+                                : 'border-border/40 text-muted-foreground hover:bg-muted/30 hover:text-foreground hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5'
                                 }`}
                             onClick={() => onSelectCase(item.id)}
                         >
@@ -161,28 +185,6 @@ export default function CaseListSidebar({
                 )}
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="p-2 border-t border-border flex items-center justify-center gap-2 bg-card/50">
-                    <button
-                        onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-                        disabled={currentPage === 1}
-                        className="p-1 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                        <ChevronLeft className="w-4 h-4" />
-                    </button>
-                    <span className="text-xs text-muted-foreground font-mono">
-                        {currentPage}/{totalPages}
-                    </span>
-                    <button
-                        onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-                        disabled={currentPage === totalPages}
-                        className="p-1 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                        <ChevronRight className="w-4 h-4" />
-                    </button>
-                </div>
-            )}
         </div>
     );
 }

@@ -223,7 +223,7 @@ export default function CaseStudyDayunPanel({
                                                         >
                                                             {item.tiangan}
                                                         </span>
-                                                        <span className="text-base text-muted-foreground leading-none">
+                                                        <span className="text-sm text-muted-foreground leading-none">
                                                             {getShiShenAbbr(dayMaster, item.tiangan)}
                                                         </span>
                                                     </div>
@@ -234,7 +234,7 @@ export default function CaseStudyDayunPanel({
                                                         >
                                                             {item.dizhi}
                                                         </span>
-                                                        <span className="text-base text-muted-foreground leading-none">
+                                                        <span className="text-sm text-muted-foreground leading-none">
                                                             {getShiShenAbbr(dayMaster, item.dizhi)}
                                                         </span>
                                                     </div>
@@ -303,7 +303,7 @@ export default function CaseStudyDayunPanel({
                                                         >
                                                             {item.tiangan}
                                                         </span>
-                                                        <span className="text-base text-muted-foreground leading-none">
+                                                        <span className="text-sm text-muted-foreground leading-none">
                                                             {getShiShenAbbr(dayMaster, item.tiangan)}
                                                         </span>
                                                     </div>
@@ -314,7 +314,7 @@ export default function CaseStudyDayunPanel({
                                                         >
                                                             {item.dizhi}
                                                         </span>
-                                                        <span className="text-base text-muted-foreground leading-none">
+                                                        <span className="text-sm text-muted-foreground leading-none">
                                                             {getShiShenAbbr(dayMaster, item.dizhi)}
                                                         </span>
                                                     </div>

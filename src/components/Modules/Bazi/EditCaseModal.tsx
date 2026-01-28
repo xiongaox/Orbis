@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, Pencil } from 'lucide-react';
 import type { BaziCase, CaseTag } from '../../../services/baziCaseService';
 import { baziCaseService } from '../../../services/baziCaseService';
 import { calculateBazi } from '../../../services/bazi/caseHelper';
@@ -97,6 +97,7 @@ export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: Ed
             isOpen={isOpen}
             onClose={onClose}
             title="编辑案例"
+            titleIcon={<Pencil className="w-5 h-5" />}
             footer={footer}
             maxWidth="max-w-[480px]"
         >

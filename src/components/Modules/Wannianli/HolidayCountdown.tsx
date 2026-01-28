@@ -197,7 +197,8 @@ export default function HolidayCountdown({ onSelectDate }: { onSelectDate?: (dat
                             }
                         }}
                         className={classNames(
-                            "group relative overflow-hidden rounded-2xl transition-all duration-300 cursor-pointer",
+                            "group relative overflow-hidden rounded-2xl cursor-pointer",
+                            "transition-[box-shadow,transform] duration-300",
                             "bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-transparent dark:border-border/60 dark:shadow-none hover:shadow-[0_8px_16px_rgba(0,0,0,0.08)] hover:-translate-y-0.5",
                             h.diffDays <= 3 && "bg-primary/[0.03] dark:bg-primary/10"
                         )}

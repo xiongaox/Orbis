@@ -3,7 +3,7 @@
  * 包含字段：案例名称、求测时间、标签分类、事情描述、事件反馈、案例断法
  */
 import { useState } from 'react';
-import { Calendar, Loader2 } from 'lucide-react';
+import { Calendar, Loader2, Plus, Pencil } from 'lucide-react';
 import BaseModal from '../../UI/BaseModal';
 import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
 import { qimenCaseService, type CreateQimenCaseInput, type UpdateQimenCaseInput, type QimenCategory, type QimenCase } from '../../../services/qimenCaseService';
@@ -100,6 +100,7 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
             isOpen={isOpen}
             onClose={onClose}
             title={initialData ? '编辑案例' : '新建案例'}
+            titleIcon={initialData ? <Pencil className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
             maxWidth="max-w-md"
         >
             <div className="space-y-5">

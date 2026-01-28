@@ -5,6 +5,7 @@ interface BaseModalProps {
     isOpen: boolean;
     onClose: () => void;
     title?: React.ReactNode;
+    titleIcon?: React.ReactNode;
     children: React.ReactNode;
     footer?: React.ReactNode;
     maxWidth?: string; // e.g. 'max-w-sm', 'max-w-md', 'max-w-4xl'
@@ -18,6 +19,7 @@ export default function BaseModal({
     isOpen,
     onClose,
     title,
+    titleIcon,
     children,
     footer,
     maxWidth = 'max-w-md',
@@ -73,7 +75,8 @@ export default function BaseModal({
                 {/* Header */}
                 {(title || showCloseButton) && (
                     <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
-                        <div className="text-lg font-semibold text-foreground" id="modal-title">
+                        <div className="flex items-center gap-2 text-lg font-semibold text-foreground" id="modal-title">
+                            {titleIcon && <span className="text-primary">{titleIcon}</span>}
                             {title}
                         </div>
                         {showCloseButton && (

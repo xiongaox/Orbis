@@ -136,12 +136,12 @@ export default function AiPromptModal({ isOpen, onClose, data, selectedLiuNianYe
             showCloseButton={false} // Custom close button used inside or relied on BaseModal's
             maxWidth="max-w-4xl"
             className="flex-row p-0 overflow-hidden" // Override default flex-col and padding
-            bodyClassName="p-0 overflow-hidden flex h-[70vh] max-h-[600px]" // Fixed height with overflow handling
+            bodyClassName="p-0 min-h-0 !flex-none !h-[70vh] !max-h-[570px] overflow-x-hidden overflow-y-auto md:overflow-hidden" // Fixed height; mobile body scroll, desktop inner scroll
         >
-            <div className="flex flex-col md:flex-row h-full w-full">
+            <div className="flex flex-col md:flex-row h-full w-full min-h-0">
                 {/* 左侧：Prompt 预览 (60%) */}
-                <div className="w-full md:w-[60%] flex flex-col border-b md:border-b-0 md:border-r border-border bg-muted/30">
-                    <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+                <div className="w-full md:w-[60%] flex flex-col min-h-0 border-b md:border-b-0 md:border-r border-border bg-muted/30">
+                    <div className="p-4 h-14 border-b border-border flex items-center justify-between shrink-0">
                         <div className="flex items-center gap-2 text-foreground font-medium">
                             <Sparkles className="w-4 h-4 text-amber-500" />
                             八字信息提示词
@@ -149,7 +149,7 @@ export default function AiPromptModal({ isOpen, onClose, data, selectedLiuNianYe
                         <div className="text-xs text-muted-foreground">已生成 {promptText.length} 字</div>
                     </div>
 
-                    <div className="p-4 flex flex-col flex-1 overflow-hidden">
+                    <div className="p-4 flex flex-col flex-1 min-h-0 overflow-hidden">
                         <div className="h-full bg-muted/50 rounded-lg p-4 border border-border/50 font-serif text-foreground text-sm leading-relaxed whitespace-pre-wrap selection:bg-amber-500/20 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                             {promptText}
                         </div>
@@ -167,9 +167,9 @@ export default function AiPromptModal({ isOpen, onClose, data, selectedLiuNianYe
                 </div>
 
                 {/* 右侧：操作与扩展 (40%) */}
-                <div className="w-full md:w-[40%] flex flex-col bg-card">
+                <div className="w-full md:w-[40%] flex flex-col min-h-0 bg-card">
                     {/* Header */}
-                    <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
+                    <div className="p-4 h-14 border-b border-border flex items-center justify-between shrink-0">
                         <h3 className="text-sm font-medium text-foreground">AI 助手</h3>
                         <button
                             onClick={onClose}
@@ -179,7 +179,7 @@ export default function AiPromptModal({ isOpen, onClose, data, selectedLiuNianYe
                         </button>
                     </div>
 
-                    <div className="flex-1 p-6 flex flex-col gap-6 overflow-y-auto">
+                    <div className="flex-1 min-h-0 p-6 flex flex-col gap-6 overflow-y-auto">
 
                         {/* 扩展选项 */}
                         <div className="space-y-3">
