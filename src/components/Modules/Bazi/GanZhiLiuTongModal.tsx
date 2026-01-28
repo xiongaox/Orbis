@@ -9,7 +9,7 @@
  * - 合：只在同柱天干地支之间显示（如己亥合）
  */
 import { useMemo, useState, useEffect } from 'react';
-import { ChevronsLeft, ChevronsRight, ChevronsUp, ChevronsDown } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, ChevronsUp, ChevronsDown, Network } from 'lucide-react';
 import BaseModal from '../../UI/BaseModal';
 import { getElementColor } from '../../../lib/xuan-bazi/maps/baziStyleMap';
 import { getShiShen } from '../../../lib/xuan-bazi/utils';
@@ -540,6 +540,7 @@ export default function GanZhiLiuTongModal({
             isOpen={isOpen}
             onClose={onClose}
             title={header}
+            titleIcon={<Network className="w-5 h-5" />}
             maxWidth="max-w-[720px]"
             bodyClassName="p-0 overflow-hidden flex flex-col bg-dot-pattern min-h-[500px]"
         >

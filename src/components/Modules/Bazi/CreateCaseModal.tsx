@@ -3,7 +3,7 @@
  * 包含姓名、性别、出生日期、标签、备注
  */
 import { useState } from 'react';
-import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, Plus } from 'lucide-react';
 import TagSelector from '../../Common/TagSelector';
 import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
 import { baziCaseService, type CaseTag, type CreateCaseInput, type BaziCase } from '../../../services/baziCaseService';
@@ -164,6 +164,7 @@ export default function CreateCaseModal({ isOpen, onClose, onCreated, onPreview 
             isOpen={isOpen}
             onClose={handleClose}
             title="新建案例"
+            titleIcon={<Plus className="w-5 h-5" />}
             footer={footer}
             maxWidth="max-w-[480px]"
         >

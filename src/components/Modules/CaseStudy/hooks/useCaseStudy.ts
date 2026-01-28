@@ -102,7 +102,7 @@ const ALL_CASES: CaseItem[] = Object.entries(rawCases)
         return a.title.localeCompare(b.title, 'zh-CN');
     });
 
-const ITEMS_PER_PAGE = 13;
+const ITEMS_PER_PAGE = 12;
 
 
 

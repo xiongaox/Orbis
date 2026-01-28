@@ -107,7 +107,21 @@ export default function CaseStudyPalaceCell({
                         {showChangSheng && <span className="text-[12px] text-muted-foreground whitespace-nowrap mt-0.5">{palace.xingWang}</span>}
                     </div>
                     <div className="flex flex-col items-center justify-end leading-none">
-                        <span className={tianPanStatus.colorVar ? 'text-base font-serif font-bold' : `text-base font-serif ${isDayStem || isHourStem ? 'text-primary font-bold' : 'text-foreground'}`} style={tianPanStatus.colorVar ? { color: tianPanStatus.colorVar } : undefined}>{palace.tianPan}</span>
+                        {tianPanStatus.status === 'jiXing' ? (
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded border border-fuchsia-500 text-fuchsia-500 bg-fuchsia-500/5 font-serif font-bold text-sm">
+                                {palace.tianPan}
+                            </span>
+                        ) : tianPanStatus.status === 'ruMu' ? (
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded border border-[#cd853f] text-[#cd853f] bg-[#cd853f]/10 font-serif font-bold text-sm">
+                                {palace.tianPan}
+                            </span>
+                        ) : tianPanStatus.status === 'jiXingRuMu' ? (
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded border border-[#3b82f6] text-[#3b82f6] bg-[#3b82f6]/10 font-serif font-bold text-sm">
+                                {palace.tianPan}
+                            </span>
+                        ) : (
+                            <span className={tianPanStatus.colorVar ? 'text-base font-serif font-bold' : `text-base font-serif ${isDayStem || isHourStem ? 'text-primary font-bold' : 'text-foreground'}`} style={tianPanStatus.colorVar ? { color: tianPanStatus.colorVar } : undefined}>{palace.tianPan}</span>
+                        )}
                         {showChangSheng && <span className="text-[12px] text-muted-foreground whitespace-nowrap mt-0.5">{palace.tianPanShiErCS}</span>}
                     </div>
                 </div>
@@ -123,7 +137,21 @@ export default function CaseStudyPalaceCell({
                         {showChangSheng && <span className="text-[12px] text-muted-foreground whitespace-nowrap mt-0.5">{palace.menWang}</span>}
                     </div>
                     <div className="flex flex-col items-center justify-end leading-none">
-                        <span className={diPanStatus.colorVar ? 'text-base font-serif font-bold' : 'text-base font-serif text-foreground'} style={diPanStatus.colorVar ? { color: diPanStatus.colorVar } : undefined}>{palace.diPan}</span>
+                        {diPanStatus.status === 'jiXing' ? (
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded border border-fuchsia-500 text-fuchsia-500 bg-fuchsia-500/5 font-serif font-bold text-sm">
+                                {palace.diPan}
+                            </span>
+                        ) : diPanStatus.status === 'ruMu' ? (
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded border border-[#cd853f] text-[#cd853f] bg-[#cd853f]/10 font-serif font-bold text-sm">
+                                {palace.diPan}
+                            </span>
+                        ) : diPanStatus.status === 'jiXingRuMu' ? (
+                            <span className="inline-flex items-center justify-center w-5 h-5 rounded border border-[#3b82f6] text-[#3b82f6] bg-[#3b82f6]/10 font-serif font-bold text-sm">
+                                {palace.diPan}
+                            </span>
+                        ) : (
+                            <span className={diPanStatus.colorVar ? 'text-base font-serif font-bold' : 'text-base font-serif text-foreground'} style={diPanStatus.colorVar ? { color: diPanStatus.colorVar } : undefined}>{palace.diPan}</span>
+                        )}
                         {showChangSheng && <span className="text-[12px] text-muted-foreground whitespace-nowrap mt-0.5">{palace.diPanShiErCS}</span>}
                     </div>
                 </div>
