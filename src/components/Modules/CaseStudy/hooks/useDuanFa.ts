@@ -1,7 +1,7 @@
 /**
  * 断法模块状态管理 Hook - MD 版本
  */
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
     DUANFA_FILES,
     type DuanFaFile,
@@ -23,20 +23,9 @@ export function useDuanFa() {
     }, [selectedShuShuId]);
 
     // 当前选中的文件 ID
-    const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
-
-    // 当文件列表变化时，自动选中第一个文件
-    useMemo(() => {
-        if (filteredFiles.length > 0) {
-            // 如果当前选中的文件不在新列表中，则选中第一个
-            const exists = filteredFiles.find(f => f.id === selectedFileId);
-            if (!exists) {
-                setSelectedFileId(filteredFiles[0].id);
-            }
-        } else {
-            setSelectedFileId(null);
-        }
-    }, [filteredFiles, selectedFileId]);
+    const [selectedFileId, setSelectedFileId] = useState<string | null>(() => {
+        return DUANFA_FILES[0]?.id ?? null;
+    });
 
     // 当前选中的标题 ID（用于高亮大纲）
     const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
@@ -49,24 +38,30 @@ export function useDuanFa() {
         return filteredFiles.find(f => f.id === selectedFileId) || null;
     }, [filteredFiles, selectedFileId]);
 
-    useEffect(() => {
-        if (!selectedFile) {
-            setOutline([]);
-            return;
-        }
-    }, [selectedFile]);
-
     // 选择术数分类
     const handleSelectShuShu = useCallback((id: string) => {
         setSelectedShuShuId(id);
+
+        // 切换分类时重置选择与大纲
+        setActiveSectionId(null);
+        setOutline([]);
+
+        if (id === 'qimen') {
+            setSelectedFileId(DUANFA_FILES[0]?.id ?? null);
+        } else {
+            setSelectedFileId(null);
+        }
     }, []);
 
     // 选择文件
     const handleSelectFile = useCallback((fileId: string) => {
+        // 再次点击当前已选文章：不做清空/不重复触发
+        if (fileId === selectedFileId) return;
+
         setSelectedFileId(fileId);
         setActiveSectionId(null);
         setOutline([]);
-    }, []);
+    }, [selectedFileId]);
 
     // 点击大纲项，滚动到对应标题
     const handleOutlineClick = useCallback((sectionId: string) => {
