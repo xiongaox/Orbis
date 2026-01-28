@@ -230,7 +230,7 @@ export default function WannianliPage() {
                                         day.isSelected
                                             ? "!bg-primary/5 !border-primary ring-1 ring-primary shadow-[0_4px_14px_-2px_rgba(var(--primary),0.2)] !opacity-100 z-20"
                                             : day.isHoliday
-                                                ? "bg-red-50/50 dark:bg-red-900/10" // 节日微红背景
+                                                ? "bg-red-100/50 dark:bg-red-900/20 border-red-500/20 dark:border-red-500/20" // 节日微红背景(red-100) + 红色描边
                                                 : "",
 
                                         !day.isCurrentMonth && !day.isSelected && "opacity-40 grayscale-[0.8] shadow-none bg-muted/30 border-transparent",
