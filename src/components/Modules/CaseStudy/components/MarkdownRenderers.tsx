@@ -4,28 +4,62 @@
  */
 import type { Components } from 'react-markdown';
 
+export const duanfaHeadingStyles = {
+    h1: {
+        wrapper: 'not-prose mt-10 mb-6',
+        title: 'text-2xl font-bold tracking-tight text-foreground',
+        underline: 'w-full h-1 bg-gradient-to-r from-primary/70 via-primary/25 to-transparent mt-2 rounded-full',
+    },
+    h2: {
+        wrapper: 'not-prose mt-8 mb-4',
+        row: 'flex items-center gap-3',
+        marker: 'h-5 w-1.5 bg-primary/60 rounded-full',
+        title: 'text-lg font-semibold tracking-tight text-foreground',
+    },
+    h3: {
+        wrapper: 'not-prose mt-6 mb-3',
+        row: 'flex items-center gap-2',
+        marker: 'h-1.5 w-1.5 bg-primary/55 rounded-full',
+        title: 'text-base font-semibold text-foreground/90',
+    },
+} as const;
+
 /**
  * 断法内容的 Markdown 渲染组件 (优化版列表样式: 无缩进、大间距、高亮序号)
  * 这是基础样式组件，其他配置都复用此样式以保持全站统一
  */
 export const duanfaMarkdownComponents: Components = {
-    h1: ({ node, ...props }) => (
-        <div className="mt-8 mb-6">
-            <h1 className="text-xl font-bold text-primary inline-block" {...props} />
-            <div className="w-full h-0.5 bg-primary/30 mt-2 rounded-full" />
-        </div>
-    ),
-    h2: ({ node, ...props }) => (
-        <div className="mt-6 mb-4">
-            <h2 className="text-lg font-bold text-primary/80 inline-block" {...props} />
-            <div className="w-full h-0.5 bg-primary/20 mt-1.5 rounded-full" />
-        </div>
-    ),
-    h3: ({ node, ...props }) => (
-        <div className="mt-5 mb-3">
-            <h3 className="text-base font-bold text-primary/70 inline-block" {...props} />
-        </div>
-    ),
+    h1: ({ node, children, ...props }) => {
+        const { className, ...rest } = props;
+        return (
+            <div className={duanfaHeadingStyles.h1.wrapper}>
+                <h1 className={[duanfaHeadingStyles.h1.title, className].filter(Boolean).join(' ')} {...rest}>{children}</h1>
+                <div className={duanfaHeadingStyles.h1.underline} aria-hidden="true" />
+            </div>
+        );
+    },
+    h2: ({ node, children, ...props }) => {
+        const { className, ...rest } = props;
+        return (
+            <div className={duanfaHeadingStyles.h2.wrapper}>
+                <div className={duanfaHeadingStyles.h2.row}>
+                    <div className={duanfaHeadingStyles.h2.marker} aria-hidden="true" />
+                    <h2 className={[duanfaHeadingStyles.h2.title, className].filter(Boolean).join(' ')} {...rest}>{children}</h2>
+                </div>
+            </div>
+        );
+    },
+    h3: ({ node, children, ...props }) => {
+        const { className, ...rest } = props;
+        return (
+            <div className={duanfaHeadingStyles.h3.wrapper}>
+                <div className={duanfaHeadingStyles.h3.row}>
+                    <div className={duanfaHeadingStyles.h3.marker} aria-hidden="true" />
+                    <h3 className={[duanfaHeadingStyles.h3.title, className].filter(Boolean).join(' ')} {...rest}>{children}</h3>
+                </div>
+            </div>
+        );
+    },
     p: ({ node, ...props }) => (
         <p className="mb-4 text-justify text-[18px] leading-8 indent-8 text-foreground/75" {...props} />
     ),

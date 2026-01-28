@@ -3,13 +3,13 @@
  * 使用 ReactMarkdown 渲染，和八字/奇门案例保持一致
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import type { Components } from 'react-markdown';
-import { duanfaMarkdownComponents } from './MarkdownRenderers';
+import { duanfaHeadingStyles, duanfaMarkdownComponents } from './MarkdownRenderers';
 import type { DuanFaOutlineItem } from '../../../../lib/caseStudy/duanfaData';
 
 interface DuanFaContentProps {
@@ -25,35 +25,86 @@ interface DuanFaContentProps {
 export default function DuanFaContent({ content, title, onOutlineChange }: DuanFaContentProps) {
     const contentRef = useRef<HTMLDivElement>(null);
 
-    // 检查是否以一级标题开头
-    const hasH1 = /^#\s/.test(content);
+    // 仅当正文首行 H1 与页面标题一致时，才视作“重复标题”并移除。
+    // 注意：断法文章会把原 h2/h3 提级写回 Markdown 源文件，因此正文可能以多个 H1 章节开头，不能一概移除。
+    const leadingH1Text = useMemo(() => {
+        const match = content.match(/^#\s+([^\n\r]+)/);
+        return match?.[1]?.trim() || '';
+    }, [content]);
+
+    const hasTitleH1 = leadingH1Text.length > 0 && leadingH1Text === title.trim();
 
     // 移除第一个 # 标题（页面标题会单独显示）
-    const processedContent = content.replace(/^#\s+[^\n\r]+[\n\r]?/, '');
+    const processedContent = hasTitleH1 ? content.replace(/^#\s+[^\n\r]+[\n\r]?/, '') : content;
+
+    // 为每个 Markdown 标题行分配稳定 id（StrictMode 下渲染函数可能会被调用两次，避免用自增计数产生副作用）。
+    // 约定：如果正文首行是与页面标题重复的 H1（会被移除并用页面标题展示），则页面标题占用 duanfa-heading-0，正文标题从 1 开始。
+    const headingLineIdMap = useMemo(() => {
+        const map = new Map<number, string>();
+        const lines = processedContent.split(/\r?\n/);
+        let counter = hasTitleH1 ? 1 : 0;
+
+        for (let i = 0; i < lines.length; i++) {
+            const match = lines[i].match(/^(#{1,6})\s+(.+)$/);
+            if (!match) continue;
+            map.set(i + 1, `duanfa-heading-${counter}`);
+            counter++;
+        }
+        return map;
+    }, [hasTitleH1, processedContent]);
 
     // 自定义渲染器，为标题添加标记用于大纲生成
     const components: Components = {
         ...duanfaMarkdownComponents,
         h1: ({ node, children, ...props }) => {
+            const line = node?.position?.start?.line;
+            const id = typeof line === 'number' ? headingLineIdMap.get(line) : undefined;
+            const { className, ...rest } = props;
             return (
-                <div className="mt-8 mb-6 scroll-mt-8" data-duanfa-heading="true" data-heading-level="1">
-                    <h1 className="text-xl font-bold text-primary inline-block" {...props}>{children}</h1>
-                    <div className="w-full h-0.5 bg-primary/30 mt-2 rounded-full" />
+                <div
+                    id={id}
+                    className={`${duanfaHeadingStyles.h1.wrapper} scroll-mt-8`}
+                    data-duanfa-heading="true"
+                    data-heading-level="1"
+                >
+                    <h1 className={[duanfaHeadingStyles.h1.title, className].filter(Boolean).join(' ')} {...rest}>{children}</h1>
+                    <div className={duanfaHeadingStyles.h1.underline} aria-hidden="true" />
                 </div>
             );
         },
         h2: ({ node, children, ...props }) => {
+            const line = node?.position?.start?.line;
+            const id = typeof line === 'number' ? headingLineIdMap.get(line) : undefined;
+            const { className, ...rest } = props;
             return (
-                <div className="mt-6 mb-4 scroll-mt-8" data-duanfa-heading="true" data-heading-level="2">
-                    <h2 className="text-lg font-bold text-primary/80 inline-block" {...props}>{children}</h2>
-                    <div className="w-full h-0.5 bg-primary/20 mt-1.5 rounded-full" />
+                <div
+                    id={id}
+                    className={`${duanfaHeadingStyles.h2.wrapper} scroll-mt-8`}
+                    data-duanfa-heading="true"
+                    data-heading-level="2"
+                >
+                    <div className={duanfaHeadingStyles.h2.row}>
+                        <div className={duanfaHeadingStyles.h2.marker} aria-hidden="true" />
+                        <h2 className={[duanfaHeadingStyles.h2.title, className].filter(Boolean).join(' ')} {...rest}>{children}</h2>
+                    </div>
                 </div>
             );
         },
         h3: ({ node, children, ...props }) => {
+            const line = node?.position?.start?.line;
+            const id = typeof line === 'number' ? headingLineIdMap.get(line) : undefined;
+            const { className, ...rest } = props;
             return (
-                <div className="mt-5 mb-3 scroll-mt-8" data-duanfa-heading="true" data-heading-level="3">
-                    <h3 className="text-base font-bold text-primary/70 inline-block" {...props}>{children}</h3>
+                <div
+                    id={id}
+                    className={`${duanfaHeadingStyles.h3.wrapper} scroll-mt-8`}
+                    data-duanfa-heading="true"
+                    data-heading-level="3"
+                >
+                    <div className={duanfaHeadingStyles.h3.row}>
+                        <div className={duanfaHeadingStyles.h3.marker} aria-hidden="true" />
+                        <h3 className={[duanfaHeadingStyles.h3.title, className].filter(Boolean).join(' ')} {...rest}>{children}</h3>
+                    </div>
                 </div>
             );
         },
@@ -74,8 +125,10 @@ export default function DuanFaContent({ content, title, onOutlineChange }: DuanF
         }
 
         const nextOutline = headingElements.map((element, index) => {
-            const id = `duanfa-heading-${index}`;
-            element.id = id;
+            const id = element.id || `duanfa-heading-${index}`;
+            if (!element.id) {
+                element.id = id;
+            }
 
             const level = Number(element.dataset.headingLevel) || 1;
             const titleText = (element.textContent || '').trim();
@@ -88,7 +141,7 @@ export default function DuanFaContent({ content, title, onOutlineChange }: DuanF
         });
 
         onOutlineChange(nextOutline);
-    }, [content, title, hasH1, onOutlineChange]);
+    }, [content, title, hasTitleH1, onOutlineChange]);
 
     return (
         <div className="flex-1 overflow-y-auto p-8 scrollbar-none">
@@ -100,8 +153,9 @@ export default function DuanFaContent({ content, title, onOutlineChange }: DuanF
                 <div ref={contentRef} className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
                 {/* 页面标题 - 对应第 0 个标题的 ID (仅当实际上有 H1 时) */}
                 <h1
-                    data-duanfa-heading={hasH1 ? 'true' : undefined}
-                    data-heading-level={hasH1 ? '1' : undefined}
+                    id={hasTitleH1 ? 'duanfa-heading-0' : undefined}
+                    data-duanfa-heading={hasTitleH1 ? 'true' : undefined}
+                    data-heading-level={hasTitleH1 ? '1' : undefined}
                     className="text-2xl font-serif font-bold text-center text-primary/90 pb-4 border-b border-border/40 scroll-mt-8"
                 >
                     {title}
