@@ -11,14 +11,15 @@ import {
   Grid3X3,
   LogOut,
   Moon,
-  Settings,
   Sun,
   User,
   Loader2,
+  Key,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getRealtimeClockData } from '../../utils/lunarUtil';
+import ChangePasswordModal from '../Auth/ChangePasswordModal';
 
 type ChartType =
   | 'bazi'
@@ -113,7 +114,7 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
   const { user, isAuthenticated, signOut, loading } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  // 小屏幕菜单展开状态
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   const [isDark, setIsDark] = useState(() => {
     if (typeof document === 'undefined') return true;
@@ -148,58 +149,62 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
   const displayName = user?.email?.split('@')[0] || '用户';
 
   return (
-    <header className="h-16 glass-header sticky top-0 z-50 flex items-center">
-      {/* Logo 区域 - 响应式宽度 */}
-      <div className="w-auto lg:w-56 flex-shrink-0 flex items-center gap-2 lg:gap-3 px-3 lg:px-4">
-        <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center">
-          <Compass className="w-5 h-5 text-primary" />
-        </div>
-        <span className="font-display text-lg font-semibold tracking-wide text-foreground hidden sm:inline">玄枢录</span>
-      </div>
-
-      {/* 导航模块 - 响应式布局 */}
-      <div className="flex-1 flex items-center justify-between pr-3 lg:pr-6 min-w-0">
-        {/* 小屏幕导航：核心菜单 + 可展开额外菜单 */}
-        <nav className="flex items-center 2xl:hidden">
-          {/* 核心菜单始终显示 */}
-          {coreItems.map((item, index) => (
-            <div key={item.id} className="flex items-center flex-shrink-0">
-              <NavButton
-                item={item}
-                isActive={activeChart === item.id}
-                onClick={() => onChartChange(item.id)}
-              />
-              {index < coreItems.length - 1 && (
-                <span className="text-border">|</span>
-              )}
-            </div>
-          ))}
-
-
-        </nav>
-
-        {/* 大屏幕导航：完整菜单 */}
-        <nav className="hidden 2xl:flex items-center">
-          {navItems.map((item, index) => (
-            <div key={item.id} className="flex items-center flex-shrink-0">
-              <NavButton
-                item={item}
-                isActive={activeChart === item.id}
-                onClick={() => onChartChange(item.id)}
-              />
-              {index < navItems.length - 1 && (
-                <span className="text-border">|</span>
-              )}
-            </div>
-          ))}
-        </nav>
-
-        {/* 右侧：实时时钟（展开时隐藏） + 主题切换 + 用户菜单 */}
-        <div className="flex items-center gap-2 lg:gap-4">
-          {/* 实时时钟 */}
-          <div className="hidden sm:flex">
-            <RealtimeClock />
+    <>
+      <header className="h-16 glass-header sticky top-0 z-50 flex items-center justify-center relative">
+        {/* Logo 区域 - 绝对定位在左侧 */}
+        <div className="absolute left-3 lg:left-4 flex items-center gap-2 lg:gap-3">
+          <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center">
+            <Compass className="w-5 h-5 text-primary" />
           </div>
+          <span className="font-display text-lg font-semibold tracking-wide text-foreground hidden sm:inline">玄枢录</span>
+        </div>
+
+        {/* 导航模块 - 居中显示 */}
+        <div className="flex items-center justify-center">
+          {/* 小屏幕导航：核心菜单 + 可展开额外菜单 */}
+          <nav className="flex items-center 2xl:hidden">
+            {/* 核心菜单始终显示 */}
+            {coreItems.map((item, index) => (
+              <div key={item.id} className="flex items-center flex-shrink-0">
+                <NavButton
+                  item={item}
+                  isActive={activeChart === item.id}
+                  onClick={() => onChartChange(item.id)}
+                />
+                {index < coreItems.length - 1 && (
+                  <span className="text-border">|</span>
+                )}
+              </div>
+            ))}
+
+
+          </nav>
+
+          {/* 大屏幕导航：完整菜单 */}
+          <nav className="hidden 2xl:flex items-center">
+            {navItems.map((item, index) => (
+              <div key={item.id} className="flex items-center flex-shrink-0">
+                <NavButton
+                  item={item}
+                  isActive={activeChart === item.id}
+                  onClick={() => onChartChange(item.id)}
+                />
+                {index < navItems.length - 1 && (
+                  <span className="text-border">|</span>
+                )}
+              </div>
+            ))}
+          </nav>
+        </div>
+
+        {/* 右侧功能区 - 绝对定位在右侧 */}
+        <div className="absolute right-3 lg:right-6 flex items-center gap-2 lg:gap-4">
+          {/* 实时时钟 - 在万年通历模块隐藏（避免冗余） */}
+          {activeChart !== 'wannianli' && (
+            <div className="hidden sm:flex">
+              <RealtimeClock />
+            </div>
+          )}
 
           {/* 主题切换 */}
           <button
@@ -248,10 +253,14 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
                     </div>
                     <button
                       type="button"
+                      onClick={() => {
+                        setShowPasswordModal(true);
+                        setMenuOpen(false);
+                      }}
                       className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
                     >
-                      <Settings className="w-4 h-4" />
-                      设置
+                      <Key className="w-4 h-4" />
+                      修改密码
                     </button>
                     <div className="border-t border-border my-1" />
                     <button
@@ -278,20 +287,19 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
                       <User className="w-4 h-4" />
                       登录 / 注册
                     </button>
-                    <button
-                      type="button"
-                      className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
-                    >
-                      <Settings className="w-4 h-4" />
-                      设置
-                    </button>
+
                   </>
                 )}
               </div>
             )}
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      <ChangePasswordModal
+        isOpen={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+      />
+    </>
   );
 }

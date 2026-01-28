@@ -16,6 +16,7 @@ import LearningPanelModal from './components/LearningPanelModal';
 import LearningPanelFAB from './components/LearningPanelFAB';
 import ReadingProgressButton from './components/ReadingProgressButton';
 import { DUANFA_FILES } from '../../../lib/caseStudy/duanfaData';
+import { ALL_CASES } from './hooks/useCaseStudy';
 
 export default function DuanFaPage() {
     const {
@@ -49,14 +50,22 @@ export default function DuanFaPage() {
         enabled: isAuthenticated && !!selectedFileId,
     });
 
-    // 学习面板 - 获取文章信息
+    // 学习面板 - 获取文章信息（支持多数据源）
     const getArticleInfo = useCallback((articleId: string) => {
-        // 在所有断法文件中查找
-        const file = DUANFA_FILES.find(f => f.id === articleId);
-        if (file) {
-            return { title: file.name, author: '不吹牛' };
+        // 1. 在断法文件中查找
+        const duanfaFile = DUANFA_FILES.find(f => f.id === articleId);
+        if (duanfaFile) {
+            return { title: duanfaFile.name, author: '不吹牛' };
         }
-        return { title: '未知断法文章', author: '未知' };
+
+        // 2. 在八字/奇门案例中查找（id 是完整路径）
+        const caseItem = ALL_CASES.find(c => c.id === articleId);
+        if (caseItem) {
+            return { title: caseItem.title, author: caseItem.author };
+        }
+
+        // 3. 未找到
+        return { title: '未知文章', author: '未知' };
     }, []);
 
     // 学习面板 - 选中文章
