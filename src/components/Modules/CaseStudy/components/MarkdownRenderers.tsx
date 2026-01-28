@@ -7,20 +7,20 @@ import type { Components } from 'react-markdown';
 export const duanfaHeadingStyles = {
     h1: {
         wrapper: 'not-prose mt-10 mb-6',
-        title: 'text-2xl font-bold tracking-tight text-foreground',
+        title: 'text-3xl font-bold tracking-tight text-foreground',
         underline: 'w-full h-1 bg-gradient-to-r from-primary/70 via-primary/25 to-transparent mt-2 rounded-full',
     },
     h2: {
         wrapper: 'not-prose mt-8 mb-4',
         row: 'flex items-center gap-3',
         marker: 'h-5 w-1.5 bg-primary/60 rounded-full',
-        title: 'text-lg font-semibold tracking-tight text-foreground',
+        title: 'text-2xl font-semibold tracking-tight text-foreground',
     },
     h3: {
         wrapper: 'not-prose mt-6 mb-3',
         row: 'flex items-center gap-2',
-        marker: 'h-1.5 w-1.5 bg-primary/55 rounded-full',
-        title: 'text-base font-semibold text-foreground/90',
+        marker: 'h-3 w-3 bg-primary/80 rotate-45 rounded-[1px]',
+        title: 'text-xl font-semibold text-foreground/90',
     },
 } as const;
 
@@ -70,26 +70,26 @@ export const duanfaMarkdownComponents: Components = {
         />
     ),
     table: ({ node, ...props }) => (
-        <div className="overflow-x-auto my-4">
-            <table className="min-w-full divide-y divide-border" {...props} />
+        <div className="overflow-x-auto my-8 rounded-lg border border-border/50 shadow-sm">
+            <table className="w-full text-left border-collapse table-fixed" {...props} />
         </div>
     ),
     th: ({ node, ...props }) => (
-        <th className="px-3 py-2 bg-muted/50 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider" {...props} />
+        <th className="px-6 py-4 bg-primary/5 text-base font-bold text-foreground border-b border-r border-border/50 last:border-r-0 whitespace-nowrap" {...props} />
     ),
     td: ({ node, ...props }) => (
-        <td className="px-3 py-2 whitespace-nowrap text-sm border-t border-border/50" {...props} />
+        <td className="px-6 py-4 text-base text-foreground/80 border-b border-r border-border/40 last:border-r-0" {...props} />
     ),
     span: ({ node, ...props }) => <span {...props} />,
     ul: ({ node, ...props }) => (
-        <ul className="list-disc space-y-4 mb-4 pl-6 text-[18px] [&_p]:!indent-0 [&_p]:mb-0" {...props} />
+        <ul className="list-disc space-y-4 mb-4 pl-6 text-[18px] [&_p]:!indent-0 [&_p]:mb-0 [&_li::marker]:!text-primary/50" {...props} />
     ),
     ol: ({ node, ...props }) => (
-        <ol className="list-decimal space-y-4 mb-4 pl-6 text-[18px] [&_p]:!indent-0 [&_p]:mb-0" {...props} />
+        <ol className="list-decimal space-y-4 mb-4 pl-6 text-[18px] [&_p]:!indent-0 [&_p]:mb-0 [&_li::marker]:!text-primary/50" {...props} />
     ),
     // 强制增加 marker 权重，使用 arbitrary variant 以确保生效
     li: ({ node, ...props }) => (
-        <li className="text-[18px] leading-8 text-foreground/75 !indent-0 [&>p]:!indent-0 [&::marker]:!text-primary [&::marker]:!font-bold" {...props} />
+        <li className="text-[18px] leading-8 text-foreground/75 !indent-0 [&>p]:!indent-0 [&::marker]:!font-bold" {...props} />
     ),
     strong: ({ node, ...props }) => <strong className="text-primary" {...props} />,
     hr: ({ node, ...props }) => <hr className="my-8 border-t border-border" {...props} />,

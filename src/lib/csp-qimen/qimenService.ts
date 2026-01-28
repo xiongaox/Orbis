@@ -167,20 +167,12 @@ function callCspWasm(time: QimenTime, type: number, customJu: number = 0): strin
         param.ju = customJu;
         param.type = type;
 
-        console.log('[QimenDebug] WASM Call - Inputs:', {
-            inputTime: time,
-            paramJu: param.ju,
-            paramType: param.type,
-            paramMonth: param.mon,
-            paramStrDt: param.str_dt,
-            paramZone: param.zone,
-            customJu: customJu
-        });
+
 
         const qm = new wasmModule.CQimenUse();
         const output = qm.run_captured(param);
 
-        console.log('[QimenDebug] Native WASM Output Preview:', output.substring(0, 100).replace(/\n/g, ' '));
+
 
         param.delete();
         qm.delete();
@@ -477,7 +469,7 @@ function calculateAnGan(
     let startPos = zhiShiPalacePos;
     if (hourGan === diPanMap[startPos]) {
         startPos = 5;
-        console.log(`[AnGan] 入中规则触发: 时干(${hourGan}) == 地盘干, 起点改为中宫(5)`);
+        // console.log(`[AnGan] 入中规则触发: 时干(${hourGan}) == 地盘干, 起点改为中宫(5)`);
     }
 
     // 5. 确定飞宫路径 (阳顺阴逆)
@@ -496,9 +488,7 @@ function calculateAnGan(
         return result;
     }
 
-    console.log('[AnGan] Debug:', {
-        juName, isYang, zhiShiMen, zhiShiPalacePos, startPos, hourGan
-    });
+
 
     // 7. 飞布排干
     for (let i = 0; i < 9; i++) {
@@ -512,7 +502,7 @@ function calculateAnGan(
         currentGanIdx = (currentGanIdx + 1) % 9;
     }
 
-    console.log('[AnGan] Final result:', result);
+
     return result;
 }
 
@@ -550,13 +540,7 @@ function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResu
         hour: parsedSiZhu.hour || ''
     };
 
-    console.log('[QimenDebug] convertToQimenResult:', {
-        inputTime: time,
-        parsedSiZhu: siZhu,
-        cspJu: parsed.ju,
-        cspZhiFu: parsed.zhiFu,
-        cspZhiShi: parsed.zhiShi
-    });
+
 
     const hourGanZhi = siZhu.hour;
     const xunShou = hourGanZhi ? LunarUtil.getXun(hourGanZhi) : '';
@@ -657,15 +641,14 @@ function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResu
         };
         const newGan = xunShouMap[hourZhi];
         if (newGan) {
-            console.log(`[AnGan] 时干为甲(${siZhu.hour})，转换为旬首仪: ${newGan}`);
+            // console.log(`[AnGan] 时干为甲(${siZhu.hour})，转换为旬首仪: ${newGan}`);
             hourGan = newGan;
         } else {
             console.warn(`[AnGan] 时干为甲，但无法匹配旬首: ${siZhu.hour}`);
         }
     }
 
-    console.log('[AnGan] Input:', { zhiShi: parsed.zhiShi, hourGan, siZhuHour: siZhu.hour });
-    console.log('[AnGan] Palaces men:', palaces.map(p => `${p.position}:${p.men}`));
+
 
     const anGanMap = calculateAnGan(parsed.zhiShi, hourGan, palaces, parsed.ju);
 
@@ -674,7 +657,7 @@ function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResu
         palace.anGan = anGanMap[palace.position] || '';
     }
 
-    console.log('[AnGan] Applied:', palaces.map(p => `${p.position}:${p.anGan}`));
+
 
 
     // 计算全局格局

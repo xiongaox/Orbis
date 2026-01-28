@@ -34,18 +34,21 @@ export default function DuanFaOutline({ outline, activeSectionId, onItemClick }:
             <div className="flex-1 overflow-y-auto scrollbar-none py-2">
                 {outline.map((item) => {
                     const isActive = activeSectionId === item.id;
+                    // 计算缩进：基础 12px + 每级 12px
+                    const paddingLeft = 12 + (item.level - 1) * 12;
+
                     return (
                         <button
                             key={item.id}
                             onClick={() => onItemClick(item.id)}
                             className={`
-                                w-full text-left py-1.5 px-3 transition-all
-                                ${item.level === 1 ? '' : 'pl-5'}
+                                w-full text-left py-1.5 pr-3 transition-all border-l-2
                                 ${isActive
-                                    ? 'text-primary font-medium bg-primary/5'
-                                    : 'text-muted-foreground hover:text-foreground/80 hover:bg-muted/20'
+                                    ? 'text-primary font-medium bg-primary/5 border-primary'
+                                    : 'text-muted-foreground border-transparent hover:text-foreground/80 hover:bg-muted/20'
                                 }
                             `}
+                            style={{ paddingLeft: `${paddingLeft}px` }}
                         >
                             <span
                                 className={`
@@ -54,6 +57,8 @@ export default function DuanFaOutline({ outline, activeSectionId, onItemClick }:
                                 `}
                                 title={item.title}
                             >
+                                {item.level === 2 && <span className="mr-1 opacity-60 text-lg leading-none align-middle">•</span>}
+                                {item.level > 2 && <span className="mr-1.5 opacity-40 text-[10px] leading-none align-middle">▪</span>}
                                 {item.title}
                             </span>
                         </button>
