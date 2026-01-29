@@ -228,7 +228,7 @@ export default function WannianliPage() {
 
                                         // 背景色逻辑：选中 > 节日(叠加)
                                         day.isSelected
-                                            ? "!bg-primary/5 !border-primary ring-1 ring-primary shadow-[0_4px_14px_-2px_rgba(var(--primary),0.2)] !opacity-100 z-20"
+                                            ? "!bg-primary/10 !border-transparent shadow-none !opacity-100 z-20"
                                             : day.isHoliday
                                                 ? "bg-red-100/50 dark:bg-red-900/20 border-red-500/20 dark:border-red-500/20" // 节日微红背景(red-100) + 红色描边
                                                 : "",
@@ -253,17 +253,19 @@ export default function WannianliPage() {
                                             "text-2xl md:text-3xl font-mono transition-all leading-none mb-0.5",
                                             day.isToday
                                                 ? "text-primary drop-shadow-[0_2px_8px_rgba(var(--primary),0.3)]"
-                                                : (day.isHoliday || (day.isWeekend && !day.isWork))
-                                                    ? "text-red-500/80" // 节假日或周末（非补班）标红
-                                                    : "text-foreground group-hover:text-primary",
-                                            !day.isCurrentMonth && !day.isToday && "text-muted-foreground/30"
+                                                : day.isSelected
+                                                    ? "text-primary"
+                                                    : (day.isHoliday || (day.isWeekend && !day.isWork))
+                                                        ? "text-red-500/80" // 节假日或周末（非补班）标红
+                                                        : "text-foreground group-hover:text-primary",
+                                            !day.isCurrentMonth && !day.isToday && !day.isSelected && "text-muted-foreground/30"
                                         )}>
                                             {day.solar.getDay()}
                                         </span>
 
                                         <span className={classNames(
                                             "text-[16px] font-bold truncate px-2 leading-none",
-                                            day.isJieQi
+                                            day.isSelected || day.isJieQi
                                                 ? "text-primary/100"
                                                 : day.isHoliday
                                                     ? "text-red-500/60" // 节日名称降低透明度
@@ -272,7 +274,10 @@ export default function WannianliPage() {
                                             {day.bottomText}
                                         </span>
 
-                                        <span className="text-[14.4px] text-muted-foreground/60 font-serif leading-none mt-1">
+                                        <span className={classNames(
+                                            "text-[14.4px] font-serif leading-none mt-1",
+                                            day.isSelected ? "text-primary/80" : "text-muted-foreground/60"
+                                        )}>
                                             {day.ganZhi}
                                         </span>
                                     </div>
@@ -322,7 +327,7 @@ export default function WannianliPage() {
                                 { label: '日柱', val: Lunar.fromDate(selectedDate).getDayInGanZhi() },
                                 { label: '时柱', val: Lunar.fromDate(selectedDate).getTimeInGanZhi() }
                             ].map((item, i) => (
-                                <div key={i} className="bg-background border border-border/50 rounded-xl py-3 flex flex-col items-center justify-between shadow-sm hover:shadow-md transition-shadow h-28">
+                                <div key={i} className="bg-background border border-border/50 rounded-xl py-3 flex flex-col items-center justify-between shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 dark:hover:bg-primary/5 h-28">
                                     <div className="text-[10px] text-muted-foreground/60 font-medium tracking-widest uppercase">{item.label}</div>
                                     <div className="flex-1 flex flex-col justify-center gap-1">
                                         <span className="font-serif text-xl font-bold text-foreground/90">{item.val[0]}</span>
@@ -380,8 +385,8 @@ export default function WannianliPage() {
                     <div className="space-y-3">
                         {/* 宜 */}
                         <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4">
-                            <div className="flex items-start gap-3">
-                                <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-base shrink-0 mt-0.5 font-serif">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-base shrink-0 font-serif">
                                     宜
                                 </div>
                                 <div className="flex flex-wrap gap-x-1 gap-y-1 text-[13px] leading-relaxed text-emerald-900/80 dark:text-emerald-200/80">
@@ -396,8 +401,8 @@ export default function WannianliPage() {
 
                         {/* 忌 */}
                         <div className="bg-rose-500/5 border border-rose-500/10 rounded-xl p-4">
-                            <div className="flex items-start gap-3">
-                                <div className="w-8 h-8 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold text-base shrink-0 mt-0.5 font-serif">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold text-base shrink-0 font-serif">
                                     忌
                                 </div>
                                 <div className="flex flex-wrap gap-x-1 gap-y-1 text-[13px] leading-relaxed text-rose-900/80 dark:text-rose-200/80">
