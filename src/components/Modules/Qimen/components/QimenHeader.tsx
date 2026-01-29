@@ -37,6 +37,8 @@ interface QimenHeaderProps {
     onPatternClick?: (pattern: GlobalPattern) => void;
     showChangSheng: boolean;
     onToggleChangSheng: () => void;
+    showPalaceMeta: boolean;
+    onTogglePalaceMeta: () => void;
     onOpenAiModal?: () => void;
 }
 
@@ -53,9 +55,12 @@ export default function QimenHeader({
     onPatternClick,
     showChangSheng,
     onToggleChangSheng,
+    showPalaceMeta,
+    onTogglePalaceMeta,
     onOpenAiModal,
 }: QimenHeaderProps) {
     const [isMethodOpen, setIsMethodOpen] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     return (
         <div className="w-full bg-card rounded-xl border border-border p-4 2xl:p-5 flex flex-col gap-3 2xl:gap-4">
@@ -156,7 +161,52 @@ export default function QimenHeader({
                     <button type="button" onClick={onNextHour} className="p-1 2xl:p-1.5 bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors border border-border" title="下一局">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 2xl:w-3.5 2xl:h-3.5"><path d="m9 18 6-6-6-6" /></svg>
                     </button>
-                    <button onClick={onToggleChangSheng} className={`px-2 2xl:px-3.5 py-0.5 text-xs 2xl:text-sm rounded-full transition-colors font-serif border border-border ${showChangSheng ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'}`}>长生状态</button>
+                    <div className="relative">
+                        <button
+                            type="button"
+                            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                            className={`flex items-center gap-1 px-1.5 2xl:px-2.5 py-0.5 text-xs 2xl:text-sm rounded-full transition-colors font-serif border border-border ${isSettingsOpen ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'}`}
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 2xl:w-3.5 2xl:h-3.5">
+                                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                                <circle cx="12" cy="12" r="3" />
+                            </svg>
+                            <span>高级设置</span>
+                            <svg className={`h-3 w-3 fill-current transition-transform ${isSettingsOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                        </button>
+                        {isSettingsOpen && (
+                            <>
+                                <div className="fixed inset-0 z-40" onClick={() => setIsSettingsOpen(false)} />
+                                <div className="absolute top-full mt-1 right-0 z-50 w-56 bg-card border border-border/80 rounded-xl shadow-xl p-3 animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5">
+                                    <div className="text-xs text-muted-foreground mb-3 font-serif border-b border-border/50 pb-2">宫位元素显示</div>
+                                    <div className="flex flex-col gap-3">
+                                        {/* 长生状态开关 */}
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-serif text-foreground">长生状态</span>
+                                            <button
+                                                type="button"
+                                                onClick={onToggleChangSheng}
+                                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${showChangSheng ? 'bg-primary' : 'bg-muted'}`}
+                                            >
+                                                <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showChangSheng ? 'translate-x-4' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+                                        {/* 宫位元数据开关 */}
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-serif text-foreground">宫位提示</span>
+                                            <button
+                                                type="button"
+                                                onClick={onTogglePalaceMeta}
+                                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${showPalaceMeta ? 'bg-primary' : 'bg-muted'}`}
+                                            >
+                                                <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showPalaceMeta ? 'translate-x-4' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

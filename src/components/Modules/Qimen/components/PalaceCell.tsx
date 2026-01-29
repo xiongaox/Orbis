@@ -10,6 +10,7 @@ interface PalaceCellProps {
     isSelected: boolean;
     onSelect: () => void;
     showChangSheng: boolean;
+    showPalaceMeta: boolean;
     isZhiFu: boolean;
     isZhiShi: boolean;
     isDayStem: boolean;
@@ -23,6 +24,7 @@ export default function PalaceCell({
     isSelected,
     onSelect,
     showChangSheng,
+    showPalaceMeta,
     isZhiFu,
     isZhiShi,
     isDayStem,
@@ -87,7 +89,18 @@ export default function PalaceCell({
 
     return (
         <button type="button" onClick={onSelect} className={baseClass}>
-            <div className={`h-full flex flex-col p-0.5 2xl:p-1 ${showChangSheng ? 'justify-center gap-y-3 2xl:gap-y-4' : 'justify-evenly gap-y-3 2xl:gap-y-4'}`}>
+            <div className={`h-full flex flex-col p-0.5 2xl:p-1 ${showPalaceMeta ? 'justify-between gap-y-1 2xl:gap-y-1.5' : showChangSheng ? 'justify-center gap-y-2 2xl:gap-y-3' : 'justify-evenly gap-y-2 2xl:gap-y-3'}`}>
+                {/* 门迫路径行（顶部）：原宫 → 所在宫 → 后天方位 */}
+                {showPalaceMeta && palace.menPoPath && (
+                    <div className="flex items-center justify-center gap-1 border-b border-border/40 pb-0.5">
+                        <span className="text-xs font-serif text-foreground/40">{palace.menPoPath.from}</span>
+                        <span className="text-xs text-foreground/40">→</span>
+                        <span className="text-sm font-serif font-semibold text-foreground/60">{palace.menPoPath.to}</span>
+                        <span className="text-xs text-foreground/40">→</span>
+                        <span className="text-xs font-serif text-foreground/40">{palace.menPoPath.final}</span>
+                    </div>
+                )}
+
                 {/* 第一行：暗干 + 八神 + 马/空 */}
                 <div className="grid grid-cols-3 w-full">
                     <div className="flex items-center justify-center"><span className="text-base 2xl:text-xl font-serif text-muted-foreground">{palace.anGan}</span></div>
@@ -154,6 +167,18 @@ export default function PalaceCell({
                         {showChangSheng && <span className="text-xs 2xl:text-sm text-muted-foreground">{palace.diPanShiErCS}</span>}
                     </div>
                 </div>
+
+                {/* 底部元数据行：序号 | 宫位【旺衰】| 内盘 */}
+                {showPalaceMeta && palace.palaceMeta && (
+                    <div className="flex items-center justify-center gap-0.5 border-t border-border/40 pt-0.5 text-xs text-foreground/40 font-serif">
+                        <span>{palace.palaceMeta.number}</span>
+                        <span>丨</span>
+                        <span>宫位</span>
+                        <span>【 {palace.palaceMeta.wangShuai} 】</span>
+                        <span>丨</span>
+                        <span>{palace.palaceMeta.panType}</span>
+                    </div>
+                )}
             </div>
         </button>
     );
