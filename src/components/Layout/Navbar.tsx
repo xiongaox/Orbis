@@ -152,11 +152,14 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
     <>
       <header className="h-16 glass-header sticky top-0 z-50 flex items-center justify-center relative">
         {/* Logo 区域 - 绝对定位在左侧 */}
-        <div className="absolute left-3 lg:left-4 flex items-center gap-2 lg:gap-3">
-          <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center">
-            <Compass className="w-5 h-5 text-primary" />
+        <div className="absolute left-3 lg:left-4 top-1/2 -translate-y-1/2 flex items-center">
+          <div className="w-20 h-20 lg:w-32 lg:h-32 flex items-center justify-center">
+            <img
+              src={isDark ? "/logo/logo_dark.svg" : "/logo/logo_light.svg"}
+              alt="玄枢录"
+              className="w-full h-full object-contain"
+            />
           </div>
-          <span className="font-display text-lg font-semibold tracking-wide text-foreground hidden sm:inline">玄枢录</span>
         </div>
 
         {/* 导航模块 - 居中显示 */}
