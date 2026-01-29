@@ -150,7 +150,7 @@ export default function HolidayCountdown({ onSelectDate }: { onSelectDate?: (dat
     }, [now, filterType]); // 当 now 变化时（跨天）会自动重算
 
     return (
-        <aside className="hidden md:flex flex-col w-[15%] border-r border-border/50 bg-muted/5 min-h-0">
+        <aside className="flex flex-col w-[15%] border-r border-border/50 bg-muted/5 min-h-0">
             <div className="px-6 py-5 flex items-center justify-between">
                 <h3 className="text-md font-bold text-muted-foreground/100 tracking-[0.2em] uppercase flex items-center gap-2">
                     <span className="w-1 h-3 bg-primary rounded-full"></span>
