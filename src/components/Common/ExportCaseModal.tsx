@@ -139,25 +139,25 @@ export default function ExportCaseModal<T extends object>({
             title={title}
             titleIcon={<Download className="w-5 h-5" />}
             footer={footerContent}
-            maxWidth="max-w-sm"
+            maxWidth="max-w-md"
         >
             <div className="space-y-4">
-                {/* 提示信息 */}
-                <p className="text-sm text-muted-foreground">
-                    选择要导出的分类，不选则导出全部。
-                </p>
-
-                {/* 全选按钮 */}
-                <button
-                    type="button"
-                    onClick={toggleAll}
-                    className="text-xs text-primary hover:underline"
-                >
-                    {selectedIds.size === options.length ? '取消全选' : '全选'}
-                </button>
+                {/* 头部控制栏 */}
+                <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                        选择分类（默认导出全部）
+                    </p>
+                    <button
+                        type="button"
+                        onClick={toggleAll}
+                        className="text-xs font-medium text-primary hover:text-primary/80 transition-colors px-2 py-1 rounded-md hover:bg-primary/5"
+                    >
+                        {selectedIds.size === options.length ? '取消全选' : '全选所有'}
+                    </button>
+                </div>
 
                 {/* 选项列表 */}
-                <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
+                <div className="grid grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto p-1">
                     {options.map((option) => {
                         const isChecked = selectedIds.has(option.id);
                         const count = cases.filter((c) => {
@@ -171,31 +171,41 @@ export default function ExportCaseModal<T extends object>({
                                 key={option.id}
                                 type="button"
                                 onClick={() => toggleOption(option.id)}
-                                className={`flex items-center justify-between px-3 py-2 rounded-lg border text-sm transition-colors ${isChecked
-                                    ? 'border-primary bg-primary/10 text-primary'
-                                    : 'border-border hover:border-primary/50 text-foreground'
+                                className={`group relative flex items-center justify-between px-4 py-3 rounded-xl border text-sm transition-all duration-200 ${isChecked
+                                    ? 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20'
+                                    : 'border-border hover:border-primary/50 hover:bg-secondary/30 bg-card'
                                     }`}
                             >
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-3">
                                     <div
-                                        className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isChecked
-                                            ? 'bg-primary border-primary'
-                                            : 'border-muted-foreground'
+                                        className={`w-4 h-4 rounded-[4px] border flex items-center justify-center transition-all duration-200 ${isChecked
+                                            ? 'bg-primary border-primary shadow-sm scale-110'
+                                            : 'border-muted-foreground/50 group-hover:border-primary/50 bg-background'
                                             }`}
                                     >
-                                        {isChecked && <Check className="w-3 h-3 text-primary-foreground" />}
+                                        {isChecked && <Check className="w-2.5 h-2.5 text-primary-foreground stroke-[3]" />}
                                     </div>
-                                    <span>{option.name}</span>
+                                    <span className={`font-medium ${isChecked ? 'text-primary' : 'text-foreground'}`}>
+                                        {option.name}
+                                    </span>
                                 </div>
-                                <span className="text-xs text-muted-foreground">{count}</span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full ${isChecked
+                                    ? 'bg-primary/10 text-primary font-medium'
+                                    : 'bg-muted text-muted-foreground'
+                                    }`}>
+                                    {count}
+                                </span>
                             </button>
                         );
                     })}
                 </div>
 
-                {/* 预览数量 */}
-                <div className="text-sm text-muted-foreground border-t border-border pt-3">
-                    将导出 <span className="font-medium text-foreground">{filteredCases.length}</span> 个案例
+                {/* 状态统计 */}
+                <div className="flex items-center justify-between border-t border-border/50 pt-4 px-1">
+                    <span className="text-sm text-muted-foreground">已选择分类：{selectedIds.size || '全部'}</span>
+                    <div className="text-sm">
+                        将导出 <span className="font-semibold text-primary">{filteredCases.length}</span> 个案例
+                    </div>
                 </div>
             </div>
         </BaseModal>

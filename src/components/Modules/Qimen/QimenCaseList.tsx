@@ -87,10 +87,10 @@ export default function QimenCaseList({
                     <button
                         type="button"
                         onClick={() => setShowLibraryModal(true)}
-                        className="font-display text-base font-medium text-foreground hover:text-primary transition-colors flex items-center gap-2 group"
+                        className="px-2 py-1 -ml-2 rounded-lg font-display text-base font-medium text-foreground hover:text-primary hover:bg-primary/5 transition-colors flex items-center gap-2 group"
                     >
                         案例库
-                        <Search className="w-3.5 h-3.5 opacity-0 -ml-1 group-hover:opacity-50 transition-opacity" />
+                        <Search className="w-3.5 h-3.5 opacity-0 group-hover:opacity-50 transition-opacity" />
                     </button>
 
                     <div className="relative">
@@ -134,14 +134,15 @@ export default function QimenCaseList({
                 </div>
 
                 {/* 搜索框 */}
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                {/* 搜索框 */}
+                <div className="relative group">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
                     <input
                         type="text"
                         placeholder="搜索案例..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 text-sm bg-muted/50 border border-border rounded-lg focus:border-primary/50 focus:outline-none text-foreground placeholder:text-muted-foreground transition-all"
+                        className="w-full bg-card border border-border/40 hover:border-border/60 rounded-lg pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all font-light"
                     />
                 </div>
 

@@ -296,7 +296,7 @@ export default function QimenPage() {
             </div>
 
             {/* 中间九宫盘式 */}
-            <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col p-6 relative">
+            <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col p-2 relative">
                 {/* 加载状态 */}
                 {isLoading && (
                     <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-20">

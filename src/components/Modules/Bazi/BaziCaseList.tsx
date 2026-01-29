@@ -208,9 +208,10 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
           <button
             type="button"
             onClick={onOpenLibrary}
-            className="font-display text-base font-medium text-foreground/80 hover:text-foreground transition-colors tracking-tight"
+            className="px-2 py-1 -ml-2 rounded-lg font-display text-base font-medium text-foreground hover:text-primary hover:bg-primary/5 transition-colors flex items-center gap-2 group"
           >
             案例库
+            <Search className="w-3.5 h-3.5 opacity-0 group-hover:opacity-50 transition-opacity" />
           </button>
           <div className="relative" ref={tagMenuRef}>
             <button

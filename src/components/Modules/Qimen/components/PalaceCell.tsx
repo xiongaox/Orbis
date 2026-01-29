@@ -54,7 +54,17 @@ export default function PalaceCell({
     if (palace.position === 5) {
         return (
             <button type="button" onClick={onSelect} className={baseClass}>
-                <div className={`h-full flex flex-col p-0.5 2xl:p-1 ${showExtraInfo ? 'justify-center gap-y-3 2xl:gap-y-4' : 'justify-evenly gap-y-3 2xl:gap-y-4'}`}>
+                <div className={`h-full flex flex-col p-0.5 2xl:p-1 ${showPalaceMeta ? 'justify-between gap-y-1 2xl:gap-y-1.5' : showExtraInfo ? 'justify-center gap-y-2 2xl:gap-y-3' : 'justify-evenly gap-y-2 2xl:gap-y-3'}`}>
+                    {/* 占位行：对齐普通宫位的“门迫提示”，仅在 showPalaceMeta 开启时显示 */}
+                    {showPalaceMeta && (
+                        <div className="flex items-center justify-center gap-1 border-b border-transparent pb-0.5 opacity-0 select-none">
+                            <span className="text-xs font-serif">占位</span>
+                            <span className="text-xs">→</span>
+                            <span className="text-sm font-serif font-semibold">占位</span>
+                            <span className="text-xs">→</span>
+                            <span className="text-xs font-serif">占位</span>
+                        </div>
+                    )}
                     {/* 第一行：暗干 - 与普通宫位对齐 */}
                     <div className="grid grid-cols-3 w-full">
                         <div className="flex items-center justify-center"><span className="text-base 2xl:text-xl font-serif text-muted-foreground">{palace.anGan}</span></div>
@@ -92,6 +102,28 @@ export default function PalaceCell({
                             {showChangSheng && <span className="text-xs 2xl:text-sm text-muted-foreground">&nbsp;</span>}
                         </div>
                     </div>
+                    {/* 底部元数据行：对齐普通宫位的 Meta 行 */}
+                    {showPalaceMeta && (
+                        palace.palaceMeta ? (
+                            <div className="flex items-center justify-center gap-0.5 border-t border-border/40 pt-0.5 text-xs text-foreground/40 font-serif">
+                                <span>{palace.palaceMeta.number}</span>
+                                <span>丨</span>
+                                <span>宫位</span>
+                                <span>【 {palace.palaceMeta.wangShuai} 】</span>
+                                <span>丨</span>
+                                <span>{palace.palaceMeta.panType}</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center gap-0.5 border-t border-transparent pt-0.5 text-xs text-transparent font-serif select-none">
+                                <span>占位</span>
+                                <span>丨</span>
+                                <span>宫位</span>
+                                <span>【 占位 】</span>
+                                <span>丨</span>
+                                <span>占位</span>
+                            </div>
+                        )
+                    )}
                 </div>
             </button>
         );
