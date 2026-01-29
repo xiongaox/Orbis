@@ -37,6 +37,8 @@ interface QimenHeaderProps {
     onPatternClick?: (pattern: GlobalPattern) => void;
     showChangSheng: boolean;
     onToggleChangSheng: () => void;
+    showShiShen: boolean;
+    onToggleShiShen: () => void;
     showPalaceMeta: boolean;
     onTogglePalaceMeta: () => void;
     onOpenAiModal?: () => void;
@@ -55,6 +57,8 @@ export default function QimenHeader({
     onPatternClick,
     showChangSheng,
     onToggleChangSheng,
+    showShiShen,
+    onToggleShiShen,
     showPalaceMeta,
     onTogglePalaceMeta,
     onOpenAiModal,
@@ -177,7 +181,7 @@ export default function QimenHeader({
                         {isSettingsOpen && (
                             <>
                                 <div className="fixed inset-0 z-40" onClick={() => setIsSettingsOpen(false)} />
-                                <div className="absolute top-full mt-1 right-0 z-50 w-56 bg-card border border-border/80 rounded-xl shadow-xl p-3 animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5">
+                                <div className="absolute bottom-full mb-1 right-0 z-50 w-56 bg-card border border-border/80 rounded-xl shadow-xl p-3 animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5">
                                     <div className="text-xs text-muted-foreground mb-3 font-serif border-b border-border/50 pb-2">宫位元素显示</div>
                                     <div className="flex flex-col gap-3">
                                         {/* 长生状态开关 */}
@@ -189,6 +193,17 @@ export default function QimenHeader({
                                                 className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${showChangSheng ? 'bg-primary' : 'bg-muted'}`}
                                             >
                                                 <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showChangSheng ? 'translate-x-4' : 'translate-x-0'}`} />
+                                            </button>
+                                        </div>
+                                        {/* 十神展示开关 */}
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-serif text-foreground">十神展示</span>
+                                            <button
+                                                type="button"
+                                                onClick={onToggleShiShen}
+                                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${showShiShen ? 'bg-primary' : 'bg-muted'}`}
+                                            >
+                                                <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showShiShen ? 'translate-x-4' : 'translate-x-0'}`} />
                                             </button>
                                         </div>
                                         {/* 宫位元数据开关 */}

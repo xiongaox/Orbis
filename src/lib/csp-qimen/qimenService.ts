@@ -17,6 +17,7 @@ export interface QimenResult {
 import { getEightCharFromDate, getSolarToLunarInfo } from '../../utils/lunarUtil';
 import { LunarUtil } from 'lunar-typescript';
 import { getXingWang, getMenWang, getGanShiErCS, getPalaceWangShuai } from './qimenUtils';
+import { getGanShiShen, getXingShiShen, getMenShiShen } from './qimenShiShenUtils';
 
 // ============ 类型定义 ============
 
@@ -693,6 +694,13 @@ function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResu
             anGanShiErCS: '',
             tianPanShiErCS: pos === 5 ? '' : getGanShiErCS(cspPalace?.tianPan || '', pos),
             diPanShiErCS: pos === 5 ? '' : getGanShiErCS(cspPalace?.diPan || '', pos),
+            // 十神（以日干为太极点）
+            tianPanShiShen: pos === 5 ? '' : getGanShiShen(siZhu.day[0], cspPalace?.tianPan || ''),
+            diPanShiShen: getGanShiShen(siZhu.day[0], cspPalace?.diPan || ''), // 中宫地盘干也计算十神
+            xingShiShen: pos === 5 ? '' : getXingShiShen(siZhu.day[0], cspPalace?.xing || ''),
+            menShiShen: pos === 5 ? '' : getMenShiShen(siZhu.day[0], cspPalace?.men || ''),
+            jiGongTianPanShiShen: pos === 5 ? '' : getGanShiShen(siZhu.day[0], cspPalace?.tianPanJi || ''),
+            jiGongDiPanShiShen: pos === 5 ? '' : getGanShiShen(siZhu.day[0], cspPalace?.diPanJi || ''),
             // 宫头三卦路径：[先天卦] -> [后天卦(本宫)] -> [隐伏通气卦]
             menPoPath: getGuaPath(pos),
             // 底部元数据
