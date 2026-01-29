@@ -67,7 +67,7 @@ export default function QimenHeader({
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     return (
-        <div className="w-full bg-card rounded-xl border border-border p-4 2xl:p-5 flex flex-col gap-3 2xl:gap-4">
+        <div className="w-full bg-card rounded-xl border border-border p-3 2xl:p-5 flex flex-col gap-2 2xl:gap-4">
             {/* 第一行：日期时间 + 操作按钮 */}
             <div className="flex items-center justify-between text-sm 2xl:text-xl">
                 <div className="flex items-baseline gap-1 2xl:gap-2">

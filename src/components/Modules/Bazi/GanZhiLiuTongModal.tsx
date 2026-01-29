@@ -9,7 +9,7 @@
  * - 合：只在同柱天干地支之间显示（如己亥合）
  */
 import { useMemo, useState, useEffect } from 'react';
-import { ChevronsLeft, ChevronsRight, ChevronsUp, ChevronsDown, Network } from 'lucide-react';
+import { ChevronsLeft, ChevronsRight, ChevronsUp, ChevronsDown, ArrowRightLeft } from 'lucide-react';
 import BaseModal from '../../UI/BaseModal';
 import { getElementColor } from '../../../lib/xuan-bazi/maps/baziStyleMap';
 import { getShiShen } from '../../../lib/xuan-bazi/utils';
@@ -510,9 +510,9 @@ export default function GanZhiLiuTongModal({
 
     // Header Content
     const header = (
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between w-full">
             <span className="text-lg font-medium text-foreground">干支流通</span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mr-6">
                 <button
                     onClick={() => setShowLiuNian(!showLiuNian)}
                     className={`px-3 py-1 text-sm rounded-md border transition-colors ${showLiuNian
@@ -535,12 +535,13 @@ export default function GanZhiLiuTongModal({
         </div>
     );
 
+
     return (
         <BaseModal
             isOpen={isOpen}
             onClose={onClose}
             title={header}
-            titleIcon={<Network className="w-5 h-5" />}
+            titleIcon={<ArrowRightLeft className="w-5 h-5" />}
             maxWidth="max-w-[720px]"
             bodyClassName="p-0 overflow-hidden flex flex-col bg-dot-pattern min-h-[500px]"
         >

@@ -53,7 +53,7 @@ export default function BaseModal({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-[2px] animate-in fade-in duration-200"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-[2px] animate-in fade-in duration-200"
             role="dialog"
             aria-modal="true"
             aria-labelledby={title ? "modal-title" : undefined}
@@ -75,7 +75,7 @@ export default function BaseModal({
                 {/* Header */}
                 {(title || showCloseButton) && (
                     <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
-                        <div className="flex items-center gap-2 text-lg font-semibold text-foreground" id="modal-title">
+                        <div className="flex items-center gap-2 text-lg font-semibold text-foreground flex-1" id="modal-title">
                             {titleIcon && <span className="text-primary">{titleIcon}</span>}
                             {title}
                         </div>

@@ -4,7 +4,7 @@
  * 包含实时时钟显示（公历、农历、四柱）
  * 响应式设计：小屏幕折叠菜单 + 时钟互斥显示
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Calendar,
   Compass,
@@ -147,6 +147,24 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
   // 获取显示名称
   const displayName = user?.email?.split('@')[0] || '用户';
 
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // 点击外部关闭菜单
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpen]);
+
   return (
     <>
       <header className="h-16 glass-header sticky top-0 z-50 flex items-center justify-center relative">
@@ -204,7 +222,7 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
           </button>
 
           {/* 用户菜单 */}
-          <div className="relative">
+          <div className="relative" ref={menuRef}>
             <button
               type="button"
               onClick={() => setMenuOpen((prev) => !prev)}

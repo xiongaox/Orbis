@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
-import { Share2 } from 'lucide-react';
+import { GitBranch } from 'lucide-react';
 import BaseModal from '../../UI/BaseModal';
 import { createDefaultGanZhiLiuYiSetting } from '../../../lib/xuan-bazi/settings/baziGanZhiLiuYiSetting';
 import {
@@ -330,9 +330,9 @@ export default function GanZhiDiagramModal({
 
     // Header Content
     const header = (
-        <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between w-full">
             <span className="text-lg font-medium text-foreground">干支流通图解</span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mr-6">
                 {showLiuNian && (!chartData?.items.find((i: any) => i.label === '流年')) && (
                     <span className="text-sm text-yellow-500 animate-pulse inline-block">请先选择流年</span>
                 )}
@@ -363,7 +363,7 @@ export default function GanZhiDiagramModal({
             isOpen={isOpen}
             onClose={onClose}
             title={header}
-            titleIcon={<Share2 className="w-5 h-5" />}
+            titleIcon={<GitBranch className="w-5 h-5" />}
             maxWidth="max-w-[720px]"
             bodyClassName="p-0 overflow-hidden flex flex-col bg-dot-pattern min-h-[500px]"
         >

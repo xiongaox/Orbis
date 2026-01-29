@@ -188,31 +188,27 @@ export default function CreateCaseModal({ isOpen, onClose, onCreated, onPreview 
                 {/* 性别 */}
                 <div className="modal-field">
                     <label className="modal-label">性别 *</label>
-                    <div className="flex gap-4">
-                        <label className="flex items-center gap-2 cursor-pointer group">
-                            <input
-                                type="radio"
-                                name="gender"
-                                value="male"
-                                checked={gender === 'male'}
-                                onChange={() => setGender('male')}
-                                disabled={loading}
-                                className="w-4 h-4 accent-primary focus-ring"
-                            />
-                            <span className="text-sm text-foreground group-hover:text-primary transition-colors">男</span>
-                        </label>
-                        <label className="flex items-center gap-2 cursor-pointer group">
-                            <input
-                                type="radio"
-                                name="gender"
-                                value="female"
-                                checked={gender === 'female'}
-                                onChange={() => setGender('female')}
-                                disabled={loading}
-                                className="w-4 h-4 accent-primary focus-ring"
-                            />
-                            <span className="text-sm text-foreground group-hover:text-primary transition-colors">女</span>
-                        </label>
+                    <div className="grid grid-cols-2 gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setGender('male')}
+                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg border text-sm transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${gender === 'male'
+                                ? 'border-primary bg-primary/10 text-primary font-medium ring-1 ring-primary/20'
+                                : 'border-border hover:border-primary/50 hover:bg-secondary/50 text-muted-foreground hover:text-foreground'
+                                }`}
+                        >
+                            <span>男</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setGender('female')}
+                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg border text-sm transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${gender === 'female'
+                                ? 'border-primary bg-primary/10 text-primary font-medium ring-1 ring-primary/20'
+                                : 'border-border hover:border-primary/50 hover:bg-secondary/50 text-muted-foreground hover:text-foreground'
+                                }`}
+                        >
+                            <span>女</span>
+                        </button>
                     </div>
                 </div>
 
