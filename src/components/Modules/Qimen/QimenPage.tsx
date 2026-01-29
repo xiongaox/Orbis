@@ -3,13 +3,13 @@
  * 三栏布局：左侧案例列表、中间九宫盘式、右侧宫位详情
  * 响应式设计：大屏全展开，中等屏幕变窄，小屏幕折叠侧边栏
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import QimenCaseList from './QimenCaseList';
 import QimenChart, { type QimenPalace } from './QimenChart';
 import QimenPalaceDetail from './QimenPalaceDetail';
 import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
 import QimenNewCaseModal from './QimenNewCaseModal';
-import QimenJuInfo from './QimenJuInfo';
+import QimenJuInfo, { type PillarKey } from './QimenJuInfo';
 import {
     calculateQimen,
     calculateQimenNow,
@@ -29,6 +29,36 @@ const METHOD_LABELS: Record<PaiPanMethod, string> = {
     'yinpan': '时家转盘阴盘法',
     'chaibu': '时家转盘拆补法',
     'maoshan': '时家茅山法',
+};
+
+// 地支到宫位映射
+const ZHI_PALACE_MAP: Record<string, number> = {
+    '子': 1, '丑': 8, '寅': 3, '卯': 3, '辰': 4, '巳': 4,
+    '午': 9, '未': 2, '申': 6, '酉': 7, '戌': 6, '亥': 1,
+};
+
+// 驿马查找表
+const MA_XING_MAP: Record<string, string> = {
+    '申': '寅', '子': '寅', '辰': '寅',
+    '寅': '申', '午': '申', '戌': '申',
+    '巳': '亥', '酉': '亥', '丑': '亥',
+    '亥': '巳', '卯': '巳', '未': '巳',
+};
+
+// 旬空计算
+const getXunKong = (ganZhi: string) => {
+    if (!ganZhi) return '';
+    const gan = ganZhi.substring(0, 1);
+    const zhi = ganZhi.substring(1, 2);
+    const ganMap: Record<string, number> = { '甲': 1, '乙': 2, '丙': 3, '丁': 4, '戊': 5, '己': 6, '庚': 7, '辛': 8, '壬': 9, '癸': 10 };
+    const zhiMap: Record<string, number> = { '子': 1, '丑': 2, '寅': 3, '卯': 4, '辰': 5, '巳': 6, '午': 7, '未': 8, '申': 9, '酉': 10, '戌': 11, '亥': 12 };
+    const g = ganMap[gan] || 0;
+    const z = zhiMap[zhi] || 0;
+    const diff = (z - g + 12) % 12;
+    const kongMap: Record<number, string> = {
+        0: '戌亥', 2: '子丑', 4: '寅卯', 6: '辰巳', 8: '午未', 10: '申酉'
+    };
+    return kongMap[diff] || '';
 };
 
 // 默认空的宫位数据
@@ -89,6 +119,34 @@ export default function QimenPage() {
 
     // AI 提示词弹窗状态
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+
+    // 空亡驿马选择状态（默认时柱）
+    const [selectedKongWangKey, setSelectedKongWangKey] = useState<PillarKey>('hour');
+    const [selectedMaXingKey, setSelectedMaXingKey] = useState<PillarKey>('hour');
+
+    // 动态计算当前选中柱对应的马/空宫位
+    const dynamicMaKong = useMemo(() => {
+        const siZhu = header.siZhu;
+        const pillarMap: Record<PillarKey, string> = {
+            year: siZhu.year,
+            month: siZhu.month,
+            day: siZhu.day,
+            hour: siZhu.hour,
+        };
+
+        // 计算选中柱的空亡
+        const kongGanZhi = pillarMap[selectedKongWangKey];
+        const kongStr = getXunKong(kongGanZhi);
+        const kongPositions = kongStr.split('').map(z => ZHI_PALACE_MAP[z] || 0).filter(p => p > 0);
+
+        // 计算选中柱的驿马
+        const maGanZhi = pillarMap[selectedMaXingKey];
+        const maZhi = maGanZhi.slice(1);
+        const maChar = MA_XING_MAP[maZhi] || '';
+        const maPosition = maChar ? ZHI_PALACE_MAP[maChar] || 0 : 0;
+
+        return { kongPositions, maPosition };
+    }, [header.siZhu, selectedKongWangKey, selectedMaXingKey]);
 
     // 根据指定日期计算奇门盘
     const calculateQimenByDate = useCallback(async (date: Date, juOverride?: number) => {
@@ -268,7 +326,7 @@ export default function QimenPage() {
                     globalPatterns={globalPatterns}
                     onPatternClick={setSelectedPattern}
                     onOpenAiModal={() => setIsAiModalOpen(true)}
-
+                    dynamicMaKong={dynamicMaKong}
                 />
             </main>
 
@@ -292,6 +350,10 @@ export default function QimenPage() {
                             setCurrentCase(updatedCase);
                             setRefreshTrigger(prev => prev + 1);
                         }}
+                        selectedKongWangKey={selectedKongWangKey}
+                        selectedMaXingKey={selectedMaXingKey}
+                        onKongWangKeyChange={setSelectedKongWangKey}
+                        onMaXingKeyChange={setSelectedMaXingKey}
                     />
                 )}
             </div>

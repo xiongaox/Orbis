@@ -33,6 +33,8 @@ interface CaseStudyQimenHeaderProps {
     onPatternClick?: (pattern: GlobalPattern) => void;
     showChangSheng: boolean;
     onToggleChangSheng: () => void;
+    showShiShen: boolean;
+    onToggleShiShen: () => void;
 }
 
 export default function CaseStudyQimenHeader({
@@ -44,6 +46,8 @@ export default function CaseStudyQimenHeader({
     onPatternClick,
     showChangSheng,
     onToggleChangSheng,
+    showShiShen,
+    onToggleShiShen,
 }: CaseStudyQimenHeaderProps) {
     const [isMethodOpen, setIsMethodOpen] = useState(false);
 
@@ -133,6 +137,7 @@ export default function CaseStudyQimenHeader({
                 </div>
                 <div className="flex items-center gap-2">
                     <button onClick={onToggleChangSheng} className={`px-3 py-0.5 text-xs rounded-md transition-colors font-serif border border-border ${showChangSheng ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'}`}>长生状态</button>
+                    <button onClick={onToggleShiShen} className={`px-3 py-0.5 text-xs rounded-md transition-colors font-serif border border-border ${showShiShen ? 'bg-amber-500/10 text-amber-500' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'}`}>十神展示</button>
                 </div>
             </div>
         </div>

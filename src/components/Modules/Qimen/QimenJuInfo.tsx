@@ -13,14 +13,23 @@ import { MA_XING_MAP, getXunKong, formatSolarTime } from './utils/qimenInfoUtils
 import JuInfoCard from './components/JuInfoCard';
 import CaseInfoCard from './components/CaseInfoCard';
 
+export type PillarKey = 'year' | 'month' | 'day' | 'hour';
+
 interface QimenJuInfoProps {
     date: Date;
     header: QimenHeader;
     caseData: QimenCase | null;
     onCaseUpdated?: (updatedCase: QimenCase) => void;
+    selectedKongWangKey: PillarKey;
+    selectedMaXingKey: PillarKey;
+    onKongWangKeyChange: (key: PillarKey) => void;
+    onMaXingKeyChange: (key: PillarKey) => void;
 }
 
-export default function QimenJuInfo({ date, header, caseData, onCaseUpdated }: QimenJuInfoProps) {
+export default function QimenJuInfo({
+    date, header, caseData, onCaseUpdated,
+    selectedKongWangKey, selectedMaXingKey, onKongWangKeyChange, onMaXingKeyChange
+}: QimenJuInfoProps) {
     // 局基本信息计算
     const info = useMemo(() => {
         const solar = Solar.fromDate(date);
@@ -71,7 +80,14 @@ export default function QimenJuInfo({ date, header, caseData, onCaseUpdated }: Q
     return (
         <div className="h-full flex flex-col bg-card/30 text-card-foreground overflow-y-auto custom-scrollbar">
             {/* 局信息卡片 */}
-            <JuInfoCard header={header} info={info} />
+            <JuInfoCard
+                header={header}
+                info={info}
+                selectedKongWangKey={selectedKongWangKey}
+                selectedMaXingKey={selectedMaXingKey}
+                onKongWangKeyChange={onKongWangKeyChange}
+                onMaXingKeyChange={onMaXingKeyChange}
+            />
 
             <div className="h-2 bg-muted/20 border-t border-b border-border/10 flex-shrink-0" />
 

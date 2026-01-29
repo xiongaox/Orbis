@@ -14,9 +14,13 @@ interface JuInfoCardProps {
         kongWang: { year: string; month: string; day: string; hour: string };
         maXing: { year: string; month: string; day: string; hour: string };
     };
+    selectedKongWangKey: 'year' | 'month' | 'day' | 'hour';
+    selectedMaXingKey: 'year' | 'month' | 'day' | 'hour';
+    onKongWangKeyChange: (key: 'year' | 'month' | 'day' | 'hour') => void;
+    onMaXingKeyChange: (key: 'year' | 'month' | 'day' | 'hour') => void;
 }
 
-export default function JuInfoCard({ header, info }: JuInfoCardProps) {
+export default function JuInfoCard({ header, info, selectedKongWangKey, selectedMaXingKey, onKongWangKeyChange, onMaXingKeyChange }: JuInfoCardProps) {
     return (
         <div className="p-6 space-y-5">
             {/* 顶部标题 */}
@@ -67,17 +71,25 @@ export default function JuInfoCard({ header, info }: JuInfoCardProps) {
                 <div className="grid grid-cols-[50px_1fr] gap-2 items-center">
                     <span className="text-muted-foreground text-xs">空亡</span>
                     <div className="flex gap-2">
-                        {['year', 'month', 'day', 'hour'].map((key) => {
-                            const k = key as keyof typeof info.kongWang;
-                            const val = info.kongWang[k];
+                        {(['year', 'month', 'day', 'hour'] as const).map((key) => {
+                            const val = info.kongWang[key];
                             const labelMap: Record<string, string> = { year: '年', month: '月', day: '日', hour: '时' };
+                            const isSelected = selectedKongWangKey === key;
                             return (
-                                <div key={key} className="flex items-baseline gap-1 bg-muted/30 border border-border/40 px-2 py-1 rounded">
-                                    <span className="text-xs text-muted-foreground/70">{labelMap[key]}</span>
-                                    <span className={`font-mono ${key === 'hour' ? 'text-primary font-bold' : 'text-foreground/90'}`}>
+                                <button
+                                    key={key}
+                                    type="button"
+                                    onClick={() => onKongWangKeyChange(key)}
+                                    className={`flex items-baseline gap-1 px-2 py-1 rounded transition-colors ${isSelected
+                                        ? 'bg-primary/20 border border-primary/50 ring-1 ring-primary/30'
+                                        : 'bg-muted/30 border border-border/40 hover:bg-muted/50'
+                                        }`}
+                                >
+                                    <span className={`text-xs ${isSelected ? 'text-primary' : 'text-muted-foreground/70'}`}>{labelMap[key]}</span>
+                                    <span className={`font-mono ${isSelected ? 'text-primary font-bold' : 'text-foreground/90'}`}>
                                         {val || '-'}
                                     </span>
-                                </div>
+                                </button>
                             );
                         })}
                     </div>
@@ -87,17 +99,25 @@ export default function JuInfoCard({ header, info }: JuInfoCardProps) {
                 <div className="grid grid-cols-[50px_1fr] gap-2 items-center">
                     <span className="text-muted-foreground text-xs">驿马</span>
                     <div className="flex gap-2">
-                        {['year', 'month', 'day', 'hour'].map((key) => {
-                            const k = key as keyof typeof info.maXing;
-                            const val = info.maXing[k];
+                        {(['year', 'month', 'day', 'hour'] as const).map((key) => {
+                            const val = info.maXing[key];
                             const labelMap: Record<string, string> = { year: '年', month: '月', day: '日', hour: '时' };
+                            const isSelected = selectedMaXingKey === key;
                             return (
-                                <div key={key} className="flex items-baseline gap-1 bg-muted/30 border border-border/40 px-2 py-1 rounded">
-                                    <span className="text-xs text-muted-foreground/70">{labelMap[key]}</span>
-                                    <span className={`font-mono ${key === 'hour' ? 'text-primary font-bold' : 'text-foreground/90'}`}>
+                                <button
+                                    key={key}
+                                    type="button"
+                                    onClick={() => onMaXingKeyChange(key)}
+                                    className={`flex items-baseline gap-1 px-2 py-1 rounded transition-colors ${isSelected
+                                        ? 'bg-primary/20 border border-primary/50 ring-1 ring-primary/30'
+                                        : 'bg-muted/30 border border-border/40 hover:bg-muted/50'
+                                        }`}
+                                >
+                                    <span className={`text-xs ${isSelected ? 'text-primary' : 'text-muted-foreground/70'}`}>{labelMap[key]}</span>
+                                    <span className={`font-mono ${isSelected ? 'text-primary font-bold' : 'text-foreground/90'}`}>
                                         {val || '-'}
                                     </span>
-                                </div>
+                                </button>
                             );
                         })}
                     </div>

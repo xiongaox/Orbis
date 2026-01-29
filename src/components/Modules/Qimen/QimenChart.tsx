@@ -31,6 +31,13 @@ export interface QimenPalace {
     anGanShiErCS?: string;
     tianPanShiErCS?: string;
     diPanShiErCS?: string;
+    // 十神字段
+    tianPanShiShen?: string;
+    diPanShiShen?: string;
+    xingShiShen?: string;
+    menShiShen?: string;
+    jiGongTianPanShiShen?: string;
+    jiGongDiPanShiShen?: string;
     // 门迫路径 (原宫 → 所在宫 → 后天方位)
     menPoPath?: {
         from: string;   // 原宫 (如 "兑")
@@ -71,6 +78,7 @@ interface QimenChartProps {
     globalPatterns?: GlobalPattern[];
     onPatternClick?: (pattern: GlobalPattern) => void;
     onOpenAiModal?: () => void;
+    dynamicMaKong?: { kongPositions: number[]; maPosition: number };
 }
 
 // 洛书九宫布局顺序
@@ -98,10 +106,31 @@ export default function QimenChart({
     globalPatterns = [],
     onPatternClick,
     onOpenAiModal,
+    dynamicMaKong,
 }: QimenChartProps) {
     const orderedPalaces = LUOSHU_ORDER.map(pos => palaces.find(p => p.position === pos)!);
     const [showChangSheng, setShowChangSheng] = useState(false);
+    const [showShiShen, setShowShiShen] = useState(false);
     const [showPalaceMeta, setShowPalaceMeta] = useState(false);
+
+    // 互斥切换逻辑：开启长生则关闭十神，开启十神则关闭长生
+    const handleToggleChangSheng = () => {
+        if (!showChangSheng) {
+            setShowChangSheng(true);
+            setShowShiShen(false);
+        } else {
+            setShowChangSheng(false);
+        }
+    };
+
+    const handleToggleShiShen = () => {
+        if (!showShiShen) {
+            setShowShiShen(true);
+            setShowChangSheng(false);
+        } else {
+            setShowShiShen(false);
+        }
+    };
 
     // 高亮计算
     const targetDayStem = getRealStem(header.siZhu.day[0], header.siZhu.day[1]);
@@ -126,7 +155,9 @@ export default function QimenChart({
                             onPatternClick={onPatternClick}
                             onOpenAiModal={onOpenAiModal}
                             showChangSheng={showChangSheng}
-                            onToggleChangSheng={() => setShowChangSheng(!showChangSheng)}
+                            onToggleChangSheng={handleToggleChangSheng}
+                            showShiShen={showShiShen}
+                            onToggleShiShen={handleToggleShiShen}
                             showPalaceMeta={showPalaceMeta}
                             onTogglePalaceMeta={() => setShowPalaceMeta(!showPalaceMeta)}
                         />
@@ -143,6 +174,7 @@ export default function QimenChart({
                                         isSelected={selectedPalace === palace.position}
                                         onSelect={() => onSelectPalace(palace.position)}
                                         showChangSheng={showChangSheng}
+                                        showShiShen={showShiShen}
                                         showPalaceMeta={showPalaceMeta}
                                         isZhiFu={palace.xing === header.zhiFu}
                                         isZhiShi={palace.men === header.zhiShi}
@@ -150,6 +182,7 @@ export default function QimenChart({
                                         isHourStem={palace.tianPan === targetHourStem}
                                         isJiGongDayStem={palace.jiGongTianPan === targetDayStem}
                                         isJiGongHourStem={palace.jiGongTianPan === targetHourStem}
+                                        dynamicMaKong={dynamicMaKong}
                                     />
                                 ))}
                             </div>

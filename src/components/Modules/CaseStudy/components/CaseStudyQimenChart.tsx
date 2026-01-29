@@ -33,6 +33,13 @@ export interface QimenPalace {
     anGanShiErCS?: string;
     tianPanShiErCS?: string;
     diPanShiErCS?: string;
+    // 十神字段
+    tianPanShiShen?: string;
+    diPanShiShen?: string;
+    xingShiShen?: string;
+    menShiShen?: string;
+    jiGongTianPanShiShen?: string;
+    jiGongDiPanShiShen?: string;
 }
 
 interface CaseStudyQimenChartProps {
@@ -81,6 +88,26 @@ export default function CaseStudyQimenChart({
 }: CaseStudyQimenChartProps) {
     const orderedPalaces = LUOSHU_ORDER.map(pos => palaces.find(p => p.position === pos)!);
     const [showChangSheng, setShowChangSheng] = useState(true);
+    const [showShiShen, setShowShiShen] = useState(false);
+
+    // 互斥切换逻辑
+    const handleToggleChangSheng = () => {
+        if (!showChangSheng) {
+            setShowChangSheng(true);
+            setShowShiShen(false);
+        } else {
+            setShowChangSheng(false);
+        }
+    };
+
+    const handleToggleShiShen = () => {
+        if (!showShiShen) {
+            setShowShiShen(true);
+            setShowChangSheng(false);
+        } else {
+            setShowShiShen(false);
+        }
+    };
 
     // 高亮计算
     const targetDayStem = getRealStem(header.siZhu.day[0], header.siZhu.day[1]);
@@ -102,7 +129,9 @@ export default function CaseStudyQimenChart({
                         globalPatterns={globalPatterns}
                         onPatternClick={onPatternClick}
                         showChangSheng={showChangSheng}
-                        onToggleChangSheng={() => setShowChangSheng(!showChangSheng)}
+                        onToggleChangSheng={handleToggleChangSheng}
+                        showShiShen={showShiShen}
+                        onToggleShiShen={handleToggleShiShen}
                     />
                 </div>
 
@@ -116,6 +145,7 @@ export default function CaseStudyQimenChart({
                                     isSelected={selectedPalace === palace.position}
                                     onSelect={() => onSelectPalace(palace.position)}
                                     showChangSheng={showChangSheng}
+                                    showShiShen={showShiShen}
                                     isZhiFu={palace.xing === header.zhiFu}
                                     isZhiShi={palace.men === header.zhiShi}
                                     isDayStem={palace.tianPan === targetDayStem}
