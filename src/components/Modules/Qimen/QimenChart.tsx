@@ -31,6 +31,18 @@ export interface QimenPalace {
     anGanShiErCS?: string;
     tianPanShiErCS?: string;
     diPanShiErCS?: string;
+    // 门迫路径 (原宫 → 所在宫 → 后天方位)
+    menPoPath?: {
+        from: string;   // 原宫 (如 "兑")
+        to: string;     // 所在宫 (如 "巽")
+        final: string;  // 后天方位 (如 "坤")
+    };
+    // 底部元数据
+    palaceMeta?: {
+        number: string;       // 序号 (如 "4538")
+        wangShuai: string;    // 宫位旺衰 (如 "囚")
+        panType: string;      // 盘类型 (如 "内盘")
+    };
 }
 
 interface QimenChartProps {
@@ -88,7 +100,8 @@ export default function QimenChart({
     onOpenAiModal,
 }: QimenChartProps) {
     const orderedPalaces = LUOSHU_ORDER.map(pos => palaces.find(p => p.position === pos)!);
-    const [showChangSheng, setShowChangSheng] = useState(true);
+    const [showChangSheng, setShowChangSheng] = useState(false);
+    const [showPalaceMeta, setShowPalaceMeta] = useState(false);
 
     // 高亮计算
     const targetDayStem = getRealStem(header.siZhu.day[0], header.siZhu.day[1]);
@@ -114,6 +127,8 @@ export default function QimenChart({
                             onOpenAiModal={onOpenAiModal}
                             showChangSheng={showChangSheng}
                             onToggleChangSheng={() => setShowChangSheng(!showChangSheng)}
+                            showPalaceMeta={showPalaceMeta}
+                            onTogglePalaceMeta={() => setShowPalaceMeta(!showPalaceMeta)}
                         />
                     </div>
 
@@ -128,6 +143,7 @@ export default function QimenChart({
                                         isSelected={selectedPalace === palace.position}
                                         onSelect={() => onSelectPalace(palace.position)}
                                         showChangSheng={showChangSheng}
+                                        showPalaceMeta={showPalaceMeta}
                                         isZhiFu={palace.xing === header.zhiFu}
                                         isZhiShi={palace.men === header.zhiShi}
                                         isDayStem={palace.tianPan === targetDayStem}

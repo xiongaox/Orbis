@@ -16,7 +16,7 @@ export interface QimenResult {
 
 import { getEightCharFromDate, getSolarToLunarInfo } from '../../utils/lunarUtil';
 import { LunarUtil } from 'lunar-typescript';
-import { getXingWang, getMenWang, getGanShiErCS } from './qimenUtils';
+import { getXingWang, getMenWang, getGanShiErCS, getPalaceWangShuai } from './qimenUtils';
 
 // ============ 类型定义 ============
 
@@ -328,8 +328,59 @@ function parseCspOutput(output: string): CspParsedData | null {
 
 // ============ 数据转换 ============
 
-// 宫位名称映射
+// 宫位名称映射 (后天八卦，洛书九宫)
 const GONG_NAMES = ['', '坎', '坤', '震', '巽', '中', '乾', '兑', '艮', '离'];
+
+// 先天八卦在各方位的分布 (后天宫位 -> 该位置的先天卦)
+const XIAN_TIAN_GUA: Record<number, string> = {
+    1: '坤', // 坎宫(北)，先天北方为坤
+    2: '巽', // 坤宫(西南)，先天西南为巽
+    3: '离', // 震宫(东)，先天东方为离
+    4: '兑', // 巽宫(东南)，先天东南为兑
+    5: '',   // 中宫
+    6: '艮', // 乾宫(西北)，先天西北为艮
+    7: '坎', // 兑宫(西)，先天西方为坎
+    8: '震', // 艮宫(东北)，先天东北为震
+    9: '乾', // 离宫(南)，先天南方为乾
+};
+
+// 穿宫卦：本宫卦的先天位在哪个方位，该方位后天为何卦
+// 坎先天在西方，西方后天为兑，故坎穿兑
+// 坤先天在北方，北方后天为坎，故坤穿坎
+// 震先天在东北，东北后天为艮，故震穿艮
+// 巽先天在西南，西南后天为坤，故巽穿坤
+// 乾先天在南方，南方后天为离，故乾穿离
+// 兑先天在东南，东南后天为巽，故兑穿巽
+// 艮先天在西北，西北后天为乾，故艮穿乾
+// 离先天在东方，东方后天为震，故离穿震
+const CHUAN_GONG_GUA: Record<string, string> = {
+    '坎': '兑', '坤': '坎', '震': '艮', '巽': '坤',
+    '乾': '离', '兑': '巽', '艮': '乾', '离': '震',
+};
+
+/**
+ * 获取宫位三卦路径：[先天卦] -> [后天卦(本宫)] -> [穿宫卦]
+ */
+function getGuaPath(pos: number): { from: string; to: string; final: string } | undefined {
+    if (pos === 5) return undefined; // 中宫无三卦
+    const houTian = GONG_NAMES[pos]; // 后天卦（本宫）
+    const xianTian = XIAN_TIAN_GUA[pos]; // 先天卦
+    const chuanGong = CHUAN_GONG_GUA[houTian] || ''; // 穿宫卦
+    return { from: xianTian, to: houTian, final: chuanGong };
+}
+
+// 宫位数字映射：[后天数, 先天数, 河图生数, 河图成数]
+const PALACE_NUM_MAP: Record<number, number[]> = {
+    1: [1, 6, 1, 6],   // 坎
+    2: [2, 8, 5, 10],  // 坤
+    3: [3, 4, 3, 8],   // 震
+    4: [4, 5, 3, 8],   // 巽
+    5: [5, 0, 5, 10],  // 中 (用户未提供，暂定默认值，先天数暂填0)
+    6: [6, 1, 4, 9],   // 乾
+    7: [7, 2, 4, 9],   // 兑
+    8: [8, 7, 5, 10],  // 艮
+    9: [9, 3, 2, 7],   // 离
+};
 
 // 地支与宫位映射 (用于手动计算马星和空亡位置)
 // 1:子, 8:丑寅, 3:卯, 4:辰巳, 9:午, 2:未申, 7:酉, 6:戌亥
@@ -410,6 +461,30 @@ function getZhongGongDiPan(juStr: string): string {
     }
 
     return DI_PAN_GAN_SHUN[steps] || '';
+}
+
+/**
+ * 判断宫位是内盘还是外盘
+ * 阳遁：1坎 8艮 3震 4巽 为内；9离 2坤 7兑 6乾 为外
+ * 阴遁：9离 2坤 7兑 6乾 为内；1坎 8艮 3震 4巽 为外
+ * 中宫(5)：寄坤宫(2)，通常跟随坤宫属性
+ */
+function getPanType(pos: number, isYang: boolean): string {
+    const INNER_YANG = [1, 8, 3, 4];
+    const OUTER_YANG = [9, 2, 7, 6];
+
+    // 中宫寄坤(2)，跟随坤
+    const realPos = pos === 5 ? 2 : pos;
+
+    if (isYang) {
+        if (INNER_YANG.includes(realPos)) return '内盘';
+        if (OUTER_YANG.includes(realPos)) return '外盘';
+    } else {
+        // 阴遁与阳遁相反
+        if (OUTER_YANG.includes(realPos)) return '内盘';
+        if (INNER_YANG.includes(realPos)) return '外盘';
+    }
+    return '';
 }
 
 /**
@@ -618,6 +693,14 @@ function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResu
             anGanShiErCS: '',
             tianPanShiErCS: pos === 5 ? '' : getGanShiErCS(cspPalace?.tianPan || '', pos),
             diPanShiErCS: pos === 5 ? '' : getGanShiErCS(cspPalace?.diPan || '', pos),
+            // 宫头三卦路径：[先天卦] -> [后天卦(本宫)] -> [隐伏通气卦]
+            menPoPath: getGuaPath(pos),
+            // 底部元数据
+            palaceMeta: {
+                number: PALACE_NUM_MAP[pos]?.map(n => n === 10 ? '`10' : n).join('') || '',
+                wangShuai: pos === 5 ? '平' : getPalaceWangShuai(pos, siZhu.month.slice(1, 2)),
+                panType: getPanType(pos, parsed.ju.includes('阳')),
+            },
         };
 
         palaces.push(palace);

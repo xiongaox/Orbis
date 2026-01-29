@@ -336,3 +336,18 @@ export function getGanShiErCS(gan: string, gongPosition: number): string {
 
     return results.join('');
 }
+
+/**
+ * 获取宫位月令旺衰（旺相休囚死）
+ * @param gongPosition 宫位
+ * @param monthZhi 月支
+ */
+export function getPalaceWangShuai(gongPosition: number, monthZhi: string): string {
+    const gongWuxing = GONG_WUXING[gongPosition];
+    if (!gongWuxing) return '';
+
+    const season = ZHI_TO_SEASON[monthZhi];
+    if (!season) return '';
+
+    return SEASON_WANGSHUAI[season]?.[gongWuxing] || '';
+}
