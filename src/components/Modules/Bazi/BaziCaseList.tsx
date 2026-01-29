@@ -3,7 +3,7 @@
  * 支持 Supabase 云端同步
  */
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronRight, Search, LogIn, Pencil, Trash2, Import } from 'lucide-react';
+import { ChevronRight, Search, LogIn, Pencil, Trash2, ArrowUpFromLine, ArrowDownToLine } from 'lucide-react';
 import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../../utils/lunarUtil';
 import { useAuth } from '../../../contexts/AuthContext';
 import { baziCaseService, CASE_TAGS, type BaziCase, type CaseTag, type CreateCaseInput } from '../../../services/baziCaseService';
@@ -15,6 +15,7 @@ import CreateCaseModal from './CreateCaseModal';
 import ImportCaseModal from './ImportCaseModal';
 import { BAZI_CASES_CHANGED_EVENT } from '../../../data/caseConstants';
 import EditCaseModal from './EditCaseModal';
+import ExportCaseModal from '../../Common/ExportCaseModal';
 
 type ChartType =
   | 'bazi'
@@ -59,6 +60,7 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [editingCase, setEditingCase] = useState<BaziCase | null>(null);
   const [deletingCaseId, setDeletingCaseId] = useState<string | null>(null);
   const [caseToDelete, setCaseToDelete] = useState<BaziCase | null>(null);
@@ -280,16 +282,25 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setShowImportModal(true)}
-              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
+              onClick={() => setShowExportModal(true)}
+              className="flex items-center justify-center px-2.5 py-2 bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
+              title="导出案例"
             >
-              <Import className="w-3.5 h-3.5" />
-              导入
+              <ArrowUpFromLine className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowImportModal(true)}
+              className="flex items-center justify-center px-2.5 py-2 bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
+              title="导入案例"
+            >
+              <ArrowDownToLine className="w-3.5 h-3.5" />
             </button>
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
               className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/30"
+              title="新建案例"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
               新建
@@ -442,6 +453,34 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         onImported={handleCaseCreated}
+      />
+
+      {/* 导出案例 Modal */}
+      <ExportCaseModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="导出八字案例"
+        options={CASE_TAGS.map((tag) => ({ id: tag, name: tag }))}
+        cases={cases}
+        getCaseFilter={(c) => c.tags}
+        formatCase={(c) => {
+          // 计算天干地支
+          const pillars = getBaziPillarsFromDateString(c.birth_date);
+          const displayPillars = pillars.length === 8
+            ? [pillars[0] + pillars[1], pillars[2] + pillars[3], pillars[4] + pillars[5], pillars[6] + pillars[7]]
+            : [];
+          const ganZhi = displayPillars.join(' ');
+
+          return {
+            '姓名': c.name,
+            '性别': c.gender === 'male' ? '男' : '女',
+            '出生时间': c.birth_date.replace('T', ' ').slice(0, 16),
+            '天干地支': ganZhi,
+            '标签': c.tags?.join('、') || '',
+            '备注': c.notes || '',
+          };
+        }}
+        filename="bazi_cases"
       />
 
       {editingCase && (

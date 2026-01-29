@@ -3,10 +3,11 @@
  * 左侧显示案例列表，支持起盘功能
  */
 import { useState, useEffect } from 'react';
-import { Search, ChevronDown, Pencil, Trash2, Import as ImportIcon } from 'lucide-react';
+import { Search, ChevronDown, Pencil, Trash2, ArrowUpFromLine, ArrowDownToLine } from 'lucide-react';
 import { qimenCaseService, type QimenCase, QIMEN_CATEGORIES } from '../../../services/qimenCaseService';
 import QimenCaseLibraryModal, { QIMEN_CASES_CHANGED_EVENT } from './QimenCaseLibraryModal';
 import QimenImportModal from './QimenImportModal';
+import ExportCaseModal from '../../Common/ExportCaseModal';
 
 interface QimenCaseListProps {
     selectedCaseId: string | null;
@@ -32,6 +33,7 @@ export default function QimenCaseList({
     const [isCategoryOpen, setIsCategoryOpen] = useState(false);
     const [showLibraryModal, setShowLibraryModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
+    const [showExportModal, setShowExportModal] = useState(false);
 
     // Real Data State
     const [cases, setCases] = useState<QimenCase[]>([]);
@@ -143,16 +145,23 @@ export default function QimenCaseList({
                     />
                 </div>
 
-                {/* 操作按钮组 (导入/新建) */}
+                {/* 操作按钮组 (导出/导入/新建) */}
                 <div className="flex gap-2">
                     <button
                         type="button"
-                        onClick={() => setShowImportModal(true)}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
-                        title="导入JSON格式案例"
+                        onClick={() => setShowExportModal(true)}
+                        className="flex items-center justify-center px-2.5 py-2 bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
+                        title="导出案例"
                     >
-                        <ImportIcon className="w-3.5 h-3.5" />
-                        导入
+                        <ArrowUpFromLine className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setShowImportModal(true)}
+                        className="flex items-center justify-center px-2.5 py-2 bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
+                        title="导入案例"
+                    >
+                        <ArrowDownToLine className="w-3.5 h-3.5" />
                     </button>
                     <button
                         type="button"
@@ -266,6 +275,28 @@ export default function QimenCaseList({
                 onImported={() => {
                     fetchCases(); // Refresh list on import success
                 }}
+            />
+
+            {/* 导出案例弹窗 */}
+            <ExportCaseModal
+                isOpen={showExportModal}
+                onClose={() => setShowExportModal(false)}
+                title="导出奇门案例"
+                options={QIMEN_CATEGORIES.map((cat) => ({ id: cat.id, name: cat.name }))}
+                cases={cases}
+                getCaseFilter={(c) => c.category}
+                formatCase={(c) => {
+                    const categoryName = QIMEN_CATEGORIES.find(cat => cat.id === c.category)?.name || c.category;
+                    return {
+                        '标题': c.title,
+                        '占测时间': c.test_date ? c.test_date.replace('T', ' ').slice(0, 16) : '',
+                        '分类': categoryName,
+                        '事情描述': c.description || '',
+                        '事件反馈': c.feedback || '',
+                        '案例断法': c.analysis || '',
+                    };
+                }}
+                filename="qimen_cases"
             />
         </aside>
     );
