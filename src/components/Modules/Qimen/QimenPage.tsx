@@ -275,7 +275,7 @@ export default function QimenPage() {
     return (
         <div className="flex flex-1 h-full min-h-0 overflow-hidden relative">
             {/* 左侧案例列表 */}
-            <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 overflow-hidden hidden lg:block">
+            <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 overflow-hidden">
                 <QimenCaseList
                     selectedCaseId={selectedCaseId}
                     onSelectCase={(id, caseItem) => {
@@ -296,7 +296,7 @@ export default function QimenPage() {
             </div>
 
             {/* 中间九宫盘式 */}
-            <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col p-4 lg:p-6 relative">
+            <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col p-6 relative">
                 {/* 加载状态 */}
                 {isLoading && (
                     <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-20">
@@ -331,7 +331,7 @@ export default function QimenPage() {
             </main>
 
             {/* 右侧宫位详情 */}
-            <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 min-h-0 overflow-hidden hidden xl:flex xl:flex-col border-l border-border/50 bg-card/10">
+            <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 min-h-0 overflow-hidden flex flex-col border-l border-border/50 bg-card/10">
                 {selectedPalaceData ? (
                     <QimenPalaceDetail
                         palace={selectedPalaceData}

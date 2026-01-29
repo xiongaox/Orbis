@@ -39,8 +39,7 @@ const navItems: { id: ChartType; name: string; icon: ComponentType<{ className?:
   { id: 'xiaoliuren', name: '案例学习', icon: Sun, priority: 'core' },
 ];
 
-// 核心菜单项（小屏幕始终显示）
-const coreItems = navItems.filter(item => item.priority === 'core');
+
 
 interface NavbarProps {
   activeChart: ChartType;
@@ -101,7 +100,7 @@ function NavButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex items-center gap-1 px-2 lg:px-3 py-1.5 text-sm lg:text-base font-medium transition-all duration-200 whitespace-nowrap ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+      className={`flex items-center gap-1 px-3 py-1.5 text-base font-medium transition-all duration-200 whitespace-nowrap ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
         }`}
     >
       <Icon className="w-4 h-4" />
@@ -152,8 +151,8 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
     <>
       <header className="h-16 glass-header sticky top-0 z-50 flex items-center justify-center relative">
         {/* Logo 区域 - 绝对定位在左侧 */}
-        <div className="absolute left-3 lg:left-4 top-1/2 -translate-y-1/2 flex items-center">
-          <div className="w-20 h-20 lg:w-32 lg:h-32 flex items-center justify-center">
+        <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center">
+          <div className="w-32 h-32 flex items-center justify-center">
             <img
               src={isDark ? "/logo/logo_dark.svg" : "/logo/logo_light.svg"}
               alt="玄枢录"
@@ -164,27 +163,8 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
 
         {/* 导航模块 - 居中显示 */}
         <div className="flex items-center justify-center">
-          {/* 小屏幕导航：核心菜单 + 可展开额外菜单 */}
-          <nav className="flex items-center 2xl:hidden">
-            {/* 核心菜单始终显示 */}
-            {coreItems.map((item, index) => (
-              <div key={item.id} className="flex items-center flex-shrink-0">
-                <NavButton
-                  item={item}
-                  isActive={activeChart === item.id}
-                  onClick={() => onChartChange(item.id)}
-                />
-                {index < coreItems.length - 1 && (
-                  <span className="text-border">|</span>
-                )}
-              </div>
-            ))}
-
-
-          </nav>
-
-          {/* 大屏幕导航：完整菜单 */}
-          <nav className="hidden 2xl:flex items-center">
+          {/* 完整导航菜单 */}
+          <nav className="flex items-center">
             {navItems.map((item, index) => (
               <div key={item.id} className="flex items-center flex-shrink-0">
                 <NavButton
@@ -201,10 +181,10 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
         </div>
 
         {/* 右侧功能区 - 绝对定位在右侧 */}
-        <div className="absolute right-3 lg:right-6 flex items-center gap-2 lg:gap-4">
+        <div className="absolute right-6 flex items-center gap-2 lg:gap-4">
           {/* 实时时钟 - 在万年通历模块隐藏（避免冗余） */}
           {activeChart !== 'wannianli' && (
-            <div className="hidden sm:flex">
+            <div className="flex">
               <RealtimeClock />
             </div>
           )}
@@ -228,7 +208,7 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
             <button
               type="button"
               onClick={() => setMenuOpen((prev) => !prev)}
-              className="flex items-center gap-2 px-2 lg:px-3 py-2 rounded-lg hover:bg-secondary/50 transition-colors"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-secondary/50 transition-colors"
               disabled={loading}
             >
               <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
@@ -242,7 +222,7 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
                   <User className="w-4 h-4 text-muted-foreground" />
                 )}
               </div>
-              <span className="text-sm text-muted-foreground hidden lg:inline">
+              <span className="text-sm text-muted-foreground">
                 {loading ? '加载中...' : isAuthenticated ? displayName : '未登录'}
               </span>
             </button>
