@@ -1,6 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { cn } from '../../lib/utils';
 import { getLunarToSolarDate, getSolarToLunarInfo } from '../../utils/lunarUtil';
 import BaziDatePicker from '../Modules/Bazi/BaziDatePicker';
+import TabButton from './DatePicker/TabButton';
+import PickerColumn from './DatePicker/PickerColumn';
 
 interface AdvancedDatePickerProps {
     value?: string | Date; // Can be ISO string or Date object
@@ -24,7 +27,6 @@ const LUNAR_DAYS = ['初一', '初二', '初三', '初四', '初五', '初六', 
 
 // Common styles
 const PICKER_HEIGHT = 200;
-const ITEM_HEIGHT = 40;
 
 export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm, hideBazi = false }: AdvancedDatePickerProps) {
     const [mode, setMode] = useState<PickerMode>('solar');
@@ -225,7 +227,7 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm, 
                                     }}
                                     onKeyDown={e => e.key === 'Enter' && handleManualSubmit()}
                                 />
-                                <div className={`absolute right-1.5 top-1.5 bottom-1.5 transition-opacity duration-200 ${manualInput.length === 12 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                                <div className={cn("absolute right-1.5 top-1.5 bottom-1.5 transition-opacity duration-200", manualInput.length === 12 ? 'opacity-100' : 'opacity-0 pointer-events-none')}>
                                     <button
                                         type="button"
                                         onClick={handleManualSubmit}
@@ -324,106 +326,7 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm, 
     );
 }
 
-function TabButton({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={`px-3 py-1 rounded text-xs font-medium transition-all ${active ? 'bg-popover text-popover-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                }`}
-        >
-            {children}
-        </button>
-    );
-}
 
-interface PickerColumnProps {
-    items: number[];
-    value: number;
-    onChange: (v: number) => void;
-    label?: string;
-    formatItem: (v: number) => string;
-    width?: string;
-}
-
-function PickerColumn({ items, value, onChange, label, formatItem, width = "flex-1" }: PickerColumnProps) {
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const isScrolling = useRef(false);
-    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    // Initial scroll
-    useEffect(() => {
-        if (scrollRef.current) {
-            const index = items.indexOf(value);
-            if (index !== -1) {
-                scrollRef.current.scrollTop = index * ITEM_HEIGHT;
-            }
-        }
-    }, []);
-
-    // Sync external value change
-    useEffect(() => {
-        if (!isScrolling.current && scrollRef.current) {
-            const index = items.indexOf(value);
-            if (index !== -1 && Math.abs(scrollRef.current.scrollTop - index * ITEM_HEIGHT) > 5) {
-                scrollRef.current.scrollTop = index * ITEM_HEIGHT;
-            }
-        }
-    }, [value, items]);
-
-    const handleScroll = () => {
-        isScrolling.current = true;
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-
-        timeoutRef.current = setTimeout(() => {
-            isScrolling.current = false;
-            if (!scrollRef.current) return;
-
-            const scrollTop = scrollRef.current.scrollTop;
-            const index = Math.round(scrollTop / ITEM_HEIGHT);
-            const clampedIndex = Math.max(0, Math.min(index, items.length - 1));
-
-            scrollRef.current.scrollTo({
-                top: clampedIndex * ITEM_HEIGHT,
-                behavior: 'smooth'
-            });
-
-            if (items[clampedIndex] !== value) {
-                onChange(items[clampedIndex]);
-            }
-        }, 150);
-    };
-
-    return (
-        <div className={`h-full relative group ${width}`}>
-            <div
-                ref={scrollRef}
-                className="h-full overflow-y-scroll no-scrollbar py-[80px]"
-                onScroll={handleScroll}
-                style={{ scrollSnapType: 'y mandatory', scrollBehavior: 'smooth' }}
-            >
-                {items.map(item => (
-                    <div
-                        key={item}
-                        className={`h-[40px] flex items-center justify-center snap-center text-sm transition-all duration-200 cursor-pointer select-none ${item === value ? 'text-foreground font-medium scale-110 opacity-100' : 'text-muted-foreground scale-95 opacity-50'
-                            }`}
-                        onClick={() => {
-                            if (scrollRef.current) {
-                                scrollRef.current.scrollTo({
-                                    top: items.indexOf(item) * ITEM_HEIGHT,
-                                    behavior: 'smooth'
-                                });
-                                onChange(item);
-                            }
-                        }}
-                    >
-                        {formatItem(item)}{label}
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-}
 
 function getDaysInMonth(year: number, month: number) {
     if (!year || !month) return 31;

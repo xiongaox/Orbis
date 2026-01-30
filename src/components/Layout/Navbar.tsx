@@ -249,13 +249,20 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
       <header className="h-16 glass-header sticky top-0 z-50 flex items-center justify-center relative">
         {/* Logo and Clock Area - Absolute positioned left */}
         <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-8">
-          <div className="w-32 h-32 flex items-center justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = '/';
+            }}
+            className="w-32 h-32 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
+            title="刷新并返回首页"
+          >
             <img
               src={isDark ? "/logo/logo_dark.svg" : "/logo/logo_light.svg"}
               alt="玄枢录"
               className="w-full h-full object-contain"
             />
-          </div>
+          </button>
 
           {/* 实时时钟 - 在万年通历模块隐藏 */}
           {activeChart !== 'wannianli' && (
