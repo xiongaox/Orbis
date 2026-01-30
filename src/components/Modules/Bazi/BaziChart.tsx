@@ -3,6 +3,7 @@
  * 八字排盘主图表组件
  */
 import { useState, useMemo } from 'react';
+import { cn } from '../../../lib/utils';
 
 import type { BaziApiResponse } from '../../../types/bazi';
 import { calculateShenSha, calculateDynamicShenSha, getJiJie, type ShenShaContext } from '../../../lib/xuan-bazi/utils/baziShenShaUtil';
@@ -119,11 +120,21 @@ export default function BaziChart({
         <div className="flex">
           {/* 行标题 */}
           <div className="w-16 flex-shrink-0 border-r border-border flex flex-col">
-            {['日期', '主星', '天干', '地支'].map((label, i) => (
-              <div key={label} className={`${i < 2 ? 'h-8 h-10'.split(' ')[i] : 'h-14'} flex items-center justify-center border-b border-border ${i === 0 ? 'bg-secondary/30' : 'bg-muted/30'}`}>
-                <span className="text-xs text-muted-foreground">{label}</span>
-              </div>
-            ))}
+            {['日期', '主星', '天干', '地支'].map((label, i) => {
+              const heightClass = i < 2 ? (i === 0 ? 'h-8' : 'h-10') : 'h-14';
+              return (
+                <div
+                  key={label}
+                  className={cn(
+                    heightClass,
+                    "flex items-center justify-center border-b border-border",
+                    i === 0 ? 'bg-secondary/30' : 'bg-muted/30'
+                  )}
+                >
+                  <span className="text-xs text-muted-foreground">{label}</span>
+                </div>
+              );
+            })}
             <div className="min-h-[90px] flex items-center justify-center border-b border-border bg-muted/30"><span className="text-xs text-muted-foreground">藏干</span></div>
             {['星运', '自坐', '空亡', '纳音'].map(label => (
               <div key={label} className="h-10 flex items-center justify-center border-b border-border bg-muted/30"><span className="text-xs text-muted-foreground">{label}</span></div>
