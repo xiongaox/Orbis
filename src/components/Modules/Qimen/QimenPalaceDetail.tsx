@@ -38,7 +38,11 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
     const originalMen = QimenDataService.getOriginalMen(palace.position);
     const menuItems = [
         palace.shen && { id: 'shen', label: palace.shen, type: '八神' },
-        palace.xing && { id: 'xing', label: palace.xing, type: '九星' },
+        // 禽芮代表天禽+天芮两颗星，拆为两个独立列表项
+        ...(palace.xing === '禽芮' ? [
+            { id: 'xing_qin', label: '天禽', type: '九星' },
+            { id: 'xing_rui', label: '天芮', type: '九星' },
+        ] : palace.xing ? [{ id: 'xing', label: palace.xing, type: '九星' }] : []),
         palace.men && { id: 'men', label: palace.men, type: '八门' },
         { id: 'gong', label: palace.gongName + palace.position + '宫', type: '九宫' },
         (palace.gongName !== '中') && { id: 'gua', label: palace.gongName + '卦', type: '八卦' },
@@ -79,7 +83,11 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
         (originalMen && palace.men) && { id: 'ge_mm', label: `${originalMen}+${palace.men}`, type: '门门克应' },
         (palace.men && palace.tianPan) && { id: 'ge_mt', label: `${palace.men}+${palace.tianPan}`, type: '门干克应' },
         (palace.shen && palace.men) && { id: 'ge_sm', label: `${palace.shen}+${palace.men}`, type: '神门克应' },
-        (palace.xing && timeZhi) && { id: 'xing_time', label: `${palace.xing}值${timeZhi}时`, type: '九星值时' },
+        // 禽芮值时也拆为两个独立项
+        ...(palace.xing === '禽芮' && timeZhi ? [
+            { id: 'xing_time_qin', label: `天禽值${timeZhi}时`, type: '九星值时' },
+            { id: 'xing_time_rui', label: `天芮值${timeZhi}时`, type: '九星值时' },
+        ] : (palace.xing && timeZhi) ? [{ id: 'xing_time', label: `${palace.xing}值${timeZhi}时`, type: '九星值时' }] : []),
     ].filter(Boolean) as { id: string; label: string; displayLabel?: string; type: string }[];
 
     const activeItem = menuItems.find(i => i.id === selectedTab) || menuItems[0];
