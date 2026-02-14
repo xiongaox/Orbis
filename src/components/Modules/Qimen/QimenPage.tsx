@@ -10,6 +10,9 @@ import QimenPalaceDetail from './QimenPalaceDetail';
 import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
 import QimenNewCaseModal from './QimenNewCaseModal';
 import QimenJuInfo, { type PillarKey } from './QimenJuInfo';
+import SideDrawer from '../../UI/SideDrawer';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { useIsPadLandscape } from '../../../hooks/useIsPadLandscape';
 import {
     calculateQimen,
     calculateQimenNow,
@@ -88,6 +91,9 @@ const DEFAULT_HEADER: QimenHeader = {
 };
 
 export default function QimenPage() {
+    const isDesktop = useMediaQuery('(min-width: 1024px)');
+    const isPadLandscape = useIsPadLandscape();
+    const useDesktopLayout = isDesktop && !isPadLandscape;
     const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
     const [selectedPalace, setSelectedPalace] = useState<number | null>(null);
 
@@ -119,6 +125,10 @@ export default function QimenPage() {
 
     // AI 提示词弹窗状态
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+
+    // Pad/移动端抽屉状态
+    const [isCaseListOpen, setIsCaseListOpen] = useState(false);
+    const [isInfoOpen, setIsInfoOpen] = useState(false);
 
     // 空亡驿马选择状态（默认时柱）
     const [selectedKongWangKey, setSelectedKongWangKey] = useState<PillarKey>('hour');
@@ -272,91 +282,192 @@ export default function QimenPage() {
         ? palaces.find(p => p.position === selectedPalace) || null
         : null;
 
+    const rightPanelContent = selectedPalaceData ? (
+        <QimenPalaceDetail
+            palace={selectedPalaceData}
+            timeZhi={header?.siZhu?.hour?.slice(1, 2)}
+            zhiShiMen={header?.zhiShi ? header.zhiShi + '门' : ''}
+            zhiFuXing={header?.zhiFu}
+            siZhu={header?.siZhu}
+            xunShou={header?.xunShou}
+        />
+    ) : (
+        <QimenJuInfo
+            date={selectedDate}
+            header={header}
+            caseData={currentCase}
+            onCaseUpdated={(updatedCase) => {
+                setCurrentCase(updatedCase);
+                setRefreshTrigger(prev => prev + 1);
+            }}
+            selectedKongWangKey={selectedKongWangKey}
+            selectedMaXingKey={selectedMaXingKey}
+            onKongWangKeyChange={setSelectedKongWangKey}
+            onMaXingKeyChange={setSelectedMaXingKey}
+        />
+    );
+
     return (
         <div className="flex flex-1 h-full min-h-0 overflow-hidden relative">
-            {/* 左侧案例列表 */}
-            <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 overflow-hidden">
-                <QimenCaseList
-                    selectedCaseId={selectedCaseId}
-                    onSelectCase={(id, caseItem) => {
-                        setSelectedCaseId(id);
-                        setCurrentCase(caseItem); // Save full case object for info panel
-                        if (caseItem.test_date) {
-                            calculateQimenByDate(new Date(caseItem.test_date));
-                        }
-                    }}
-                    onOpenDatePicker={() => {
-                        setEditingCase(null);
-                        setIsNewCaseModalOpen(true);
-                    }}
-                    onDeleteCase={handleDeleteCase}
-                    onEditCase={handleEditCase}
-                    refreshTrigger={refreshTrigger}
-                />
-            </div>
-
-            {/* 中间九宫盘式 */}
-            <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col p-2 relative">
-                {/* 加载状态 */}
-                {isLoading && (
-                    <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-20">
-                        <div className="text-muted-foreground">正在计算...</div>
+            {useDesktopLayout ? (
+                <>
+                    {/* 左侧案例列表 */}
+                    <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 overflow-hidden">
+                        <QimenCaseList
+                            selectedCaseId={selectedCaseId}
+                            onSelectCase={(id, caseItem) => {
+                                setSelectedCaseId(id);
+                                setCurrentCase(caseItem); // Save full case object for info panel
+                                if (caseItem.test_date) {
+                                    calculateQimenByDate(new Date(caseItem.test_date));
+                                }
+                            }}
+                            onOpenDatePicker={() => {
+                                setEditingCase(null);
+                                setIsNewCaseModalOpen(true);
+                            }}
+                            onDeleteCase={handleDeleteCase}
+                            onEditCase={handleEditCase}
+                            refreshTrigger={refreshTrigger}
+                        />
                     </div>
-                )}
 
-                {/* 错误状态 */}
-                {error && (
-                    <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-destructive/10 text-destructive px-4 py-2 rounded-lg z-20">
-                        {error}
+                    {/* 中间九宫盘式 */}
+                    <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col p-2 relative">
+                        {/* 加载状态 */}
+                        {isLoading && (
+                            <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-20">
+                                <div className="text-muted-foreground">正在计算...</div>
+                            </div>
+                        )}
+
+                        {/* 错误状态 */}
+                        {error && (
+                            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-destructive/10 text-destructive px-4 py-2 rounded-lg z-20">
+                                {error}
+                            </div>
+                        )}
+
+                        <QimenChart
+                            palaces={palaces}
+                            header={header}
+                            selectedPalace={selectedPalace}
+                            onSelectPalace={(position) => setSelectedPalace(position === selectedPalace ? null : position)}
+                            onPrevHour={handlePrevHour}
+                            onNextHour={handleNextHour}
+                            method={paiPanMethod}
+                            onMethodChange={setPaiPanMethod}
+                            onResetToNow={calculateNow}
+                            onOpenDatePicker={() => setIsDatePickerOpen(true)}
+                            onJuClick={() => setIsCustomJuModalOpen(true)}
+                            globalPatterns={globalPatterns}
+                            onPatternClick={setSelectedPattern}
+                            onOpenAiModal={() => setIsAiModalOpen(true)}
+                            dynamicMaKong={dynamicMaKong}
+                        />
+                    </main>
+
+                    {/* 右侧宫位详情 */}
+                    <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 min-h-0 overflow-hidden flex flex-col border-l border-border/50 bg-card/10">
+                        {rightPanelContent}
                     </div>
-                )}
+                </>
+            ) : (
+                <>
+                    <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
+                        <div className="px-3 py-2 border-b border-border/40 bg-background/70 backdrop-blur-sm flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsCaseListOpen(true)}
+                                    className="px-3 py-1.5 rounded-lg border border-border bg-card/60 text-sm text-foreground hover:bg-muted/40 transition-colors"
+                                >
+                                    案例
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsInfoOpen(true)}
+                                    className="px-3 py-1.5 rounded-lg border border-border bg-card/60 text-sm text-foreground hover:bg-muted/40 transition-colors"
+                                >
+                                    {selectedPalaceData ? '宫位详情' : '局信息'}
+                                </button>
+                            </div>
+                        </div>
 
-                <QimenChart
-                    palaces={palaces}
-                    header={header}
-                    selectedPalace={selectedPalace}
-                    onSelectPalace={(position) => setSelectedPalace(position === selectedPalace ? null : position)}
-                    onPrevHour={handlePrevHour}
-                    onNextHour={handleNextHour}
-                    method={paiPanMethod}
-                    onMethodChange={setPaiPanMethod}
-                    onResetToNow={calculateNow}
-                    onOpenDatePicker={() => setIsDatePickerOpen(true)}
-                    onJuClick={() => setIsCustomJuModalOpen(true)}
-                    globalPatterns={globalPatterns}
-                    onPatternClick={setSelectedPattern}
-                    onOpenAiModal={() => setIsAiModalOpen(true)}
-                    dynamicMaKong={dynamicMaKong}
-                />
-            </main>
+                        <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col p-2 relative">
+                            {/* 加载状态 */}
+                            {isLoading && (
+                                <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-20">
+                                    <div className="text-muted-foreground">正在计算...</div>
+                                </div>
+                            )}
 
-            {/* 右侧宫位详情 */}
-            <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 min-h-0 overflow-hidden flex flex-col border-l border-border/50 bg-card/10">
-                {selectedPalaceData ? (
-                    <QimenPalaceDetail
-                        palace={selectedPalaceData}
-                        timeZhi={header?.siZhu?.hour?.slice(1, 2)}
-                        zhiShiMen={header?.zhiShi ? header.zhiShi + '门' : ''}
-                        zhiFuXing={header?.zhiFu}
-                        siZhu={header?.siZhu}
-                        xunShou={header?.xunShou}
-                    />
-                ) : (
-                    <QimenJuInfo
-                        date={selectedDate}
-                        header={header}
-                        caseData={currentCase}
-                        onCaseUpdated={(updatedCase) => {
-                            setCurrentCase(updatedCase);
-                            setRefreshTrigger(prev => prev + 1);
-                        }}
-                        selectedKongWangKey={selectedKongWangKey}
-                        selectedMaXingKey={selectedMaXingKey}
-                        onKongWangKeyChange={setSelectedKongWangKey}
-                        onMaXingKeyChange={setSelectedMaXingKey}
-                    />
-                )}
-            </div>
+                            {/* 错误状态 */}
+                            {error && (
+                                <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-destructive/10 text-destructive px-4 py-2 rounded-lg z-20">
+                                    {error}
+                                </div>
+                            )}
+
+                            <QimenChart
+                                palaces={palaces}
+                                header={header}
+                                selectedPalace={selectedPalace}
+                                onSelectPalace={(position) => setSelectedPalace(position === selectedPalace ? null : position)}
+                                onPrevHour={handlePrevHour}
+                                onNextHour={handleNextHour}
+                                method={paiPanMethod}
+                                onMethodChange={setPaiPanMethod}
+                                onResetToNow={calculateNow}
+                                onOpenDatePicker={() => setIsDatePickerOpen(true)}
+                                onJuClick={() => setIsCustomJuModalOpen(true)}
+                                globalPatterns={globalPatterns}
+                                onPatternClick={setSelectedPattern}
+                                onOpenAiModal={() => setIsAiModalOpen(true)}
+                                dynamicMaKong={dynamicMaKong}
+                            />
+                        </div>
+                    </main>
+
+                    <SideDrawer
+                        open={isCaseListOpen}
+                        title="案例"
+                        side="left"
+                        onClose={() => setIsCaseListOpen(false)}
+                    >
+                        <QimenCaseList
+                            selectedCaseId={selectedCaseId}
+                            onSelectCase={(id, caseItem) => {
+                                setSelectedCaseId(id);
+                                setCurrentCase(caseItem);
+                                setIsCaseListOpen(false);
+                                if (caseItem.test_date) {
+                                    calculateQimenByDate(new Date(caseItem.test_date));
+                                }
+                            }}
+                            onOpenDatePicker={() => {
+                                setEditingCase(null);
+                                setIsNewCaseModalOpen(true);
+                                setIsCaseListOpen(false);
+                            }}
+                            onDeleteCase={handleDeleteCase}
+                            onEditCase={handleEditCase}
+                            refreshTrigger={refreshTrigger}
+                        />
+                    </SideDrawer>
+
+                    <SideDrawer
+                        open={isInfoOpen}
+                        title={selectedPalaceData ? '宫位详情' : '局信息'}
+                        side="right"
+                        onClose={() => setIsInfoOpen(false)}
+                    >
+                        <div className="h-full min-h-0 overflow-hidden flex flex-col">
+                            {rightPanelContent}
+                        </div>
+                    </SideDrawer>
+                </>
+            )}
 
             {/* 时间选择器弹窗 */}
             <AdvancedDatePicker

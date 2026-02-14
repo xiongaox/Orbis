@@ -6,11 +6,16 @@ import { SHU_SHU_CATEGORIES } from '../../../../lib/caseStudy/duanfaCategories';
 interface ShuShuSidebarProps {
     selectedId: string;
     onSelect: (id: string) => void;
+    variant?: 'sidebar' | 'drawer';
 }
 
-export default function ShuShuSidebar({ selectedId, onSelect }: ShuShuSidebarProps) {
+export default function ShuShuSidebar({ selectedId, onSelect, variant = 'sidebar' }: ShuShuSidebarProps) {
+    const containerClassName = variant === 'drawer'
+        ? 'w-full border-b border-border/40 bg-card/30 flex flex-col overflow-hidden'
+        : 'w-[100px] min-w-[100px] border-r border-border/40 bg-card/30 flex flex-col overflow-hidden';
+
     return (
-        <div className="w-[100px] min-w-[100px] border-r border-border/40 bg-card/30 flex flex-col overflow-hidden">
+        <div className={containerClassName}>
             {/* 标题 */}
             <div className="py-3 px-4 border-b border-border/40 bg-card/50 flex-shrink-0">
                 <span className="font-serif font-bold text-foreground/80">术数</span>

@@ -123,23 +123,21 @@ function NavButton({
   item,
   isActive,
   onClick,
-  showText = true
 }: {
   item: typeof navItems[0];
   isActive: boolean;
   onClick: () => void;
-  showText?: boolean;
 }) {
   const Icon = item.icon;
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex items-center gap-1 px-3 py-1.5 text-base font-medium transition-all duration-200 whitespace-nowrap ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+      className={`flex items-center gap-1 px-2 md:px-3 py-1.5 text-sm md:text-base font-medium transition-all duration-200 whitespace-nowrap ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
         }`}
     >
       <Icon className="w-4 h-4" />
-      {showText && <span>{item.name}</span>}
+      <span className="hidden md:inline">{item.name}</span>
     </button>
   );
 }
@@ -248,13 +246,13 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
     <>
       <header className="h-16 glass-header sticky top-0 z-50 flex items-center justify-center relative">
         {/* Logo and Clock Area - Absolute positioned left */}
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-8">
+        <div className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 flex items-center gap-4 lg:gap-8">
           <button
             type="button"
             onClick={() => {
               window.location.href = '/';
             }}
-            className="w-32 h-32 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
+            className="w-20 h-20 md:w-24 md:h-24 lg:w-32 lg:h-32 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
             title="刷新并返回首页"
           >
             <img
@@ -292,7 +290,7 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
         </div>
 
         {/* 右侧功能区 - 绝对定位在右侧 */}
-        <div className="absolute right-6 flex items-center gap-2 lg:gap-4">
+        <div className="absolute right-2 md:right-6 flex items-center gap-2 lg:gap-4">
           <a
             href="https://github.com/xiongaox/Orbis"
             target="_blank"
