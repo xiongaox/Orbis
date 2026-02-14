@@ -531,6 +531,7 @@ export default function WannianliPage() {
                         title="节日倒计时"
                         side="left"
                         size="sm"
+                        hideHeader={true}
                         onClose={() => setIsCountdownOpen(false)}
                     >
                         <HolidayCountdown
@@ -547,6 +548,7 @@ export default function WannianliPage() {
                         open={isDetailOpen}
                         title="日期详情"
                         side="right"
+                        hideHeader={true}
                         onClose={() => setIsDetailOpen(false)}
                     >
                         {detailPanel}

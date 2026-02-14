@@ -127,6 +127,7 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children
                     open={isSidebarOpen}
                     title="案例"
                     side="left"
+                    hideHeader={isPadLandscape}
                     onClose={() => setIsSidebarOpen(false)}
                 >
                     {sidebar}
@@ -138,6 +139,7 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children
                     open={isRightPanelOpen}
                     title="参考面板"
                     side="right"
+                    hideHeader={isPadLandscape}
                     onClose={() => setIsRightPanelOpen(false)}
                 >
                     <div className="h-full flex flex-col min-h-0 overflow-hidden">
