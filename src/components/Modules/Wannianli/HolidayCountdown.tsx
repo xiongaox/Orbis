@@ -218,29 +218,29 @@ export default function HolidayCountdown({
                         )}
                         <div className="p-4 flex flex-col gap-3">
                             {/* Header: Name & Days */}
-                            <div className="flex justify-between items-start">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-base font-bold text-foreground/90 group-hover:text-primary transition-colors">
-                                        {h.name}
-                                    </span>
-                                </div>
-                                <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
-                                    <div className="flex items-baseline gap-0.5">
-                                        <span className={classNames(
-                                            "text-2xl font-mono font-bold tracking-tight",
-                                            h.diffDays <= 7 ? "text-primary" : "text-foreground/70"
-                                        )}>
-                                            {h.diffDays}
-                                        </span>
-                                        <span className="text-xs text-muted-foreground/50 font-medium">天</span>
-                                    </div>
-                                    {h.isOffDay && (
-                                        <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full whitespace-nowrap border border-primary/15">
-                                            放假{h.duration || '?'}天
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
+	                            <div className="flex justify-between items-start">
+	                                <div className="flex items-center gap-2">
+	                                    <span className="text-base font-bold text-foreground/90 group-hover:text-primary transition-colors">
+	                                        {h.name}
+	                                    </span>
+	                                    {h.isOffDay && (
+	                                        <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full whitespace-nowrap border border-primary/15">
+	                                            放假{h.duration || '?'}天
+	                                        </span>
+	                                    )}
+	                                </div>
+	                                <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
+	                                    <div className="flex items-baseline gap-0.5">
+	                                        <span className={classNames(
+	                                            "text-2xl font-mono font-bold tracking-tight",
+	                                            h.diffDays <= 7 ? "text-primary" : "text-foreground/70"
+	                                        )}>
+	                                            {h.diffDays}
+	                                        </span>
+	                                        <span className="text-xs text-muted-foreground/50 font-medium">天</span>
+	                                    </div>
+	                                </div>
+	                            </div>
 
                             {/* Info Rows */}
                             <div className="space-y-1.5 pt-1 border-t border-border/20">
