@@ -4,9 +4,10 @@ import type { ReactNode } from 'react';
 
 interface SideDrawerProps {
   open: boolean;
-  title: string;
+  title?: string;
   side?: 'left' | 'right';
   size?: 'sm' | 'md' | 'lg';
+  hideHeader?: boolean;
   onClose: () => void;
   children: ReactNode;
 }
@@ -16,6 +17,7 @@ export default function SideDrawer({
   title,
   side = 'left',
   size = 'md',
+  hideHeader = false,
   onClose,
   children,
 }: SideDrawerProps) {
@@ -51,19 +53,22 @@ export default function SideDrawer({
       <div
         role="dialog"
         aria-modal="true"
+        aria-label={title ?? '抽屉'}
         className={`absolute top-0 ${panelPosClass} ${panelBorderClass} ${panelSizeClass} border-border h-full bg-card shadow-2xl flex flex-col`}
       >
-        <div className="h-12 px-4 border-b border-border flex items-center justify-between">
-          <div className="text-sm font-medium text-foreground">{title}</div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-muted/40 transition-colors"
-            aria-label="关闭抽屉"
-          >
-            <X className="w-4 h-4 text-muted-foreground" />
-          </button>
-        </div>
+        {!hideHeader && title && (
+          <div className="h-12 px-4 border-b border-border flex items-center justify-between">
+            <div className="text-sm font-medium text-foreground">{title}</div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-muted/40 transition-colors"
+              aria-label="关闭抽屉"
+            >
+              <X className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </div>
+        )}
 
         <div className="flex-1 min-h-0 overflow-hidden">
           {children}
