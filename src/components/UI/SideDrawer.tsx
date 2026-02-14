@@ -6,7 +6,7 @@ interface SideDrawerProps {
   open: boolean;
   title?: string;
   side?: 'left' | 'right';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   hideHeader?: boolean;
   onClose: () => void;
   children: ReactNode;
@@ -35,7 +35,9 @@ export default function SideDrawer({
   const panelPosClass = side === 'left' ? 'left-0' : 'right-0';
   const panelBorderClass = side === 'left' ? 'border-r' : 'border-l';
   const panelSizeClass =
-    size === 'sm'
+    size === 'xs'
+      ? 'w-[70vw] max-w-[280px]'
+      : size === 'sm'
       ? 'w-[78vw] max-w-[320px]'
       : size === 'lg'
         ? 'w-[92vw] max-w-[520px]'
