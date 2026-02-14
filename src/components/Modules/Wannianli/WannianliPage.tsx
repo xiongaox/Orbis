@@ -190,42 +190,6 @@ export default function WannianliPage() {
             </>
         );
 
-        if (isPadLandscape) {
-            return (
-                <div className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 ${headerPaddingClass} border-b border-border/50 bg-background/50 backdrop-blur-md sticky top-0 z-30`}>
-                    {/* 左：倒计时（对应左抽屉） */}
-                    <button
-                        type="button"
-                        onClick={() => setIsCountdownOpen(true)}
-                        className="px-3 py-1.5 rounded-lg border border-border bg-card/60 text-sm text-foreground hover:bg-muted/40 transition-colors shrink-0"
-                    >
-                        倒计时
-                    </button>
-
-                    {/* 中：标题 */}
-                    <h2 className="text-xl lg:text-2xl font-serif font-bold text-foreground tracking-widest truncate text-center">
-                        <span className="text-foreground/80">
-                            {Lunar.fromDate(viewDate).getYearInGanZhi()}年·{Lunar.fromDate(viewDate).getMonthInGanZhi().charAt(1)}月
-                        </span>
-                    </h2>
-
-                    {/* 右：控件 + 详情（对应右抽屉） */}
-                    <div className="flex items-center gap-2 min-w-0 justify-end">
-                        <div className="flex items-center gap-2 min-w-0 overflow-x-auto">
-                            {controls}
-                        </div>
-                        <button
-                            type="button"
-                            onClick={() => setIsDetailOpen(true)}
-                            className="px-3 py-1.5 rounded-lg border border-border bg-card/60 text-sm text-foreground hover:bg-muted/40 transition-colors shrink-0"
-                        >
-                            详情
-                        </button>
-                    </div>
-                </div>
-            );
-        }
-
         return (
             <div className={`flex items-center justify-between ${headerPaddingClass} border-b border-border/50 bg-background/50 backdrop-blur-md sticky top-0 z-30`}>
                 <div className="flex items-baseline gap-4 min-w-0">
@@ -416,7 +380,27 @@ export default function WannianliPage() {
             )}>
                 {renderCalendarHeader()}
 
-                <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-hidden bg-muted/5">
+                <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-hidden bg-muted/5 relative">
+                    {/* Pad 横屏：把入口按钮放在日历网格左右空白区，并垂直居中于网格模块 */}
+                    {isPadLandscape && (
+                        <>
+                            <button
+                                type="button"
+                                onClick={() => setIsCountdownOpen(true)}
+                                className="absolute left-4 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg border border-border bg-card/70 text-sm text-foreground hover:bg-muted/40 transition-colors shadow-sm"
+                            >
+                                倒计时
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setIsDetailOpen(true)}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg border border-border bg-card/70 text-sm text-foreground hover:bg-muted/40 transition-colors shadow-sm"
+                            >
+                                详情
+                            </button>
+                        </>
+                    )}
+
                     {/* 网格容器 - 奇门风格：分离卡片 */}
                     <div className="flex-1 w-full max-w-4xl flex flex-col justify-center">
                         {renderWeekHeader()}
