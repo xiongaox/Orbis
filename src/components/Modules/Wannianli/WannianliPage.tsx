@@ -4,6 +4,8 @@ import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
 import classNames from 'classnames';
 import HolidayCountdown from './HolidayCountdown';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import SideDrawer from '../../UI/SideDrawer';
+import { useIsPadLandscape } from '../../../hooks/useIsPadLandscape';
 
 export default function WannianliPage() {
     // 状态管理
@@ -11,6 +13,10 @@ export default function WannianliPage() {
     const [viewDate, setViewDate] = useState<Date>(new Date()); // 用于控制日历显示的月份
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const [weekStart, setWeekStart] = useState<0 | 1>(1); // 0: 周日开始, 1: 周一开始
+    const isPadLandscape = useIsPadLandscape();
+
+    const [isCountdownOpen, setIsCountdownOpen] = useState(false);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
 
     // 计算当月网格数据
     const calendarData = useMemo(() => {
@@ -105,19 +111,41 @@ export default function WannianliPage() {
         );
     };
 
-    const renderCalendarHeader = () => (
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/50 bg-background/50 backdrop-blur-md sticky top-0 z-30">
-            <div className="flex items-baseline gap-4">
-                <h2 className="text-2xl font-serif font-bold text-foreground flex items-baseline tracking-widest">
-                    <span className="text-foreground/80">
-                        {Lunar.fromDate(viewDate).getYearInGanZhi()}年·{Lunar.fromDate(viewDate).getMonthInGanZhi().charAt(1)}月
-                    </span>
-                </h2>
-            </div>
+    const renderCalendarHeader = () => {
+        const headerPaddingClass = isPadLandscape ? 'px-4 py-3' : 'px-6 py-4';
 
-            <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none p-1 rounded-xl border border-transparent dark:border-border/60 h-[42px]">
-                    <button
+        return (
+            <div className={`flex items-center justify-between ${headerPaddingClass} border-b border-border/50 bg-background/50 backdrop-blur-md sticky top-0 z-30`}>
+                <div className="flex items-center gap-3 min-w-0">
+                    {isPadLandscape && (
+                        <div className="flex items-center gap-2 shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => setIsCountdownOpen(true)}
+                                className="px-3 py-1.5 rounded-lg border border-border bg-card/60 text-sm text-foreground hover:bg-muted/40 transition-colors"
+                            >
+                                倒计时
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setIsDetailOpen(true)}
+                                className="px-3 py-1.5 rounded-lg border border-border bg-card/60 text-sm text-foreground hover:bg-muted/40 transition-colors"
+                            >
+                                详情
+                            </button>
+                        </div>
+                    )}
+
+                    <h2 className="text-xl lg:text-2xl font-serif font-bold text-foreground flex items-baseline tracking-widest truncate">
+                        <span className="text-foreground/80">
+                            {Lunar.fromDate(viewDate).getYearInGanZhi()}年·{Lunar.fromDate(viewDate).getMonthInGanZhi().charAt(1)}月
+                        </span>
+                    </h2>
+                </div>
+
+                <div className="flex items-center gap-2 overflow-x-auto">
+                    <div className="flex items-center gap-1 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none p-1 rounded-xl border border-transparent dark:border-border/60 h-[42px] shrink-0">
+                        <button
                         onClick={() => {
                             const d = new Date(viewDate);
                             d.setDate(1);
@@ -149,7 +177,7 @@ export default function WannianliPage() {
                     >
                         <ChevronRight className="w-5 h-5" />
                     </button>
-                </div>
+                    </div>
 
                 {/* 今日按钮 - 固定 42px 高度 */}
                 <button
@@ -187,22 +215,182 @@ export default function WannianliPage() {
                         日
                     </button>
                 </div>
+                </div>
+            </div>
+        );
+    };
+
+    const detailPanel = (
+        <div className="h-full min-h-0 flex flex-col bg-muted/5">
+            {/* 头部：选中日期 */}
+            <div className="px-6 pt-6 pb-4 border-b border-border/50 bg-background/50 backdrop-blur-sm">
+                <div className="flex items-baseline gap-2">
+                    <h3 className="text-6xl font-serif font-bold text-foreground leading-none">
+                        {selectedDate.getDate()}
+                    </h3>
+                    <span className="text-2xl font-serif font-light text-muted-foreground/60">
+                        / {selectedDate.getMonth() + 1}月 · {selectedDate.getFullYear()}
+                    </span>
+                </div>
+
+                <div className="flex items-center gap-3 mt-4">
+                    <div className="px-3 py-1 rounded-[4px] bg-[#2a2422] border border-[#3e3632] flex items-center justify-center shadow-sm">
+                        <span className="text-[#e2d5c5] text-sm font-medium tracking-wide font-serif">
+                            {Lunar.fromDate(selectedDate).getMonthInChinese()}月{Lunar.fromDate(selectedDate).getDayInChinese()}
+                        </span>
+                    </div>
+                    <div className="text-base text-muted-foreground/60 font-serif">
+                        {['周日', '周一', '周二', '周三', '周四', '周五', '周六'][selectedDate.getDay()]}
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex-1 p-6 overflow-y-auto space-y-6">
+                {/* 四柱干支 (Original Layout) */}
+                <div className="space-y-4">
+                    <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                        <span className="w-1 h-3 bg-primary rounded-full"></span>
+                        四柱干支
+                    </div>
+                    <div className="grid grid-cols-4 gap-3">
+                        {[
+                            { label: '年柱', val: Lunar.fromDate(selectedDate).getYearInGanZhi() },
+                            { label: '月柱', val: Lunar.fromDate(selectedDate).getMonthInGanZhi() },
+                            { label: '日柱', val: Lunar.fromDate(selectedDate).getDayInGanZhi() },
+                            { label: '时柱', val: Lunar.fromDate(selectedDate).getTimeInGanZhi() }
+                        ].map((item, i) => (
+                            <div key={i} className="bg-background border border-border/50 rounded-xl py-3 flex flex-col items-center justify-between shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 dark:hover:bg-primary/5 h-28">
+                                <div className="text-[10px] text-muted-foreground/60 font-medium tracking-widest uppercase">{item.label}</div>
+                                <div className="flex-1 flex flex-col justify-center gap-1">
+                                    <span className="font-serif text-xl font-bold text-foreground/90">{item.val[0]}</span>
+                                    <span className="font-serif text-xl font-bold text-foreground/90">{item.val[1]}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 基础信息卡片 (生肖、星座、节日...) */}
+                <div className="bg-card/40 border border-border/40 rounded-xl overflow-hidden p-3">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                        {[
+                            {
+                                label: '生肖',
+                                className: 'text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/20',
+                                content: Lunar.fromDate(selectedDate).getYearShengXiao()
+                            },
+                            {
+                                label: '星座',
+                                className: 'text-pink-600 dark:text-pink-400 bg-pink-500/10 border-pink-500/20',
+                                content: Solar.fromDate(selectedDate).getXingZuo()
+                            },
+                            {
+                                label: '月相',
+                                className: 'text-stone-600 dark:text-stone-400 bg-stone-500/10 border-stone-500/20',
+                                content: Lunar.fromDate(selectedDate).getYueXiang()
+                            },
+                            {
+                                label: '物候',
+                                className: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+                                content: Lunar.fromDate(selectedDate).getWuHou()
+                            }
+                        ].map((row, i) => (
+                            <div
+                                key={i}
+                                className="flex items-center gap-2"
+                            >
+                                <span className={classNames(
+                                    "px-1.5 py-0.5 rounded text-[11px] font-medium border shrink-0 min-w-[36px] text-center",
+                                    row.className
+                                )}>
+                                    {row.label}
+                                </span>
+                                <span className="text-sm text-foreground/80 font-medium truncate">
+                                    {row.content}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 宜忌 - 卡片式设计 */}
+                <div className="space-y-3">
+                    {/* 宜 */}
+                    <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-base shrink-0 font-serif">
+                                宜
+                            </div>
+                            <div className="flex flex-wrap gap-x-1 gap-y-1 text-[13px] leading-relaxed text-emerald-900/80 dark:text-emerald-200/80">
+                                {Lunar.fromDate(selectedDate).getDayYi().map((yi, i) => (
+                                    <span key={i}>
+                                        {yi}{i < Lunar.fromDate(selectedDate).getDayYi().length - 1 ? '，' : ''}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 忌 */}
+                    <div className="bg-rose-500/5 border border-rose-500/10 rounded-xl p-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold text-base shrink-0 font-serif">
+                                忌
+                            </div>
+                            <div className="flex flex-wrap gap-x-1 gap-y-1 text-[13px] leading-relaxed text-rose-900/80 dark:text-rose-200/80">
+                                {Lunar.fromDate(selectedDate).getDayJi().map((ji, i) => (
+                                    <span key={i}>
+                                        {ji}{i < Lunar.fromDate(selectedDate).getDayJi().length - 1 ? '，' : ''}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 神煞方位 */}
+                <div className="bg-card/40 border border-border/40 rounded-xl p-4 space-y-3">
+                    <h4 className="text-xs font-bold text-muted-foreground/70 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <span className="w-1 h-3 bg-indigo-500 rounded-full"></span>
+                        今日诸神方位
+                    </h4>
+                    <div className="grid grid-cols-2 gap-y-3 gap-x-4">
+                        {[
+                            { label: '喜神', val: Lunar.fromDate(selectedDate).getPositionXiDesc() },
+                            { label: '福神', val: Lunar.fromDate(selectedDate).getPositionFuDesc() },
+                            { label: '财神', val: Lunar.fromDate(selectedDate).getPositionCaiDesc() },
+                            { label: '太岁', val: Lunar.fromDate(selectedDate).getDayPositionTaiSuiDesc() },
+                            { label: '阳贵神', val: Lunar.fromDate(selectedDate).getPositionYangGuiDesc() },
+                            { label: '阴贵神', val: Lunar.fromDate(selectedDate).getPositionYinGuiDesc() },
+                        ].map((item, i) => (
+                            <div key={i} className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">{item.label}</span>
+                                <span className="font-bold text-foreground/90">{item.val}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
         </div>
     );
 
     return (
         <div className="flex flex-col md:flex-row flex-1 h-full min-h-0 overflow-hidden relative bg-background">
-            {/* 左侧倒计时 (20%) - Desktop Only */}
-            <HolidayCountdown
-                onSelectDate={(date) => {
-                    setSelectedDate(date);
-                    setViewDate(date);
-                }}
-            />
+            {/* 左侧倒计时：Pad 横屏改为抽屉 */}
+            {!isPadLandscape && (
+                <HolidayCountdown
+                    onSelectDate={(date) => {
+                        setSelectedDate(date);
+                        setViewDate(date);
+                    }}
+                />
+            )}
 
-            {/* 中间日历区域 (Mobile: 100%, Desktop: 65%) */}
-            <main className="w-full h-[60%] md:h-full md:w-[65%] flex-shrink-0 flex flex-col border-b md:border-b-0 md:border-r border-border/50 min-h-0">
+            {/* 中间日历区域 */}
+            <main className={classNames(
+                "w-full flex-shrink-0 flex flex-col min-h-0",
+                isPadLandscape ? "h-full border-r-0" : "h-[60%] md:h-full md:w-[65%] border-b md:border-b-0 md:border-r border-border/50"
+            )}>
                 {renderCalendarHeader()}
 
                 <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-hidden bg-muted/5">
@@ -288,161 +476,41 @@ export default function WannianliPage() {
                 </div>
             </main>
 
-            {/* 右侧详情区域 (30%) */}
-            <aside className="flex-1 min-h-0 flex flex-col bg-muted/5 border-l border-border/50">
-                {/* 头部：选中日期 */}
-                <div className="px-6 pt-6 pb-4 border-b border-border/50 bg-background/50 backdrop-blur-sm">
-                    <div className="flex items-baseline gap-2">
-                        <h3 className="text-6xl font-serif font-bold text-foreground leading-none">
-                            {selectedDate.getDate()}
-                        </h3>
-                        <span className="text-2xl font-serif font-light text-muted-foreground/60">
-                            / {selectedDate.getMonth() + 1}月 · {selectedDate.getFullYear()}
-                        </span>
-                    </div>
+            {/* 右侧详情区域：Pad 横屏改为抽屉 */}
+            {!isPadLandscape && (
+                <aside className="flex-1 min-h-0 flex flex-col border-l border-border/50">
+                    {detailPanel}
+                </aside>
+            )}
 
-                    <div className="flex items-center gap-3 mt-4">
-                        <div className="px-3 py-1 rounded-[4px] bg-[#2a2422] border border-[#3e3632] flex items-center justify-center shadow-sm">
-                            <span className="text-[#e2d5c5] text-sm font-medium tracking-wide font-serif">
-                                {Lunar.fromDate(selectedDate).getMonthInChinese()}月{Lunar.fromDate(selectedDate).getDayInChinese()}
-                            </span>
-                        </div>
-                        <div className="text-base text-muted-foreground/60 font-serif">
-                            {['周日', '周一', '周二', '周三', '周四', '周五', '周六'][selectedDate.getDay()]}
-                        </div>
-                    </div>
-                </div>
+            {isPadLandscape && (
+                <>
+                    <SideDrawer
+                        open={isCountdownOpen}
+                        title="节日倒计时"
+                        side="left"
+                        onClose={() => setIsCountdownOpen(false)}
+                    >
+                        <HolidayCountdown
+                            variant="drawer"
+                            onSelectDate={(date) => {
+                                setSelectedDate(date);
+                                setViewDate(date);
+                                setIsCountdownOpen(false);
+                            }}
+                        />
+                    </SideDrawer>
 
-                <div className="flex-1 p-6 overflow-y-auto space-y-6">
-                    {/* 四柱干支 (Original Layout) */}
-                    <div className="space-y-4">
-                        <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                            <span className="w-1 h-3 bg-primary rounded-full"></span>
-                            四柱干支
-                        </div>
-                        <div className="grid grid-cols-4 gap-3">
-                            {[
-                                { label: '年柱', val: Lunar.fromDate(selectedDate).getYearInGanZhi() },
-                                { label: '月柱', val: Lunar.fromDate(selectedDate).getMonthInGanZhi() },
-                                { label: '日柱', val: Lunar.fromDate(selectedDate).getDayInGanZhi() },
-                                { label: '时柱', val: Lunar.fromDate(selectedDate).getTimeInGanZhi() }
-                            ].map((item, i) => (
-                                <div key={i} className="bg-background border border-border/50 rounded-xl py-3 flex flex-col items-center justify-between shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 dark:hover:bg-primary/5 h-28">
-                                    <div className="text-[10px] text-muted-foreground/60 font-medium tracking-widest uppercase">{item.label}</div>
-                                    <div className="flex-1 flex flex-col justify-center gap-1">
-                                        <span className="font-serif text-xl font-bold text-foreground/90">{item.val[0]}</span>
-                                        <span className="font-serif text-xl font-bold text-foreground/90">{item.val[1]}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* 基础信息卡片 (生肖、星座、节日...) */}
-                    <div className="bg-card/40 border border-border/40 rounded-xl overflow-hidden p-3">
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                            {[
-                                {
-                                    label: '生肖',
-                                    className: 'text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/20',
-                                    content: Lunar.fromDate(selectedDate).getYearShengXiao()
-                                },
-                                {
-                                    label: '星座',
-                                    className: 'text-pink-600 dark:text-pink-400 bg-pink-500/10 border-pink-500/20',
-                                    content: Solar.fromDate(selectedDate).getXingZuo()
-                                },
-                                {
-                                    label: '月相',
-                                    className: 'text-stone-600 dark:text-stone-400 bg-stone-500/10 border-stone-500/20',
-                                    content: Lunar.fromDate(selectedDate).getYueXiang()
-                                },
-                                {
-                                    label: '物候',
-                                    className: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-                                    content: Lunar.fromDate(selectedDate).getWuHou()
-                                }
-                            ].map((row, i) => (
-                                <div
-                                    key={i}
-                                    className="flex items-center gap-2"
-                                >
-                                    <span className={classNames(
-                                        "px-1.5 py-0.5 rounded text-[11px] font-medium border shrink-0 min-w-[36px] text-center",
-                                        row.className
-                                    )}>
-                                        {row.label}
-                                    </span>
-                                    <span className="text-sm text-foreground/80 font-medium truncate">
-                                        {row.content}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* 宜忌 - 卡片式设计 */}
-                    <div className="space-y-3">
-                        {/* 宜 */}
-                        <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-xl p-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-base shrink-0 font-serif">
-                                    宜
-                                </div>
-                                <div className="flex flex-wrap gap-x-1 gap-y-1 text-[13px] leading-relaxed text-emerald-900/80 dark:text-emerald-200/80">
-                                    {Lunar.fromDate(selectedDate).getDayYi().map((yi, i) => (
-                                        <span key={i}>
-                                            {yi}{i < Lunar.fromDate(selectedDate).getDayYi().length - 1 ? '，' : ''}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 忌 */}
-                        <div className="bg-rose-500/5 border border-rose-500/10 rounded-xl p-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center font-bold text-base shrink-0 font-serif">
-                                    忌
-                                </div>
-                                <div className="flex flex-wrap gap-x-1 gap-y-1 text-[13px] leading-relaxed text-rose-900/80 dark:text-rose-200/80">
-                                    {Lunar.fromDate(selectedDate).getDayJi().map((ji, i) => (
-                                        <span key={i}>
-                                            {ji}{i < Lunar.fromDate(selectedDate).getDayJi().length - 1 ? '，' : ''}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 神煞方位 */}
-                    <div className="bg-card/40 border border-border/40 rounded-xl p-4 space-y-3">
-                        <h4 className="text-xs font-bold text-muted-foreground/70 uppercase tracking-widest mb-2 flex items-center gap-2">
-                            <span className="w-1 h-3 bg-indigo-500 rounded-full"></span>
-                            今日诸神方位
-                        </h4>
-                        <div className="grid grid-cols-2 gap-y-3 gap-x-4">
-                            {[
-                                { label: '喜神', val: Lunar.fromDate(selectedDate).getPositionXiDesc() },
-                                { label: '福神', val: Lunar.fromDate(selectedDate).getPositionFuDesc() },
-                                { label: '财神', val: Lunar.fromDate(selectedDate).getPositionCaiDesc() },
-                                { label: '太岁', val: Lunar.fromDate(selectedDate).getDayPositionTaiSuiDesc() },
-                                { label: '阳贵神', val: Lunar.fromDate(selectedDate).getPositionYangGuiDesc() },
-                                { label: '阴贵神', val: Lunar.fromDate(selectedDate).getPositionYinGuiDesc() },
-                            ].map((item, i) => (
-                                <div key={i} className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground">{item.label}</span>
-                                    <span className="font-bold text-foreground/90">{item.val}</span>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-
-
-                </div>
-            </aside>
+                    <SideDrawer
+                        open={isDetailOpen}
+                        title="日期详情"
+                        side="right"
+                        onClose={() => setIsDetailOpen(false)}
+                    >
+                        {detailPanel}
+                    </SideDrawer>
+                </>
+            )}
 
             {/* 日期选择弹窗 - 复用组件 */}
             <AdvancedDatePicker
