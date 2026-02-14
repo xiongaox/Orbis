@@ -179,7 +179,7 @@ export default function CaseList({
 
   return (
     <aside className={variant === 'drawer'
-      ? "w-full bg-muted/5 flex flex-col min-h-0"
+      ? "w-full h-full bg-muted/5 flex flex-col min-h-0"
       : "w-56 bg-muted/5 border-r border-border/50 flex flex-col min-h-0"
     }>
       <div className="p-4 border-b border-border/40 space-y-3">
