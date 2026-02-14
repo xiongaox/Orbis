@@ -137,6 +137,7 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children
                     title="案例"
                     side="left"
                     hideHeader={isPadLandscape}
+                    size={isPadLandscape ? 'xs' : 'md'}
                     onClose={() => setIsSidebarOpen(false)}
                 >
                     {sidebarNode}
