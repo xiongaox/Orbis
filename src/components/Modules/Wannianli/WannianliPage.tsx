@@ -3,7 +3,7 @@ import { Solar, Lunar, HolidayUtil } from 'lunar-typescript';
 import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
 import classNames from 'classnames';
 import HolidayCountdown from './HolidayCountdown';
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Timer, ListTodo } from 'lucide-react';
 import SideDrawer from '../../UI/SideDrawer';
 import { useIsPadLandscape } from '../../../hooks/useIsPadLandscape';
 
@@ -389,15 +389,18 @@ export default function WannianliPage() {
                                 onClick={() => setIsCountdownOpen(true)}
                                 className={classNames(
                                     "absolute left-0 top-1/2 -translate-y-1/2 z-20",
-                                    "inline-flex items-center justify-center",
-                                    "h-[120px] w-[44px]",
+                                    "inline-flex flex-col items-center justify-center gap-2",
+                                    "h-[132px] w-[44px]",
                                     "rounded-r-2xl border border-border/50 border-l-0",
-                                    "bg-background/45 backdrop-blur-md shadow-[0_10px_26px_rgba(0,0,0,0.28)]",
-                                    "hover:bg-background/65 hover:border-border/70",
+                                    "bg-card/90 shadow-[0_10px_22px_rgba(15,23,42,0.12)] ring-1 ring-black/5",
+                                    "dark:bg-background/45 dark:backdrop-blur-md dark:shadow-[0_10px_26px_rgba(0,0,0,0.35)] dark:ring-white/10",
+                                    "hover:bg-card hover:border-border/70 hover:shadow-[0_12px_28px_rgba(15,23,42,0.14)]",
+                                    "dark:hover:bg-background/60",
                                     "active:translate-x-[1px] transition-[background-color,border-color,transform] duration-200"
                                 )}
                                 aria-label="打开节日倒计时"
                             >
+                                <Timer className="w-4 h-4 text-primary/80" />
                                 <span
                                     className="text-[12px] font-semibold text-foreground/85 tracking-[0.35em]"
                                     style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
@@ -410,15 +413,18 @@ export default function WannianliPage() {
                                 onClick={() => setIsDetailOpen(true)}
                                 className={classNames(
                                     "absolute right-0 top-1/2 -translate-y-1/2 z-20",
-                                    "inline-flex items-center justify-center",
-                                    "h-[120px] w-[44px]",
+                                    "inline-flex flex-col items-center justify-center gap-2",
+                                    "h-[132px] w-[44px]",
                                     "rounded-l-2xl border border-border/50 border-r-0",
-                                    "bg-background/45 backdrop-blur-md shadow-[0_10px_26px_rgba(0,0,0,0.28)]",
-                                    "hover:bg-background/65 hover:border-border/70",
+                                    "bg-card/90 shadow-[0_10px_22px_rgba(15,23,42,0.12)] ring-1 ring-black/5",
+                                    "dark:bg-background/45 dark:backdrop-blur-md dark:shadow-[0_10px_26px_rgba(0,0,0,0.35)] dark:ring-white/10",
+                                    "hover:bg-card hover:border-border/70 hover:shadow-[0_12px_28px_rgba(15,23,42,0.14)]",
+                                    "dark:hover:bg-background/60",
                                     "active:-translate-x-[1px] transition-[background-color,border-color,transform] duration-200"
                                 )}
                                 aria-label="打开日期详情"
                             >
+                                <ListTodo className="w-4 h-4 text-primary/80" />
                                 <span
                                     className="text-[12px] font-semibold text-foreground/85 tracking-[0.35em]"
                                     style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
