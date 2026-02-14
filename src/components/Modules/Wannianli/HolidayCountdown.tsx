@@ -156,7 +156,7 @@ export default function HolidayCountdown({
     }, [now, filterType]); // 当 now 变化时（跨天）会自动重算
 
     const containerClassName = variant === 'drawer'
-        ? 'flex flex-col w-full min-h-0 bg-muted/5'
+        ? 'flex flex-col w-full h-full min-h-0 bg-muted/5'
         : 'flex flex-col w-[15%] border-r border-border/50 bg-muted/5 min-h-0';
 
     return (
@@ -194,7 +194,7 @@ export default function HolidayCountdown({
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-2 py-3 space-y-2 no-scrollbar">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-2 py-3 space-y-2 no-scrollbar">
                 {holidays.map((h) => (
                     <div
                         key={`${h.name}-${h.dateStr}`}
