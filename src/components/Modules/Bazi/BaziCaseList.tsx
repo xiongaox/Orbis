@@ -35,9 +35,17 @@ interface CaseListProps {
   onLoginClick?: () => void;
   onOpenLibrary?: () => void;
   onPreviewCase?: (caseData: Case) => void;
+  variant?: 'sidebar' | 'drawer';
 }
 
-export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, onOpenLibrary, onPreviewCase }: CaseListProps) {
+export default function CaseList({
+  selectedCaseId,
+  onSelectCase,
+  onLoginClick,
+  onOpenLibrary,
+  onPreviewCase,
+  variant = 'sidebar',
+}: CaseListProps) {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [search, setSearch] = useState('');
   const [cases, setCases] = useState<BaziCase[]>([]);
@@ -170,7 +178,10 @@ export default function CaseList({ selectedCaseId, onSelectCase, onLoginClick, o
   };
 
   return (
-    <aside className="w-56 bg-muted/5 border-r border-border/50 flex flex-col min-h-0">
+    <aside className={variant === 'drawer'
+      ? "w-full bg-muted/5 flex flex-col min-h-0"
+      : "w-56 bg-muted/5 border-r border-border/50 flex flex-col min-h-0"
+    }>
       <div className="p-4 border-b border-border/40 space-y-3">
         <div className="flex items-center justify-between">
           <button

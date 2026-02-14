@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { cloneElement, isValidElement, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import SideDrawer from '../UI/SideDrawer';
@@ -25,10 +25,19 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children
 
     const hasRightPanel = useMemo(() => Boolean(liuYiPanel || insightPanel), [liuYiPanel, insightPanel]);
 
+    const sidebarNode = useMemo(() => {
+        if (!sidebar) return null;
+        const variant = isPadLandscape ? 'drawer' : 'sidebar';
+        if (isValidElement(sidebar)) {
+            return cloneElement(sidebar as React.ReactElement, { variant } as Record<string, unknown>);
+        }
+        return sidebar;
+    }, [sidebar, isPadLandscape]);
+
     if (useDesktopLayout) {
         return (
             <div className="flex flex-1 min-h-0 overflow-hidden">
-                {sidebar && sidebar}
+                {sidebarNode}
                 <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
                     {children}
                 </main>
@@ -130,7 +139,7 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children
                     hideHeader={isPadLandscape}
                     onClose={() => setIsSidebarOpen(false)}
                 >
-                    {sidebar}
+                    {sidebarNode}
                 </SideDrawer>
             )}
 
