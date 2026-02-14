@@ -3,7 +3,7 @@ import { Solar, Lunar, HolidayUtil } from 'lunar-typescript';
 import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
 import classNames from 'classnames';
 import HolidayCountdown from './HolidayCountdown';
-import { Calendar, ChevronLeft, ChevronRight, Timer, ListTodo } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import SideDrawer from '../../UI/SideDrawer';
 import { useIsPadLandscape } from '../../../hooks/useIsPadLandscape';
 
@@ -388,31 +388,43 @@ export default function WannianliPage() {
                                 type="button"
                                 onClick={() => setIsCountdownOpen(true)}
                                 className={classNames(
-                                    "absolute left-4 top-1/2 -translate-y-1/2",
-                                    "inline-flex items-center gap-2 px-3 py-2 rounded-full",
-                                    "border border-border/50 bg-background/50 backdrop-blur-md shadow-[0_6px_20px_rgba(0,0,0,0.20)]",
-                                    "text-sm font-medium text-foreground/90",
-                                    "hover:bg-background/70 hover:border-border/70 hover:shadow-[0_10px_28px_rgba(0,0,0,0.28)]",
-                                    "active:scale-[0.98] transition-[background-color,border-color,box-shadow,transform] duration-200"
+                                    "absolute left-0 top-1/2 -translate-y-1/2 z-20",
+                                    "inline-flex items-center justify-center",
+                                    "h-[120px] w-[44px]",
+                                    "rounded-r-2xl border border-border/50 border-l-0",
+                                    "bg-background/45 backdrop-blur-md shadow-[0_10px_26px_rgba(0,0,0,0.28)]",
+                                    "hover:bg-background/65 hover:border-border/70",
+                                    "active:translate-x-[1px] transition-[background-color,border-color,transform] duration-200"
                                 )}
+                                aria-label="打开节日倒计时"
                             >
-                                <Timer className="w-4 h-4 text-primary/80" />
-                                <span className="tracking-wide">倒计时</span>
+                                <span
+                                    className="text-[12px] font-semibold text-foreground/85 tracking-[0.35em]"
+                                    style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+                                >
+                                    倒计时
+                                </span>
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setIsDetailOpen(true)}
                                 className={classNames(
-                                    "absolute right-4 top-1/2 -translate-y-1/2",
-                                    "inline-flex items-center gap-2 px-3 py-2 rounded-full",
-                                    "border border-border/50 bg-background/50 backdrop-blur-md shadow-[0_6px_20px_rgba(0,0,0,0.20)]",
-                                    "text-sm font-medium text-foreground/90",
-                                    "hover:bg-background/70 hover:border-border/70 hover:shadow-[0_10px_28px_rgba(0,0,0,0.28)]",
-                                    "active:scale-[0.98] transition-[background-color,border-color,box-shadow,transform] duration-200"
+                                    "absolute right-0 top-1/2 -translate-y-1/2 z-20",
+                                    "inline-flex items-center justify-center",
+                                    "h-[120px] w-[44px]",
+                                    "rounded-l-2xl border border-border/50 border-r-0",
+                                    "bg-background/45 backdrop-blur-md shadow-[0_10px_26px_rgba(0,0,0,0.28)]",
+                                    "hover:bg-background/65 hover:border-border/70",
+                                    "active:-translate-x-[1px] transition-[background-color,border-color,transform] duration-200"
                                 )}
+                                aria-label="打开日期详情"
                             >
-                                <ListTodo className="w-4 h-4 text-primary/80" />
-                                <span className="tracking-wide">详情</span>
+                                <span
+                                    className="text-[12px] font-semibold text-foreground/85 tracking-[0.35em]"
+                                    style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
+                                >
+                                    详情
+                                </span>
                             </button>
                         </>
                     )}
