@@ -212,7 +212,7 @@ export default function WannianliPage() {
             {/* 头部：选中日期 */}
             <div className="px-6 pt-6 pb-4 border-b border-border/50 bg-background/50 backdrop-blur-sm">
                 <div className="flex items-baseline gap-2">
-                    <h3 className="text-6xl font-serif font-bold text-foreground leading-none">
+                    <h3 className="text-5xl md:text-6xl font-serif font-bold text-foreground leading-none">
                         {selectedDate.getDate()}
                     </h3>
                     <span className="text-2xl font-serif font-light text-muted-foreground/60">
@@ -239,7 +239,7 @@ export default function WannianliPage() {
                         <span className="w-1 h-3 bg-primary rounded-full"></span>
                         四柱干支
                     </div>
-                    <div className="grid grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {[
                             { label: '年柱', val: Lunar.fromDate(selectedDate).getYearInGanZhi() },
                             { label: '月柱', val: Lunar.fromDate(selectedDate).getMonthInGanZhi() },
@@ -530,6 +530,7 @@ export default function WannianliPage() {
                         open={isCountdownOpen}
                         title="节日倒计时"
                         side="left"
+                        size="sm"
                         onClose={() => setIsCountdownOpen(false)}
                     >
                         <HolidayCountdown

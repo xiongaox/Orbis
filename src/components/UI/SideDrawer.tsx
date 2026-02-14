@@ -6,6 +6,7 @@ interface SideDrawerProps {
   open: boolean;
   title: string;
   side?: 'left' | 'right';
+  size?: 'sm' | 'md' | 'lg';
   onClose: () => void;
   children: ReactNode;
 }
@@ -14,6 +15,7 @@ export default function SideDrawer({
   open,
   title,
   side = 'left',
+  size = 'md',
   onClose,
   children,
 }: SideDrawerProps) {
@@ -30,6 +32,12 @@ export default function SideDrawer({
 
   const panelPosClass = side === 'left' ? 'left-0' : 'right-0';
   const panelBorderClass = side === 'left' ? 'border-r' : 'border-l';
+  const panelSizeClass =
+    size === 'sm'
+      ? 'w-[78vw] max-w-[320px]'
+      : size === 'lg'
+        ? 'w-[92vw] max-w-[520px]'
+        : 'w-[92vw] max-w-[420px]';
 
   return (
     <div className="fixed inset-0 z-[60]">
@@ -43,7 +51,7 @@ export default function SideDrawer({
       <div
         role="dialog"
         aria-modal="true"
-        className={`absolute top-0 ${panelPosClass} ${panelBorderClass} border-border h-full w-[92vw] max-w-[420px] bg-card shadow-2xl flex flex-col`}
+        className={`absolute top-0 ${panelPosClass} ${panelBorderClass} ${panelSizeClass} border-border h-full bg-card shadow-2xl flex flex-col`}
       >
         <div className="h-12 px-4 border-b border-border flex items-center justify-between">
           <div className="text-sm font-medium text-foreground">{title}</div>

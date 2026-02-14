@@ -210,9 +210,12 @@ export default function HolidayCountdown({
                             "group relative overflow-hidden rounded-2xl cursor-pointer",
                             "transition-[box-shadow,transform] duration-300",
                             "bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-transparent dark:border-border/60 dark:shadow-none hover:shadow-[0_8px_16px_rgba(0,0,0,0.08)] hover:-translate-y-0.5",
-                            h.diffDays <= 3 && "bg-primary/[0.03] dark:bg-primary/10"
+                            h.diffDays <= 3 && "bg-primary/[0.03] dark:bg-primary/10 ring-1 ring-primary/15"
                         )}
                     >
+                        {h.diffDays <= 3 && (
+                            <div className="absolute inset-y-3 left-0 w-1 rounded-r bg-primary/50" />
+                        )}
                         <div className="p-4 flex flex-col gap-3">
                             {/* Header: Name & Days */}
                             <div className="flex justify-between items-start">
@@ -220,20 +223,22 @@ export default function HolidayCountdown({
                                     <span className="text-base font-bold text-foreground/90 group-hover:text-primary transition-colors">
                                         {h.name}
                                     </span>
+                                </div>
+                                <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
+                                    <div className="flex items-baseline gap-0.5">
+                                        <span className={classNames(
+                                            "text-2xl font-mono font-bold tracking-tight",
+                                            h.diffDays <= 7 ? "text-primary" : "text-foreground/70"
+                                        )}>
+                                            {h.diffDays}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground/50 font-medium">天</span>
+                                    </div>
                                     {h.isOffDay && (
-                                        <span className="text-xs font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md whitespace-nowrap">
+                                        <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full whitespace-nowrap border border-primary/15">
                                             放假{h.duration || '?'}天
                                         </span>
                                     )}
-                                </div>
-                                <div className="flex items-baseline gap-0.5 shrink-0 ml-2">
-                                    <span className={classNames(
-                                        "text-2xl font-mono font-bold tracking-tight",
-                                        h.diffDays <= 7 ? "text-primary" : "text-foreground/70"
-                                    )}>
-                                        {h.diffDays}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground/50 font-medium">天</span>
                                 </div>
                             </div>
 
@@ -250,14 +255,7 @@ export default function HolidayCountdown({
                             </div>
                         </div>
 
-                        {/* Decorative background element for near-term holidays */}
-                        {
-                            h.diffDays <= 3 && (
-                                <div className="absolute top-0 right-0 p-1">
-                                    <span className="flex h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                                </div>
-                            )
-                        }
+                        {/* near-term marker moved to left accent */}
                     </div>
                 ))}
 
