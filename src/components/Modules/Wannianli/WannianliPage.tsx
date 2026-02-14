@@ -114,38 +114,10 @@ export default function WannianliPage() {
     const renderCalendarHeader = () => {
         const headerPaddingClass = isPadLandscape ? 'px-4 py-3' : 'px-6 py-4';
 
-        return (
-            <div className={`flex items-center justify-between ${headerPaddingClass} border-b border-border/50 bg-background/50 backdrop-blur-md sticky top-0 z-30`}>
-                <div className="flex items-center gap-3 min-w-0">
-                    {isPadLandscape && (
-                        <div className="flex items-center gap-2 shrink-0">
-                            <button
-                                type="button"
-                                onClick={() => setIsCountdownOpen(true)}
-                                className="px-3 py-1.5 rounded-lg border border-border bg-card/60 text-sm text-foreground hover:bg-muted/40 transition-colors"
-                            >
-                                倒计时
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setIsDetailOpen(true)}
-                                className="px-3 py-1.5 rounded-lg border border-border bg-card/60 text-sm text-foreground hover:bg-muted/40 transition-colors"
-                            >
-                                详情
-                            </button>
-                        </div>
-                    )}
-
-                    <h2 className="text-xl lg:text-2xl font-serif font-bold text-foreground flex items-baseline tracking-widest truncate">
-                        <span className="text-foreground/80">
-                            {Lunar.fromDate(viewDate).getYearInGanZhi()}年·{Lunar.fromDate(viewDate).getMonthInGanZhi().charAt(1)}月
-                        </span>
-                    </h2>
-                </div>
-
-                <div className="flex items-center gap-2 overflow-x-auto">
-                    <div className="flex items-center gap-1 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none p-1 rounded-xl border border-transparent dark:border-border/60 h-[42px] shrink-0">
-                        <button
+        const controls = (
+            <>
+                <div className="flex items-center gap-1 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none p-1 rounded-xl border border-transparent dark:border-border/60 h-[42px] shrink-0">
+                    <button
                         onClick={() => {
                             const d = new Date(viewDate);
                             d.setDate(1);
@@ -177,7 +149,7 @@ export default function WannianliPage() {
                     >
                         <ChevronRight className="w-5 h-5" />
                     </button>
-                    </div>
+                </div>
 
                 {/* 今日按钮 - 固定 42px 高度 */}
                 <button
@@ -185,13 +157,13 @@ export default function WannianliPage() {
                         setViewDate(new Date());
                         setSelectedDate(new Date());
                     }}
-                    className="h-[42px] px-4 flex items-center justify-center text-sm font-medium rounded-xl border border-transparent dark:border-border/60 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none hover:shadow-md hover:-translate-y-0.5 text-muted-foreground hover:text-primary transition-all"
+                    className="h-[42px] px-4 flex items-center justify-center text-sm font-medium rounded-xl border border-transparent dark:border-border/60 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none hover:shadow-md hover:-translate-y-0.5 text-muted-foreground hover:text-primary transition-all shrink-0"
                 >
                     今日
                 </button>
 
                 {/* 周首切换开关 */}
-                <div className="flex bg-muted p-1 rounded-xl border border-border/40 h-[42px]">
+                <div className="flex bg-muted p-1 rounded-xl border border-border/40 h-[42px] shrink-0">
                     <button
                         onClick={() => setWeekStart(1)}
                         className={classNames(
@@ -215,6 +187,57 @@ export default function WannianliPage() {
                         日
                     </button>
                 </div>
+            </>
+        );
+
+        if (isPadLandscape) {
+            return (
+                <div className={`grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 ${headerPaddingClass} border-b border-border/50 bg-background/50 backdrop-blur-md sticky top-0 z-30`}>
+                    {/* 左：倒计时（对应左抽屉） */}
+                    <button
+                        type="button"
+                        onClick={() => setIsCountdownOpen(true)}
+                        className="px-3 py-1.5 rounded-lg border border-border bg-card/60 text-sm text-foreground hover:bg-muted/40 transition-colors shrink-0"
+                    >
+                        倒计时
+                    </button>
+
+                    {/* 中：标题 */}
+                    <h2 className="text-xl lg:text-2xl font-serif font-bold text-foreground tracking-widest truncate text-center">
+                        <span className="text-foreground/80">
+                            {Lunar.fromDate(viewDate).getYearInGanZhi()}年·{Lunar.fromDate(viewDate).getMonthInGanZhi().charAt(1)}月
+                        </span>
+                    </h2>
+
+                    {/* 右：控件 + 详情（对应右抽屉） */}
+                    <div className="flex items-center gap-2 min-w-0 justify-end">
+                        <div className="flex items-center gap-2 min-w-0 overflow-x-auto">
+                            {controls}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setIsDetailOpen(true)}
+                            className="px-3 py-1.5 rounded-lg border border-border bg-card/60 text-sm text-foreground hover:bg-muted/40 transition-colors shrink-0"
+                        >
+                            详情
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+            <div className={`flex items-center justify-between ${headerPaddingClass} border-b border-border/50 bg-background/50 backdrop-blur-md sticky top-0 z-30`}>
+                <div className="flex items-baseline gap-4 min-w-0">
+                    <h2 className="text-2xl font-serif font-bold text-foreground flex items-baseline tracking-widest truncate">
+                        <span className="text-foreground/80">
+                            {Lunar.fromDate(viewDate).getYearInGanZhi()}年·{Lunar.fromDate(viewDate).getMonthInGanZhi().charAt(1)}月
+                        </span>
+                    </h2>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    {controls}
                 </div>
             </div>
         );
