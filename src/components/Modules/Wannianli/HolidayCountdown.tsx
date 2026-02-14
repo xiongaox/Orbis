@@ -13,7 +13,13 @@ type HolidayItem = {
     duration?: number; // 放假天数
 };
 
-export default function HolidayCountdown({ onSelectDate }: { onSelectDate?: (date: Date) => void }) {
+export default function HolidayCountdown({
+    onSelectDate,
+    variant = 'sidebar',
+}: {
+    onSelectDate?: (date: Date) => void;
+    variant?: 'sidebar' | 'drawer';
+}) {
     // 使用真实当前时间，每分钟刷新一次以保持准确
     const [now, setNow] = useState(new Date());
     const [filterType, setFilterType] = useState<'all' | 'off'>('all');
@@ -149,8 +155,12 @@ export default function HolidayCountdown({ onSelectDate }: { onSelectDate?: (dat
 
     }, [now, filterType]); // 当 now 变化时（跨天）会自动重算
 
+    const containerClassName = variant === 'drawer'
+        ? 'flex flex-col w-full min-h-0 bg-muted/5'
+        : 'flex flex-col w-[15%] border-r border-border/50 bg-muted/5 min-h-0';
+
     return (
-        <aside className="flex flex-col w-[15%] border-r border-border/50 bg-muted/5 min-h-0">
+        <aside className={containerClassName}>
             <div className="px-6 py-5 flex items-center justify-between">
                 <h3 className="text-md font-bold text-muted-foreground/100 tracking-[0.2em] uppercase flex items-center gap-2">
                     <span className="w-1 h-3 bg-primary rounded-full"></span>
