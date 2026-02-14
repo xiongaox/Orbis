@@ -56,7 +56,7 @@ export default function BaziPage() {
                 selectedLiuNianYear={selectedLiuNianYear ?? null}
                 currentYear={simpleCurrentBaziYear}
             />
-            <div className="flex-1 min-h-0 min-w-0 grid grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-4 overflow-hidden px-6 pb-6">
+            <div className="flex-1 min-h-0 min-w-0 grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-4 overflow-y-auto lg:overflow-hidden px-4 lg:px-6 pb-4 lg:pb-6">
                 <BaziChart
                     data={baziData}
                     loading={loading}
@@ -65,7 +65,7 @@ export default function BaziPage() {
                     currentYear={simpleCurrentBaziYear}
                     showTaiMingShen={showTaiMingShen}
                 />
-                <div className="flex flex-col gap-4 min-h-0 overflow-y-auto">
+                <div className="flex flex-col gap-4 min-h-0 lg:overflow-y-auto">
                     {/* 五行旺衰信息条 */}
                     <div className="flex-shrink-0">
                         <WuxingStatusBar

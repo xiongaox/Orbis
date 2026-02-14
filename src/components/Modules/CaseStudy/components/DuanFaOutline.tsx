@@ -7,12 +7,17 @@ interface DuanFaOutlineProps {
     outline: DuanFaOutlineItem[];
     activeSectionId: string | null;
     onItemClick: (sectionId: string) => void;
+    variant?: 'sidebar' | 'drawer';
 }
 
-export default function DuanFaOutline({ outline, activeSectionId, onItemClick }: DuanFaOutlineProps) {
+export default function DuanFaOutline({ outline, activeSectionId, onItemClick, variant = 'sidebar' }: DuanFaOutlineProps) {
+    const containerClassName = variant === 'drawer'
+        ? 'w-full bg-muted/10 border-t border-border/40 flex flex-col overflow-hidden'
+        : 'w-[15%] min-w-[120px] bg-muted/10 border-l border-border/40 flex flex-col overflow-hidden';
+
     if (outline.length === 0) {
         return (
-            <div className="w-[15%] min-w-[120px] bg-muted/10 border-l border-border/40 flex flex-col">
+            <div className={containerClassName}>
                 <div className="py-3 px-3 border-b border-border/40 bg-muted/20 flex-shrink-0">
                     <span className="text-xs font-medium text-muted-foreground">大纲</span>
                 </div>
@@ -24,7 +29,7 @@ export default function DuanFaOutline({ outline, activeSectionId, onItemClick }:
     }
 
     return (
-        <div className="w-[15%] min-w-[120px] bg-muted/10 border-l border-border/40 flex flex-col overflow-hidden">
+        <div className={containerClassName}>
             {/* 标题 */}
             <div className="py-3 px-3 border-b border-border/40 bg-muted/20 flex-shrink-0">
                 <span className="text-xs font-medium text-muted-foreground">大纲</span>

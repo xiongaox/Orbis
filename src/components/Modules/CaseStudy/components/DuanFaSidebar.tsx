@@ -7,11 +7,16 @@ interface DuanFaSidebarProps {
     files: DuanFaFile[];
     selectedFileId: string | null;
     onSelectFile: (fileId: string) => void;
+    variant?: 'sidebar' | 'drawer';
 }
 
-export default function DuanFaSidebar({ files, selectedFileId, onSelectFile }: DuanFaSidebarProps) {
+export default function DuanFaSidebar({ files, selectedFileId, onSelectFile, variant = 'sidebar' }: DuanFaSidebarProps) {
+    const containerClassName = variant === 'drawer'
+        ? 'w-full border-b border-border/40 bg-card/30 flex flex-col overflow-hidden'
+        : 'w-[160px] min-w-[160px] border-r border-border/40 bg-card/30 flex flex-col overflow-hidden';
+
     return (
-        <div className="w-[160px] min-w-[160px] border-r border-border/40 bg-card/30 flex flex-col overflow-hidden">
+        <div className={containerClassName}>
             {/* 标题 */}
             <div className="py-3 px-4 border-b border-border/40 bg-card/50 flex-shrink-0">
                 <span className="font-serif font-bold text-foreground/80">断法列表</span>

@@ -26,6 +26,7 @@ interface CaseListSidebarProps {
     onSearchChange: (term: string) => void;
     onPageChange: (page: number) => void;
     onSelectAuthor: (author: string) => void;
+    variant?: 'sidebar' | 'drawer';
 }
 
 export default function CaseListSidebar({
@@ -42,6 +43,7 @@ export default function CaseListSidebar({
     onSearchChange,
     onPageChange,
     onSelectAuthor,
+    variant = 'sidebar',
 }: CaseListSidebarProps) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -51,8 +53,12 @@ export default function CaseListSidebar({
     // 计算当前分类下的总数
     const currentCategoryTotal = allCases.filter(c => c.category === selectedCategory).length;
 
+    const containerClassName = variant === 'drawer'
+        ? 'w-full border-b border-border bg-card flex flex-col min-w-0'
+        : 'w-[15%] border-r border-border bg-card flex flex-col min-w-[200px]';
+
     return (
-        <div className="w-[15%] border-r border-border bg-card flex flex-col min-w-[200px]">
+        <div className={containerClassName}>
             <div className="p-3 border-b border-border space-y-2">
                 <div className="flex items-center justify-between">
                     <h3 className="font-medium text-sm">案例列表</h3>
