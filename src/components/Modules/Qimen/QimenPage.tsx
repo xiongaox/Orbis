@@ -372,7 +372,96 @@ export default function QimenPage() {
                         {rightPanelContent}
                     </div>
                 </>
+            ) : isPadLandscape ? (
+                /* ========== Pad 横屏两栏布局 ========== */
+                /* 左侧案例以贴边浮动按钮触发抽屉，右侧详情/局信息常驻显示 */
+                <>
+                    {/* 盘面主体区域 - 无顶部操作栏，充分利用空间 */}
+                    <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col p-1 relative">
+                        {/* 左侧贴边竖线触发按钮 - 复用 MainLayout Pad 端样式 */}
+                        <button
+                            type="button"
+                            onClick={() => setIsCaseListOpen(true)}
+                            className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-start group focus:outline-none"
+                            aria-label="打开案例列表"
+                        >
+                            <span className="w-[3px] h-20 rounded-r bg-primary/35 group-hover:bg-primary/70 group-active:bg-primary/80 transition-colors shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none" />
+                            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="px-2 py-1 rounded-md text-xs bg-card border border-border shadow-sm text-foreground/80 whitespace-nowrap">
+                                    案例
+                                </span>
+                            </span>
+                        </button>
+
+                        {/* 加载状态 */}
+                        {isLoading && (
+                            <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-20">
+                                <div className="text-muted-foreground">正在计算...</div>
+                            </div>
+                        )}
+
+                        {/* 错误状态 */}
+                        {error && (
+                            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-destructive/10 text-destructive px-4 py-2 rounded-lg z-20">
+                                {error}
+                            </div>
+                        )}
+
+                        <QimenChart
+                            palaces={palaces}
+                            header={header}
+                            selectedPalace={selectedPalace}
+                            onSelectPalace={(position) => setSelectedPalace(position === selectedPalace ? null : position)}
+                            onPrevHour={handlePrevHour}
+                            onNextHour={handleNextHour}
+                            method={paiPanMethod}
+                            onMethodChange={setPaiPanMethod}
+                            onResetToNow={calculateNow}
+                            onOpenDatePicker={() => setIsDatePickerOpen(true)}
+                            onJuClick={() => setIsCustomJuModalOpen(true)}
+                            globalPatterns={globalPatterns}
+                            onPatternClick={setSelectedPattern}
+                            onOpenAiModal={() => setIsAiModalOpen(true)}
+                            dynamicMaKong={dynamicMaKong}
+                            fullWidth
+                        />
+                    </main>
+
+                    {/* 右侧常驻详情栏 - 可滚动、宽度充足 */}
+                    <div className="w-96 flex-shrink-0 min-h-0 overflow-y-auto flex flex-col border-l border-border/50 bg-card/10">
+                        {rightPanelContent}
+                    </div>
+
+                    {/* 左侧案例抽屉 */}
+                    <SideDrawer
+                        open={isCaseListOpen}
+                        title="案例"
+                        side="left"
+                        onClose={() => setIsCaseListOpen(false)}
+                    >
+                        <QimenCaseList
+                            selectedCaseId={selectedCaseId}
+                            onSelectCase={(id, caseItem) => {
+                                setSelectedCaseId(id);
+                                setCurrentCase(caseItem);
+                                setIsCaseListOpen(false);
+                                if (caseItem.test_date) {
+                                    calculateQimenByDate(new Date(caseItem.test_date));
+                                }
+                            }}
+                            onOpenDatePicker={() => {
+                                setEditingCase(null);
+                                setIsNewCaseModalOpen(true);
+                                setIsCaseListOpen(false);
+                            }}
+                            onDeleteCase={handleDeleteCase}
+                            onEditCase={handleEditCase}
+                            refreshTrigger={refreshTrigger}
+                        />
+                    </SideDrawer>
+                </>
             ) : (
+                /* ========== 手机/Pad 竖屏抽屉布局 ========== */
                 <>
                     <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
                         <div className="px-3 py-2 border-b border-border/40 bg-background/70 backdrop-blur-sm flex items-center justify-between">
