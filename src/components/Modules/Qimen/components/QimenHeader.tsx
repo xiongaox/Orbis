@@ -81,7 +81,7 @@ export default function QimenHeader({
 
             {/* 第二行：四柱 + 信息 */}
             {header.siZhu?.year && (
-                <div className="flex items-center justify-start">
+                <div className="flex items-center justify-between">
                     <div className="flex gap-5 2xl:gap-6">
                         {(['year', 'month', 'day', 'hour'] as const).map((key) => {
                             const labels = { year: '年', month: '月', day: '日', hour: '时' };

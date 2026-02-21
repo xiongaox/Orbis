@@ -79,6 +79,8 @@ interface QimenChartProps {
     onPatternClick?: (pattern: GlobalPattern) => void;
     onOpenAiModal?: () => void;
     dynamicMaKong?: { kongPositions: number[]; maPosition: number };
+    /** Pad 横屏时传入 true，去掉 max-w 限制让盘面更宽 */
+    fullWidth?: boolean;
 }
 
 // 洛书九宫布局顺序
@@ -107,6 +109,7 @@ export default function QimenChart({
     onPatternClick,
     onOpenAiModal,
     dynamicMaKong,
+    fullWidth = false,
 }: QimenChartProps) {
     const orderedPalaces = LUOSHU_ORDER.map(pos => palaces.find(p => p.position === pos)!);
     const [showChangSheng, setShowChangSheng] = useState(false);
@@ -141,7 +144,7 @@ export default function QimenChart({
         <div className="flex flex-col h-full overflow-hidden items-center p-2 relative">
             <div className="flex flex-col flex-1 min-h-0 items-center w-full">
                 {/* 九宫盘主体 */}
-                <div className="flex flex-col h-full items-center max-w-2xl">
+                <div className={`flex flex-col h-full items-center w-full ${fullWidth ? 'max-w-[560px]' : 'max-w-2xl'}`}>
                     {/* 顶部信息栏 */}
                     <div className="w-full flex-shrink-0 mb-2">
                         <QimenHeader
