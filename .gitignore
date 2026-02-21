@@ -13,6 +13,7 @@ dist-ssr
 *.local
 api/venv/
 .venv/
+.agent/venv
 .env
 
 # Editor directories and files
