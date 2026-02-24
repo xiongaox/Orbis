@@ -423,7 +423,7 @@ export default function CaseStudyPage() {
                 ) : selectedCategory === 'qimen' && activeCase ? (
                     /* 使用真实数据 */
                     qimenResult ? (
-                        <div className="h-full flex flex-col overflow-hidden">
+                        <div className="flex-shrink-0 flex flex-col">
                             <CaseStudyQimenChart
                                 palaces={qimenResult.palaces}
                                 selectedPalace={null}
@@ -576,6 +576,7 @@ export default function CaseStudyPage() {
                         open={isChartPanelOpen}
                         title="排盘信息"
                         side="right"
+                        size="lg"
                         onClose={() => setIsChartPanelOpen(false)}
                     >
                         {chartPanel}
