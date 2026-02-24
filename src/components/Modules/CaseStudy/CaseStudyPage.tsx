@@ -482,14 +482,104 @@ export default function CaseStudyPage() {
                     />
 
                     {/* 3. 内容区 (55%) */}
-                    <div className="w-[55%] overflow-hidden">
+                    <div className="w-[55%] h-full flex flex-col overflow-hidden">
                         {contentColumn}
                     </div>
 
                     {/* 4. 排盘区 (25%) */}
-                    <div className="w-[25%] overflow-hidden border-l border-border/50">
+                    <div className="w-[25%] h-full flex flex-col overflow-hidden border-l border-border/50">
                         {chartPanel}
                     </div>
+                </>
+            ) : isPadLandscape ? (
+                /* ========== Pad 横屏：竖线触发抽屉布局 ========== */
+                <>
+                    {/* 术数分类标签（始终可见）*/}
+                    <CategoryTabs
+                        categories={CATEGORIES}
+                        selectedId={selectedCategory}
+                        onSelect={setSelectedCategory}
+                    />
+
+                    {/* 主内容区域 */}
+                    <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+                        {/* 左侧贴边竖线触发按钮 - 复用统一样式 */}
+                        <button
+                            type="button"
+                            onClick={() => setIsLeftPanelOpen(true)}
+                            className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-start group focus:outline-none"
+                            aria-label="打开目录"
+                        >
+                            <span className="w-[3px] h-20 rounded-r bg-primary/35 group-hover:bg-primary/70 group-active:bg-primary/80 transition-colors shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none" />
+                            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="px-2 py-1 rounded-md text-xs bg-card border border-border shadow-sm text-foreground/80 whitespace-nowrap">
+                                    目录
+                                </span>
+                            </span>
+                        </button>
+
+                        {/* 右侧贴边竖线触发按钮 */}
+                        <button
+                            type="button"
+                            onClick={() => setIsChartPanelOpen(true)}
+                            className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-end group focus:outline-none"
+                            aria-label="打开排盘"
+                        >
+                            <span className="w-[3px] h-20 rounded-l bg-primary/35 group-hover:bg-primary/70 group-active:bg-primary/80 transition-colors shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none" />
+                            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="px-2 py-1 rounded-md text-xs bg-card border border-border shadow-sm text-foreground/80 whitespace-nowrap">
+                                    排盘
+                                </span>
+                            </span>
+                        </button>
+
+                        {contentColumn}
+                    </div>
+
+                    {/* 左侧目录抽屉 */}
+                    <SideDrawer
+                        open={isLeftPanelOpen}
+                        title="目录"
+                        side="left"
+                        onClose={() => setIsLeftPanelOpen(false)}
+                    >
+                        <div className="h-full min-h-0 overflow-hidden flex flex-col">
+                            <CaseListSidebar
+                                allCases={allCases}
+                                displayCases={displayCases}
+                                selectedCategory={selectedCategory}
+                                selectedCaseId={selectedCaseId}
+                                selectedDayMaster={selectedDayMaster}
+                                searchTerm={searchTerm}
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                onSelectCase={(id) => {
+                                    handleSelectCase(id);
+                                    setIsLeftPanelOpen(false);
+                                }}
+                                onSelectDayMaster={(id) => {
+                                    handleSelectDayMaster(id);
+                                }}
+                                onSearchChange={setSearchTerm}
+                                onPageChange={setCurrentPage}
+                                onSelectAuthor={(author) => {
+                                    handleSelectAuthor(author);
+                                    setIsLeftPanelOpen(false);
+                                }}
+                                variant="drawer"
+                            />
+                        </div>
+                    </SideDrawer>
+
+                    {/* 右侧排盘抽屉 */}
+                    <SideDrawer
+                        open={isChartPanelOpen}
+                        title="排盘信息"
+                        side="right"
+                        onClose={() => setIsChartPanelOpen(false)}
+                    >
+                        {chartPanel}
+                    </SideDrawer>
                 </>
             ) : (
                 <>

@@ -219,17 +219,22 @@ export function useCaseStudy() {
         setDaYunPage(0);
     }, [selectedCaseId]);
 
-    // 分类切换时重置筛选
+    // 分类切换时重置筛选，并默认选中第一篇文章
     useMemo(() => {
         setSelectedDayMaster('all');
         setSelectedAuthor(null);
         setSearchTerm('');
         setCurrentPage(1);
-        setSelectedCaseId(null);
+        // 从静态 ALL_CASES 中查找该分类的第一篇，避免页面空白
+        const firstCase = ALL_CASES.find(c => c.category === selectedCategory);
+        setSelectedCaseId(firstCase?.id ?? null);
         setQimenResult(null);
         setCustomJu(0);  // 重置自定义局数
         setActiveChartIndex(0);
     }, [selectedCategory]);
+
+
+
 
     // 选择案例时清除作者
     const handleSelectCase = (id: string) => {

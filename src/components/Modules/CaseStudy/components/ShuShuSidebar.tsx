@@ -11,7 +11,7 @@ interface ShuShuSidebarProps {
 
 export default function ShuShuSidebar({ selectedId, onSelect, variant = 'sidebar' }: ShuShuSidebarProps) {
     const containerClassName = variant === 'drawer'
-        ? 'w-full border-b border-border/40 bg-card/30 flex flex-col overflow-hidden'
+        ? 'w-full h-full border-b border-border/40 bg-card/30 flex flex-col overflow-hidden'
         : 'w-[100px] min-w-[100px] border-r border-border/40 bg-card/30 flex flex-col overflow-hidden';
 
     return (
