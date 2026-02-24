@@ -12,7 +12,7 @@ interface DuanFaOutlineProps {
 
 export default function DuanFaOutline({ outline, activeSectionId, onItemClick, variant = 'sidebar' }: DuanFaOutlineProps) {
     const containerClassName = variant === 'drawer'
-        ? 'w-full bg-muted/10 border-t border-border/40 flex flex-col overflow-hidden'
+        ? 'w-full h-full bg-muted/10 border-t border-border/40 flex flex-col overflow-hidden'
         : 'w-[15%] min-w-[120px] bg-muted/10 border-l border-border/40 flex flex-col overflow-hidden';
 
     if (outline.length === 0) {

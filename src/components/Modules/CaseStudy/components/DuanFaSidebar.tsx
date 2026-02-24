@@ -12,7 +12,7 @@ interface DuanFaSidebarProps {
 
 export default function DuanFaSidebar({ files, selectedFileId, onSelectFile, variant = 'sidebar' }: DuanFaSidebarProps) {
     const containerClassName = variant === 'drawer'
-        ? 'w-full border-b border-border/40 bg-card/30 flex flex-col overflow-hidden'
+        ? 'w-full h-full border-b border-border/40 bg-card/30 flex flex-col overflow-hidden'
         : 'w-[160px] min-w-[160px] border-r border-border/40 bg-card/30 flex flex-col overflow-hidden';
 
     return (

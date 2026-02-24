@@ -12,6 +12,7 @@ import SideDrawer from '../../UI/SideDrawer';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useIsPadLandscape } from '../../../hooks/useIsPadLandscape';
 
+
 // 学习面板相关
 import { useAuth } from '../../../contexts/AuthContext';
 import { useReadingProgress } from './hooks/useReadingProgress';
@@ -136,6 +137,90 @@ export default function DuanFaPage() {
                         activeSectionId={activeSectionId}
                         onItemClick={handleOutlineClick}
                     />
+                </>
+            ) : isPadLandscape ? (
+                /* ========== Pad 横屏：竖线触发抽屉，抽屉内保持双列布局 ========== */
+                <>
+                    {/* 主内容区域 */}
+                    <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+                        {/* 左侧贴边竖线触发按钮 */}
+                        <button
+                            type="button"
+                            onClick={() => setIsLeftOpen(true)}
+                            className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-start group focus:outline-none"
+                            aria-label="打开目录"
+                        >
+                            <span className="w-[3px] h-20 rounded-r bg-primary/35 group-hover:bg-primary/70 group-active:bg-primary/80 transition-colors shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none" />
+                            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="px-2 py-1 rounded-md text-xs bg-card border border-border shadow-sm text-foreground/80 whitespace-nowrap">
+                                    目录
+                                </span>
+                            </span>
+                        </button>
+
+                        {/* 右侧贴边竖线触发按钮 */}
+                        <button
+                            type="button"
+                            onClick={() => setIsOutlineOpen(true)}
+                            className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-end group focus:outline-none"
+                            aria-label="打开大纲"
+                        >
+                            <span className="w-[3px] h-20 rounded-l bg-primary/35 group-hover:bg-primary/70 group-active:bg-primary/80 transition-colors shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none" />
+                            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="px-2 py-1 rounded-md text-xs bg-card border border-border shadow-sm text-foreground/80 whitespace-nowrap">
+                                    大纲
+                                </span>
+                            </span>
+                        </button>
+
+                        {content}
+                    </div>
+
+                    {/* 左侧目录抽屉 - 双列并排布局（术数分类 + 断法列表） */}
+                    <SideDrawer
+                        open={isLeftOpen}
+                        title="目录"
+                        side="left"
+                        size="sm"
+                        hideHeader={true}
+                        onClose={() => setIsLeftOpen(false)}
+                    >
+                        <div className="h-full min-h-0 overflow-hidden flex flex-row">
+                            <ShuShuSidebar
+                                selectedId={selectedShuShuId}
+                                onSelect={handleSelectShuShu}
+                            />
+                            <div className="flex-1 min-w-0 h-full overflow-hidden border-r border-border/40">
+                                <DuanFaSidebar
+                                    files={files}
+                                    selectedFileId={selectedFileId}
+                                    onSelectFile={(id) => {
+                                        handleSelectFile(id);
+                                        setIsLeftOpen(false);
+                                    }}
+                                    variant="drawer"
+                                />
+                            </div>
+                        </div>
+                    </SideDrawer>
+
+                    {/* 右侧大纲抽屉 */}
+                    <SideDrawer
+                        open={isOutlineOpen}
+                        title="大纲"
+                        side="right"
+                        onClose={() => setIsOutlineOpen(false)}
+                    >
+                        <DuanFaOutline
+                            outline={outline}
+                            activeSectionId={activeSectionId}
+                            onItemClick={(id) => {
+                                handleOutlineClick(id);
+                                setIsOutlineOpen(false);
+                            }}
+                            variant="drawer"
+                        />
+                    </SideDrawer>
                 </>
             ) : (
                 <>
