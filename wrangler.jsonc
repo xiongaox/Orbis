@@ -2,6 +2,7 @@
     "name": "orbis",
     "compatibility_date": "2026-02-14",
     "assets": {
-        "directory": "./dist"
+        "directory": "./dist",
+        "not_found_handling": "single-page-application"
     }
 }
