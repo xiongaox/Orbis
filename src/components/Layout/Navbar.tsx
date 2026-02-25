@@ -15,10 +15,12 @@ import {
   User,
   Loader2,
   Key,
+  Menu,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import BaseModal from '../UI/BaseModal';
+import SideDrawer from '../UI/SideDrawer';
 import { getRealtimeClockData } from '../../utils/lunarUtil';
 import ChangePasswordModal from '../Auth/ChangePasswordModal';
 import AdvancedDatePicker from '../Common/AdvancedDatePicker';
@@ -142,9 +144,36 @@ function NavButton({
   );
 }
 
+function DrawerNavButton({
+  item,
+  isActive,
+  onClick,
+}: {
+  item: typeof navItems[0];
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  const Icon = item.icon;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium border transition-colors ${
+        isActive
+          ? 'bg-primary/10 text-primary border-primary/30'
+          : 'bg-card/60 text-muted-foreground border-border/60 hover:text-foreground hover:bg-secondary/50'
+      }`}
+    >
+      <Icon className="w-4 h-4" />
+      <span>{item.name}</span>
+    </button>
+  );
+}
+
 export default function Navbar({ activeChart, onChartChange, onLoginClick }: NavbarProps) {
   const { user, isAuthenticated, signOut, loading } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
@@ -244,15 +273,26 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
 
   return (
     <>
-      <header className="h-16 glass-header sticky top-0 z-50 flex items-center justify-center relative">
-        {/* Logo and Clock Area - Absolute positioned left */}
-        <div className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 flex items-center gap-4 lg:gap-8">
+      <header className="glass-header sticky top-0 z-50 relative">
+        <div className="px-3 md:px-0">
+          <div className="h-16 flex items-center justify-between md:justify-center relative">
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(true)}
+              className="md:hidden inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-border/70 bg-card/70 text-sm font-medium text-foreground/85 shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:text-foreground hover:bg-secondary/45 transition-colors z-10"
+              aria-label="打开模块菜单"
+            >
+              <Menu className="w-3.5 h-3.5" />
+              <span className="tracking-wide">菜单</span>
+            </button>
+
+            <div className="hidden md:flex items-center md:gap-4 lg:gap-8 md:absolute md:left-2 lg:left-4 md:top-1/2 md:-translate-y-1/2">
           <button
             type="button"
             onClick={() => {
               window.location.href = '/';
             }}
-            className="w-20 h-20 md:w-24 md:h-24 lg:w-32 lg:h-32 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
+            className="w-24 h-24 lg:w-32 lg:h-32 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
             title="刷新并返回首页"
           >
             <img
@@ -268,10 +308,24 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
               <RealtimeClock />
             </div>
           )}
-        </div>
+            </div>
 
-        {/* 导航模块 - 居中显示 */}
-        <div className="flex items-center justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                window.location.href = '/';
+              }}
+              className="md:hidden absolute left-1/2 -translate-x-1/2 w-24 h-24 -mt-1 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
+              title="刷新并返回首页"
+            >
+              <img
+                src={isDark ? "/logo/logo_dark.svg" : "/logo/logo_light.svg"}
+                alt="玄枢录"
+                className="w-full h-full object-contain"
+              />
+            </button>
+
+            <div className="hidden md:flex items-center justify-center">
           {/* 完整导航菜单 */}
           <nav className="flex items-center">
             {navItems.map((item, index) => (
@@ -285,17 +339,16 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
                   <span className="text-border">|</span>
                 )}
               </div>
-            ))}
+              ))}
           </nav>
-        </div>
+            </div>
 
-        {/* 右侧功能区 - 绝对定位在右侧 */}
-        <div className="absolute right-2 md:right-6 flex items-center gap-2 lg:gap-4">
+            <div className="flex items-center gap-1.5 md:gap-2 lg:gap-4 md:absolute md:right-2 lg:right-6">
           <a
             href="https://github.com/xiongaox/Orbis"
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 rounded-lg hover:bg-secondary/50 transition-colors"
+            className="hidden md:inline-flex p-2 rounded-lg hover:bg-secondary/50 transition-colors"
             title="GitHub 仓库"
           >
             <svg viewBox="0 0 200 200" className="w-5 h-5 text-muted-foreground" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -308,7 +361,7 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
           <button
             type="button"
             onClick={() => setShowContactModal(true)}
-            className="p-2 rounded-lg hover:bg-secondary/50 transition-colors"
+            className="hidden md:inline-flex p-2 rounded-lg hover:bg-secondary/50 transition-colors"
             title="联系作者"
           >
             <svg viewBox="0 0 200 200" className="w-5 h-5 text-muted-foreground" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -320,7 +373,7 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
           <button
             type="button"
             onClick={handleToggleTheme}
-            className="p-2 rounded-lg hover:bg-secondary/50 transition-colors"
+            className="inline-flex items-center justify-center w-9 h-9 md:w-auto md:h-auto p-0 md:p-2 rounded-xl md:rounded-lg border border-border/60 md:border-transparent bg-card/55 md:bg-transparent hover:bg-secondary/50 transition-colors"
             aria-label={isDark ? '切换到明亮主题' : '切换到暗黑主题'}
           >
             {isDark ? (
@@ -335,19 +388,17 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
             <button
               type="button"
               onClick={() => setMenuOpen((prev) => !prev)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-secondary/50 transition-colors"
+              className="inline-flex items-center justify-center md:justify-start gap-0 md:gap-2 w-9 h-9 md:w-auto md:h-auto p-0 md:px-3 md:py-2 rounded-xl md:rounded-lg border border-border/60 md:border-transparent bg-card/55 md:bg-transparent hover:bg-secondary/50 transition-colors"
               disabled={loading}
             >
-              <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center overflow-hidden">
-                {loading ? (
-                  <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
-                ) : isAuthenticated ? (
-                  <img src={avatarPath} alt={displayName} className="w-full h-full object-cover" />
-                ) : (
-                  <User className="w-4 h-4 text-muted-foreground" />
-                )}
-              </div>
-              <span className="text-sm text-muted-foreground">
+              {loading ? (
+                <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+              ) : isAuthenticated ? (
+                <img src={avatarPath} alt={displayName} className="w-[22px] h-[22px] md:w-4 md:h-4 rounded-full object-cover" />
+              ) : (
+                <User className="w-4 h-4 text-muted-foreground" />
+              )}
+              <span className="hidden md:inline text-sm text-muted-foreground max-w-[120px] truncate">
                 {loading ? '加载中...' : isAuthenticated ? displayName : '未登录'}
               </span>
             </button>
@@ -356,6 +407,29 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
                 {isAuthenticated ? (
                   <>
                     <button
+                      type="button"
+                      onClick={() => {
+                        window.open('https://github.com/xiongaox/Orbis', '_blank', 'noopener,noreferrer');
+                        setMenuOpen(false);
+                      }}
+                      className="md:hidden w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
+                    >
+                      <Compass className="w-4 h-4" />
+                      GitHub 仓库
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowContactModal(true);
+                        setMenuOpen(false);
+                      }}
+                      className="md:hidden w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
+                    >
+                      <User className="w-4 h-4" />
+                      联系作者
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => {
                         setShowBirthdayModal(true);
                         setMenuOpen(false);
@@ -392,6 +466,28 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
                   <>
                     <button
                       type="button"
+                      onClick={() => {
+                        window.open('https://github.com/xiongaox/Orbis', '_blank', 'noopener,noreferrer');
+                        setMenuOpen(false);
+                      }}
+                      className="md:hidden w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
+                    >
+                      <Compass className="w-4 h-4" />
+                      GitHub 仓库
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowContactModal(true);
+                        setMenuOpen(false);
+                      }}
+                      className="md:hidden w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
+                    >
+                      <User className="w-4 h-4" />
+                      联系作者
+                    </button>
+                    <button
+                      type="button"
                       onClick={handleLoginClick}
                       className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
                     >
@@ -403,8 +499,33 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
               </div>
             )}
           </div>
+            </div>
+          </div>
+
         </div>
       </header>
+
+      <SideDrawer
+        open={mobileNavOpen}
+        title="功能模块"
+        side="left"
+        size="xxs"
+        onClose={() => setMobileNavOpen(false)}
+      >
+        <div className="h-full min-h-0 bg-muted/5 p-3 space-y-2">
+          {navItems.map((item) => (
+            <DrawerNavButton
+              key={item.id}
+              item={item}
+              isActive={activeChart === item.id}
+              onClick={() => {
+                onChartChange(item.id);
+                setMobileNavOpen(false);
+              }}
+            />
+          ))}
+        </div>
+      </SideDrawer>
 
       {/* Birthday Picker Modal */}
       <AdvancedDatePicker
