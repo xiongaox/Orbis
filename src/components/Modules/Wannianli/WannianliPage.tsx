@@ -6,6 +6,7 @@ import HolidayCountdown from './HolidayCountdown';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import SideDrawer from '../../UI/SideDrawer';
 import { useIsPadLandscape } from '../../../hooks/useIsPadLandscape';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 
 export default function WannianliPage() {
     // 状态管理
@@ -14,6 +15,9 @@ export default function WannianliPage() {
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
     const [weekStart, setWeekStart] = useState<0 | 1>(1); // 0: 周日开始, 1: 周一开始
     const isPadLandscape = useIsPadLandscape();
+    const isDesktop = useMediaQuery('(min-width: 1024px)');
+    const useDesktopLayout = isDesktop && !isPadLandscape;
+    const isMobileLayout = !useDesktopLayout && !isPadLandscape;
 
     const [isCountdownOpen, setIsCountdownOpen] = useState(false);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -95,11 +99,14 @@ export default function WannianliPage() {
             : ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
 
         return (
-            <div className="grid grid-cols-7 gap-2 px-2 py-2 shrink-0">
+            <div className={classNames(
+                'grid grid-cols-7 shrink-0',
+                isMobileLayout ? 'gap-1 px-1 py-1.5' : 'gap-2 px-2 py-2'
+            )}>
                 {weekDays.map((d, i) => (
                     <div key={i} className={classNames(
-                        "flex items-center justify-center py-2 rounded-lg border border-border/40 bg-card/50 shadow-sm",
-                        "text-base md:text-sm font-medium tracking-widest transition-colors",
+                        'flex items-center justify-center rounded-lg border border-border/40 bg-card/50 shadow-sm transition-colors',
+                        isMobileLayout ? 'py-1.5 text-xs font-medium' : 'py-2 text-base md:text-sm font-medium tracking-widest',
                         (d === '周日' || d === '周六')
                             ? "text-primary/80 bg-primary/5 border-primary/20"
                             : "text-muted-foreground/70"
@@ -112,141 +119,241 @@ export default function WannianliPage() {
     };
 
     const renderCalendarHeader = () => {
-        const headerPaddingClass = isPadLandscape ? 'px-4 py-3' : 'px-6 py-4';
+        const viewLunar = Lunar.fromDate(viewDate);
+        const selectedLunar = Lunar.fromDate(selectedDate);
+        const selectedWeekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][selectedDate.getDay()];
 
-        const controls = (
-            <>
-                <div className="flex items-center gap-1 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none p-1 rounded-xl border border-transparent dark:border-border/60 h-[42px] shrink-0">
-                    <button
-                        onClick={() => {
-                            const d = new Date(viewDate);
-                            d.setDate(1);
-                            d.setMonth(d.getMonth() - 1);
-                            setViewDate(d);
-                        }}
-                        className="h-full px-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all flex items-center justify-center"
-                    >
-                        <ChevronLeft className="w-5 h-5" />
-                    </button>
+        const headerClassName = classNames(
+            'border-b border-border/50 bg-background/50 backdrop-blur-md sticky top-0 z-30',
+            isMobileLayout
+                ? 'px-3 py-2 flex flex-col items-start gap-2'
+                : `flex items-center justify-between ${isPadLandscape ? 'px-4 py-3' : 'px-6 py-4'}`
+        );
 
-                    {/* 时间选择器按钮 */}
-                    <button
-                        onClick={() => setIsDatePickerOpen(true)}
-                        className="h-full flex items-center gap-2 px-3 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all group"
-                    >
-                        <Calendar className="w-4 h-4" />
-                        <span className="text-sm font-mono font-medium tracking-tight">{viewDate.getFullYear()}-{String(viewDate.getMonth() + 1).padStart(2, '0')}</span>
-                    </button>
-
-                    <button
-                        onClick={() => {
-                            const d = new Date(viewDate);
-                            d.setDate(1);
-                            d.setMonth(d.getMonth() + 1);
-                            setViewDate(d);
-                        }}
-                        className="h-full px-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all flex items-center justify-center"
-                    >
-                        <ChevronRight className="w-5 h-5" />
-                    </button>
-                </div>
-
-                {/* 今日按钮 - 固定 42px 高度 */}
+        const monthControl = (
+            <div className={classNames(
+                'flex items-center gap-1 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none p-1 rounded-xl border border-transparent dark:border-border/60 shrink-0',
+                isMobileLayout ? 'h-10' : 'h-[42px]'
+            )}>
                 <button
                     onClick={() => {
-                        setViewDate(new Date());
-                        setSelectedDate(new Date());
+                        const d = new Date(viewDate);
+                        d.setDate(1);
+                        d.setMonth(d.getMonth() - 1);
+                        setViewDate(d);
                     }}
-                    className="h-[42px] px-4 flex items-center justify-center text-sm font-medium rounded-xl border border-transparent dark:border-border/60 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none hover:shadow-md hover:-translate-y-0.5 text-muted-foreground hover:text-primary transition-all shrink-0"
+                    className="h-full px-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all flex items-center justify-center"
                 >
-                    今日
+                    <ChevronLeft className="w-5 h-5" />
                 </button>
 
-                {/* 周首切换开关 */}
-                <div className="flex bg-muted p-1 rounded-xl border border-border/40 h-[42px] shrink-0">
-                    <button
-                        onClick={() => setWeekStart(1)}
-                        className={classNames(
-                            "w-9 h-full rounded-lg text-sm font-medium transition-all flex items-center justify-center",
-                            weekStart === 1
-                                ? "bg-background text-primary shadow-sm"
-                                : "text-muted-foreground/70 hover:text-foreground hover:bg-background/40"
-                        )}
-                    >
-                        一
-                    </button>
-                    <button
-                        onClick={() => setWeekStart(0)}
-                        className={classNames(
-                            "w-9 h-full rounded-lg text-sm font-medium transition-all flex items-center justify-center",
-                            weekStart === 0
-                                ? "bg-background text-primary shadow-sm"
-                                : "text-muted-foreground/70 hover:text-foreground hover:bg-background/40"
-                        )}
-                    >
-                        日
-                    </button>
-                </div>
-            </>
+                <button
+                    onClick={() => setIsDatePickerOpen(true)}
+                    className="h-full flex items-center gap-2 px-3 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all group"
+                >
+                    <Calendar className="w-4 h-4" />
+                    <span className="text-sm font-mono font-medium tracking-tight">{viewDate.getFullYear()}-{String(viewDate.getMonth() + 1).padStart(2, '0')}</span>
+                </button>
+
+                <button
+                    onClick={() => {
+                        const d = new Date(viewDate);
+                        d.setDate(1);
+                        d.setMonth(d.getMonth() + 1);
+                        setViewDate(d);
+                    }}
+                    className="h-full px-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all flex items-center justify-center"
+                >
+                    <ChevronRight className="w-5 h-5" />
+                </button>
+            </div>
+        );
+
+        const todayControl = (
+            <button
+                onClick={() => {
+                    setViewDate(new Date());
+                    setSelectedDate(new Date());
+                }}
+                className={classNames(
+                    'flex items-center justify-center font-medium rounded-xl border border-transparent dark:border-border/60 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none hover:shadow-md hover:-translate-y-0.5 text-muted-foreground hover:text-primary transition-all shrink-0',
+                    isMobileLayout ? 'h-10 px-3 text-xs' : 'h-[42px] px-4 text-sm'
+                )}
+            >
+                今日
+            </button>
+        );
+
+        const weekToggleControl = (
+            <div className={classNames(
+                'flex bg-muted p-1 rounded-xl border border-border/40 shrink-0',
+                isMobileLayout ? 'h-10' : 'h-[42px]'
+            )}>
+                <button
+                    onClick={() => setWeekStart(1)}
+                    className={classNames(
+                        "w-9 h-full rounded-lg text-sm font-medium transition-all flex items-center justify-center",
+                        weekStart === 1
+                            ? "bg-background text-primary shadow-sm"
+                            : "text-muted-foreground/70 hover:text-foreground hover:bg-background/40"
+                    )}
+                >
+                    一
+                </button>
+                <button
+                    onClick={() => setWeekStart(0)}
+                    className={classNames(
+                        "w-9 h-full rounded-lg text-sm font-medium transition-all flex items-center justify-center",
+                        weekStart === 0
+                            ? "bg-background text-primary shadow-sm"
+                            : "text-muted-foreground/70 hover:text-foreground hover:bg-background/40"
+                    )}
+                >
+                    日
+                </button>
+            </div>
+        );
+
+        const countdownControl = (
+            <button
+                type="button"
+                onClick={() => setIsCountdownOpen(true)}
+                className="h-10 px-3 rounded-xl border border-border bg-card/60 text-sm text-foreground hover:bg-muted/40 transition-colors shrink-0"
+            >
+                倒计时
+            </button>
         );
 
         return (
-            <div className={`flex items-center justify-between ${headerPaddingClass} border-b border-border/50 bg-background/50 backdrop-blur-md sticky top-0 z-30`}>
-                <div className="flex items-baseline gap-4 min-w-0">
-                    <h2 className="text-2xl font-serif font-bold text-foreground flex items-baseline tracking-widest truncate">
-                        <span className="text-foreground/80">
-                            {Lunar.fromDate(viewDate).getYearInGanZhi()}年·{Lunar.fromDate(viewDate).getMonthInGanZhi().charAt(1)}月
-                        </span>
-                    </h2>
-                </div>
+            <div className={headerClassName}>
+                {isMobileLayout ? (
+                    <>
+                        <div className="w-full flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <div className="flex items-baseline gap-2">
+                                    <h3 className="text-5xl font-serif font-bold text-foreground leading-none">
+                                        {selectedDate.getDate()}
+                                    </h3>
+                                    <span className="text-base font-serif font-light text-muted-foreground/70">
+                                        / {selectedDate.getMonth() + 1}月 · {selectedDate.getFullYear()}
+                                    </span>
+                                </div>
 
-                <div className="flex items-center gap-2">
-                    {controls}
-                </div>
+                                <div className="mt-1 flex items-center gap-2">
+                                    <div className="px-2.5 py-0.5 rounded-[4px] bg-[#2a2422] border border-[#3e3632] shadow-sm">
+                                        <span className="text-[#e2d5c5] text-xs font-medium tracking-wide font-serif">
+                                            {selectedLunar.getMonthInChinese()}月{selectedLunar.getDayInChinese()}
+                                        </span>
+                                    </div>
+                                    <span className="text-xs text-muted-foreground/70 font-serif">{selectedWeekday}</span>
+                                </div>
+                            </div>
+
+                            <div className="pt-1 shrink-0 flex flex-col items-end">
+                                <h2 className="font-serif font-bold text-xl text-foreground/85 tracking-wide whitespace-nowrap text-right">
+                                    {viewLunar.getYearInGanZhi()}年·{viewLunar.getMonthInGanZhi().charAt(1)}月
+                                </h2>
+                                <div className="mt-2 flex items-center justify-end gap-2">
+                                    {todayControl}
+                                    {weekToggleControl}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="w-full flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-4 text-[11px] text-muted-foreground/75">
+                                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                                    <span className="w-2 h-2 rounded-full bg-red-500" />
+                                    休假
+                                </span>
+                                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                                    <span className="w-2 h-2 rounded-full bg-slate-400" />
+                                    补班
+                                </span>
+                            </div>
+                            <div className="ml-auto flex items-center gap-2">
+                                {countdownControl}
+                                {monthControl}
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <>
+                        <div className="flex items-baseline gap-3 min-w-0">
+                            <h2 className="font-serif font-bold text-2xl text-foreground flex items-baseline tracking-widest truncate">
+                                <span className="text-foreground/80">
+                                    {viewLunar.getYearInGanZhi()}年·{viewLunar.getMonthInGanZhi().charAt(1)}月
+                                </span>
+                            </h2>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            {monthControl}
+                            {todayControl}
+                            {weekToggleControl}
+                        </div>
+                    </>
+                )}
             </div>
         );
     };
 
     const detailPanel = (
-        <div className="h-full min-h-0 flex flex-col bg-muted/5">
-            {/* 头部：选中日期 */}
-            <div className="px-6 pt-6 pb-4 border-b border-border/50 bg-background/50 backdrop-blur-sm">
-                <div className="flex items-baseline gap-2">
-                    <h3 className="text-5xl md:text-6xl font-serif font-bold text-foreground leading-none">
-                        {selectedDate.getDate()}
-                    </h3>
-                    <span className="text-2xl font-serif font-light text-muted-foreground/60">
-                        / {selectedDate.getMonth() + 1}月 · {selectedDate.getFullYear()}
-                    </span>
-                </div>
-
-                <div className="flex items-center gap-3 mt-4">
-                    <div className="px-3 py-1 rounded-[4px] bg-[#2a2422] border border-[#3e3632] flex items-center justify-center shadow-sm">
-                        <span className="text-[#e2d5c5] text-sm font-medium tracking-wide font-serif">
-                            {Lunar.fromDate(selectedDate).getMonthInChinese()}月{Lunar.fromDate(selectedDate).getDayInChinese()}
+        <div className={classNames(
+            'flex flex-col bg-muted/5',
+            isMobileLayout ? 'h-auto min-h-0' : 'h-full min-h-0'
+        )}>
+            {!isMobileLayout && (
+                <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-border/50 bg-background/50 backdrop-blur-sm">
+                    <div className="flex items-baseline gap-2">
+                        <h3 className="text-4xl sm:text-5xl md:text-6xl font-serif font-bold text-foreground leading-none">
+                            {selectedDate.getDate()}
+                        </h3>
+                        <span className="text-lg sm:text-2xl font-serif font-light text-muted-foreground/60">
+                            / {selectedDate.getMonth() + 1}月 · {selectedDate.getFullYear()}
                         </span>
                     </div>
-                    <div className="text-base text-muted-foreground/60 font-serif">
-                        {['周日', '周一', '周二', '周三', '周四', '周五', '周六'][selectedDate.getDay()]}
+
+                    <div className="flex items-center gap-3 mt-4">
+                        <div className="px-3 py-1 rounded-[4px] bg-[#2a2422] border border-[#3e3632] flex items-center justify-center shadow-sm">
+                            <span className="text-[#e2d5c5] text-sm font-medium tracking-wide font-serif">
+                                {Lunar.fromDate(selectedDate).getMonthInChinese()}月{Lunar.fromDate(selectedDate).getDayInChinese()}
+                            </span>
+                        </div>
+                        <div className="text-base text-muted-foreground/60 font-serif">
+                            {['周日', '周一', '周二', '周三', '周四', '周五', '周六'][selectedDate.getDay()]}
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
-            <div className="flex-1 p-6 overflow-y-auto space-y-6">
+            <div className={classNames(
+                'space-y-6',
+                isMobileLayout ? 'p-4' : 'flex-1 p-4 sm:p-6 overflow-y-auto'
+            )}>
                 {/* 四柱干支 (Original Layout) */}
                 <div className="space-y-4">
                     <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                         <span className="w-1 h-3 bg-primary rounded-full"></span>
                         四柱干支
                     </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className={classNames(
+                        'grid',
+                        isMobileLayout ? 'grid-cols-4 gap-2' : 'grid-cols-2 md:grid-cols-4 gap-3'
+                    )}>
                         {[
                             { label: '年柱', val: Lunar.fromDate(selectedDate).getYearInGanZhi() },
                             { label: '月柱', val: Lunar.fromDate(selectedDate).getMonthInGanZhi() },
                             { label: '日柱', val: Lunar.fromDate(selectedDate).getDayInGanZhi() },
                             { label: '时柱', val: Lunar.fromDate(selectedDate).getTimeInGanZhi() }
                         ].map((item, i) => (
-                            <div key={i} className="bg-background border border-border/50 rounded-xl py-3 flex flex-col items-center justify-between shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 dark:hover:bg-primary/5 h-28">
+                            <div
+                                key={i}
+                                className={classNames(
+                                    'bg-background border border-border/50 rounded-xl flex flex-col items-center justify-between shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 dark:hover:bg-primary/5',
+                                    isMobileLayout ? 'h-24 py-2' : 'h-28 py-3'
+                                )}
+                            >
                                 <div className="text-[10px] text-muted-foreground/60 font-medium tracking-widest uppercase">{item.label}</div>
                                 <div className="flex-1 flex flex-col justify-center gap-1">
                                     <span className="font-serif text-xl font-bold text-foreground/90">{item.val[0]}</span>
@@ -362,9 +469,12 @@ export default function WannianliPage() {
     );
 
     return (
-        <div className="flex flex-col md:flex-row flex-1 h-full min-h-0 overflow-hidden relative bg-background">
+        <div className={classNames(
+            'flex flex-1 h-full min-h-0 overflow-hidden relative bg-background',
+            useDesktopLayout ? 'flex-row' : 'flex-col'
+        )}>
             {/* 左侧倒计时：Pad 横屏改为抽屉 */}
-            {!isPadLandscape && (
+            {useDesktopLayout && (
                 <HolidayCountdown
                     onSelectDate={(date) => {
                         setSelectedDate(date);
@@ -376,11 +486,21 @@ export default function WannianliPage() {
             {/* 中间日历区域 */}
             <main className={classNames(
                 "w-full flex-shrink-0 flex flex-col min-h-0",
-                isPadLandscape ? "h-full border-r-0" : "h-[60%] md:h-full md:w-[65%] border-b md:border-b-0 md:border-r border-border/50"
+                isPadLandscape
+                    ? 'h-full border-r-0'
+                    : useDesktopLayout
+                        ? 'h-full w-[65%] border-r border-border/50'
+                        : 'h-full'
+                ,
+                isMobileLayout && 'overflow-y-auto'
             )}>
                 {renderCalendarHeader()}
 
-                <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-hidden bg-muted/5 relative">
+                <div className={classNames(
+                    isMobileLayout
+                        ? 'flex flex-col bg-muted/5 relative items-stretch justify-start p-2 pt-1'
+                        : 'flex-1 flex flex-col overflow-hidden bg-muted/5 relative items-center justify-center p-4'
+                )}>
                     {/* Pad 横屏：左右贴边竖线把手 - 复用 MainLayout 统一样式 */}
                     {isPadLandscape && (
                         <>
@@ -414,9 +534,16 @@ export default function WannianliPage() {
                     )}
 
                     {/* 网格容器 - 奇门风格：分离卡片 */}
-                    <div className="flex-1 w-full max-w-4xl flex flex-col justify-center">
+                    <div className={classNames(
+                        'w-full flex flex-col',
+                        isMobileLayout ? 'max-w-none justify-start' : 'max-w-4xl flex-1 justify-center'
+                    )}>
                         {renderWeekHeader()}
-                        <div className="flex-1 grid grid-cols-7 grid-rows-6 gap-2 px-2 mt-2">
+                        <div className={classNames(
+                            isMobileLayout
+                                ? 'grid grid-cols-7 gap-1 px-1'
+                                : 'flex-1 grid grid-cols-7 grid-rows-6 gap-2 px-2 mt-2'
+                        )}>
                             {calendarData.map((day, index) => (
                                 <div
                                     key={index}
@@ -428,7 +555,8 @@ export default function WannianliPage() {
                                         }
                                     }}
                                     className={classNames(
-                                        "relative rounded-xl p-1 md:p-2 flex flex-col justify-center transition-all duration-200 cursor-pointer group",
+                                        'relative flex flex-col justify-center transition-all duration-200 cursor-pointer group',
+                                        isMobileLayout ? 'aspect-square rounded-lg p-1' : 'rounded-xl p-1 md:p-2',
                                         // 基础卡片样式：Light Mode 下使用阴影+白底+微边框，Dark Mode 下使用边框
                                         "bg-card shadow-[0_2px_6px_rgba(0,0,0,0.02)] border border-border/40 dark:border-border/40 dark:shadow-none",
                                         "hover:shadow-[0_8px_16px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 hover:z-10",
@@ -444,20 +572,34 @@ export default function WannianliPage() {
                                     )}
                                 >
                                     {/* 休/班 角标 */}
-                                    {day.isHoliday && (
-                                        <div className="absolute top-1 right-1 w-5 h-5 rounded-md text-xs font-bold flex items-center justify-center bg-red-500 text-white opacity-90">
-                                            休
-                                        </div>
-                                    )}
-                                    {day.isWork && (
-                                        <div className="absolute top-1 right-1 w-5 h-5 rounded-md text-xs font-bold flex items-center justify-center bg-slate-500 text-white opacity-90">
-                                            班
-                                        </div>
+                                    {isMobileLayout ? (
+                                        (day.isHoliday || day.isWork) && (
+                                            <span
+                                                className={classNames(
+                                                    'absolute top-1 right-1 w-1.5 h-1.5 rounded-full',
+                                                    day.isHoliday ? 'bg-red-500' : 'bg-slate-400'
+                                                )}
+                                            />
+                                        )
+                                    ) : (
+                                        <>
+                                            {day.isHoliday && (
+                                                <div className="absolute top-1 right-1 w-5 h-5 rounded-md text-xs font-bold flex items-center justify-center bg-red-500 text-white opacity-90">
+                                                    休
+                                                </div>
+                                            )}
+                                            {day.isWork && (
+                                                <div className="absolute top-1 right-1 w-5 h-5 rounded-md text-xs font-bold flex items-center justify-center bg-slate-500 text-white opacity-90">
+                                                    班
+                                                </div>
+                                            )}
+                                        </>
                                     )}
 
                                     <div className="flex flex-col items-center justify-center z-10 w-full gap-0.5">
                                         <span className={classNames(
-                                            "text-2xl md:text-3xl font-mono transition-all leading-none mb-0.5",
+                                            'font-mono transition-all leading-none mb-0.5',
+                                            isMobileLayout ? 'text-lg' : 'text-2xl md:text-3xl',
                                             day.isToday
                                                 ? "text-primary drop-shadow-[0_2px_8px_rgba(var(--primary),0.3)]"
                                                 : day.isSelected
@@ -471,7 +613,8 @@ export default function WannianliPage() {
                                         </span>
 
                                         <span className={classNames(
-                                            "text-[16px] font-bold truncate px-2 leading-none",
+                                            'font-bold truncate leading-none',
+                                            isMobileLayout ? 'text-[11px] px-1' : 'text-[16px] px-2',
                                             day.isSelected || day.isJieQi
                                                 ? "text-primary/100"
                                                 : day.isHoliday
@@ -482,7 +625,8 @@ export default function WannianliPage() {
                                         </span>
 
                                         <span className={classNames(
-                                            "text-[14.4px] font-serif leading-none mt-1",
+                                            'font-serif leading-none mt-1',
+                                            isMobileLayout ? 'text-[10px]' : 'text-[14.4px]',
                                             day.isSelected ? "text-primary/80" : "text-muted-foreground/60"
                                         )}>
                                             {day.ganZhi}
@@ -493,40 +637,48 @@ export default function WannianliPage() {
                         </div>
                     </div>
                 </div>
+
+                {isMobileLayout && (
+                    <section className="mt-2 border-t border-border/40 bg-background/70 backdrop-blur-sm">
+                        {detailPanel}
+                    </section>
+                )}
             </main>
 
             {/* 右侧详情区域：Pad 横屏改为抽屉 */}
-            {!isPadLandscape && (
+            {useDesktopLayout && (
                 <aside className="flex-1 min-h-0 flex flex-col border-l border-border/50">
                     {detailPanel}
                 </aside>
             )}
 
+            {!useDesktopLayout && (
+                <SideDrawer
+                    open={isCountdownOpen}
+                    title="节日倒计时"
+                    side={isPadLandscape ? 'left' : 'right'}
+                    size={isPadLandscape ? 'sm' : 'xs'}
+                    hideHeader={isPadLandscape}
+                    onClose={() => setIsCountdownOpen(false)}
+                >
+                    <HolidayCountdown
+                        variant="drawer"
+                        onSelectDate={(date) => {
+                            setSelectedDate(date);
+                            setViewDate(date);
+                            setIsCountdownOpen(false);
+                        }}
+                    />
+                </SideDrawer>
+            )}
+
             {isPadLandscape && (
                 <>
-                    <SideDrawer
-                        open={isCountdownOpen}
-                        title="节日倒计时"
-                        side="left"
-                        size="sm"
-                        hideHeader={true}
-                        onClose={() => setIsCountdownOpen(false)}
-                    >
-                        <HolidayCountdown
-                            variant="drawer"
-                            onSelectDate={(date) => {
-                                setSelectedDate(date);
-                                setViewDate(date);
-                                setIsCountdownOpen(false);
-                            }}
-                        />
-                    </SideDrawer>
-
                     <SideDrawer
                         open={isDetailOpen}
                         title="日期详情"
                         side="right"
-                        hideHeader={true}
+                        hideHeader={isPadLandscape}
                         onClose={() => setIsDetailOpen(false)}
                     >
                         {detailPanel}
