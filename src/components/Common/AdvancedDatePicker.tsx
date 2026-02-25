@@ -83,7 +83,7 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm, 
         const match = manualInput.trim().match(regex);
 
         if (match) {
-            const [_, y, m, d, h, min] = match;
+            const [, y, m, d, h, min] = match;
             const newYear = parseInt(y, 10);
             const newMonth = parseInt(m, 10);
             const newDay = parseInt(d, 10);
@@ -196,7 +196,7 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm, 
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity animate-in fade-in duration-200" onClick={onClose}>
-            <div className="w-full max-w-md bg-popover rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-200 border border-border" onClick={e => e.stopPropagation()}>
+            <div className="w-[calc(100%-2rem)] max-w-md bg-popover rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-200 border border-border" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-popover">
                     <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors text-sm px-2 py-1">取消</button>

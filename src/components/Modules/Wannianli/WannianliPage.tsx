@@ -132,8 +132,8 @@ export default function WannianliPage() {
 
         const monthControl = (
             <div className={classNames(
-                'flex items-center gap-1 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none p-1 rounded-xl border border-transparent dark:border-border/60 shrink-0',
-                isMobileLayout ? 'h-10' : 'h-[42px]'
+                'flex items-center gap-1 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none rounded-xl border border-transparent dark:border-border/60',
+                isMobileLayout ? 'h-10 w-full min-w-0 p-1' : 'h-[42px] shrink-0 p-1'
             )}>
                 <button
                     onClick={() => {
@@ -142,17 +142,29 @@ export default function WannianliPage() {
                         d.setMonth(d.getMonth() - 1);
                         setViewDate(d);
                     }}
-                    className="h-full px-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all flex items-center justify-center"
+                    className={classNames(
+                        'h-full rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all flex items-center justify-center shrink-0',
+                        isMobileLayout ? 'px-1.5 w-8' : 'px-1.5'
+                    )}
                 >
                     <ChevronLeft className="w-5 h-5" />
                 </button>
 
                 <button
                     onClick={() => setIsDatePickerOpen(true)}
-                    className="h-full flex items-center gap-2 px-3 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all group"
+                    className={classNames(
+                        'h-full min-w-0 flex items-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all group',
+                        isMobileLayout ? 'gap-2 px-2.5 flex-1 justify-center' : 'gap-2 px-3'
+                    )}
                 >
-                    <Calendar className="w-4 h-4" />
-                    <span className="text-sm font-mono font-medium tracking-tight">{viewDate.getFullYear()}-{String(viewDate.getMonth() + 1).padStart(2, '0')}</span>
+                    <Calendar className={classNames(
+                        'shrink-0',
+                        isMobileLayout ? 'w-[18px] h-[18px]' : 'w-4 h-4'
+                    )} />
+                    <span className={classNames(
+                        'font-mono font-medium tracking-tight whitespace-nowrap',
+                        isMobileLayout ? 'text-sm' : 'text-sm'
+                    )}>{viewDate.getFullYear()}-{String(viewDate.getMonth() + 1).padStart(2, '0')}</span>
                 </button>
 
                 <button
@@ -162,7 +174,10 @@ export default function WannianliPage() {
                         d.setMonth(d.getMonth() + 1);
                         setViewDate(d);
                     }}
-                    className="h-full px-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all flex items-center justify-center"
+                    className={classNames(
+                        'h-full rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all flex items-center justify-center shrink-0',
+                        isMobileLayout ? 'px-1.5 w-8' : 'px-1.5'
+                    )}
                 >
                     <ChevronRight className="w-5 h-5" />
                 </button>
@@ -218,7 +233,7 @@ export default function WannianliPage() {
             <button
                 type="button"
                 onClick={() => setIsCountdownOpen(true)}
-                className="h-10 px-3 rounded-xl border border-border bg-card/60 text-sm text-foreground hover:bg-muted/40 transition-colors shrink-0"
+                className="w-full h-10 px-2 rounded-xl border border-transparent dark:border-border/60 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none text-[13px] font-medium text-foreground hover:bg-muted/40 transition-colors"
             >
                 倒计时
             </button>
@@ -234,7 +249,7 @@ export default function WannianliPage() {
                                     <h3 className="text-5xl font-serif font-bold text-foreground leading-none">
                                         {selectedDate.getDate()}
                                     </h3>
-                                    <span className="text-base font-serif font-light text-muted-foreground/70">
+                                    <span className="text-lg font-serif font-light text-muted-foreground/75">
                                         / {selectedDate.getMonth() + 1}月 · {selectedDate.getFullYear()}
                                     </span>
                                 </div>
@@ -245,7 +260,7 @@ export default function WannianliPage() {
                                             {selectedLunar.getMonthInChinese()}月{selectedLunar.getDayInChinese()}
                                         </span>
                                     </div>
-                                    <span className="text-xs text-muted-foreground/70 font-serif">{selectedWeekday}</span>
+                                    <span className="text-sm text-muted-foreground/75 font-serif">{selectedWeekday}</span>
                                 </div>
                             </div>
 
@@ -260,19 +275,22 @@ export default function WannianliPage() {
                             </div>
                         </div>
 
-                        <div className="w-full flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-4 text-[11px] text-muted-foreground/75">
-                                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                                    <span className="w-2 h-2 rounded-full bg-red-500" />
+                        <div className="w-full grid grid-cols-[1.8fr_1fr_2.2fr] gap-2 items-stretch">
+                            <div className="h-10 px-2 rounded-xl border border-transparent dark:border-border/60 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none flex items-center justify-center gap-2 shrink-0 min-w-0">
+                                <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] text-muted-foreground/80 font-medium">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-red-500/90 shadow-[0_0_0_2px_rgba(239,68,68,0.18)]" />
                                     休假
                                 </span>
-                                <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                                    <span className="w-2 h-2 rounded-full bg-slate-400" />
+                                <span className="w-px h-4 bg-border/40" />
+                                <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px] text-muted-foreground/80 font-medium">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-slate-400/95 shadow-[0_0_0_2px_rgba(148,163,184,0.16)]" />
                                     补班
                                 </span>
                             </div>
-                            <div className="ml-auto flex items-center gap-2">
+                            <div className="min-w-0">
                                 {countdownControl}
+                            </div>
+                            <div className="min-w-0">
                                 {monthControl}
                             </div>
                         </div>
@@ -556,7 +574,7 @@ export default function WannianliPage() {
                                     }}
                                     className={classNames(
                                         'relative flex flex-col justify-center transition-all duration-200 cursor-pointer group',
-                                        isMobileLayout ? 'aspect-square rounded-lg p-1' : 'rounded-xl p-1 md:p-2',
+                                        isMobileLayout ? 'aspect-[0.84] rounded-lg p-1' : 'rounded-xl p-1 md:p-2',
                                         // 基础卡片样式：Light Mode 下使用阴影+白底+微边框，Dark Mode 下使用边框
                                         "bg-card shadow-[0_2px_6px_rgba(0,0,0,0.02)] border border-border/40 dark:border-border/40 dark:shadow-none",
                                         "hover:shadow-[0_8px_16px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 hover:z-10",
