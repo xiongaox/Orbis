@@ -182,7 +182,7 @@ export default function CaseList({
       ? "w-full h-full bg-muted/5 flex flex-col min-h-0"
       : "w-56 bg-muted/5 border-r border-border/50 flex flex-col min-h-0"
     }>
-      <div className="p-4 border-b border-border/40 space-y-3">
+      <div className={variant === 'drawer' ? 'p-3 border-b border-border/40 space-y-2' : 'p-4 border-b border-border/40 space-y-3'}>
         <div className="flex items-center justify-between">
           <button
             type="button"
@@ -243,7 +243,7 @@ export default function CaseList({
         )}
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto px-2 py-3">
+      <div className={`flex-1 min-h-0 overflow-y-auto ${variant === 'drawer' ? 'px-1.5 py-2' : 'px-2 py-3'}`}>
         {loading ? (
           <div className="text-center text-xs text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground py-6">
             加载中...
