@@ -19,9 +19,10 @@ import PhysicsLogModal from './PhysicsLogModal';
 
 interface BaziBasicInfoPanelProps {
     baziData: BaziApiResponse | null;
+    isMobileLayout?: boolean;
 }
 
-export default function BaziBasicInfoPanel({ baziData }: BaziBasicInfoPanelProps) {
+export default function BaziBasicInfoPanel({ baziData, isMobileLayout = false }: BaziBasicInfoPanelProps) {
     const [isLogModalOpen, setIsLogModalOpen] = useState(false);
 
     const info = useMemo(() => {
@@ -151,7 +152,9 @@ export default function BaziBasicInfoPanel({ baziData }: BaziBasicInfoPanelProps
         label,
         value,
         valueClass = "",
-        labelClass = "text-muted-foreground w-20 flex-shrink-0 text-right pr-2",
+        labelClass = isMobileLayout
+            ? "text-muted-foreground w-14 flex-shrink-0 text-right pr-1 text-xs"
+            : "text-muted-foreground w-20 flex-shrink-0 text-right pr-2",
         onClick
     }: {
         label: string;
@@ -161,11 +164,11 @@ export default function BaziBasicInfoPanel({ baziData }: BaziBasicInfoPanelProps
         onClick?: () => void;
     }) => (
         <div
-            className={`flex items-center text-sm p-1 ${onClick ? 'cursor-pointer hover:bg-muted/50 rounded transition-colors group' : ''}`}
+            className={`flex items-center ${isMobileLayout ? 'text-xs p-0.5' : 'text-sm p-1'} ${onClick ? 'cursor-pointer hover:bg-muted/50 rounded transition-colors group' : ''}`}
             onClick={onClick}
         >
             <span className={labelClass}>{label}</span>
-            <span className={`font-medium ${valueClass} truncate ${onClick ? 'underline decoration-dotted underline-offset-4 decoration-border group-hover:decoration-foreground/30' : ''}`}>
+            <span className={`font-medium ${valueClass} ${isMobileLayout ? 'break-all' : 'truncate'} ${onClick ? 'underline decoration-dotted underline-offset-4 decoration-border group-hover:decoration-foreground/30' : ''}`}>
                 {value}
             </span>
         </div>
@@ -178,9 +181,9 @@ export default function BaziBasicInfoPanel({ baziData }: BaziBasicInfoPanelProps
     const yueJiangWx = dizhiWuxing[yueJiang.jiang] || '';
 
     return (
-        <div className="bg-card/50 rounded-xl border border-border p-3 mt-0 flex flex-col gap-y-0">
+        <div className={`bg-card/50 rounded-xl border border-border ${isMobileLayout ? 'p-2' : 'p-3'} mt-0 flex flex-col gap-y-0`}>
             {/* 第一行 */}
-            <div className="grid grid-cols-2 gap-x-4">
+            <div className={`grid grid-cols-2 ${isMobileLayout ? 'gap-x-1' : 'gap-x-4'}`}>
                 <Item label="年命信息" value={info.yearLife} valueClass={getWuxingColor(info.yearLife)} />
                 <Item label="命卦信息" value={info.mingGua} />
                 <Item label="生肖星座" value={info.zodiacConstellation} />
@@ -188,7 +191,7 @@ export default function BaziBasicInfoPanel({ baziData }: BaziBasicInfoPanelProps
             </div>
 
             {/* 第二行 */}
-            <div className="grid grid-cols-2 gap-x-4">
+            <div className={`grid grid-cols-2 ${isMobileLayout ? 'gap-x-1' : 'gap-x-4'}`}>
                 <Item
                     label="身体强弱"
                     value={info.bodyStrength}
@@ -203,7 +206,7 @@ export default function BaziBasicInfoPanel({ baziData }: BaziBasicInfoPanelProps
             <div className="h-px bg-border/50 my-1" />
 
             {/* 第四行 */}
-            <div className="grid grid-cols-2 gap-x-4">
+            <div className={`grid grid-cols-2 ${isMobileLayout ? 'gap-x-1' : 'gap-x-4'}`}>
                 <Item label="五行缺失" value={<WuxingText text={info.missing} />} />
                 <Item label="月相" value={getMoonPhase(baziData?.solarDate || '')} />
                 <Item label="月将" value={yueJiang.jiang} valueClass={`${getWuxingColor(yueJiangWx)} font-bold`} />
@@ -211,7 +214,7 @@ export default function BaziBasicInfoPanel({ baziData }: BaziBasicInfoPanelProps
             </div>
 
             {/* 第五行 */}
-            <div className="grid grid-cols-2 gap-x-4">
+            <div className={`grid grid-cols-2 ${isMobileLayout ? 'gap-x-1' : 'gap-x-4'}`}>
                 <Item label="喜用神" value={<WuxingText text={info.joyGods} />} />
                 <Item label="喜用神位" value={info.joyDirection} />
                 <Item label="格局" value={info.pattern} />
@@ -231,7 +234,7 @@ export default function BaziBasicInfoPanel({ baziData }: BaziBasicInfoPanelProps
             <div className="h-px bg-border/50 my-1" />
 
             {/* 节气日期 - 真实数据 */}
-            <div className="grid grid-cols-2 gap-x-4">
+            <div className={`grid grid-cols-2 ${isMobileLayout ? 'gap-x-1' : 'gap-x-4'}`}>
                 <Item label={`${info.solarTerms.prevJie.name}日期`} value={info.solarTerms.prevJie.date} />
                 <Item label={`${info.solarTerms.nextJie.name}日期`} value={info.solarTerms.nextJie.date} />
                 <Item label={`${info.solarTerms.prevQi.name}日期`} value={info.solarTerms.prevQi.date} />

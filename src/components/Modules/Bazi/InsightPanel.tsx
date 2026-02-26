@@ -39,6 +39,8 @@ interface InsightPanelProps {
   content?: InsightContent;
   activeBook?: string;
   onBookChange?: (bookId: string) => void;
+  /** 平铺模式：移除内部滚动，所有内容由外层容器滚动 */
+  flat?: boolean;
 }
 
 export default function InsightPanel({
@@ -48,6 +50,7 @@ export default function InsightPanel({
   content = {},
   activeBook: controlledActiveBook,
   onBookChange,
+  flat = false,
 }: InsightPanelProps) {
   const [internalActiveBook, setInternalActiveBook] = useState(books[0]?.id || '');
   const [openSections, setOpenSections] = useState(['summary', 'keyPoints']);
@@ -133,7 +136,7 @@ export default function InsightPanel({
 
   return (
     <div
-      className={`flex flex-col flex-1 min-h-0 ${className}`}
+      className={`${flat ? '' : 'flex flex-col flex-1 min-h-0'} ${className}`}
     >
       <div className="p-4 border-b border-border">
         <h2 className="font-display text-base font-medium text-foreground flex items-center gap-2">
@@ -197,7 +200,7 @@ export default function InsightPanel({
           </div>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className={flat ? 'p-4 space-y-4' : 'flex-1 overflow-y-auto p-4 space-y-4'}>
         {/* 滴天髓：根据子标签显示不同内容 */}
         {activeBook === 'ditiansui' ? (
           <>
@@ -219,7 +222,7 @@ export default function InsightPanel({
                         原注与任氏曰
                       </span>
                     </div>
-                    <div className="max-h-96 overflow-y-auto">
+                    <div className="overflow-y-auto">
                       {(content.ditiansuiBasic?.explanation || []).map((point, index) => (
                         <div
                           key={index}
@@ -235,7 +238,7 @@ export default function InsightPanel({
             )}
             {/* 逻辑解析标签：显示结构化分析 */}
             {ditiansuiSubTab === 'logic' && content.keyPoints && content.keyPoints.length > 0 && (
-              <div className="max-h-[32rem] overflow-y-auto space-y-3 pr-1">
+              <div className="overflow-y-auto space-y-3 pr-1">
                 {content.keyPoints.map((point, index) => {
                   // 解析结构化内容（格式：**段落**\n【标签】\n推理\n💡现代意义）
                   const lines = point.split('\n');
@@ -322,7 +325,7 @@ export default function InsightPanel({
                   )}
                 </button>
                 {openSections.includes('keyPoints') && (
-                  <div className="px-3 pb-3 max-h-96 overflow-y-auto pr-1">
+                  <div className="px-3 pb-3 overflow-y-auto pr-1">
                     {content.keyPoints.map((item, index) => {
                       // Markdown 渲染逻辑
                       const renderMarkdownText = (text: string) => {

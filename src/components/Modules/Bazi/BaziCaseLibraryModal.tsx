@@ -57,6 +57,15 @@ export default function CaseLibraryModal({
     const [caseToDelete, setCaseToDelete] = useState<BaziCase | null>(null);
     const [deletingCaseId, setDeletingCaseId] = useState<string | null>(null);
 
+    // 移动端检测
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 640);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
+
     // 拖拽 sensors
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -186,11 +195,11 @@ export default function CaseLibraryModal({
                 onClose={onClose}
                 title={header}
                 titleIcon={headerIcon}
-                maxWidth="max-w-2xl"
-                bodyClassName="flex flex-col h-[70vh] p-4 sm:p-6 overflow-hidden"
+                maxWidth={isMobile ? 'max-w-sm' : 'max-w-2xl'}
+                bodyClassName={`flex flex-col ${isMobile ? 'h-[60vh] p-3' : 'h-[70vh] p-4 sm:p-6'} overflow-hidden`}
             >
                 {/* 搜索和操作栏 */}
-                <div className="flex gap-2 mb-4 shrink-0">
+                <div className={`flex gap-2 ${isMobile ? 'mb-2' : 'mb-4'} shrink-0`}>
                     <div className="relative flex-1">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <input
@@ -232,10 +241,13 @@ export default function CaseLibraryModal({
                     )}
                 </div>
 
-                {/* 主体：左侧Tab + 右侧内容 */}
-                <div className="flex gap-4 flex-1 min-h-0">
-                    {/* 左侧 Tab 菜单 */}
-                    <div className="w-28 shrink-0 flex flex-col gap-0.5 overflow-y-auto pr-1">
+                {/* 主体 */}
+                <div className={`flex ${isMobile ? 'flex-col' : ''} gap-2 sm:gap-4 flex-1 min-h-0`}>
+                    {/* Tab 菜单：移动端横向滚动，桌面端纵向 */}
+                    <div className={isMobile
+                        ? 'flex gap-1 overflow-x-auto shrink-0 pb-1 -mx-1 px-1'
+                        : 'w-28 shrink-0 flex flex-col gap-0.5 overflow-y-auto pr-1'
+                    }>
                         {allTabs.map((tag) => {
                             const isActive = tag === selectedTag;
                             const count = getTabCount(tag);
@@ -244,7 +256,7 @@ export default function CaseLibraryModal({
                                     key={tag ?? 'all'}
                                     type="button"
                                     onClick={() => setSelectedTag(tag)}
-                                    className={`w-full text-left px-3 py-2 text-sm rounded-md transition-colors focus-ring ${isActive
+                                    className={`${isMobile ? 'whitespace-nowrap px-2.5 py-1.5 text-xs rounded-full' : 'w-full text-left px-3 py-2 text-sm rounded-md'} transition-colors focus-ring ${isActive
                                         ? 'bg-primary/10 text-primary font-medium'
                                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                                         }`}
@@ -280,7 +292,7 @@ export default function CaseLibraryModal({
                                     items={filteredCases.map(c => c.id)}
                                     strategy={verticalListSortingStrategy}
                                 >
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}>
                                         {filteredCases.map((caseData) => (
                                             <SortableCaseCard
                                                 key={caseData.id}

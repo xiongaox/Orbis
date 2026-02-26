@@ -6,7 +6,7 @@ interface SideDrawerProps {
   open: boolean;
   title?: string;
   side?: 'left' | 'right';
-  size?: 'xxs' | 'xs' | 'sm' | 'md' | 'lg';
+  size?: 'xxs' | 'xs' | 'sm' | 'md' | 'lg' | 'full';
   hideHeader?: boolean;
   onClose: () => void;
   children: ReactNode;
@@ -35,15 +35,17 @@ export default function SideDrawer({
   const panelPosClass = side === 'left' ? 'left-0' : 'right-0';
   const panelBorderClass = side === 'left' ? 'border-r' : 'border-l';
   const panelSizeClass =
-    size === 'xxs'
-      ? 'w-[62vw] max-w-[248px]'
-      : size === 'xs'
-      ? 'w-[70vw] max-w-[280px]'
-      : size === 'sm'
-      ? 'w-[78vw] max-w-[320px]'
-      : size === 'lg'
-        ? 'w-[92vw] max-w-[520px]'
-        : 'w-[92vw] max-w-[420px]';
+    size === 'full'
+      ? 'w-full'
+      : size === 'xxs'
+        ? 'w-[62vw] max-w-[248px]'
+        : size === 'xs'
+          ? 'w-[70vw] max-w-[280px]'
+          : size === 'sm'
+            ? 'w-[78vw] max-w-[320px]'
+            : size === 'lg'
+              ? 'w-[92vw] max-w-[520px]'
+              : 'w-[92vw] max-w-[420px]';
 
   return (
     <div className="fixed inset-0 z-[60]">

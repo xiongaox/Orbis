@@ -157,7 +157,7 @@ export default function BaziPage() {
                     {/* 详情面板 - 移动端始终显示，桌面端受隐藏详情控制 */}
                     {(isMobileLayout || !hideDetails) && (
                         <div className="flex-shrink-0">
-                            <BaziBasicInfoPanel baziData={baziData} />
+                            <BaziBasicInfoPanel baziData={baziData} isMobileLayout={isMobileLayout} />
                         </div>
                     )}
                 </div>

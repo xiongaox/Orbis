@@ -27,7 +27,7 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children
 
     const sidebarNode = useMemo(() => {
         if (!sidebar) return null;
-        const variant = isPadLandscape ? 'drawer' : 'sidebar';
+        const variant = useDesktopLayout ? 'sidebar' : 'drawer';
         if (isValidElement(sidebar)) {
             return cloneElement(sidebar as React.ReactElement, { variant } as Record<string, unknown>);
         }
@@ -137,7 +137,7 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children
                     title="案例"
                     side="left"
                     hideHeader={isPadLandscape}
-                    size={isPadLandscape ? 'xs' : 'md'}
+                    size={isPadLandscape ? 'xs' : 'xxs'}
                     onClose={() => setIsSidebarOpen(false)}
                 >
                     {sidebarNode}
@@ -150,20 +150,37 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children
                     title="参考面板"
                     side="right"
                     hideHeader={isPadLandscape}
+                    size={isPadLandscape ? 'md' : 'sm'}
                     onClose={() => setIsRightPanelOpen(false)}
                 >
-                    <div className="h-full flex flex-col min-h-0 overflow-hidden">
-                        {liuYiPanel && (
-                            <div className="border-b border-border">
-                                {liuYiPanel}
-                            </div>
-                        )}
-                        {insightPanel && (
-                            <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-                                {insightPanel}
-                            </div>
-                        )}
-                    </div>
+                    {isPadLandscape ? (
+                        /* 桌面/Pad：干支留意固定顶部，智能咨询参考独立滚动 */
+                        <div className="h-full flex flex-col min-h-0 overflow-hidden">
+                            {liuYiPanel && (
+                                <div className="border-b border-border">
+                                    {liuYiPanel}
+                                </div>
+                            )}
+                            {insightPanel && (
+                                <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+                                    {insightPanel}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        /* 移动端：整体可滚动，干支留意可以滚出视野 */
+                        <div className="h-full overflow-y-auto">
+                            {liuYiPanel && (
+                                <div className="border-b border-border">
+                                    {liuYiPanel}
+                                </div>
+                            )}
+                            {insightPanel && isValidElement(insightPanel)
+                                ? cloneElement(insightPanel as React.ReactElement, { flat: true } as Record<string, unknown>)
+                                : insightPanel
+                            }
+                        </div>
+                    )}
                 </SideDrawer>
             )}
         </div>

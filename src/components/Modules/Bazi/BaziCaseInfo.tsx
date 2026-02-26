@@ -113,7 +113,7 @@ export default function BaziCaseInfo({
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-0.5">
+                <div className="flex items-center gap-1.5 mb-1">
                   <h2 className="font-display text-base font-medium text-[hsl(var(--card-title))] dark:text-foreground truncate">{displayName}</h2>
                   <span className="text-[10px] px-1.5 py-0.5 bg-[hsl(var(--muted-hover))] border border-[hsl(var(--border-light))] dark:bg-secondary dark:border-border rounded text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground shrink-0">
                     {displayGender}
