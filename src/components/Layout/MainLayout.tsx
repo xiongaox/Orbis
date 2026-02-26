@@ -29,10 +29,13 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children
         if (!sidebar) return null;
         const variant = useDesktopLayout ? 'sidebar' : 'drawer';
         if (isValidElement(sidebar)) {
-            return cloneElement(sidebar as React.ReactElement, { variant } as Record<string, unknown>);
+            return cloneElement(sidebar as React.ReactElement, {
+                variant,
+                ...(variant === 'drawer' ? { onDrawerClose: () => setIsSidebarOpen(false) } : {}),
+            } as Record<string, unknown>);
         }
         return sidebar;
-    }, [sidebar, isPadLandscape]);
+    }, [sidebar, useDesktopLayout]);
 
     if (useDesktopLayout) {
         return (

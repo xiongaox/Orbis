@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { GitBranch } from 'lucide-react';
 import BaseModal from '../../UI/BaseModal';
 import { createDefaultGanZhiLiuYiSetting } from '../../../lib/xuan-bazi/settings/baziGanZhiLiuYiSetting';
@@ -48,6 +48,60 @@ export default function GanZhiDiagramModal({
 
     const [showDaYun, setShowDaYun] = useState(selectedDaYunIndex !== null);
     const [showLiuNian, setShowLiuNian] = useState(selectedLiuNianYear !== null);
+
+    // 移动端捏合缩放 - 使用 callback ref 确保 DOM 变化时重新绑定
+    const [scale, setScale] = useState(1);
+    const lastDistRef = useRef<number | null>(null);
+    const cleanupRef = useRef<(() => void) | null>(null);
+
+    const containerRef = useCallback((el: HTMLDivElement | null) => {
+        // 清理旧事件
+        cleanupRef.current?.();
+        cleanupRef.current = null;
+
+        if (!el) return;
+
+        const getDist = (e: TouchEvent) => {
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            return Math.hypot(dx, dy);
+        };
+
+        const handleTouchStart = (e: TouchEvent) => {
+            if (e.touches.length === 2) {
+                lastDistRef.current = getDist(e);
+            }
+        };
+
+        const handleTouchMove = (e: TouchEvent) => {
+            if (e.touches.length === 2 && lastDistRef.current !== null) {
+                e.preventDefault();
+                const dist = getDist(e);
+                const ratio = dist / lastDistRef.current;
+                setScale(prev => Math.min(3, Math.max(0.5, prev * ratio)));
+                lastDistRef.current = dist;
+            }
+        };
+
+        const handleTouchEnd = () => {
+            lastDistRef.current = null;
+        };
+
+        el.addEventListener('touchstart', handleTouchStart, { passive: true });
+        el.addEventListener('touchmove', handleTouchMove, { passive: false });
+        el.addEventListener('touchend', handleTouchEnd);
+
+        cleanupRef.current = () => {
+            el.removeEventListener('touchstart', handleTouchStart);
+            el.removeEventListener('touchmove', handleTouchMove);
+            el.removeEventListener('touchend', handleTouchEnd);
+        };
+    }, []);
+
+    // 双击重置缩放
+    const onDoubleClick = useCallback(() => {
+        setScale(1);
+    }, []);
 
     const chartData = useMemo(() => {
         if (!baziData) return null;
@@ -221,9 +275,17 @@ export default function GanZhiDiagramModal({
             maxWidth="max-w-[720px]"
             bodyClassName="p-0 overflow-hidden flex flex-col bg-dot-pattern min-h-[500px]"
         >
-            <div className="flex-1 overflow-auto p-4 sm:p-8 flex">
+            <div
+                ref={containerRef}
+                className="flex-1 overflow-auto p-4 sm:p-8 flex"
+                onDoubleClick={onDoubleClick}
+                style={{ touchAction: 'pan-x pan-y' }}
+            >
                 {chartData && (
-                    <div className="relative m-auto transition-all duration-300">
+                    <div
+                        className="relative m-auto transition-all duration-300"
+                        style={{ transform: `scale(${scale})`, transformOrigin: 'center top' }}
+                    >
                         <svg
                             width={SVG_WIDTH}
                             height={totalHeight}

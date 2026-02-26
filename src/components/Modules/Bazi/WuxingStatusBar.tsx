@@ -104,7 +104,7 @@ export default function WuxingStatusBar({
                     type="button"
                     onClick={onToggleTaiMingShen}
                     className={`
-                        ${isMobileLayout ? 'flex-1 h-7 text-[10px]' : 'px-3 py-1 text-xs'} rounded-lg font-medium transition-all border
+                        ${isMobileLayout ? 'flex-1 h-7 text-[12px]' : 'px-3 py-1 text-xs'} rounded-lg font-medium transition-all border
                         ${showTaiMingShen
                             ? 'bg-primary text-primary-foreground border-primary'
                             : 'bg-muted text-foreground border-border hover:bg-muted/80'
@@ -118,7 +118,7 @@ export default function WuxingStatusBar({
                 <button
                     type="button"
                     onClick={onGoToCurrentYear}
-                    className={`${isMobileLayout ? 'flex-1 h-7 text-[10px]' : 'px-3 py-1 text-xs'} rounded-lg font-medium transition-all border bg-muted text-foreground border-border hover:bg-muted/80`}
+                    className={`${isMobileLayout ? 'flex-1 h-7 text-[12px]' : 'px-3 py-1 text-xs'} rounded-lg font-medium transition-all border bg-muted text-foreground border-border hover:bg-muted/80`}
                 >
                     当前流年
                 </button>
@@ -128,7 +128,7 @@ export default function WuxingStatusBar({
                     type="button"
                     onClick={onToggleHideDetails}
                     className={`
-                        ${isMobileLayout ? 'flex-1 h-7 text-[10px]' : 'px-3 py-1 text-xs'} rounded-lg font-medium transition-all border
+                        ${isMobileLayout ? 'flex-1 h-7 text-[12px]' : 'px-3 py-1 text-xs'} rounded-lg font-medium transition-all border
                         ${(isMobileLayout ? !hideDetails : hideDetails)
                             ? 'bg-primary text-primary-foreground border-primary'
                             : 'bg-muted text-foreground border-border hover:bg-muted/80'
