@@ -16,6 +16,7 @@ interface LiuYueRowProps {
     selectedLiuYueIndex: number | null | undefined;
     dayMaster: string;
     onSelectLiuYue?: (index: number | null) => void;
+    isMobileLayout?: boolean;
 }
 
 export default function LiuYueRow({
@@ -23,13 +24,14 @@ export default function LiuYueRow({
     selectedLiuYueIndex,
     dayMaster,
     onSelectLiuYue,
+    isMobileLayout = false,
 }: LiuYueRowProps) {
     return (
         <div className="overflow-hidden">
             <div className="flex">
                 {/* 左侧标题区 */}
-                <div className="w-10 bg-secondary/30 border-r border-border flex items-center justify-center">
-                    <div className="text-base text-muted-foreground font-medium leading-none flex flex-col items-center gap-1">
+                <div className={`${isMobileLayout ? 'w-7' : 'w-10'} bg-secondary/30 border-r border-border flex items-center justify-center`}>
+                    <div className={`${isMobileLayout ? 'text-sm' : 'text-base'} text-muted-foreground font-medium leading-none flex flex-col items-center gap-1`}>
                         <span>流</span>
                         <span>月</span>
                     </div>
@@ -44,7 +46,7 @@ export default function LiuYueRow({
                                 return (
                                     <div
                                         key={`liuyue-${idx}`}
-                                        className={`min-w-0 p-3 border-r border-border last:border-r-0 cursor-pointer transition-colors hover:bg-primary/10 ${isSelected ? 'bg-primary/10' : ''}`}
+                                        className={`min-w-0 ${isMobileLayout ? 'px-0.5 py-1.5' : 'p-3'} border-r border-border last:border-r-0 cursor-pointer transition-colors hover:bg-primary/10 ${isSelected ? 'bg-primary/10' : ''}`}
                                         onClick={() => {
                                             const newIndex = item.index === selectedLiuYueIndex ? null : item.index;
                                             if (onSelectLiuYue) {
@@ -54,30 +56,30 @@ export default function LiuYueRow({
                                     >
                                         <div className="flex flex-col items-center text-center">
                                             <div className="flex flex-col items-center gap-1">
-                                                <div className="text-xs text-muted-foreground leading-snug">
+                                                <div className={`${isMobileLayout ? 'text-[12px]' : 'text-xs'} text-muted-foreground leading-snug whitespace-nowrap`}>
                                                     {JIEQI_LABELS[item.index] || item.month}月
                                                 </div>
                                             </div>
-                                            <div className="mt-2 space-y-1">
-                                                <div className="flex items-baseline justify-center gap-x-1">
+                                            <div className={`${isMobileLayout ? 'mt-1 space-y-0.5' : 'mt-2 space-y-1'}`}>
+                                                <div className={`flex items-baseline justify-center ${isMobileLayout ? 'gap-x-0' : 'gap-x-1'} whitespace-nowrap`}>
                                                     <span
-                                                        className="font-display text-lg text-foreground leading-none"
+                                                        className={`font-display ${isMobileLayout ? 'text-sm' : 'text-lg'} text-foreground leading-none`}
                                                         style={{ color: item.tiangan ? getElementColor(item.tiangan) : 'inherit' }}
                                                     >
                                                         {item.tiangan || '-'}
                                                     </span>
-                                                    <span className="text-base text-muted-foreground leading-none">
+                                                    <span className={`${isMobileLayout ? 'text-xs' : 'text-base'} text-muted-foreground leading-none`}>
                                                         {item.tiangan ? getShiShenAbbr(dayMaster, item.tiangan) : ''}
                                                     </span>
                                                 </div>
-                                                <div className="flex items-baseline justify-center gap-x-1">
+                                                <div className={`flex items-baseline justify-center ${isMobileLayout ? 'gap-x-0' : 'gap-x-1'} whitespace-nowrap`}>
                                                     <span
-                                                        className="font-display text-lg text-foreground leading-none"
+                                                        className={`font-display ${isMobileLayout ? 'text-sm' : 'text-lg'} text-foreground leading-none`}
                                                         style={{ color: item.dizhi ? getElementColor(item.dizhi) : 'inherit' }}
                                                     >
                                                         {item.dizhi || '-'}
                                                     </span>
-                                                    <span className="text-base text-muted-foreground leading-none">
+                                                    <span className={`${isMobileLayout ? 'text-xs' : 'text-base'} text-muted-foreground leading-none`}>
                                                         {item.dizhi ? getShiShenAbbr(dayMaster, item.dizhi) : ''}
                                                     </span>
                                                 </div>

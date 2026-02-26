@@ -21,6 +21,7 @@ interface DayunLiunianPanelProps {
   onSelectDaYun?: (index: number | null) => void;
   onSelectLiuNian?: (year: number | null) => void;
   onSelectLiuYue?: (index: number | null) => void;
+  isMobileLayout?: boolean;
 }
 
 export default function DayunLiunianPanel({
@@ -33,6 +34,7 @@ export default function DayunLiunianPanel({
   onSelectDaYun,
   onSelectLiuNian,
   onSelectLiuYue,
+  isMobileLayout = false,
 }: DayunLiunianPanelProps) {
   // 内部状态
   const [internalDaYunIndex, setInternalDaYunIndex] = useState<number | null>(null);
@@ -191,6 +193,7 @@ export default function DayunLiunianPanel({
           totalDaYunPages={totalDaYunPages}
           onDaYunClick={handleDaYunClick}
           onPageChange={setDaYunPage}
+          isMobileLayout={isMobileLayout}
         />
 
         {/* 流年行 */}
@@ -205,6 +208,7 @@ export default function DayunLiunianPanel({
           activeHint={activeHint}
           onLiuNianClick={handleLiuNianClick}
           onHintClick={setActiveHint}
+          isMobileLayout={isMobileLayout}
         />
 
         {/* 流月行 */}
@@ -213,6 +217,7 @@ export default function DayunLiunianPanel({
           selectedLiuYueIndex={propLiuYueIndex}
           dayMaster={dayMaster}
           onSelectLiuYue={onSelectLiuYue}
+          isMobileLayout={isMobileLayout}
         />
       </div>
     </div>
