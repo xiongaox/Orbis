@@ -16,6 +16,7 @@ interface WuxingStatusBarProps {
     hideDetails: boolean;
     onToggleHideDetails: () => void;
     onGoToCurrentYear: () => void;
+    isMobileLayout?: boolean;
 }
 
 export default function WuxingStatusBar({
@@ -27,6 +28,7 @@ export default function WuxingStatusBar({
     hideDetails,
     onToggleHideDetails,
     onGoToCurrentYear,
+    isMobileLayout = false,
 }: WuxingStatusBarProps) {
     // 获取月支
     const monthBranch = baziData?.pillars?.[1]?.dizhi || '';
@@ -48,31 +50,43 @@ export default function WuxingStatusBar({
     if (!baziData) return null;
 
     return (
-        <div className="bg-card rounded-xl border border-border px-4 py-2.5 flex items-center justify-between text-sm">
-            {/* 左侧：五行旺衰状态 */}
-            <div className="flex items-center gap-3">
-                {wuxingStatus.map((item, index) => (
-                    <div key={item.element} className="flex items-center">
-                        <span
-                            className="font-medium"
-                            style={{ color: item.color }}
-                        >
-                            {item.element}
-                        </span>
-                        <span className="text-muted-foreground">
-                            {item.state}
-                        </span>
-                        {index < wuxingStatus.length - 1 && (
-                            <span className="text-border ml-3">|</span>
-                        )}
+        <div className={`bg-card rounded-xl border border-border text-sm ${isMobileLayout ? 'px-3 py-2 space-y-2' : 'px-4 py-2.5 flex items-center justify-between'
+            }`}>
+            {/* 五行旺衰状态 + 年龄 */}
+            <div className={`flex items-center ${isMobileLayout ? 'justify-between' : 'gap-3'}`}>
+                <div className={`flex items-center ${isMobileLayout ? 'gap-1.5 text-xs' : 'gap-3'}`}>
+                    {wuxingStatus.map((item, index) => (
+                        <div key={item.element} className="flex items-center">
+                            <span
+                                className="font-medium"
+                                style={{ color: item.color }}
+                            >
+                                {item.element}
+                            </span>
+                            <span className="text-muted-foreground">
+                                {item.state}
+                            </span>
+                            {index < wuxingStatus.length - 1 && (
+                                <span className={`text-border ${isMobileLayout ? 'ml-1.5' : 'ml-3'}`}>|</span>
+                            )}
+                        </div>
+                    ))}
+                </div>
+
+                {/* 移动端：年龄显示在五行同行 */}
+                {isMobileLayout && currentAge !== null && (
+                    <div className="text-xs text-foreground">
+                        <span className="text-muted-foreground">当前</span>
+                        <span className="font-medium text-foreground mx-0.5">{currentAge}</span>
+                        <span className="text-muted-foreground">岁</span>
                     </div>
-                ))}
+                )}
             </div>
 
-            {/* 右侧：年龄和按钮组 */}
-            <div className="flex items-center gap-3">
-                {/* 年龄显示 */}
-                {currentAge !== null && (
+            {/* 右侧：按钮组 */}
+            <div className={`flex items-center ${isMobileLayout ? 'gap-1.5' : 'gap-3'}`}>
+                {/* 桌面端年龄显示 */}
+                {!isMobileLayout && currentAge !== null && (
                     <div className="text-foreground">
                         <span className="text-muted-foreground">当前</span>
                         <span className="font-medium text-foreground mx-1">{currentAge}</span>
@@ -90,7 +104,7 @@ export default function WuxingStatusBar({
                     type="button"
                     onClick={onToggleTaiMingShen}
                     className={`
-                        px-3 py-1 rounded-lg text-xs font-medium transition-all border
+                        ${isMobileLayout ? 'flex-1 h-7 text-[10px]' : 'px-3 py-1 text-xs'} rounded-lg font-medium transition-all border
                         ${showTaiMingShen
                             ? 'bg-primary text-primary-foreground border-primary'
                             : 'bg-muted text-foreground border-border hover:bg-muted/80'
@@ -104,7 +118,7 @@ export default function WuxingStatusBar({
                 <button
                     type="button"
                     onClick={onGoToCurrentYear}
-                    className="px-3 py-1 rounded-lg text-xs font-medium transition-all border bg-muted text-foreground border-border hover:bg-muted/80"
+                    className={`${isMobileLayout ? 'flex-1 h-7 text-[10px]' : 'px-3 py-1 text-xs'} rounded-lg font-medium transition-all border bg-muted text-foreground border-border hover:bg-muted/80`}
                 >
                     当前流年
                 </button>
@@ -114,7 +128,7 @@ export default function WuxingStatusBar({
                     type="button"
                     onClick={onToggleHideDetails}
                     className={`
-                        px-3 py-1 rounded-lg text-xs font-medium transition-all border
+                        ${isMobileLayout ? 'flex-1 h-7 text-[10px]' : 'px-3 py-1 text-xs'} rounded-lg font-medium transition-all border
                         ${hideDetails
                             ? 'bg-primary text-primary-foreground border-primary'
                             : 'bg-muted text-foreground border-border hover:bg-muted/80'

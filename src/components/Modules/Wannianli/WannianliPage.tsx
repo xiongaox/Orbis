@@ -505,7 +505,7 @@ export default function WannianliPage() {
             <main className={classNames(
                 "flex-shrink-0 flex flex-col min-h-0",
                 isPadLandscape
-                    ? 'h-full w-full border-r-0'
+                    ? 'h-full w-full border-r-0 overflow-y-auto'
                     : useDesktopLayout
                         ? 'h-full w-[65%] border-r border-border/50'
                         : 'h-full w-full',
@@ -516,7 +516,9 @@ export default function WannianliPage() {
                 <div className={classNames(
                     isMobileLayout
                         ? 'flex flex-col bg-muted/5 relative items-stretch justify-start p-2 pt-1'
-                        : 'flex-1 flex flex-col overflow-hidden bg-muted/5 relative items-center justify-center p-4'
+                        : isPadLandscape
+                            ? 'flex flex-col bg-muted/5 relative items-center justify-start p-4'
+                            : 'flex-1 flex flex-col overflow-hidden bg-muted/5 relative items-center justify-center p-4'
                 )}>
                     {/* Pad 横屏：左右贴边竖线把手 - 复用 MainLayout 统一样式 */}
                     {isPadLandscape && (
