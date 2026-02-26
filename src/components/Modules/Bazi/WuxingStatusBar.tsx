@@ -129,7 +129,7 @@ export default function WuxingStatusBar({
                     onClick={onToggleHideDetails}
                     className={`
                         ${isMobileLayout ? 'flex-1 h-7 text-[10px]' : 'px-3 py-1 text-xs'} rounded-lg font-medium transition-all border
-                        ${hideDetails
+                        ${(isMobileLayout ? !hideDetails : hideDetails)
                             ? 'bg-primary text-primary-foreground border-primary'
                             : 'bg-muted text-foreground border-border hover:bg-muted/80'
                         }

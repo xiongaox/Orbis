@@ -20,6 +20,7 @@ interface DaYunRowProps {
     totalDaYunPages: number;
     onDaYunClick: (index: number) => void;
     onPageChange: (page: number) => void;
+    isMobileLayout?: boolean;
 }
 
 export default function DaYunRow({
@@ -30,12 +31,13 @@ export default function DaYunRow({
     totalDaYunPages,
     onDaYunClick,
     onPageChange,
+    isMobileLayout = false,
 }: DaYunRowProps) {
     return (
         <div className="border-b border-border">
             <div className="flex items-stretch">
                 {/* 左侧标题区 */}
-                <div className="w-10 bg-secondary/30 border-r border-border flex flex-col items-center justify-center gap-0.5">
+                <div className={`${isMobileLayout ? 'w-7' : 'w-10'} bg-secondary/30 border-r border-border flex flex-col items-center justify-center gap-0.5`}>
                     {/* 上一页按钮 */}
                     {totalDaYunPages > 1 && (
                         <button
@@ -52,7 +54,7 @@ export default function DaYunRow({
                     )}
 
                     {/* 大运标题 */}
-                    <div className="text-base text-foreground/70 font-medium leading-none flex flex-col items-center gap-0.5">
+                    <div className={`${isMobileLayout ? 'text-sm' : 'text-base'} text-foreground/70 font-medium leading-none flex flex-col items-center gap-0.5`}>
                         <span>大</span>
                         <span>运</span>
                     </div>
@@ -88,38 +90,38 @@ export default function DaYunRow({
                             return (
                                 <div
                                     key={`dayun-${item.index}`}
-                                    className={`min-w-0 p-3 border-r border-border last:border-r-0 cursor-pointer transition-colors hover:bg-primary/10 h-full flex flex-col justify-center ${isActive ? 'bg-primary/5' : ''}`}
+                                    className={`min-w-0 ${isMobileLayout ? 'px-0.5 py-1.5' : 'p-3'} border-r border-border last:border-r-0 cursor-pointer transition-colors hover:bg-primary/10 h-full flex flex-col justify-center ${isActive ? 'bg-primary/5' : ''}`}
                                     onClick={() => onDaYunClick(item.index)}
                                 >
                                     <div className="flex flex-col items-center text-center">
                                         <div className="flex flex-col items-center gap-1">
-                                            <div className="text-sm text-muted-foreground leading-snug">
+                                            <div className={`${isMobileLayout ? 'text-xs' : 'text-sm'} text-muted-foreground leading-snug whitespace-nowrap`}>
                                                 {item.startAge}岁
                                             </div>
-                                            <div className="text-sm text-muted-foreground leading-snug">
+                                            <div className={`${isMobileLayout ? 'text-xs' : 'text-sm'} text-muted-foreground leading-snug whitespace-nowrap`}>
                                                 {item.startYear}
                                             </div>
                                         </div>
-                                        <div className="mt-3 space-y-1">
-                                            <div className="flex items-baseline justify-center gap-x-1">
+                                        <div className={`${isMobileLayout ? 'mt-1.5 space-y-0.5' : 'mt-3 space-y-1'}`}>
+                                            <div className={`flex items-baseline justify-center ${isMobileLayout ? 'gap-x-0' : 'gap-x-1'} whitespace-nowrap`}>
                                                 <span
-                                                    className="font-display text-lg text-foreground leading-none"
+                                                    className={`font-display ${isMobileLayout ? 'text-base' : 'text-lg'} text-foreground leading-none`}
                                                     style={{ color: getElementColor(item.tiangan) }}
                                                 >
                                                     {item.tiangan}
                                                 </span>
-                                                <span className="text-base text-muted-foreground leading-none">
+                                                <span className={`${isMobileLayout ? 'text-xs' : 'text-base'} text-muted-foreground leading-none`}>
                                                     {getShiShenAbbr(dayMaster, item.tiangan)}
                                                 </span>
                                             </div>
-                                            <div className="flex items-baseline justify-center gap-x-1">
+                                            <div className={`flex items-baseline justify-center ${isMobileLayout ? 'gap-x-0' : 'gap-x-1'} whitespace-nowrap`}>
                                                 <span
-                                                    className="font-display text-lg text-foreground leading-none"
+                                                    className={`font-display ${isMobileLayout ? 'text-base' : 'text-lg'} text-foreground leading-none`}
                                                     style={{ color: getElementColor(item.dizhi) }}
                                                 >
                                                     {item.dizhi}
                                                 </span>
-                                                <span className="text-base text-muted-foreground leading-none">
+                                                <span className={`${isMobileLayout ? 'text-xs' : 'text-base'} text-muted-foreground leading-none`}>
                                                     {getShiShenAbbr(dayMaster, item.dizhi)}
                                                 </span>
                                             </div>

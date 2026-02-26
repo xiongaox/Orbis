@@ -12,13 +12,17 @@ interface DetailedPillarCardProps {
     isDayMaster?: boolean;
     shensha?: string[];
     genderLabel?: string;
+    isMobileLayout?: boolean;
+    hideDetails?: boolean;
 }
 
 export function DetailedPillarCard({
     pillar,
     isDayMaster = false,
     shensha = [],
-    genderLabel = '日主'
+    genderLabel = '日主',
+    isMobileLayout = false,
+    hideDetails = false,
 }: DetailedPillarCardProps) {
     return (
         <div className={`h-full flex flex-col ${isDayMaster ? 'bg-primary/5' : ''}`}>
@@ -44,9 +48,9 @@ export function DetailedPillarCard({
                     {pillar.dizhi}
                 </span>
             </div>
-            <div className="min-h-[90px] p-2 border-b border-border flex flex-col justify-start gap-1">
+            <div className={`min-h-[90px] ${isMobileLayout ? 'p-1' : 'p-2'} border-b border-border flex flex-col justify-start gap-1`}>
                 {pillar.zanggan.map((item, index) => (
-                    <div key={`${item.gan}-${index}`} className="flex items-center justify-center gap-1 text-sm">
+                    <div key={`${item.gan}-${index}`} className={`flex items-center justify-center ${isMobileLayout ? 'gap-0 text-xs' : 'gap-1 text-sm'}`}>
                         <span className="font-medium" style={{ color: getElementColor(item.gan) }}>
                             {item.gan}
                         </span>
@@ -54,23 +58,27 @@ export function DetailedPillarCard({
                     </div>
                 ))}
             </div>
-            <div className="h-10 flex items-center justify-center border-b border-border">
-                <span className="text-sm text-foreground">{pillar.diShi}</span>
-            </div>
-            <div className="h-10 flex items-center justify-center border-b border-border">
-                <span className="text-sm text-foreground">{pillar.ziZuo}</span>
-            </div>
-            <div className="h-10 flex items-center justify-center border-b border-border">
-                <span className="text-sm text-muted-foreground">{pillar.kongWang}</span>
-            </div>
-            <div className="h-10 flex items-center justify-center border-b border-border">
-                <span className="text-sm text-muted-foreground">{pillar.naYin}</span>
-            </div>
-            <div className="flex-1 p-2 flex flex-col items-center justify-start gap-2 min-h-[100px]">
-                {shensha.map((s, i) => (
-                    <span key={i} className="text-xs text-foreground text-center">{s}</span>
-                ))}
-            </div>
+            {!(isMobileLayout && hideDetails) && (
+                <>
+                    <div className="h-10 flex items-center justify-center border-b border-border">
+                        <span className="text-sm text-foreground">{pillar.diShi}</span>
+                    </div>
+                    <div className="h-10 flex items-center justify-center border-b border-border">
+                        <span className="text-sm text-foreground">{pillar.ziZuo}</span>
+                    </div>
+                    <div className="h-10 flex items-center justify-center border-b border-border">
+                        <span className="text-sm text-muted-foreground">{pillar.kongWang}</span>
+                    </div>
+                    <div className="h-10 flex items-center justify-center border-b border-border">
+                        <span className="text-sm text-muted-foreground">{pillar.naYin}</span>
+                    </div>
+                    <div className={`flex-1 ${isMobileLayout ? 'p-0.5' : 'p-2'} flex flex-col items-center justify-start gap-2 min-h-[100px]`}>
+                        {shensha.map((s, i) => (
+                            <span key={i} className={`${isMobileLayout ? 'text-[11px]' : 'text-xs'} text-foreground text-center`}>{s}</span>
+                        ))}
+                    </div>
+                </>
+            )}
         </div>
     );
 }
@@ -89,6 +97,8 @@ interface YunPillarProps {
     nayin?: string;
     isAccent?: boolean;
     shensha?: string[];
+    isMobileLayout?: boolean;
+    hideDetails?: boolean;
 }
 
 export function YunPillar({
@@ -103,6 +113,8 @@ export function YunPillar({
     nayin = '',
     isAccent = false,
     shensha = [],
+    isMobileLayout = false,
+    hideDetails = false,
 }: YunPillarProps) {
     return (
         <div className={`flex-1 border-r border-border last:border-r-0 flex flex-col ${isAccent ? 'bg-accent/5' : ''}`}>
@@ -128,9 +140,9 @@ export function YunPillar({
                     {dizhi}
                 </span>
             </div>
-            <div className="min-h-[90px] p-2 border-b border-border flex flex-col justify-start gap-1">
+            <div className={`min-h-[90px] ${isMobileLayout ? 'p-1' : 'p-2'} border-b border-border flex flex-col justify-start gap-1`}>
                 {zanggan.map((item, index) => (
-                    <div key={`${item.gan}-${index}`} className="flex items-center justify-center gap-1 text-sm">
+                    <div key={`${item.gan}-${index}`} className={`flex items-center justify-center ${isMobileLayout ? 'gap-0 text-xs' : 'gap-1 text-sm'}`}>
                         <span className="font-medium" style={{ color: getElementColor(item.gan) }}>
                             {item.gan}
                         </span>
@@ -138,23 +150,27 @@ export function YunPillar({
                     </div>
                 ))}
             </div>
-            <div className="h-10 flex items-center justify-center border-b border-border">
-                <span className="text-sm text-foreground">{xingyun}</span>
-            </div>
-            <div className="h-10 flex items-center justify-center border-b border-border">
-                <span className="text-sm text-foreground">{zizuo}</span>
-            </div>
-            <div className="h-10 flex items-center justify-center border-b border-border">
-                <span className="text-sm text-muted-foreground">{kongwang}</span>
-            </div>
-            <div className="h-10 flex items-center justify-center border-b border-border">
-                <span className="text-sm text-muted-foreground">{nayin}</span>
-            </div>
-            <div className="flex-1 p-2 flex flex-col items-center justify-start gap-2 min-h-[100px]">
-                {shensha.map((s, i) => (
-                    <span key={i} className="text-xs text-foreground text-center">{s}</span>
-                ))}
-            </div>
+            {!(isMobileLayout && hideDetails) && (
+                <>
+                    <div className="h-10 flex items-center justify-center border-b border-border">
+                        <span className="text-sm text-foreground">{xingyun}</span>
+                    </div>
+                    <div className="h-10 flex items-center justify-center border-b border-border">
+                        <span className="text-sm text-foreground">{zizuo}</span>
+                    </div>
+                    <div className="h-10 flex items-center justify-center border-b border-border">
+                        <span className="text-sm text-muted-foreground">{kongwang}</span>
+                    </div>
+                    <div className="h-10 flex items-center justify-center border-b border-border">
+                        <span className="text-sm text-muted-foreground">{nayin}</span>
+                    </div>
+                    <div className={`flex-1 ${isMobileLayout ? 'p-0.5' : 'p-2'} flex flex-col items-center justify-start gap-2 min-h-[100px]`}>
+                        {shensha.map((s, i) => (
+                            <span key={i} className={`${isMobileLayout ? 'text-[11px]' : 'text-xs'} text-foreground text-center`}>{s}</span>
+                        ))}
+                    </div>
+                </>
+            )}
         </div>
     );
 }

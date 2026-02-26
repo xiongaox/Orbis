@@ -36,7 +36,7 @@ export default function BaziPage() {
     // 胎命身显示开关状态
     const [showTaiMingShen, setShowTaiMingShen] = useState(false);
     // 隐藏详情面板开关
-    const [hideDetails, setHideDetails] = useState(false);
+    const [hideDetails, setHideDetails] = useState(isMobileLayout);
 
     // 计算当前的八字年份（以立春为界）
     const now = new Date();
@@ -77,8 +77,9 @@ export default function BaziPage() {
                     currentYear={simpleCurrentBaziYear}
                     showTaiMingShen={showTaiMingShen}
                     isMobileLayout={isMobileLayout}
+                    hideDetails={hideDetails}
                 />
-                <div className={classNames('flex flex-col min-h-0 lg:overflow-y-auto', isMobileLayout ? 'gap-3' : 'gap-4')}>
+                <div className={classNames('flex flex-col min-h-0 lg:overflow-y-auto', isMobileLayout ? 'gap-2' : 'gap-4')}>
                     {/* 五行旺衰信息条 */}
                     <div className="flex-shrink-0">
                         <WuxingStatusBar
@@ -149,11 +150,12 @@ export default function BaziPage() {
                             onSelectDaYun={setSelectedDaYunIndex}
                             onSelectLiuNian={setSelectedLiuNianYear}
                             onSelectLiuYue={setSelectedLiuYueIndex}
+                            isMobileLayout={isMobileLayout}
                         />
                     </div>
 
-                    {/* 详情面板 - 可隐藏 */}
-                    {!hideDetails && (
+                    {/* 详情面板 - 移动端始终显示，桌面端受隐藏详情控制 */}
+                    {(isMobileLayout || !hideDetails) && (
                         <div className="flex-shrink-0">
                             <BaziBasicInfoPanel baziData={baziData} />
                         </div>
