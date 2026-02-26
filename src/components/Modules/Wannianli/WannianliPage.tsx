@@ -503,13 +503,12 @@ export default function WannianliPage() {
 
             {/* 中间日历区域 */}
             <main className={classNames(
-                "w-full flex-shrink-0 flex flex-col min-h-0",
+                "flex-shrink-0 flex flex-col min-h-0",
                 isPadLandscape
-                    ? 'h-full border-r-0'
+                    ? 'h-full w-full border-r-0'
                     : useDesktopLayout
                         ? 'h-full w-[65%] border-r border-border/50'
-                        : 'h-full'
-                ,
+                        : 'h-full w-full',
                 isMobileLayout && 'overflow-y-auto'
             )}>
                 {renderCalendarHeader()}
