@@ -21,6 +21,7 @@ interface BaziChartProps {
   selectedDaYunIndex?: number | null;
   selectedLiuNianYear?: number | null;
   showTaiMingShen?: boolean;
+  isMobileLayout?: boolean;
 }
 
 export default function BaziChart({
@@ -30,6 +31,7 @@ export default function BaziChart({
   selectedDaYunIndex,
   selectedLiuNianYear,
   showTaiMingShen = false,
+  isMobileLayout = false,
 }: BaziChartProps) {
   const [isDiagramOpen, setIsDiagramOpen] = useState(false);
 
@@ -119,7 +121,7 @@ export default function BaziChart({
 
         <div className="flex">
           {/* 行标题 */}
-          <div className="w-16 flex-shrink-0 border-r border-border flex flex-col">
+          <div className={`${isMobileLayout ? 'w-12' : 'w-16'} flex-shrink-0 border-r border-border flex flex-col`}>
             {['日期', '主星', '天干', '地支'].map((label, i) => {
               const heightClass = i < 2 ? (i === 0 ? 'h-8' : 'h-10') : 'h-14';
               return (

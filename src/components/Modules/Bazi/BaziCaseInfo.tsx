@@ -1,5 +1,6 @@
-import { GitBranch, ArrowRightLeft, Sparkles } from 'lucide-react';
+import { GitBranch, ArrowRightLeft, Sparkles, ChevronUp, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
+import classNames from 'classnames';
 import { useAuth } from '../../../contexts/AuthContext';
 import { baziCaseService } from '../../../services/baziCaseService';
 import { BAZI_CASES_CHANGED_EVENT } from '../../../data/caseConstants';
@@ -15,6 +16,7 @@ interface BaziCaseInfoProps {
   selectedDaYunIndex?: number | null;
   selectedLiuNianYear?: number | null;
   currentYear?: number;
+  isMobileLayout?: boolean;
 }
 
 export default function BaziCaseInfo({
@@ -23,12 +25,14 @@ export default function BaziCaseInfo({
   selectedDaYunIndex,
   selectedLiuNianYear,
   currentYear,
+  isMobileLayout = false,
 }: BaziCaseInfoProps) {
   const { isAuthenticated } = useAuth();
   const [saving, setSaving] = useState(false);
   const [showDiagram, setShowDiagram] = useState(false);
   const [showLiuTong, setShowLiuTong] = useState(false);
   const [showAiPrompt, setShowAiPrompt] = useState(false);
+  const [mobileCollapsed, setMobileCollapsed] = useState(true);
 
   // 使用 API 返回的数据，如果没有则使用 case 数据
   const displayName = caseData?.name || '当前时间';
@@ -89,145 +93,296 @@ export default function BaziCaseInfo({
 
   return (
     <>
-      <div className="bg-card rounded-xl border border-[hsl(var(--border-light))] dark:border-border p-4 mx-6 mt-6 mb-4 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-              {baziData?.zodiac ? (
-                <img
-                  src={`/zodiac/${baziData.zodiac}.svg`}
-                  alt={baziData.zodiac}
-                  className="w-14 h-14 object-contain"
-                />
-              ) : (
-                <span className="font-display text-xl text-primary">案</span>
-              )}
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <h2 className="font-display text-lg font-medium text-[hsl(var(--card-title))] dark:text-foreground">{displayName}</h2>
-                <span className="text-xs px-2 py-0.5 bg-[hsl(var(--muted-hover))] border border-[hsl(var(--border-light))] dark:bg-secondary dark:border-border rounded text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground">
-                  {displayGender}
-                </span>
-                {baziData?.zodiac && (
-                  <span className="text-xs px-2 py-0.5 bg-[hsl(var(--muted-hover))] border border-[hsl(var(--border-light))] dark:bg-secondary dark:border-border rounded text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground">
-                    {baziData.zodiac}
-                  </span>
+      <div className={classNames(
+        'bg-card rounded-xl border border-[hsl(var(--border-light))] dark:border-border flex-shrink-0',
+        isMobileLayout ? 'p-2 mx-2 mt-2 mb-2' : 'p-4 mx-6 mt-6 mb-4'
+      )}>
+        {isMobileLayout ? (
+          /* === 移动端布局 === */
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
+                {baziData?.zodiac ? (
+                  <img
+                    src={`/zodiac/${baziData.zodiac}.svg`}
+                    alt={baziData.zodiac}
+                    className="w-8 h-8 object-contain"
+                  />
+                ) : (
+                  <span className="font-display text-sm text-primary">案</span>
                 )}
               </div>
-              <div className="flex items-center gap-4 text-sm text-[hsl(var(--card-time))] dark:text-muted-foreground">
-                <span>阴历：{displayLunar}</span>
-                <span>阳历：{displaySolar}</span>
-              </div>
-              {baziData?.yunInfo && (
-                <div className="flex items-center gap-4 text-xs text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground mt-1">
-                  <span>
-                    起运：出生后{baziData.yunInfo.startYear}年{baziData.yunInfo.startMonth}月{baziData.yunInfo.startDay}天后
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <h2 className="font-display text-base font-medium text-[hsl(var(--card-title))] dark:text-foreground truncate">{displayName}</h2>
+                  <span className="text-[10px] px-1.5 py-0.5 bg-[hsl(var(--muted-hover))] border border-[hsl(var(--border-light))] dark:bg-secondary dark:border-border rounded text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground shrink-0">
+                    {displayGender}
                   </span>
-                  <span>起运日期：{baziData.yunInfo.startSolarDate}</span>
-                  <span>
-                    {(() => {
-                      const getDateInfo = () => {
-                        const str = baziData.yunInfo.startSolarDate;
-                        const match = str.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
-                        if (!match) return null;
-                        const year = parseInt(match[1]);
-                        const month = parseInt(match[2]);
-                        const day = parseInt(match[3]);
-
-                        // 1. Calculate Stem
-                        const stems = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
-                        const idx = (year - 4) % 10;
-                        const stemIdx = idx < 0 ? idx + 10 : idx; // Handle potential negative
-                        const stem = stems[stemIdx];
-                        const pairStem = stems[(stemIdx + 5) % 10];
-
-                        // 2. Estimate Jieqi
-                        const jieqiMap = [
-                          { name: '小寒', m: 1, d: 5 }, { name: '大寒', m: 1, d: 20 },
-                          { name: '立春', m: 2, d: 4 }, { name: '雨水', m: 2, d: 19 },
-                          { name: '惊蛰', m: 3, d: 5 }, { name: '春分', m: 3, d: 20 },
-                          { name: '清明', m: 4, d: 4 }, { name: '谷雨', m: 4, d: 20 },
-                          { name: '立夏', m: 5, d: 5 }, { name: '小满', m: 5, d: 21 },
-                          { name: '芒种', m: 6, d: 5 }, { name: '夏至', m: 6, d: 21 },
-                          { name: '小暑', m: 7, d: 7 }, { name: '大暑', m: 7, d: 22 },
-                          { name: '立秋', m: 8, d: 7 }, { name: '处暑', m: 8, d: 23 },
-                          { name: '白露', m: 9, d: 7 }, { name: '秋分', m: 9, d: 23 },
-                          { name: '寒露', m: 10, d: 8 }, { name: '霜降', m: 10, d: 23 },
-                          { name: '立冬', m: 11, d: 7 }, { name: '小雪', m: 11, d: 22 },
-                          { name: '大雪', m: 12, d: 7 }, { name: '冬至', m: 12, d: 21 },
-                        ];
-
-                        const targetDate = new Date(year, month - 1, day);
-                        let bestJieqi = '冬至';
-                        let bestDate = new Date(year - 1, 11, 21);
-
-                        for (const jq of jieqiMap) {
-                          const d = new Date(year, jq.m - 1, jq.d);
-                          if (targetDate >= d) {
-                            bestDate = d;
-                            bestJieqi = jq.name;
-                          } else {
-                            break;
-                          }
-                        }
-
-                        const diffTime = Math.abs(targetDate.getTime() - bestDate.getTime());
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                        return `交运：逢${stem}、${pairStem}年 ${bestJieqi}后${diffDays}天 交大运`;
-                      };
-                      return getDateInfo();
-                    })()}
-                  </span>
+                  {baziData?.zodiac && (
+                    <span className="text-[10px] px-1.5 py-0.5 bg-[hsl(var(--muted-hover))] border border-[hsl(var(--border-light))] dark:bg-secondary dark:border-border rounded text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground shrink-0">
+                      {baziData.zodiac}
+                    </span>
+                  )}
+                  {/* 折叠按钮 */}
+                  <button
+                    type="button"
+                    onClick={() => setMobileCollapsed(!mobileCollapsed)}
+                    className="ml-auto p-0.5 rounded text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                  >
+                    {mobileCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                  </button>
                 </div>
-              )}
+                <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs text-[hsl(var(--card-time))] dark:text-muted-foreground">
+                  <div className="truncate">阴：{displayLunar}</div>
+                  <div className="truncate">阳：{displaySolar}</div>
+                  {!mobileCollapsed && baziData?.yunInfo && (
+                    <>
+                      <div className="truncate text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground">
+                        起运：出生后{baziData.yunInfo.startYear}年{baziData.yunInfo.startMonth}月{baziData.yunInfo.startDay}天后
+                      </div>
+                      <div className="truncate text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground">
+                        起运日期：{baziData.yunInfo.startSolarDate}
+                      </div>
+                      <div className="col-span-2 truncate text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground">
+                        {(() => {
+                          const str = baziData.yunInfo.startSolarDate;
+                          const match = str.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+                          if (!match) return null;
+                          const year = parseInt(match[1]);
+                          const month = parseInt(match[2]);
+                          const day = parseInt(match[3]);
+
+                          const stems = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+                          const idx = (year - 4) % 10;
+                          const stemIdx = idx < 0 ? idx + 10 : idx;
+                          const stem = stems[stemIdx];
+                          const pairStem = stems[(stemIdx + 5) % 10];
+
+                          const jieqiMap = [
+                            { name: '小寒', m: 1, d: 5 }, { name: '大寒', m: 1, d: 20 },
+                            { name: '立春', m: 2, d: 4 }, { name: '雨水', m: 2, d: 19 },
+                            { name: '惊蛰', m: 3, d: 5 }, { name: '春分', m: 3, d: 20 },
+                            { name: '清明', m: 4, d: 4 }, { name: '谷雨', m: 4, d: 20 },
+                            { name: '立夏', m: 5, d: 5 }, { name: '小满', m: 5, d: 21 },
+                            { name: '芒种', m: 6, d: 5 }, { name: '夏至', m: 6, d: 21 },
+                            { name: '小暑', m: 7, d: 7 }, { name: '大暑', m: 7, d: 22 },
+                            { name: '立秋', m: 8, d: 7 }, { name: '处暑', m: 8, d: 23 },
+                            { name: '白露', m: 9, d: 7 }, { name: '秋分', m: 9, d: 23 },
+                            { name: '寒露', m: 10, d: 8 }, { name: '霜降', m: 10, d: 23 },
+                            { name: '立冬', m: 11, d: 7 }, { name: '小雪', m: 11, d: 22 },
+                            { name: '大雪', m: 12, d: 7 }, { name: '冬至', m: 12, d: 21 },
+                          ];
+
+                          const targetDate = new Date(year, month - 1, day);
+                          let bestJieqi = '冬至';
+                          let bestDate = new Date(year - 1, 11, 21);
+
+                          for (const jq of jieqiMap) {
+                            const d = new Date(year, jq.m - 1, jq.d);
+                            if (targetDate >= d) {
+                              bestDate = d;
+                              bestJieqi = jq.name;
+                            } else {
+                              break;
+                            }
+                          }
+
+                          const diffTime = Math.abs(targetDate.getTime() - bestDate.getTime());
+                          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                          return `交运：逢${stem}、${pairStem}年 ${bestJieqi}后${diffDays}天 交大运`;
+                        })()}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
             </div>
+
+            {/* 可折叠内容：操作按钮 */}
+            {!mobileCollapsed && (
+              <div className="flex items-center gap-2 pt-1">
+                {!caseData && (
+                  <button
+                    type="button"
+                    onClick={handleSaveCurrent}
+                    disabled={!baziData || saving}
+                    className="flex-1 h-8 text-xs rounded-lg border border-[hsl(var(--accent-primary)/0.4)] text-[hsl(var(--accent-primary))] hover:bg-[hsl(var(--accent-primary)/0.1)] dark:border-primary/40 dark:text-primary dark:hover:bg-primary/10 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {saving ? '保存中...' : '保存排盘'}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowDiagram(true)}
+                  disabled={!baziData}
+                  className="flex-1 h-8 text-xs rounded-lg border border-border hover:bg-muted flex items-center justify-center gap-1 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <GitBranch className="w-3.5 h-3.5" />
+                  图解
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowLiuTong(true)}
+                  disabled={!baziData}
+                  className="flex-1 h-8 text-xs rounded-lg border border-border hover:bg-muted flex items-center justify-center gap-1 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <ArrowRightLeft className="w-3.5 h-3.5" />
+                  流通
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAiPrompt(true)}
+                  disabled={!baziData}
+                  className="flex-1 h-8 text-xs rounded-lg border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 text-amber-500 flex items-center justify-center gap-1 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  AI
+                </button>
+              </div>
+            )}
           </div>
-          <div className="flex items-center gap-2">
-            {!caseData && (
+        ) : (
+          /* === 桌面端/Pad端原有布局（不修改） === */
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                {baziData?.zodiac ? (
+                  <img
+                    src={`/zodiac/${baziData.zodiac}.svg`}
+                    alt={baziData.zodiac}
+                    className="w-14 h-14 object-contain"
+                  />
+                ) : (
+                  <span className="font-display text-xl text-primary">案</span>
+                )}
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <h2 className="font-display text-lg font-medium text-[hsl(var(--card-title))] dark:text-foreground">{displayName}</h2>
+                  <span className="text-xs px-2 py-0.5 bg-[hsl(var(--muted-hover))] border border-[hsl(var(--border-light))] dark:bg-secondary dark:border-border rounded text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground">
+                    {displayGender}
+                  </span>
+                  {baziData?.zodiac && (
+                    <span className="text-xs px-2 py-0.5 bg-[hsl(var(--muted-hover))] border border-[hsl(var(--border-light))] dark:bg-secondary dark:border-border rounded text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground">
+                      {baziData.zodiac}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-4 text-sm text-[hsl(var(--card-time))] dark:text-muted-foreground">
+                  <span>阴历：{displayLunar}</span>
+                  <span>阳历：{displaySolar}</span>
+                </div>
+                {baziData?.yunInfo && (
+                  <div className="flex items-center gap-4 text-xs text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground mt-1">
+                    <span>
+                      起运：出生后{baziData.yunInfo.startYear}年{baziData.yunInfo.startMonth}月{baziData.yunInfo.startDay}天后
+                    </span>
+                    <span>起运日期：{baziData.yunInfo.startSolarDate}</span>
+                    <span>
+                      {(() => {
+                        const getDateInfo = () => {
+                          const str = baziData.yunInfo.startSolarDate;
+                          const match = str.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+                          if (!match) return null;
+                          const year = parseInt(match[1]);
+                          const month = parseInt(match[2]);
+                          const day = parseInt(match[3]);
+
+                          const stems = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+                          const idx = (year - 4) % 10;
+                          const stemIdx = idx < 0 ? idx + 10 : idx;
+                          const stem = stems[stemIdx];
+                          const pairStem = stems[(stemIdx + 5) % 10];
+
+                          const jieqiMap = [
+                            { name: '小寒', m: 1, d: 5 }, { name: '大寒', m: 1, d: 20 },
+                            { name: '立春', m: 2, d: 4 }, { name: '雨水', m: 2, d: 19 },
+                            { name: '惊蛰', m: 3, d: 5 }, { name: '春分', m: 3, d: 20 },
+                            { name: '清明', m: 4, d: 4 }, { name: '谷雨', m: 4, d: 20 },
+                            { name: '立夏', m: 5, d: 5 }, { name: '小满', m: 5, d: 21 },
+                            { name: '芒种', m: 6, d: 5 }, { name: '夏至', m: 6, d: 21 },
+                            { name: '小暑', m: 7, d: 7 }, { name: '大暑', m: 7, d: 22 },
+                            { name: '立秋', m: 8, d: 7 }, { name: '处暑', m: 8, d: 23 },
+                            { name: '白露', m: 9, d: 7 }, { name: '秋分', m: 9, d: 23 },
+                            { name: '寒露', m: 10, d: 8 }, { name: '霜降', m: 10, d: 23 },
+                            { name: '立冬', m: 11, d: 7 }, { name: '小雪', m: 11, d: 22 },
+                            { name: '大雪', m: 12, d: 7 }, { name: '冬至', m: 12, d: 21 },
+                          ];
+
+                          const targetDate = new Date(year, month - 1, day);
+                          let bestJieqi = '冬至';
+                          let bestDate = new Date(year - 1, 11, 21);
+
+                          for (const jq of jieqiMap) {
+                            const d = new Date(year, jq.m - 1, jq.d);
+                            if (targetDate >= d) {
+                              bestDate = d;
+                              bestJieqi = jq.name;
+                            } else {
+                              break;
+                            }
+                          }
+
+                          const diffTime = Math.abs(targetDate.getTime() - bestDate.getTime());
+                          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                          return `交运：逢${stem}、${pairStem}年 ${bestJieqi}后${diffDays}天 交大运`;
+                        };
+                        return getDateInfo();
+                      })()}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {!caseData && (
+                <button
+                  type="button"
+                  onClick={handleSaveCurrent}
+                  disabled={!baziData || saving}
+                  className="px-3 py-2 text-sm rounded-lg border border-[hsl(var(--accent-primary)/0.4)] text-[hsl(var(--accent-primary))] hover:bg-[hsl(var(--accent-primary)/0.1)] dark:border-primary/40 dark:text-primary dark:hover:bg-primary/10 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {saving ? '保存中...' : '保存当前排盘'}
+                </button>
+              )}
               <button
                 type="button"
-                onClick={handleSaveCurrent}
-                disabled={!baziData || saving}
-                className="px-3 py-2 text-sm rounded-lg border border-[hsl(var(--accent-primary)/0.4)] text-[hsl(var(--accent-primary))] hover:bg-[hsl(var(--accent-primary)/0.1)] dark:border-primary/40 dark:text-primary dark:hover:bg-primary/10 disabled:opacity-60 disabled:cursor-not-allowed"
+                onClick={() => setShowDiagram(true)}
+                disabled={!baziData}
+                className="px-3 py-2 text-sm rounded-lg border border-border hover:bg-muted flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {saving ? '保存中...' : '保存当前排盘'}
+                <GitBranch className="w-4 h-4" />
+                干支图解
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setShowDiagram(true)}
-              disabled={!baziData}
-              className="px-3 py-2 text-sm rounded-lg border border-border hover:bg-muted flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <GitBranch className="w-4 h-4" />
-              干支图解
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowLiuTong(true)}
-              disabled={!baziData}
-              className="px-3 py-2 text-sm rounded-lg border border-border hover:bg-muted flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <ArrowRightLeft className="w-4 h-4" />
-              干支流通
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowAiPrompt(true)}
-              disabled={!baziData}
-              className="px-3 py-2 text-sm rounded-lg border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 text-amber-500 flex items-center gap-1.5 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <Sparkles className="w-4 h-4" />
-              AI提示词
-            </button>
+              <button
+                type="button"
+                onClick={() => setShowLiuTong(true)}
+                disabled={!baziData}
+                className="px-3 py-2 text-sm rounded-lg border border-border hover:bg-muted flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <ArrowRightLeft className="w-4 h-4" />
+                干支流通
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAiPrompt(true)}
+                disabled={!baziData}
+                className="px-3 py-2 text-sm rounded-lg border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 text-amber-500 flex items-center gap-1.5 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <Sparkles className="w-4 h-4" />
+                AI提示词
+              </button>
+            </div>
           </div>
-        </div>
-      </div>
+        )
+        }
+      </div >
 
       {/* 干支图解弹窗 */}
-      <GanZhiDiagramModal
+      < GanZhiDiagramModal
         isOpen={showDiagram}
         onClose={() => setShowDiagram(false)}
         baziData={baziData}
@@ -237,7 +392,7 @@ export default function BaziCaseInfo({
       />
 
       {/* 干支流通弹窗 */}
-      <GanZhiLiuTongModal
+      < GanZhiLiuTongModal
         isOpen={showLiuTong}
         onClose={() => setShowLiuTong(false)}
         baziData={baziData}
@@ -247,7 +402,7 @@ export default function BaziCaseInfo({
       />
 
       {/* AI 提示词弹窗 */}
-      <AiPromptModal
+      < AiPromptModal
         isOpen={showAiPrompt}
         onClose={() => setShowAiPrompt(false)}
         data={baziData}
@@ -257,4 +412,3 @@ export default function BaziCaseInfo({
     </>
   );
 }
-

@@ -2,6 +2,7 @@
  * 八字模块页面容器
  */
 import { useState } from 'react';
+import classNames from 'classnames';
 import BaziCaseInfo from './BaziCaseInfo';
 import BaziChart from './BaziChart';
 import DayunLiunianPanel from './DayunLiunianPanel';
@@ -9,6 +10,8 @@ import WuxingStatusBar from './WuxingStatusBar';
 import BaziBasicInfoPanel from './BaziBasicInfoPanel';
 import { getRealtimeClockData } from '../../../utils/lunarUtil';
 import { useBaziContext } from '../../../contexts/BaziContext';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { useIsPadLandscape } from '../../../hooks/useIsPadLandscape';
 
 export default function BaziPage() {
     // 使用 Context 获取八字状态，避免 Prop Drilling
@@ -24,6 +27,11 @@ export default function BaziPage() {
         setSelectedLiuNianYear,
         setSelectedLiuYueIndex,
     } = useBaziContext();
+
+    // 布局检测：仅用于移动端条件分支
+    const isDesktop = useMediaQuery('(min-width: 1024px)');
+    const isPadLandscape = useIsPadLandscape();
+    const isMobileLayout = !isDesktop && !isPadLandscape;
 
     // 胎命身显示开关状态
     const [showTaiMingShen, setShowTaiMingShen] = useState(false);
@@ -55,8 +63,12 @@ export default function BaziPage() {
                 selectedDaYunIndex={selectedDaYunIndex ?? null}
                 selectedLiuNianYear={selectedLiuNianYear ?? null}
                 currentYear={simpleCurrentBaziYear}
+                isMobileLayout={isMobileLayout}
             />
-            <div className="flex-1 min-h-0 min-w-0 grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-4 overflow-y-auto lg:overflow-hidden px-4 lg:px-6 pb-4 lg:pb-6">
+            <div className={classNames(
+                'flex-1 min-h-0 min-w-0 grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] overflow-y-auto lg:overflow-hidden',
+                isMobileLayout ? 'gap-2 px-2 pb-2' : 'gap-4 px-4 lg:px-6 pb-4 lg:pb-6'
+            )}>
                 <BaziChart
                     data={baziData}
                     loading={loading}
@@ -64,8 +76,9 @@ export default function BaziPage() {
                     selectedLiuNianYear={selectedLiuNianYear}
                     currentYear={simpleCurrentBaziYear}
                     showTaiMingShen={showTaiMingShen}
+                    isMobileLayout={isMobileLayout}
                 />
-                <div className="flex flex-col gap-4 min-h-0 lg:overflow-y-auto">
+                <div className={classNames('flex flex-col min-h-0 lg:overflow-y-auto', isMobileLayout ? 'gap-3' : 'gap-4')}>
                     {/* 五行旺衰信息条 */}
                     <div className="flex-shrink-0">
                         <WuxingStatusBar
@@ -76,6 +89,7 @@ export default function BaziPage() {
                             onToggleTaiMingShen={() => setShowTaiMingShen(!showTaiMingShen)}
                             hideDetails={hideDetails}
                             onToggleHideDetails={() => setHideDetails(!hideDetails)}
+                            isMobileLayout={isMobileLayout}
                             onGoToCurrentYear={() => {
                                 // 使用 lunarUtil 封装获取当前干支年（以立春为界）
                                 const now = new Date();
