@@ -8,7 +8,7 @@
  * - 助：=助= 同五行
  * - 合：只在同柱天干地支之间显示（如己亥合）
  */
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronsLeft, ChevronsRight, ChevronsUp, ChevronsDown, ArrowRightLeft } from 'lucide-react';
 import BaseModal from '../../UI/BaseModal';
 import { getElementColor } from '../../../lib/xuan-bazi/maps/baziStyleMap';
@@ -71,6 +71,73 @@ export default function GanZhiLiuTongModal({
 
     const [showDaYun, setShowDaYun] = useState(selectedDaYunIndex !== null);
     const [showLiuNian, setShowLiuNian] = useState(selectedLiuNianYear !== null);
+
+    // 移动端捏合缩放 - callback ref 确保 DOM 变化时重新绑定
+    const [scale, setScale] = useState(1);
+    const lastDistRef = useRef<number | null>(null);
+    const cleanupRef = useRef<(() => void) | null>(null);
+
+    // 根据柱数自动计算适配缩放
+    const itemCount = (showDaYun ? 1 : 0) + (showLiuNian ? 1 : 0) + 4;
+    useEffect(() => {
+        const screenW = window.innerWidth;
+        if (screenW >= 768) { setScale(1); return; }
+        // 每柱 w-14(56px) + 间距 w-12(48px)，加上容器 padding
+        const contentW = itemCount * 56 + (itemCount - 1) * 48;
+        const availableW = screenW - 48; // p-6 两边共 48px
+        if (contentW > availableW) {
+            setScale(Math.max(0.5, availableW / contentW));
+        } else {
+            setScale(1);
+        }
+    }, [itemCount]);
+
+    const containerRef = useCallback((el: HTMLDivElement | null) => {
+        cleanupRef.current?.();
+        cleanupRef.current = null;
+        if (!el) return;
+
+        const getDist = (e: TouchEvent) => {
+            const dx = e.touches[0].clientX - e.touches[1].clientX;
+            const dy = e.touches[0].clientY - e.touches[1].clientY;
+            return Math.hypot(dx, dy);
+        };
+
+        const handleTouchStart = (e: TouchEvent) => {
+            if (e.touches.length === 2) lastDistRef.current = getDist(e);
+        };
+
+        const handleTouchMove = (e: TouchEvent) => {
+            if (e.touches.length === 2 && lastDistRef.current !== null) {
+                e.preventDefault();
+                const dist = getDist(e);
+                const ratio = dist / lastDistRef.current;
+                setScale(prev => Math.min(3, Math.max(0.5, prev * ratio)));
+                lastDistRef.current = dist;
+            }
+        };
+
+        const handleTouchEnd = () => { lastDistRef.current = null; };
+
+        el.addEventListener('touchstart', handleTouchStart, { passive: true });
+        el.addEventListener('touchmove', handleTouchMove, { passive: false });
+        el.addEventListener('touchend', handleTouchEnd);
+
+        cleanupRef.current = () => {
+            el.removeEventListener('touchstart', handleTouchStart);
+            el.removeEventListener('touchmove', handleTouchMove);
+            el.removeEventListener('touchend', handleTouchEnd);
+        };
+    }, []);
+
+    const onDoubleClick = useCallback(() => {
+        // 双击重置为自动适配缩放
+        const screenW = window.innerWidth;
+        if (screenW >= 768) { setScale(1); return; }
+        const contentW = itemCount * 56 + (itemCount - 1) * 48;
+        const availableW = screenW - 48;
+        setScale(contentW > availableW ? Math.max(0.5, availableW / contentW) : 1);
+    }, [itemCount]);
 
     const chartData = useMemo(() => {
         if (!baziData) return null;
@@ -545,9 +612,17 @@ export default function GanZhiLiuTongModal({
             maxWidth="max-w-[720px]"
             bodyClassName="p-0 overflow-hidden flex flex-col bg-dot-pattern min-h-[500px]"
         >
-            <div className="flex-1 overflow-auto p-8 flex flex-col items-center justify-center">
+            <div
+                ref={containerRef}
+                className="flex-1 overflow-auto p-8 flex flex-col items-center justify-center"
+                onDoubleClick={onDoubleClick}
+                style={{ touchAction: 'pan-x pan-y' }}
+            >
                 {chartData && (
-                    <div className="flex flex-col gap-2">
+                    <div
+                        className="flex flex-col gap-2"
+                        style={{ transform: `scale(${scale})`, transformOrigin: 'center top' }}
+                    >
                         {/* 天干十神行 */}
                         <div className="flex items-center">
                             {chartData.items.map((item: any, idx: number) => (
@@ -652,13 +727,13 @@ export default function GanZhiLiuTongModal({
                 )}
 
                 {/* 图例 */}
-                <div className="flex items-center justify-center gap-6 mt-8">
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#63A103]/10 border border-[#63A103]/20">
+                <div className="flex items-center justify-center gap-3 mt-8">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#63A103]/10 border border-[#63A103]/20 whitespace-nowrap">
                         <span className="w-4 h-4 flex items-center justify-center rounded-full bg-[#63A103]/20 text-[10px]" style={{ color: FLOW_COLOR }}>✓</span>
                         <span className="text-xs font-medium" style={{ color: FLOW_COLOR }}>流通</span>
                         <span className="text-xs text-muted-foreground">合・生・助</span>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 whitespace-nowrap">
                         <span className="w-4 h-4 flex items-center justify-center rounded-full bg-red-500/20 text-[10px]" style={{ color: BLOCK_COLOR }}>✗</span>
                         <span className="text-xs font-medium" style={{ color: BLOCK_COLOR }}>阻塞</span>
                         <span className="text-xs text-muted-foreground">冲・刑・克・害・破</span>

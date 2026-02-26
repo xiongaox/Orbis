@@ -36,6 +36,8 @@ interface CaseListProps {
   onOpenLibrary?: () => void;
   onPreviewCase?: (caseData: Case) => void;
   variant?: 'sidebar' | 'drawer';
+  /** drawer 模式下选中案例后关闭抽屉 */
+  onDrawerClose?: () => void;
 }
 
 export default function CaseList({
@@ -45,6 +47,7 @@ export default function CaseList({
   onOpenLibrary,
   onPreviewCase,
   variant = 'sidebar',
+  onDrawerClose,
 }: CaseListProps) {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [search, setSearch] = useState('');
@@ -260,7 +263,10 @@ export default function CaseList({
                 item={item}
                 isSelected={selectedCaseId === item.id}
                 isAuthenticated={isAuthenticated}
-                onSelectCase={(id) => onSelectCase?.(id)}
+                onSelectCase={(id) => {
+                  onSelectCase?.(id);
+                  if (variant === 'drawer') onDrawerClose?.();
+                }}
                 onEdit={handleEditCase}
                 onDelete={handleDeleteCase}
               />
