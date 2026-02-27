@@ -126,6 +126,20 @@ export default function QimenPage() {
     // AI 提示词弹窗状态
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
+    // 移动端宫位显示设置状态
+    const [mobileShowChangSheng, setMobileShowChangSheng] = useState(false);
+    const [mobileShowShiShen, setMobileShowShiShen] = useState(false);
+    const [mobileShowPalaceMeta, setMobileShowPalaceMeta] = useState(false);
+    const handleMobileToggleCS = () => {
+        if (!mobileShowChangSheng) { setMobileShowChangSheng(true); setMobileShowShiShen(false); }
+        else { setMobileShowChangSheng(false); }
+    };
+    const handleMobileToggleSS = () => {
+        if (!mobileShowShiShen) { setMobileShowShiShen(true); setMobileShowChangSheng(false); }
+        else { setMobileShowShiShen(false); }
+    };
+    const handleMobileTogglePM = () => setMobileShowPalaceMeta(!mobileShowPalaceMeta);
+
     // Pad/移动端抽屉状态
     const [isCaseListOpen, setIsCaseListOpen] = useState(false);
     const [isInfoOpen, setIsInfoOpen] = useState(false);
@@ -437,6 +451,7 @@ export default function QimenPage() {
                         open={isCaseListOpen}
                         title="案例"
                         side="left"
+                        size="xs"
                         onClose={() => setIsCaseListOpen(false)}
                     >
                         <QimenCaseList
@@ -464,26 +479,67 @@ export default function QimenPage() {
                 /* ========== 手机/Pad 竖屏抽屉布局 ========== */
                 <>
                     <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
-                        <div className="px-3 py-2 border-b border-border/40 bg-background/70 backdrop-blur-sm flex items-center justify-between">
-                            <div className="flex items-center gap-2">
+                        <div className="p-2 border-b border-border/40 bg-background/70 backdrop-blur-sm">
+                            <div className="grid grid-cols-6 gap-1.5">
                                 <button
                                     type="button"
                                     onClick={() => setIsCaseListOpen(true)}
-                                    className="px-3 py-1.5 rounded-lg border border-border bg-card/60 text-sm text-foreground hover:bg-muted/40 transition-colors"
+                                    className="py-1.5 rounded-lg border border-border bg-card/60 text-xs text-foreground hover:bg-muted/40 transition-colors"
                                 >
                                     案例
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setIsInfoOpen(true)}
-                                    className="px-3 py-1.5 rounded-lg border border-border bg-card/60 text-sm text-foreground hover:bg-muted/40 transition-colors"
+                                    className="py-1.5 rounded-lg border border-border bg-card/60 text-xs text-foreground hover:bg-muted/40 transition-colors"
                                 >
-                                    {selectedPalaceData ? '宫位详情' : '局信息'}
+                                    {selectedPalaceData ? '详情' : '局信息'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsAiModalOpen(true)}
+                                    className="py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-xs text-amber-500 hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-1"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
+                                    AI
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleMobileToggleCS}
+                                    className={`py-1.5 rounded-lg border text-xs transition-colors ${mobileShowChangSheng ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card/60 text-muted-foreground'}`}
+                                >
+                                    长生
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleMobileToggleSS}
+                                    className={`py-1.5 rounded-lg border text-xs transition-colors ${mobileShowShiShen ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card/60 text-muted-foreground'}`}
+                                >
+                                    十神
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleMobileTogglePM}
+                                    className={`py-1.5 rounded-lg border text-xs transition-colors ${mobileShowPalaceMeta ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card/60 text-muted-foreground'}`}
+                                >
+                                    宫位
                                 </button>
                             </div>
                         </div>
 
-                        <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col p-2 relative">
+                        {/* 移动端案例标题：选中案例时显示，无案例时隐藏 */}
+                        {currentCase?.title && (
+                            <button
+                                type="button"
+                                onClick={() => setIsCaseListOpen(true)}
+                                className="px-3 py-1.5 border-b border-border/40 bg-primary/5 flex items-center gap-2 text-left"
+                            >
+                                <span className="w-0.5 h-3.5 rounded-full bg-primary/60 flex-shrink-0" />
+                                <span className="text-sm text-primary/90 font-serif truncate">【求测】：{currentCase.title}</span>
+                            </button>
+                        )}
+
+                        <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col relative">
                             {/* 加载状态 */}
                             {isLoading && (
                                 <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-20">
@@ -514,6 +570,13 @@ export default function QimenPage() {
                                 onPatternClick={setSelectedPattern}
                                 onOpenAiModal={() => setIsAiModalOpen(true)}
                                 dynamicMaKong={dynamicMaKong}
+                                isMobileLayout
+                                controlledShowChangSheng={mobileShowChangSheng}
+                                controlledShowShiShen={mobileShowShiShen}
+                                controlledShowPalaceMeta={mobileShowPalaceMeta}
+                                onToggleChangSheng={handleMobileToggleCS}
+                                onToggleShiShen={handleMobileToggleSS}
+                                onTogglePalaceMeta={handleMobileTogglePM}
                             />
                         </div>
                     </main>
@@ -522,6 +585,7 @@ export default function QimenPage() {
                         open={isCaseListOpen}
                         title="案例"
                         side="left"
+                        size="xxs"
                         onClose={() => setIsCaseListOpen(false)}
                     >
                         <QimenCaseList
