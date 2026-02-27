@@ -81,6 +81,8 @@ interface QimenChartProps {
     dynamicMaKong?: { kongPositions: number[]; maPosition: number };
     /** Pad 横屏时传入 true，去掉 max-w 限制让盘面更宽 */
     fullWidth?: boolean;
+    /** Pad 横屏时隐藏顶部信息栏（移至右侧面板） */
+    hideHeader?: boolean;
     /** 移动端布局 */
     isMobileLayout?: boolean;
     /** 外部受控的显示状态（移动端使用） */
@@ -120,6 +122,7 @@ export default function QimenChart({
     onOpenAiModal,
     dynamicMaKong,
     fullWidth = false,
+    hideHeader = false,
     isMobileLayout = false,
     controlledShowChangSheng,
     controlledShowShiShen,
@@ -171,25 +174,27 @@ export default function QimenChart({
             <div className="flex flex-col flex-1 min-h-0 items-center w-full">
                 {/* 九宫盘主体 */}
                 <div className={`flex flex-col h-full items-center w-full ${isMobileLayout ? '' : fullWidth ? 'max-w-[560px]' : 'max-w-2xl'}`}>
-                    {/* 顶部信息栏 */}
-                    <div className={`w-full flex-shrink-0 ${isMobileLayout ? 'mb-0' : 'mb-2'}`}>
-                        <QimenHeader
-                            header={header}
-                            method={method}
-                            onMethodChange={onMethodChange}
-                            onResetToNow={onResetToNow}
-                            onOpenDatePicker={onOpenDatePicker}
-                            onPrevHour={onPrevHour}
-                            onNextHour={onNextHour}
-                            onJuClick={onJuClick}
-                            globalPatterns={globalPatterns}
-                            onPatternClick={onPatternClick}
-                            onOpenAiModal={onOpenAiModal}
-                            isSettingsOpen={isSettingsOpen}
-                            onToggleSettings={() => setIsSettingsOpen(!isSettingsOpen)}
-                            isMobileLayout={isMobileLayout}
-                        />
-                    </div>
+                    {/* 顶部信息栏 - Pad 端由右侧面板渲染 */}
+                    {!hideHeader && (
+                        <div className={`w-full flex-shrink-0 ${isMobileLayout ? 'mb-0' : 'mb-2'}`}>
+                            <QimenHeader
+                                header={header}
+                                method={method}
+                                onMethodChange={onMethodChange}
+                                onResetToNow={onResetToNow}
+                                onOpenDatePicker={onOpenDatePicker}
+                                onPrevHour={onPrevHour}
+                                onNextHour={onNextHour}
+                                onJuClick={onJuClick}
+                                globalPatterns={globalPatterns}
+                                onPatternClick={onPatternClick}
+                                onOpenAiModal={onOpenAiModal}
+                                isSettingsOpen={isSettingsOpen}
+                                onToggleSettings={() => setIsSettingsOpen(!isSettingsOpen)}
+                                isMobileLayout={isMobileLayout}
+                            />
+                        </div>
+                    )}
 
                     {/* 九宫格盘式 */}
                     <div className="flex-1 min-h-0 w-full">

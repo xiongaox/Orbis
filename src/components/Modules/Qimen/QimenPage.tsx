@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import QimenCaseList from './QimenCaseList';
 import QimenChart, { type QimenPalace } from './QimenChart';
 import QimenPalaceDetail from './QimenPalaceDetail';
+import QimenPadInfoPanel from './components/QimenPadInfoPanel';
 import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
 import QimenNewCaseModal from './QimenNewCaseModal';
 import QimenJuInfo, { type PillarKey } from './QimenJuInfo';
@@ -390,9 +391,9 @@ export default function QimenPage() {
                 /* ========== Pad 横屏两栏布局 ========== */
                 /* 左侧案例以贴边浮动按钮触发抽屉，右侧详情/局信息常驻显示 */
                 <>
-                    {/* 盘面主体区域 - 无顶部操作栏，充分利用空间 */}
-                    <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col p-1 relative">
-                        {/* 左侧贴边竖线触发按钮 - 复用 MainLayout Pad 端样式 */}
+                    {/* 左侧信息栏面板 - 竖向紧凑排版 */}
+                    <div className="w-64 flex-shrink-0 min-h-0 overflow-y-auto flex flex-col border-r border-border/50 bg-card/10 relative">
+                        {/* 贴边竖线触发按钮 */}
                         <button
                             type="button"
                             onClick={() => setIsCaseListOpen(true)}
@@ -407,6 +408,24 @@ export default function QimenPage() {
                             </span>
                         </button>
 
+                        {/* Pad 专用竖向信息栏 */}
+                        <QimenPadInfoPanel
+                            header={header}
+                            method={paiPanMethod}
+                            onMethodChange={setPaiPanMethod}
+                            onResetToNow={calculateNow}
+                            onOpenDatePicker={() => setIsDatePickerOpen(true)}
+                            onPrevHour={handlePrevHour}
+                            onNextHour={handleNextHour}
+                            onJuClick={() => setIsCustomJuModalOpen(true)}
+                            globalPatterns={globalPatterns}
+                            onPatternClick={setSelectedPattern}
+                            onOpenAiModal={() => setIsAiModalOpen(true)}
+                        />
+                    </div>
+
+                    {/* 盘面主体区域 */}
+                    <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col p-1 relative">
                         {/* 加载状态 */}
                         {isLoading && (
                             <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-20">
@@ -438,10 +457,11 @@ export default function QimenPage() {
                             onOpenAiModal={() => setIsAiModalOpen(true)}
                             dynamicMaKong={dynamicMaKong}
                             fullWidth
+                            hideHeader
                         />
                     </main>
 
-                    {/* 右侧常驻详情栏 - 可滚动、宽度充足 */}
+                    {/* 右侧常驻详情栏 */}
                     <div className="w-96 flex-shrink-0 min-h-0 overflow-y-auto flex flex-col border-l border-border/50 bg-card/10">
                         {rightPanelContent}
                     </div>
