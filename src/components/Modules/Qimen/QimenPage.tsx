@@ -493,7 +493,7 @@ export default function QimenPage() {
                                     onClick={() => setIsInfoOpen(true)}
                                     className="py-1.5 rounded-lg border border-border bg-card/60 text-xs text-foreground hover:bg-muted/40 transition-colors"
                                 >
-                                    {selectedPalaceData ? '详情' : '局信息'}
+                                    局信息
                                 </button>
                                 <button
                                     type="button"
@@ -577,6 +577,10 @@ export default function QimenPage() {
                                 onToggleChangSheng={handleMobileToggleCS}
                                 onToggleShiShen={handleMobileToggleSS}
                                 onTogglePalaceMeta={handleMobileTogglePM}
+                                onLongPressPalace={(position) => {
+                                    setSelectedPalace(position);
+                                    setIsInfoOpen(true);
+                                }}
                             />
                         </div>
                     </main>
@@ -613,6 +617,7 @@ export default function QimenPage() {
                         open={isInfoOpen}
                         title={selectedPalaceData ? '宫位详情' : '局信息'}
                         side="right"
+                        size="sm"
                         onClose={() => setIsInfoOpen(false)}
                     >
                         <div className="h-full min-h-0 overflow-hidden flex flex-col">
