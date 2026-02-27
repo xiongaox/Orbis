@@ -81,6 +81,15 @@ interface QimenChartProps {
     dynamicMaKong?: { kongPositions: number[]; maPosition: number };
     /** Pad 横屏时传入 true，去掉 max-w 限制让盘面更宽 */
     fullWidth?: boolean;
+    /** 移动端布局 */
+    isMobileLayout?: boolean;
+    /** 外部受控的显示状态（移动端使用） */
+    controlledShowChangSheng?: boolean;
+    controlledShowShiShen?: boolean;
+    controlledShowPalaceMeta?: boolean;
+    onToggleChangSheng?: () => void;
+    onToggleShiShen?: () => void;
+    onTogglePalaceMeta?: () => void;
 }
 
 // 洛书九宫布局顺序
@@ -110,43 +119,58 @@ export default function QimenChart({
     onOpenAiModal,
     dynamicMaKong,
     fullWidth = false,
+    isMobileLayout = false,
+    controlledShowChangSheng,
+    controlledShowShiShen,
+    controlledShowPalaceMeta,
+    onToggleChangSheng,
+    onToggleShiShen,
+    onTogglePalaceMeta,
 }: QimenChartProps) {
     const orderedPalaces = LUOSHU_ORDER.map(pos => palaces.find(p => p.position === pos)!);
-    const [showChangSheng, setShowChangSheng] = useState(false);
-    const [showShiShen, setShowShiShen] = useState(false);
-    const [showPalaceMeta, setShowPalaceMeta] = useState(false);
+    // 内部状态（桌面端使用）
+    const [internalShowChangSheng, setInternalShowChangSheng] = useState(false);
+    const [internalShowShiShen, setInternalShowShiShen] = useState(false);
+    const [internalShowPalaceMeta, setInternalShowPalaceMeta] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-    // 互斥切换逻辑：开启长生则关闭十神，开启十神则关闭长生
-    const handleToggleChangSheng = () => {
-        if (!showChangSheng) {
-            setShowChangSheng(true);
-            setShowShiShen(false);
-        } else {
-            setShowChangSheng(false);
-        }
-    };
+    // 根据是否有外部受控状态决定使用哪个
+    const showChangSheng = controlledShowChangSheng ?? internalShowChangSheng;
+    const showShiShen = controlledShowShiShen ?? internalShowShiShen;
+    const showPalaceMeta = controlledShowPalaceMeta ?? internalShowPalaceMeta;
 
-    const handleToggleShiShen = () => {
-        if (!showShiShen) {
-            setShowShiShen(true);
-            setShowChangSheng(false);
+    // 互斥切换逻辑：开启长生则关闭十神，开启十神则关闭长生
+    const handleToggleChangSheng = onToggleChangSheng ?? (() => {
+        if (!internalShowChangSheng) {
+            setInternalShowChangSheng(true);
+            setInternalShowShiShen(false);
         } else {
-            setShowShiShen(false);
+            setInternalShowChangSheng(false);
         }
-    };
+    });
+
+    const handleToggleShiShen = onToggleShiShen ?? (() => {
+        if (!internalShowShiShen) {
+            setInternalShowShiShen(true);
+            setInternalShowChangSheng(false);
+        } else {
+            setInternalShowShiShen(false);
+        }
+    });
+
+    const handleTogglePalaceMeta = onTogglePalaceMeta ?? (() => setInternalShowPalaceMeta(!internalShowPalaceMeta));
 
     // 高亮计算
     const targetDayStem = getRealStem(header.siZhu.day[0], header.siZhu.day[1]);
     const targetHourStem = getRealStem(header.siZhu.hour[0], header.siZhu.hour[1]);
 
     return (
-        <div className="flex flex-col h-full overflow-hidden items-center p-2 relative">
+        <div className={`flex flex-col h-full overflow-hidden items-center ${isMobileLayout ? 'p-0' : 'p-2'} relative`}>
             <div className="flex flex-col flex-1 min-h-0 items-center w-full">
                 {/* 九宫盘主体 */}
-                <div className={`flex flex-col h-full items-center w-full ${fullWidth ? 'max-w-[560px]' : 'max-w-2xl'}`}>
+                <div className={`flex flex-col h-full items-center w-full ${isMobileLayout ? '' : fullWidth ? 'max-w-[560px]' : 'max-w-2xl'}`}>
                     {/* 顶部信息栏 */}
-                    <div className="w-full flex-shrink-0 mb-2">
+                    <div className={`w-full flex-shrink-0 ${isMobileLayout ? 'mb-0' : 'mb-2'}`}>
                         <QimenHeader
                             header={header}
                             method={method}
@@ -161,13 +185,14 @@ export default function QimenChart({
                             onOpenAiModal={onOpenAiModal}
                             isSettingsOpen={isSettingsOpen}
                             onToggleSettings={() => setIsSettingsOpen(!isSettingsOpen)}
+                            isMobileLayout={isMobileLayout}
                         />
                     </div>
 
                     {/* 九宫格盘式 */}
                     <div className="flex-1 min-h-0 w-full">
-                        <div className="w-full h-full bg-card rounded-xl border border-border p-2">
-                            <div className="grid grid-cols-3 gap-1 h-full">
+                        <div className={`w-full h-full ${isMobileLayout ? '' : 'bg-card rounded-xl border border-border p-2'}`}>
+                            <div className={`grid grid-cols-3 ${isMobileLayout ? 'gap-0' : 'gap-1'} h-full`}>
                                 {orderedPalaces.map((palace) => (
                                     <PalaceCell
                                         key={palace.position}
@@ -184,6 +209,7 @@ export default function QimenChart({
                                         isJiGongDayStem={palace.jiGongTianPan === targetDayStem}
                                         isJiGongHourStem={palace.jiGongTianPan === targetHourStem}
                                         dynamicMaKong={dynamicMaKong}
+                                        isMobileLayout={isMobileLayout}
                                     />
                                 ))}
                             </div>
@@ -236,7 +262,7 @@ export default function QimenChart({
                             <span className="text-sm font-serif text-foreground">宫位提示</span>
                             <button
                                 type="button"
-                                onClick={() => setShowPalaceMeta(!showPalaceMeta)}
+                                onClick={handleTogglePalaceMeta}
                                 className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${showPalaceMeta ? 'bg-primary' : 'bg-muted'}`}
                             >
                                 <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showPalaceMeta ? 'translate-x-4' : 'translate-x-0'}`} />
