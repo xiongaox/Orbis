@@ -119,7 +119,6 @@ export default function WannianliPage() {
     };
 
     const renderCalendarHeader = () => {
-        const viewLunar = Lunar.fromDate(viewDate);
         const selectedLunar = Lunar.fromDate(selectedDate);
         const selectedWeekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][selectedDate.getDay()];
 
@@ -266,7 +265,7 @@ export default function WannianliPage() {
 
                             <div className="pt-1 shrink-0 flex flex-col items-end">
                                 <h2 className="font-serif font-bold text-xl text-foreground/85 tracking-wide whitespace-nowrap text-right">
-                                    {viewLunar.getYearInGanZhi()}年·{viewLunar.getMonthInGanZhi().charAt(1)}月
+                                    {selectedLunar.getYearInGanZhi()}年·{selectedLunar.getMonthInGanZhi().charAt(1)}月
                                 </h2>
                                 <div className="mt-2 flex items-center justify-end gap-2">
                                     {todayControl}
@@ -300,7 +299,7 @@ export default function WannianliPage() {
                         <div className="flex items-baseline gap-3 min-w-0">
                             <h2 className="font-serif font-bold text-2xl text-foreground flex items-baseline tracking-widest truncate">
                                 <span className="text-foreground/80">
-                                    {viewLunar.getYearInGanZhi()}年·{viewLunar.getMonthInGanZhi().charAt(1)}月
+                                    {selectedLunar.getYearInGanZhi()}年·{selectedLunar.getMonthInGanZhi().charAt(1)}月
                                 </span>
                             </h2>
                         </div>
