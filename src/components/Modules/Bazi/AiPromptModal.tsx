@@ -141,34 +141,26 @@ export default function AiPromptModal({ isOpen, onClose, data, selectedLiuNianYe
         <BaseModal
             isOpen={isOpen}
             onClose={onClose}
-            title={null} // Custom layout inside used
-            showCloseButton={false} // Custom close button used inside or relied on BaseModal's
-            maxWidth={isMobile ? 'max-w-sm' : 'max-w-4xl'}
-            className="flex-row p-0 overflow-hidden"
-            bodyClassName={`p-0 min-h-0 !flex-none ${isMobile ? '!h-auto !max-h-[80vh]' : '!h-[70vh] !max-h-[570px]'} overflow-x-hidden overflow-y-auto md:overflow-hidden`}
+            title={isMobile ? (
+                <div className="flex items-center gap-2">
+                    <span className="text-lg font-medium text-foreground">八字信息提示词</span>
+                    <span className="text-xs text-muted-foreground font-normal">{promptText.length} 字</span>
+                </div>
+            ) : null}
+            titleIcon={isMobile ? <Sparkles className="w-5 h-5" /> : undefined}
+            showCloseButton={isMobile}
+            maxWidth={isMobile ? 'max-w-none' : 'max-w-4xl'}
+            className={`flex-row p-0 overflow-hidden ${isMobile ? '!fixed !inset-0 !w-auto !h-auto !max-w-none !max-h-none !rounded-none !m-0 !border-0' : ''}`}
+            bodyClassName={`p-0 ${isMobile ? '!overflow-hidden' : 'min-h-0 !flex-none !h-[70vh] !max-h-[570px] overflow-x-hidden overflow-y-auto md:overflow-hidden'}`}
         >
             {isMobile ? (
                 /* ===== 移动端：单栏流式布局 ===== */
                 <div className="flex flex-col h-full">
-                    {/* 统一 Header */}
-                    <div className="px-3 py-2.5 border-b border-border flex items-center justify-between shrink-0">
-                        <div className="flex items-center gap-2 text-foreground font-medium text-sm">
-                            <Sparkles className="w-4 h-4 text-amber-500" />
-                            八字信息提示词
-                            <span className="text-xs text-muted-foreground font-normal">{promptText.length} 字</span>
-                        </div>
-                        <button
-                            onClick={onClose}
-                            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
 
                     {/* 可滚动内容 */}
                     <div className="flex-1 overflow-y-auto p-3 space-y-3">
                         {/* 提示词预览 */}
-                        <div className="bg-muted/50 rounded-lg p-3 border border-border/50 font-serif text-foreground text-xs leading-relaxed whitespace-pre-wrap max-h-64 overflow-y-auto">
+                        <div className="bg-muted/50 rounded-lg p-3 border border-border/50 font-serif text-foreground text-[14px] leading-relaxed whitespace-pre-wrap max-h-[45vh] overflow-y-auto">
                             {promptText}
                         </div>
 

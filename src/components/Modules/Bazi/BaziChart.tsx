@@ -139,7 +139,7 @@ export default function BaziChart({
                 </div>
               );
             })}
-            <div className="min-h-[90px] flex items-center justify-center border-b border-border bg-muted/30"><span className="text-xs text-muted-foreground">藏干</span></div>
+            <div className={`${isMobileLayout ? 'h-[72px]' : 'h-[90px]'} flex items-center justify-center ${!(isMobileLayout && hideDetails) ? 'border-b border-border' : ''} bg-muted/30`}><span className="text-xs text-muted-foreground">藏干</span></div>
             {!(isMobileLayout && hideDetails) && (
               <>
                 {['星运', '自坐', '空亡', '纳音'].map(label => (

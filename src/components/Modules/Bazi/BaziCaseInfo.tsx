@@ -100,7 +100,10 @@ export default function BaziCaseInfo({
         {isMobileLayout ? (
           /* === 移动端布局 === */
           <div className="space-y-2">
-            <div className="flex items-center gap-3">
+            <div
+              className="flex items-center gap-3 cursor-pointer"
+              onClick={() => setMobileCollapsed(!mobileCollapsed)}
+            >
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
                 {baziData?.zodiac ? (
                   <img
@@ -123,14 +126,10 @@ export default function BaziCaseInfo({
                       {baziData.zodiac}
                     </span>
                   )}
-                  {/* 折叠按钮 */}
-                  <button
-                    type="button"
-                    onClick={() => setMobileCollapsed(!mobileCollapsed)}
-                    className="ml-auto p-0.5 rounded text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                  >
+                  {/* 折叠指示图标 */}
+                  <span className="ml-auto p-0.5 text-muted-foreground shrink-0">
                     {mobileCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-                  </button>
+                  </span>
                 </div>
                 <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs text-[hsl(var(--card-time))] dark:text-muted-foreground">
                   <div className="truncate">阴：{displayLunar}</div>
