@@ -112,7 +112,7 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
                                 key={item.id}
                                 onClick={() => setSelectedTab(item.id)}
                                 className={`
-                                    w-full text-left px-3 py-3 border-b border-border transition-all relative
+                                    w-full text-left pl-3 pr-2 py-2 border-b border-border transition-all relative
                                     flex flex-col gap-0.5
                                     ${isActive ? 'bg-primary/10' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'}
                                 `}
@@ -129,7 +129,7 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
             {/* 右侧详情内容 */}
             <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-card">
                 {activeItem && (
-                    <div className="p-5 border-b border-border bg-muted/10">
+                    <div className="p-3 border-b border-border bg-muted/10">
                         <div className="flex flex-col gap-2">
                             <h2 className="text-xl font-serif text-foreground">{detailData.title}</h2>
                             {(detailData.subTitle || (detailData.tags && detailData.tags.length > 0)) && (
@@ -148,7 +148,7 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
                     </div>
                 )}
 
-                <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-3 custom-scrollbar">
                     <div className="prose prose-invert prose-sm max-w-none">
                         <div className="leading-loose text-foreground/60 font-normal text-base">
                             {typeof detailData.content === 'string' ? (

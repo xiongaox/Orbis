@@ -172,32 +172,30 @@ export default function AiPromptModal({ isOpen, onClose, data, selectedLiuNianYe
                             className="w-full h-20 bg-muted/50 border border-border rounded-lg p-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-amber-500/50 resize-none transition-colors"
                         />
 
-                        {/* 扩展选项 */}
-                        <div className="flex gap-2">
-                            <label className="flex-1 flex items-center gap-2 p-2 rounded-lg border border-border bg-muted/30 cursor-pointer text-xs">
-                                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${includeDaYun ? 'bg-amber-500 border-amber-500' : 'border-input'}`}>
+                        {/* 扩展选项 + 复制按钮：一行三列 */}
+                        <div className="grid grid-cols-3 gap-2">
+                            <label className="flex items-center gap-2 px-2 py-2.5 rounded-lg border border-border bg-muted/30 cursor-pointer text-xs">
+                                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${includeDaYun ? 'bg-amber-500 border-amber-500' : 'border-input'}`}>
                                     {includeDaYun && <Check className="w-2.5 h-2.5 text-black" />}
                                 </div>
                                 <input type="checkbox" className="sr-only" checked={includeDaYun} onChange={(e) => setIncludeDaYun(e.target.checked)} />
                                 含大运
                             </label>
-                            <label className="flex-1 flex items-center gap-2 p-2 rounded-lg border border-border bg-muted/30 cursor-pointer text-xs">
-                                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${includeLiuNian ? 'bg-amber-500 border-amber-500' : 'border-input'}`}>
+                            <label className="flex items-center gap-2 px-2 py-2.5 rounded-lg border border-border bg-muted/30 cursor-pointer text-xs">
+                                <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${includeLiuNian ? 'bg-amber-500 border-amber-500' : 'border-input'}`}>
                                     {includeLiuNian && <Check className="w-2.5 h-2.5 text-black" />}
                                 </div>
                                 <input type="checkbox" className="sr-only" checked={includeLiuNian} onChange={(e) => setIncludeLiuNian(e.target.checked)} />
                                 含流年
                             </label>
+                            <button
+                                onClick={handleCopy}
+                                className="py-2.5 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-semibold shadow-lg transition-all flex items-center justify-center gap-1.5 active:scale-95 text-sm"
+                            >
+                                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                {copied ? '已复制' : '复制'}
+                            </button>
                         </div>
-
-                        {/* 复制按钮 */}
-                        <button
-                            onClick={handleCopy}
-                            className="w-full py-2.5 px-4 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-semibold shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95"
-                        >
-                            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                            {copied ? '已复制' : '一键复制提示词'}
-                        </button>
 
                         {/* AI 平台 */}
                         <div className="pt-2 border-t border-border/50">

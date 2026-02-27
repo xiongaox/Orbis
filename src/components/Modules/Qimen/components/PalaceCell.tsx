@@ -2,6 +2,7 @@
  * 奇门宫位单元格组件
  * 从 QimenChart.tsx 提取的宫位渲染逻辑
  */
+import { useRef, useCallback } from 'react';
 import type { QimenPalace } from '../QimenChart';
 import { getTianPanStatus, getMenPoStatus } from '../../../../lib/csp-qimen/qimenStatusUtils';
 
@@ -20,6 +21,7 @@ interface PalaceCellProps {
     isJiGongHourStem?: boolean;
     dynamicMaKong?: { kongPositions: number[]; maPosition: number };
     isMobileLayout?: boolean;
+    onLongPress?: () => void;
 }
 
 export default function PalaceCell({
@@ -37,7 +39,26 @@ export default function PalaceCell({
     isJiGongHourStem,
     dynamicMaKong,
     isMobileLayout = false,
+    onLongPress,
 }: PalaceCellProps) {
+    // 双击手势实现：300ms 内两次点击触发
+    const lastClickTime = useRef(0);
+
+    const handleClick = useCallback(() => {
+        const now = Date.now();
+        if (onLongPress && now - lastClickTime.current < 300) {
+            // 双击：触发详情
+            lastClickTime.current = 0;
+            onLongPress();
+        } else {
+            // 单击：正常选中
+            lastClickTime.current = now;
+            onSelect();
+        }
+    }, [onSelect, onLongPress]);
+
+    // 事件 props
+    const gestureProps = { onClick: handleClick };
     // 动态计算马/空显示
     const dynamicMaKongDisplay = (() => {
         if (!dynamicMaKong || palace.position === 5) return '';
@@ -61,7 +82,7 @@ export default function PalaceCell({
     // 中宫特殊布局 - 与普通宫位保持完全一致的DOM结构
     if (palace.position === 5) {
         return (
-            <button type="button" onClick={onSelect} className={baseClass}>
+            <button type="button" {...gestureProps} className={baseClass}>
                 <div className={`h-full flex flex-col p-0.5 2xl:p-1 ${showPalaceMeta ? 'justify-between gap-y-1 2xl:gap-y-1.5' : showExtraInfo ? 'justify-center gap-y-2 2xl:gap-y-3' : 'justify-evenly gap-y-2 2xl:gap-y-3'}`}>
                     {/* 占位行：对齐普通宫位的“门迫提示”，仅在 showPalaceMeta 开启时显示 */}
                     {showPalaceMeta && (
@@ -143,7 +164,7 @@ export default function PalaceCell({
     const jiGongClass = `text-base 2xl:text-xl font-serif ${isJiGongDayStem || isJiGongHourStem ? 'text-primary font-bold' : 'text-foreground'}`;
 
     return (
-        <button type="button" onClick={onSelect} className={baseClass}>
+        <button type="button" {...gestureProps} className={baseClass}>
             <div className={`h-full flex flex-col p-0.5 2xl:p-1 ${showPalaceMeta ? 'justify-between gap-y-1 2xl:gap-y-1.5' : showExtraInfo ? 'justify-center gap-y-2 2xl:gap-y-3' : 'justify-evenly gap-y-2 2xl:gap-y-3'}`}>
                 {/* 门迫路径行（顶部）：原宫 → 所在宫 → 后天方位 */}
                 {showPalaceMeta && palace.menPoPath && (

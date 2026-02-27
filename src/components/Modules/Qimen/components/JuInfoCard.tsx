@@ -22,7 +22,7 @@ interface JuInfoCardProps {
 
 export default function JuInfoCard({ header, info, selectedKongWangKey, selectedMaXingKey, onKongWangKeyChange, onMaXingKeyChange }: JuInfoCardProps) {
     return (
-        <div className="p-6 space-y-5">
+        <div className="p-4 space-y-4">
             {/* 顶部标题 */}
             <div className="space-y-1">
                 <div className="flex items-baseline gap-3">
@@ -68,9 +68,9 @@ export default function JuInfoCard({ header, info, selectedKongWangKey, selected
             {/* 神煞信息 - 表格式对齐 */}
             <div className="space-y-3 text-sm">
                 {/* 空亡 */}
-                <div className="grid grid-cols-[50px_1fr] gap-2 items-center">
+                <div className="grid grid-cols-[32px_1fr] gap-1 items-center">
                     <span className="text-muted-foreground text-xs">空亡</span>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
                         {(['year', 'month', 'day', 'hour'] as const).map((key) => {
                             const val = info.kongWang[key];
                             const labelMap: Record<string, string> = { year: '年', month: '月', day: '日', hour: '时' };
@@ -80,13 +80,13 @@ export default function JuInfoCard({ header, info, selectedKongWangKey, selected
                                     key={key}
                                     type="button"
                                     onClick={() => onKongWangKeyChange(key)}
-                                    className={`flex items-baseline gap-1 px-2 py-1 rounded transition-colors ${isSelected
+                                    className={`flex items-baseline gap-0.5 px-1.5 py-0.5 rounded transition-colors ${isSelected
                                         ? 'bg-primary/20 border border-primary/50 ring-1 ring-primary/30'
                                         : 'bg-muted/30 border border-border/40 hover:bg-muted/50'
                                         }`}
                                 >
                                     <span className={`text-xs ${isSelected ? 'text-primary' : 'text-muted-foreground/70'}`}>{labelMap[key]}</span>
-                                    <span className={`font-mono ${isSelected ? 'text-primary font-bold' : 'text-foreground/90'}`}>
+                                    <span className={`font-mono text-xs ${isSelected ? 'text-primary font-bold' : 'text-foreground/90'}`}>
                                         {val || '-'}
                                     </span>
                                 </button>
@@ -96,9 +96,9 @@ export default function JuInfoCard({ header, info, selectedKongWangKey, selected
                 </div>
 
                 {/* 驿马 */}
-                <div className="grid grid-cols-[50px_1fr] gap-2 items-center">
+                <div className="grid grid-cols-[32px_1fr] gap-1 items-center">
                     <span className="text-muted-foreground text-xs">驿马</span>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
                         {(['year', 'month', 'day', 'hour'] as const).map((key) => {
                             const val = info.maXing[key];
                             const labelMap: Record<string, string> = { year: '年', month: '月', day: '日', hour: '时' };
@@ -108,13 +108,13 @@ export default function JuInfoCard({ header, info, selectedKongWangKey, selected
                                     key={key}
                                     type="button"
                                     onClick={() => onMaXingKeyChange(key)}
-                                    className={`flex items-baseline gap-1 px-2 py-1 rounded transition-colors ${isSelected
+                                    className={`flex items-baseline gap-0.5 px-1.5 py-0.5 rounded transition-colors ${isSelected
                                         ? 'bg-primary/20 border border-primary/50 ring-1 ring-primary/30'
                                         : 'bg-muted/30 border border-border/40 hover:bg-muted/50'
                                         }`}
                                 >
                                     <span className={`text-xs ${isSelected ? 'text-primary' : 'text-muted-foreground/70'}`}>{labelMap[key]}</span>
-                                    <span className={`font-mono ${isSelected ? 'text-primary font-bold' : 'text-foreground/90'}`}>
+                                    <span className={`font-mono text-xs ${isSelected ? 'text-primary font-bold' : 'text-foreground/90'}`}>
                                         {val || '-'}
                                     </span>
                                 </button>

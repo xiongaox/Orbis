@@ -90,6 +90,7 @@ interface QimenChartProps {
     onToggleChangSheng?: () => void;
     onToggleShiShen?: () => void;
     onTogglePalaceMeta?: () => void;
+    onLongPressPalace?: (position: number) => void;
 }
 
 // 洛书九宫布局顺序
@@ -126,6 +127,7 @@ export default function QimenChart({
     onToggleChangSheng,
     onToggleShiShen,
     onTogglePalaceMeta,
+    onLongPressPalace,
 }: QimenChartProps) {
     const orderedPalaces = LUOSHU_ORDER.map(pos => palaces.find(p => p.position === pos)!);
     // 内部状态（桌面端使用）
@@ -210,6 +212,7 @@ export default function QimenChart({
                                         isJiGongHourStem={palace.jiGongTianPan === targetHourStem}
                                         dynamicMaKong={dynamicMaKong}
                                         isMobileLayout={isMobileLayout}
+                                        onLongPress={onLongPressPalace ? () => onLongPressPalace(palace.position) : undefined}
                                     />
                                 ))}
                             </div>
