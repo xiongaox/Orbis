@@ -18,15 +18,16 @@ interface JuInfoCardProps {
     selectedMaXingKey: 'year' | 'month' | 'day' | 'hour';
     onKongWangKeyChange: (key: 'year' | 'month' | 'day' | 'hour') => void;
     onMaXingKeyChange: (key: 'year' | 'month' | 'day' | 'hour') => void;
+    compact?: boolean;
 }
 
-export default function JuInfoCard({ header, info, selectedKongWangKey, selectedMaXingKey, onKongWangKeyChange, onMaXingKeyChange }: JuInfoCardProps) {
+export default function JuInfoCard({ header, info, selectedKongWangKey, selectedMaXingKey, onKongWangKeyChange, onMaXingKeyChange, compact = false }: JuInfoCardProps) {
     return (
-        <div className="p-4 lg:p-6 space-y-4 lg:space-y-5">
+        <div className={compact ? 'p-3 space-y-3' : 'p-4 lg:p-6 space-y-4 lg:space-y-5'}>
             {/* 顶部标题 */}
             <div className="space-y-1">
                 <div className="flex items-baseline gap-3">
-                    <span className="text-xl font-bold font-display tracking-wide">
+                    <span className={compact ? 'text-base font-bold font-display tracking-wide' : 'text-xl font-bold font-display tracking-wide'}>
                         {header.jieQi} {header.ju} <span className="text-primary font-mono ml-1">{header.xunShou}{getXunShouSuffix(header.xunShou)}</span>
                     </span>
                 </div>
@@ -68,9 +69,9 @@ export default function JuInfoCard({ header, info, selectedKongWangKey, selected
             {/* 神煞信息 - 表格式对齐 */}
             <div className="space-y-3 text-sm">
                 {/* 空亡 */}
-                <div className="grid grid-cols-[32px_1fr] lg:grid-cols-[50px_1fr] gap-1 lg:gap-2 items-center">
+                <div className={`grid gap-1 items-center ${compact ? 'grid-cols-[28px_1fr]' : 'grid-cols-[32px_1fr] lg:grid-cols-[50px_1fr] lg:gap-2'}`}>
                     <span className="text-muted-foreground text-xs">空亡</span>
-                    <div className="flex gap-1 lg:gap-2">
+                    <div className={compact ? 'flex gap-1' : 'flex gap-1 lg:gap-2'}>
                         {(['year', 'month', 'day', 'hour'] as const).map((key) => {
                             const val = info.kongWang[key];
                             const labelMap: Record<string, string> = { year: '年', month: '月', day: '日', hour: '时' };
@@ -80,13 +81,13 @@ export default function JuInfoCard({ header, info, selectedKongWangKey, selected
                                     key={key}
                                     type="button"
                                     onClick={() => onKongWangKeyChange(key)}
-                                    className={`flex items-baseline gap-0.5 lg:gap-1 px-1.5 lg:px-2 py-0.5 lg:py-1 rounded transition-colors ${isSelected
+                                    className={`flex items-baseline ${compact ? 'gap-0.5 px-1 py-0.5' : 'gap-0.5 lg:gap-1 px-1.5 lg:px-2 py-0.5 lg:py-1'} rounded transition-colors ${isSelected
                                         ? 'bg-primary/20 border border-primary/50 ring-1 ring-primary/30'
                                         : 'bg-muted/30 border border-border/40 hover:bg-muted/50'
                                         }`}
                                 >
                                     <span className={`text-xs ${isSelected ? 'text-primary' : 'text-muted-foreground/70'}`}>{labelMap[key]}</span>
-                                    <span className={`font-mono text-xs lg:text-sm ${isSelected ? 'text-primary font-bold' : 'text-foreground/90'}`}>
+                                    <span className={`font-mono text-sm ${isSelected ? 'text-primary font-bold' : 'text-foreground/90'}`}>
                                         {val || '-'}
                                     </span>
                                 </button>
@@ -96,9 +97,9 @@ export default function JuInfoCard({ header, info, selectedKongWangKey, selected
                 </div>
 
                 {/* 驿马 */}
-                <div className="grid grid-cols-[32px_1fr] lg:grid-cols-[50px_1fr] gap-1 lg:gap-2 items-center">
+                <div className={`grid gap-1 items-center ${compact ? 'grid-cols-[28px_1fr]' : 'grid-cols-[32px_1fr] lg:grid-cols-[50px_1fr] lg:gap-2'}`}>
                     <span className="text-muted-foreground text-xs">驿马</span>
-                    <div className="flex gap-1 lg:gap-2">
+                    <div className={compact ? 'flex gap-1' : 'flex gap-1 lg:gap-2'}>
                         {(['year', 'month', 'day', 'hour'] as const).map((key) => {
                             const val = info.maXing[key];
                             const labelMap: Record<string, string> = { year: '年', month: '月', day: '日', hour: '时' };
@@ -108,13 +109,13 @@ export default function JuInfoCard({ header, info, selectedKongWangKey, selected
                                     key={key}
                                     type="button"
                                     onClick={() => onMaXingKeyChange(key)}
-                                    className={`flex items-baseline gap-0.5 lg:gap-1 px-1.5 lg:px-2 py-0.5 lg:py-1 rounded transition-colors ${isSelected
+                                    className={`flex items-baseline ${compact ? 'gap-0.5 px-1 py-0.5' : 'gap-0.5 lg:gap-1 px-1.5 lg:px-2 py-0.5 lg:py-1'} rounded transition-colors ${isSelected
                                         ? 'bg-primary/20 border border-primary/50 ring-1 ring-primary/30'
                                         : 'bg-muted/30 border border-border/40 hover:bg-muted/50'
                                         }`}
                                 >
                                     <span className={`text-xs ${isSelected ? 'text-primary' : 'text-muted-foreground/70'}`}>{labelMap[key]}</span>
-                                    <span className={`font-mono text-xs lg:text-sm ${isSelected ? 'text-primary font-bold' : 'text-foreground/90'}`}>
+                                    <span className={`font-mono text-sm ${isSelected ? 'text-primary font-bold' : 'text-foreground/90'}`}>
                                         {val || '-'}
                                     </span>
                                 </button>

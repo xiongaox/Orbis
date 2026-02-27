@@ -24,11 +24,12 @@ interface QimenJuInfoProps {
     selectedMaXingKey: PillarKey;
     onKongWangKeyChange: (key: PillarKey) => void;
     onMaXingKeyChange: (key: PillarKey) => void;
+    compact?: boolean;
 }
 
 export default function QimenJuInfo({
     date, header, caseData, onCaseUpdated,
-    selectedKongWangKey, selectedMaXingKey, onKongWangKeyChange, onMaXingKeyChange
+    selectedKongWangKey, selectedMaXingKey, onKongWangKeyChange, onMaXingKeyChange, compact = false
 }: QimenJuInfoProps) {
     // 局基本信息计算
     const info = useMemo(() => {
@@ -87,6 +88,7 @@ export default function QimenJuInfo({
                 selectedMaXingKey={selectedMaXingKey}
                 onKongWangKeyChange={onKongWangKeyChange}
                 onMaXingKeyChange={onMaXingKeyChange}
+                compact={compact}
             />
 
             <div className="h-2 bg-muted/20 border-t border-b border-border/10 flex-shrink-0" />

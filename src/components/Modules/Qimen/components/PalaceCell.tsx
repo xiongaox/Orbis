@@ -134,7 +134,7 @@ export default function PalaceCell({
                     {/* 底部元数据行：对齐普通宫位的 Meta 行 */}
                     {showPalaceMeta && (
                         palace.palaceMeta ? (
-                            <div className={`flex items-center justify-center ${metaGapClass} border-t border-border/40 pt-0.5 text-xs text-foreground/40 font-serif`}>
+                            <div className={`flex items-center justify-center ${metaGapClass} border-t border-border/40 pt-0.5 text-[11px] text-foreground/40 font-serif`}>
                                 <span>{palace.palaceMeta.number}</span>
                                 <span>丨</span>
                                 <span>{isMobileLayout ? '' : '宫位'}【 {palace.palaceMeta.wangShuai} 】</span>
@@ -142,7 +142,7 @@ export default function PalaceCell({
                                 <span>{isMobileLayout ? palace.palaceMeta.panType.replace('盘', '') : palace.palaceMeta.panType}</span>
                             </div>
                         ) : (
-                            <div className={`flex items-center justify-center ${metaGapClass} border-t border-transparent pt-0.5 text-xs text-transparent font-serif select-none`}>
+                            <div className={`flex items-center justify-center ${metaGapClass} border-t border-transparent pt-0.5 text-[11px] text-transparent font-serif select-none`}>
                                 <span>占位</span>
                                 <span>丨</span>
                                 <span>【 占位 】</span>
@@ -264,7 +264,7 @@ export default function PalaceCell({
 
                 {/* 底部元数据行：序号 | 宫位【旺衰】| 内外盘 */}
                 {showPalaceMeta && palace.palaceMeta && (
-                    <div className={`flex items-center justify-center ${metaGapClass} border-t border-border/40 pt-0.5 text-xs text-foreground/40 font-serif`}>
+                    <div className={`flex items-center justify-center ${metaGapClass} border-t border-border/40 pt-0.5 text-[11px] text-foreground/40 font-serif`}>
                         <span>{palace.palaceMeta.number}</span>
                         <span>丨</span>
                         <span>{isMobileLayout ? '' : '宫位'}【 {palace.palaceMeta.wangShuai} 】</span>
