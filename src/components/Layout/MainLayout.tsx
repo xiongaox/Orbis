@@ -62,7 +62,8 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children
         );
     }
 
-    const showTopBar = !isPadLandscape && (sidebar || hasRightPanel);
+    // 移动端和 Pad 端都使用竖线把手，不再显示顶部 bar
+    const showTopBar = false;
 
     return (
         <div className="flex flex-1 min-h-0 overflow-hidden relative">
@@ -96,7 +97,7 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children
                     {children}
 
                     {/* Pad 横屏：隐藏式边缘“把手”（视觉占用小，但触摸面积大） */}
-                    {isPadLandscape && sidebar && (
+                    {sidebar && (
                         <button
                             type="button"
                             onClick={() => setIsSidebarOpen(true)}
@@ -115,7 +116,7 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children
                         </button>
                     )}
 
-                    {isPadLandscape && hasRightPanel && (
+                    {hasRightPanel && (
                         <button
                             type="button"
                             onClick={() => setIsRightPanelOpen(true)}
@@ -156,34 +157,18 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children
                     size={isPadLandscape ? 'md' : 'sm'}
                     onClose={() => setIsRightPanelOpen(false)}
                 >
-                    {isPadLandscape ? (
-                        /* 桌面/Pad：干支留意固定顶部，智能咨询参考独立滚动 */
-                        <div className="h-full flex flex-col min-h-0 overflow-hidden">
-                            {liuYiPanel && (
-                                <div className="border-b border-border">
-                                    {liuYiPanel}
-                                </div>
-                            )}
-                            {insightPanel && (
-                                <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-                                    {insightPanel}
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        /* 移动端：整体可滚动，干支留意可以滚出视野 */
-                        <div className="h-full overflow-y-auto">
-                            {liuYiPanel && (
-                                <div className="border-b border-border">
-                                    {liuYiPanel}
-                                </div>
-                            )}
-                            {insightPanel && isValidElement(insightPanel)
-                                ? cloneElement(insightPanel as React.ReactElement, { flat: true } as Record<string, unknown>)
-                                : insightPanel
-                            }
-                        </div>
-                    )}
+                    {/* 整体可滚动，干支留意可以滚出视野 */}
+                    <div className="h-full overflow-y-auto">
+                        {liuYiPanel && (
+                            <div className="border-b border-border">
+                                {liuYiPanel}
+                            </div>
+                        )}
+                        {insightPanel && isValidElement(insightPanel)
+                            ? cloneElement(insightPanel as React.ReactElement, { flat: true } as Record<string, unknown>)
+                            : insightPanel
+                        }
+                    </div>
                 </SideDrawer>
             )}
         </div>

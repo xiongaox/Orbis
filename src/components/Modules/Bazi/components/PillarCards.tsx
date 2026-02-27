@@ -4,6 +4,7 @@
  */
 import type { PillarData } from '../../../../types/bazi';
 import { getElementColor } from '../../../../lib/xuan-bazi/maps/baziStyleMap';
+import { useIsPadLandscape } from '../../../../hooks/useIsPadLandscape';
 
 // ============ 四柱详情卡片 ============
 
@@ -24,6 +25,8 @@ export function DetailedPillarCard({
     isMobileLayout = false,
     hideDetails = false,
 }: DetailedPillarCardProps) {
+    const isPadLandscape = useIsPadLandscape();
+    const pxClass = isMobileLayout ? 'px-1' : isPadLandscape ? 'px-1' : 'px-2';
     return (
         <div className={`h-full flex flex-col ${isDayMaster ? 'bg-primary/5' : ''}`}>
             <div className="h-8 flex items-center justify-center border-b border-border bg-secondary/30">
@@ -48,7 +51,7 @@ export function DetailedPillarCard({
                     {pillar.dizhi}
                 </span>
             </div>
-            <div className={`${isMobileLayout ? 'h-[72px]' : 'h-[90px]'} py-2 ${isMobileLayout ? 'px-1' : 'px-2'} ${!(isMobileLayout && hideDetails) ? 'border-b border-border' : ''} flex flex-col justify-start gap-1`}>
+            <div className={`${isMobileLayout ? 'h-[72px]' : 'h-[90px]'} py-2 ${pxClass} ${!(isMobileLayout && hideDetails) ? 'border-b border-border' : ''} flex flex-col justify-start gap-1`}>
                 {pillar.zanggan.map((item, index) => (
                     <div key={`${item.gan}-${index}`} className={`flex items-center justify-center ${isMobileLayout ? 'gap-0 text-xs' : 'gap-1 text-sm'}`}>
                         <span className="font-medium" style={{ color: getElementColor(item.gan) }}>
@@ -72,7 +75,7 @@ export function DetailedPillarCard({
                     <div className="h-10 flex items-center justify-center border-b border-border">
                         <span className="text-sm text-muted-foreground">{pillar.naYin}</span>
                     </div>
-                    <div className={`flex-1 ${isMobileLayout ? 'py-2 px-0.5' : 'p-2'} flex flex-col items-center justify-start gap-2 min-h-[100px]`}>
+                    <div className={`flex-1 ${isMobileLayout ? 'py-2 px-0.5' : isPadLandscape ? 'py-2 px-1' : 'p-2'} flex flex-col items-center justify-start gap-2 min-h-[100px]`}>
                         {shensha.map((s, i) => (
                             <span key={i} className={`${isMobileLayout ? 'text-[11px]' : 'text-xs'} text-foreground text-center`}>{s}</span>
                         ))}
@@ -116,6 +119,8 @@ export function YunPillar({
     isMobileLayout = false,
     hideDetails = false,
 }: YunPillarProps) {
+    const isPadLandscape = useIsPadLandscape();
+    const pxClass = isMobileLayout ? 'px-1' : isPadLandscape ? 'px-1' : 'px-2';
     return (
         <div className={`flex-1 border-r border-border last:border-r-0 flex flex-col ${isAccent ? 'bg-accent/5' : ''}`}>
             <div className="h-8 flex items-center justify-center border-b border-border bg-secondary/30">
@@ -140,7 +145,7 @@ export function YunPillar({
                     {dizhi}
                 </span>
             </div>
-            <div className={`${isMobileLayout ? 'h-[72px]' : 'h-[90px]'} py-2 ${isMobileLayout ? 'px-1' : 'px-2'} ${!(isMobileLayout && hideDetails) ? 'border-b border-border' : ''} flex flex-col justify-start gap-1`}>
+            <div className={`${isMobileLayout ? 'h-[72px]' : 'h-[90px]'} py-2 ${pxClass} ${!(isMobileLayout && hideDetails) ? 'border-b border-border' : ''} flex flex-col justify-start gap-1`}>
                 {zanggan.map((item, index) => (
                     <div key={`${item.gan}-${index}`} className={`flex items-center justify-center ${isMobileLayout ? 'gap-0 text-xs' : 'gap-1 text-sm'}`}>
                         <span className="font-medium" style={{ color: getElementColor(item.gan) }}>
@@ -164,7 +169,7 @@ export function YunPillar({
                     <div className="h-10 flex items-center justify-center border-b border-border">
                         <span className="text-sm text-muted-foreground">{nayin}</span>
                     </div>
-                    <div className={`flex-1 ${isMobileLayout ? 'py-2 px-0.5' : 'p-2'} flex flex-col items-center justify-start gap-2 min-h-[100px]`}>
+                    <div className={`flex-1 ${isMobileLayout ? 'py-2 px-0.5' : isPadLandscape ? 'py-2 px-1' : 'p-2'} flex flex-col items-center justify-start gap-2 min-h-[100px]`}>
                         {shensha.map((s, i) => (
                             <span key={i} className={`${isMobileLayout ? 'text-[11px]' : 'text-xs'} text-foreground text-center`}>{s}</span>
                         ))}

@@ -4,6 +4,7 @@
  */
 import { useState, useMemo } from 'react';
 import { cn } from '../../../lib/utils';
+import { useIsPadLandscape } from '../../../hooks/useIsPadLandscape';
 
 import type { BaziApiResponse } from '../../../types/bazi';
 import { calculateShenSha, calculateDynamicShenSha, getJiJie, type ShenShaContext } from '../../../lib/xuan-bazi/utils/baziShenShaUtil';
@@ -36,6 +37,7 @@ export default function BaziChart({
   hideDetails = false,
 }: BaziChartProps) {
   const [isDiagramOpen, setIsDiagramOpen] = useState(false);
+  const isPadLandscape = useIsPadLandscape();
 
   // 提取数据
   const pillars = data?.pillars || [];
@@ -92,12 +94,18 @@ export default function BaziChart({
   const taiMingShenDetails = useMemo(() => {
     if (!data?.extra || !showTaiMingShen) return null;
     const { taiYuan, mingGong, shenGong } = data.extra;
+
+    // 为每柱计算神煞
+    const taiShenSha = shenShaContext ? calculateDynamicShenSha(shenShaContext, shenShaSetting, taiYuan[0], taiYuan[1], '胎元').map(r => r.name) : [];
+    const mingShenSha = shenShaContext ? calculateDynamicShenSha(shenShaContext, shenShaSetting, mingGong[0], mingGong[1], '命宫').map(r => r.name) : [];
+    const shenShenSha = shenShaContext ? calculateDynamicShenSha(shenShaContext, shenShaSetting, shenGong[0], shenGong[1], '身宫').map(r => r.name) : [];
+
     return {
-      tai: { ganZhi: taiYuan, tiangan: taiYuan[0], dizhi: taiYuan[1], ...computePillarDetails(taiYuan, dayGan) },
-      ming: { ganZhi: mingGong, tiangan: mingGong[0], dizhi: mingGong[1], ...computePillarDetails(mingGong, dayGan) },
-      shen: { ganZhi: shenGong, tiangan: shenGong[0], dizhi: shenGong[1], ...computePillarDetails(shenGong, dayGan) },
+      tai: { ganZhi: taiYuan, tiangan: taiYuan[0], dizhi: taiYuan[1], shensha: taiShenSha, ...computePillarDetails(taiYuan, dayGan) },
+      ming: { ganZhi: mingGong, tiangan: mingGong[0], dizhi: mingGong[1], shensha: mingShenSha, ...computePillarDetails(mingGong, dayGan) },
+      shen: { ganZhi: shenGong, tiangan: shenGong[0], dizhi: shenGong[1], shensha: shenShenSha, ...computePillarDetails(shenGong, dayGan) },
     };
-  }, [data?.extra, showTaiMingShen, dayGan]);
+  }, [data?.extra, showTaiMingShen, dayGan, shenShaContext, shenShaSetting]);
 
   // 柱神煞
   const pillarShenSha = useMemo(() => {
@@ -123,7 +131,7 @@ export default function BaziChart({
 
         <div className="flex">
           {/* 行标题 */}
-          <div className={`${isMobileLayout ? 'w-12' : 'w-16'} flex-shrink-0 border-r border-border flex flex-col`}>
+          <div className={`${isMobileLayout ? 'w-12' : isPadLandscape ? 'w-[40px]' : 'w-16'} flex-shrink-0 border-r border-border flex flex-col`}>
             {['日期', '主星', '天干', '地支'].map((label, i) => {
               const heightClass = i < 2 ? (i === 0 ? 'h-8' : 'h-10') : 'h-14';
               return (
@@ -153,9 +161,9 @@ export default function BaziChart({
           {/* 胎命身柱 */}
           {showTaiMingShen && taiMingShenDetails && (
             <>
-              <YunPillar label="胎元" tiangan={taiMingShenDetails.tai.tiangan} dizhi={taiMingShenDetails.tai.dizhi} zhuxing={taiMingShenDetails.tai.tianganShiShen} zanggan={taiMingShenDetails.tai.zanggan} xingyun={taiMingShenDetails.tai.diShi} zizuo={taiMingShenDetails.tai.ziZuo} kongwang={taiMingShenDetails.tai.kongWang} nayin={taiMingShenDetails.tai.naYin} isAccent shensha={[]} isMobileLayout={isMobileLayout} hideDetails={hideDetails} />
-              <YunPillar label="命宫" tiangan={taiMingShenDetails.ming.tiangan} dizhi={taiMingShenDetails.ming.dizhi} zhuxing={taiMingShenDetails.ming.tianganShiShen} zanggan={taiMingShenDetails.ming.zanggan} xingyun={taiMingShenDetails.ming.diShi} zizuo={taiMingShenDetails.ming.ziZuo} kongwang={taiMingShenDetails.ming.kongWang} nayin={taiMingShenDetails.ming.naYin} isAccent shensha={[]} isMobileLayout={isMobileLayout} hideDetails={hideDetails} />
-              <YunPillar label="身宫" tiangan={taiMingShenDetails.shen.tiangan} dizhi={taiMingShenDetails.shen.dizhi} zhuxing={taiMingShenDetails.shen.tianganShiShen} zanggan={taiMingShenDetails.shen.zanggan} xingyun={taiMingShenDetails.shen.diShi} zizuo={taiMingShenDetails.shen.ziZuo} kongwang={taiMingShenDetails.shen.kongWang} nayin={taiMingShenDetails.shen.naYin} isAccent shensha={[]} isMobileLayout={isMobileLayout} hideDetails={hideDetails} />
+              <YunPillar label="胎元" tiangan={taiMingShenDetails.tai.tiangan} dizhi={taiMingShenDetails.tai.dizhi} zhuxing={taiMingShenDetails.tai.tianganShiShen} zanggan={taiMingShenDetails.tai.zanggan} xingyun={taiMingShenDetails.tai.diShi} zizuo={taiMingShenDetails.tai.ziZuo} kongwang={taiMingShenDetails.tai.kongWang} nayin={taiMingShenDetails.tai.naYin} isAccent shensha={taiMingShenDetails.tai.shensha} isMobileLayout={isMobileLayout} hideDetails={hideDetails} />
+              <YunPillar label="命宫" tiangan={taiMingShenDetails.ming.tiangan} dizhi={taiMingShenDetails.ming.dizhi} zhuxing={taiMingShenDetails.ming.tianganShiShen} zanggan={taiMingShenDetails.ming.zanggan} xingyun={taiMingShenDetails.ming.diShi} zizuo={taiMingShenDetails.ming.ziZuo} kongwang={taiMingShenDetails.ming.kongWang} nayin={taiMingShenDetails.ming.naYin} isAccent shensha={taiMingShenDetails.ming.shensha} isMobileLayout={isMobileLayout} hideDetails={hideDetails} />
+              <YunPillar label="身宫" tiangan={taiMingShenDetails.shen.tiangan} dizhi={taiMingShenDetails.shen.dizhi} zhuxing={taiMingShenDetails.shen.tianganShiShen} zanggan={taiMingShenDetails.shen.zanggan} xingyun={taiMingShenDetails.shen.diShi} zizuo={taiMingShenDetails.shen.ziZuo} kongwang={taiMingShenDetails.shen.kongWang} nayin={taiMingShenDetails.shen.naYin} isAccent shensha={taiMingShenDetails.shen.shensha} isMobileLayout={isMobileLayout} hideDetails={hideDetails} />
             </>
           )}
 
