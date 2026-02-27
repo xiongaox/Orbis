@@ -49,6 +49,15 @@ export default function GanZhiDiagramModal({
     const [showDaYun, setShowDaYun] = useState(selectedDaYunIndex !== null);
     const [showLiuNian, setShowLiuNian] = useState(selectedLiuNianYear !== null);
 
+    // 移动端检测
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const check = () => setIsMobile(window.innerWidth < 768);
+        check();
+        window.addEventListener('resize', check);
+        return () => window.removeEventListener('resize', check);
+    }, []);
+
     // 移动端捏合缩放 - 使用 callback ref 确保 DOM 变化时重新绑定
     const [scale, setScale] = useState(1);
     const lastDistRef = useRef<number | null>(null);
@@ -272,8 +281,9 @@ export default function GanZhiDiagramModal({
             onClose={onClose}
             title={header}
             titleIcon={<GitBranch className="w-5 h-5" />}
-            maxWidth="max-w-[720px]"
-            bodyClassName="p-0 overflow-hidden flex flex-col bg-dot-pattern min-h-[500px]"
+            maxWidth={isMobile ? 'max-w-none' : 'max-w-[720px]'}
+            className={isMobile ? '!w-screen !h-screen !max-h-screen !rounded-none !m-[-1rem]' : ''}
+            bodyClassName={`p-0 overflow-hidden flex flex-col bg-dot-pattern ${isMobile ? '' : 'min-h-[500px]'}`}
         >
             <div
                 ref={containerRef}
