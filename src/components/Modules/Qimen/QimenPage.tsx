@@ -392,7 +392,7 @@ export default function QimenPage() {
                 /* 左侧案例以贴边浮动按钮触发抽屉，右侧详情/局信息常驻显示 */
                 <>
                     {/* 左侧信息栏面板 - 竖向紧凑排版 */}
-                    <div className="w-64 flex-shrink-0 min-h-0 overflow-y-auto flex flex-col border-r border-border/50 bg-card/10 relative">
+                    <div className="w-56 flex-shrink-0 min-h-0 overflow-y-auto flex flex-col border-r border-border/50 bg-card/10 relative">
                         {/* 贴边竖线触发按钮 */}
                         <button
                             type="button"
@@ -421,6 +421,12 @@ export default function QimenPage() {
                             globalPatterns={globalPatterns}
                             onPatternClick={setSelectedPattern}
                             onOpenAiModal={() => setIsAiModalOpen(true)}
+                            showChangSheng={mobileShowChangSheng}
+                            showShiShen={mobileShowShiShen}
+                            showPalaceMeta={mobileShowPalaceMeta}
+                            onToggleChangSheng={handleMobileToggleCS}
+                            onToggleShiShen={handleMobileToggleSS}
+                            onTogglePalaceMeta={handleMobileTogglePM}
                         />
                     </div>
 
@@ -437,6 +443,15 @@ export default function QimenPage() {
                         {error && (
                             <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-destructive/10 text-destructive px-4 py-2 rounded-lg z-20">
                                 {error}
+                            </div>
+                        )}
+
+                        {/* 案例标题 - 有案例时显示在盘式上方 */}
+                        {currentCase?.title && (
+                            <div className="shrink-0 flex items-center justify-center gap-2 h-10 px-3 -mx-1 -mt-1 mb-1 bg-card/60 border-b border-border/60">
+                                <span className="text-base font-serif text-foreground font-medium leading-none line-clamp-1">
+                                    【求测】：{currentCase.title}
+                                </span>
                             </div>
                         )}
 
@@ -458,12 +473,39 @@ export default function QimenPage() {
                             dynamicMaKong={dynamicMaKong}
                             fullWidth
                             hideHeader
+                            controlledShowChangSheng={mobileShowChangSheng}
+                            controlledShowShiShen={mobileShowShiShen}
+                            controlledShowPalaceMeta={mobileShowPalaceMeta}
                         />
                     </main>
 
-                    {/* 右侧常驻详情栏 */}
-                    <div className="w-96 flex-shrink-0 min-h-0 overflow-y-auto flex flex-col border-l border-border/50 bg-card/10">
-                        {rightPanelContent}
+                    {/* 右侧常驻详情栏 - Pad 专用 compact 版 */}
+                    <div className="w-72 flex-shrink-0 min-h-0 overflow-y-auto flex flex-col border-l border-border/50 bg-card/10">
+                        {selectedPalaceData ? (
+                            <QimenPalaceDetail
+                                palace={selectedPalaceData}
+                                timeZhi={header?.siZhu?.hour?.slice(1, 2)}
+                                zhiShiMen={header?.zhiShi ? header.zhiShi + '门' : ''}
+                                zhiFuXing={header?.zhiFu}
+                                siZhu={header?.siZhu}
+                                xunShou={header?.xunShou}
+                            />
+                        ) : (
+                            <QimenJuInfo
+                                date={selectedDate}
+                                header={header}
+                                caseData={currentCase}
+                                onCaseUpdated={(updatedCase) => {
+                                    setCurrentCase(updatedCase);
+                                    setRefreshTrigger(prev => prev + 1);
+                                }}
+                                selectedKongWangKey={selectedKongWangKey}
+                                selectedMaXingKey={selectedMaXingKey}
+                                onKongWangKeyChange={setSelectedKongWangKey}
+                                onMaXingKeyChange={setSelectedMaXingKey}
+                                compact
+                            />
+                        )}
                     </div>
 
                     {/* 左侧案例抽屉 */}
