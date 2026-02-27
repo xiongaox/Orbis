@@ -143,7 +143,7 @@ const DuanFaContent = forwardRef<HTMLDivElement, DuanFaContentProps>(({ content,
     }, [content, title, hasTitleH1, onOutlineChange]);
 
     return (
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-8 scrollbar-none">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-6 lg:p-8 scrollbar-none">
             {!content ? (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground/50">
                     <span className="font-serif">暂无内容</span>
@@ -155,7 +155,7 @@ const DuanFaContent = forwardRef<HTMLDivElement, DuanFaContentProps>(({ content,
                         id={hasTitleH1 ? 'duanfa-heading-0' : undefined}
                         data-duanfa-heading={hasTitleH1 ? 'true' : undefined}
                         data-heading-level={hasTitleH1 ? '1' : undefined}
-                        className="text-2xl font-serif font-bold text-center text-primary/90 pb-4 border-b border-border/40 scroll-mt-8"
+                        className="text-lg lg:text-2xl font-serif font-bold text-center text-primary/90 pb-3 lg:pb-4 border-b border-border/40 scroll-mt-8"
                     >
                         {title}
                     </h1>
