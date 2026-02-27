@@ -37,6 +37,12 @@ import type { BaziApiResponse, DaYunPeriod, PillarData } from '../../../types/ba
 
 // 断法模块
 import DuanFaPage from './DuanFaPage';
+import { useDuanFa } from './hooks/useDuanFa';
+import ShuShuSidebar from './components/ShuShuSidebar';
+import DuanFaSidebar from './components/DuanFaSidebar';
+import DuanFaContent from './components/DuanFaContent';
+import DuanFaOutline from './components/DuanFaOutline';
+import { DUANFA_FILES } from '../../../lib/caseStudy/duanfaData';
 
 // Hook 导入
 import { useCaseStudy, ALL_CASES } from './hooks/useCaseStudy';
@@ -197,6 +203,7 @@ export default function CaseStudyPage() {
     const {
         allCases,
         displayCases,
+        filteredCases,
         activeCase,
         authorIntroContent,
         currentPage,
@@ -241,12 +248,24 @@ export default function CaseStudyPage() {
 
     // 内容区滚动容器 ref（用于进度追踪）
     const contentScrollRef = useRef<HTMLDivElement>(null);
+    // 断法内容滚动容器 ref（移动端断法内联时使用）
+    const duanFaContentRef = useRef<HTMLDivElement>(null);
 
-    // 阅读进度同步
+    // 阅读进度同步（案例）
     const { savedProgress, restoreProgress, currentProgress } = useReadingProgress({
         articleId: activeCase?.id || null,
         scrollContainerRef: contentScrollRef,
         enabled: isAuthenticated,
+    });
+
+    // 断法 Hook（移动端内联断法时需要）
+    const duanFa = useDuanFa();
+
+    // 阅读进度同步（断法 - 移动端内联时）
+    const { savedProgress: duanFaSavedProgress, restoreProgress: duanFaRestoreProgress, currentProgress: duanFaCurrentProgress } = useReadingProgress({
+        articleId: duanFa.selectedFileId,
+        scrollContainerRef: duanFaContentRef,
+        enabled: isAuthenticated && selectedCategory === 'duanfa' && !useDesktopLayout && !isPadLandscape,
     });
 
     // 进入文章时重置滚动位置到顶部
@@ -256,13 +275,19 @@ export default function CaseStudyPage() {
         }
     }, [activeCase?.id]);
 
-    // 获取文章信息的辅助函数（供学习面板使用）
+    // 获取文章信息的辅助函数（供学习面板使用，同时支持案例和断法文章）
     const getArticleInfo = useCallback((articleId: string): { title: string; author: string } => {
+        // 先从案例中查找
         const caseItem = ALL_CASES.find(c => c.id === articleId);
-        return {
-            title: caseItem?.title || '未知标题',
-            author: caseItem?.author || '未知作者',
-        };
+        if (caseItem) {
+            return { title: caseItem.title, author: caseItem.author };
+        }
+        // 再从断法文件中查找
+        const duanFaFile = DUANFA_FILES.find(f => f.id === articleId);
+        if (duanFaFile) {
+            return { title: duanFaFile.name, author: '断法' };
+        }
+        return { title: '未知标题', author: '未知作者' };
     }, []);
 
     // 构造 BaziData
@@ -283,8 +308,8 @@ export default function CaseStudyPage() {
         return chineseRaw[num] || num.toString();
     };
 
-    // 断法模块使用独立布局
-    if (selectedCategory === 'duanfa') {
+    // 断法模块使用独立布局（仅桌面和 Pad）
+    if (selectedCategory === 'duanfa' && (useDesktopLayout || isPadLandscape)) {
         return (
             <div className="flex w-full h-full overflow-hidden bg-background relative">
                 {/* 1. 术数分类 (5%) */}
@@ -304,18 +329,18 @@ export default function CaseStudyPage() {
     const contentColumn = (
         <div className="flex-1 flex flex-col bg-background/50 relative overflow-hidden">
             {activeCase ? (
-                <div ref={contentScrollRef} className="flex-1 overflow-y-auto p-4 lg:p-8">
+                <div ref={contentScrollRef} className="flex-1 overflow-y-auto p-6 lg:p-8">
                     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
                         {/* 标题行：标题 + 收藏按钮 */}
-                        <div className="flex items-center justify-center gap-3 pb-4 border-b border-border/40">
-                            <h1 className="text-2xl font-serif font-bold text-primary/90">
+                        <div className="flex items-center justify-center gap-3 pb-3 lg:pb-4 border-b border-border/40">
+                            <h1 className="text-lg lg:text-2xl font-serif font-bold text-primary/90">
                                 {activeCase.title}
                             </h1>
                             {isAuthenticated && (
                                 <FavoriteButton articleId={activeCase.id} />
                             )}
                         </div>
-                        <div className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed text-[18px]">
+                        <div className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed text-[16px] lg:text-[18px]">
                             <ReactMarkdown
                                 rehypePlugins={[rehypeRaw]}
                                 remarkPlugins={[remarkGfm, remarkBreaks]}
@@ -327,12 +352,12 @@ export default function CaseStudyPage() {
                     </div>
                 </div>
             ) : selectedAuthor && authorIntroContent ? (
-                <div className="flex-1 overflow-y-auto p-4 lg:p-8">
+                <div className="flex-1 overflow-y-auto p-6 lg:p-8">
                     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
-                        <h1 className="text-2xl font-serif font-bold text-center text-primary/90 pb-4 border-b border-border/40">
+                        <h1 className="text-lg lg:text-2xl font-serif font-bold text-center text-primary/90 pb-3 lg:pb-4 border-b border-border/40">
                             {selectedAuthor}
                         </h1>
-                        <div className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed text-[18px]">
+                        <div className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed text-[16px] lg:text-[18px]">
                             <ReactMarkdown
                                 rehypePlugins={[rehypeRaw]}
                                 remarkPlugins={[remarkGfm, remarkBreaks]}
@@ -584,35 +609,72 @@ export default function CaseStudyPage() {
                 </>
             ) : (
                 <>
-                    <div className="flex-1 flex flex-col overflow-hidden">
-                        <div className="px-3 py-2 border-b border-border/40 bg-background/70 backdrop-blur-sm flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsLeftPanelOpen(true)}
-                                    className="px-3 py-1.5 rounded-lg border border-border bg-card/60 text-sm text-foreground hover:bg-muted/40 transition-colors"
-                                >
+                    <div className="flex-1 flex flex-col overflow-hidden relative">
+                        {/* 左侧贴边竖线触发按钮 */}
+                        <button
+                            type="button"
+                            onClick={() => setIsLeftPanelOpen(true)}
+                            className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-start group focus:outline-none"
+                            aria-label="打开目录"
+                        >
+                            <span className="w-[3px] h-20 rounded-r bg-primary/35 group-hover:bg-primary/70 group-active:bg-primary/80 transition-colors shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none" />
+                            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="px-2 py-1 rounded-md text-xs bg-card border border-border shadow-sm text-foreground/80 whitespace-nowrap">
                                     目录
-                                </button>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsChartPanelOpen(true)}
-                                    className="px-3 py-1.5 rounded-lg border border-border bg-card/60 text-sm text-foreground hover:bg-muted/40 transition-colors"
-                                >
-                                    排盘
-                                </button>
-                            </div>
-                        </div>
+                                </span>
+                            </span>
+                        </button>
 
-                        {contentColumn}
+                        {/* 右侧贴边竖线触发按钮 */}
+                        <button
+                            type="button"
+                            onClick={() => setIsChartPanelOpen(true)}
+                            className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-end group focus:outline-none"
+                            aria-label={selectedCategory === 'duanfa' ? '打开大纲' : '打开排盘'}
+                        >
+                            <span className="w-[3px] h-20 rounded-l bg-primary/35 group-hover:bg-primary/70 group-active:bg-primary/80 transition-colors shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none" />
+                            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="px-2 py-1 rounded-md text-xs bg-card border border-border shadow-sm text-foreground/80 whitespace-nowrap">
+                                    {selectedCategory === 'duanfa' ? '大纲' : '排盘'}
+                                </span>
+                            </span>
+                        </button>
+
+                        {/* 内容区：断法 或 案例 */}
+                        {selectedCategory === 'duanfa' ? (
+                            <div className="flex-1 flex flex-col overflow-hidden relative">
+                                <DuanFaContent
+                                    ref={duanFaContentRef}
+                                    content={duanFa.selectedFile?.content || ''}
+                                    title={duanFa.selectedFile?.name || '奇门断法'}
+                                    onOutlineChange={duanFa.setOutline}
+                                />
+                                {/* 浮动按钮区 - 仅登录用户可见 */}
+                                {isAuthenticated && (
+                                    <div className="absolute right-4 bottom-4 z-10 flex flex-col items-center gap-3">
+                                        {duanFa.selectedFileId && (
+                                            <ReadingProgressButton
+                                                progress={duanFaCurrentProgress}
+                                                savedProgress={duanFaSavedProgress}
+                                                isFinished={duanFaCurrentProgress > 0 ? duanFaCurrentProgress >= 90 : duanFaSavedProgress >= 90}
+                                                onRestore={duanFaRestoreProgress}
+                                            />
+                                        )}
+                                        <LearningPanelFAB onClick={() => setIsLearningPanelOpen(true)} />
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            contentColumn
+                        )}
                     </div>
 
+                    {/* 左侧目录抽屉 */}
                     <SideDrawer
                         open={isLeftPanelOpen}
                         title="目录"
                         side="left"
+                        size="xxs"
                         onClose={() => setIsLeftPanelOpen(false)}
                     >
                         <div className="h-full min-h-0 overflow-hidden flex flex-col">
@@ -624,42 +686,79 @@ export default function CaseStudyPage() {
                                 }}
                                 variant="drawer"
                             />
-                            <div className="flex-1 min-h-0 overflow-hidden">
-                                <CaseListSidebar
-                                    allCases={allCases}
-                                    displayCases={displayCases}
-                                    selectedCategory={selectedCategory}
-                                    selectedCaseId={selectedCaseId}
-                                    selectedDayMaster={selectedDayMaster}
-                                    searchTerm={searchTerm}
-                                    currentPage={currentPage}
-                                    totalPages={totalPages}
-                                    onSelectCase={(id) => {
-                                        handleSelectCase(id);
-                                        setIsLeftPanelOpen(false);
-                                    }}
-                                    onSelectDayMaster={(id) => {
-                                        handleSelectDayMaster(id);
-                                    }}
-                                    onSearchChange={setSearchTerm}
-                                    onPageChange={setCurrentPage}
-                                    onSelectAuthor={(author) => {
-                                        handleSelectAuthor(author);
-                                        setIsLeftPanelOpen(false);
-                                    }}
-                                    variant="drawer"
-                                />
-                            </div>
+                            {selectedCategory === 'duanfa' ? (
+                                /* 断法：左右并列（术数分类 + 断法列表） */
+                                <div className="flex-1 min-h-0 overflow-hidden flex flex-row">
+                                    <ShuShuSidebar
+                                        selectedId={duanFa.selectedShuShuId}
+                                        onSelect={duanFa.handleSelectShuShu}
+                                    />
+                                    <div className="flex-1 min-w-0 h-full overflow-hidden">
+                                        <DuanFaSidebar
+                                            files={duanFa.files}
+                                            selectedFileId={duanFa.selectedFileId}
+                                            onSelectFile={(id) => {
+                                                duanFa.handleSelectFile(id);
+                                                setIsLeftPanelOpen(false);
+                                            }}
+                                            variant="drawer"
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                /* 八字/奇门：案例列表 */
+                                <div className="flex-1 min-h-0 overflow-hidden">
+                                    <CaseListSidebar
+                                        allCases={allCases}
+                                        displayCases={filteredCases}
+                                        selectedCategory={selectedCategory}
+                                        selectedCaseId={selectedCaseId}
+                                        selectedDayMaster={selectedDayMaster}
+                                        searchTerm={searchTerm}
+                                        currentPage={currentPage}
+                                        totalPages={totalPages}
+                                        onSelectCase={(id) => {
+                                            handleSelectCase(id);
+                                            setIsLeftPanelOpen(false);
+                                        }}
+                                        onSelectDayMaster={(id) => {
+                                            handleSelectDayMaster(id);
+                                        }}
+                                        onSearchChange={setSearchTerm}
+                                        onPageChange={setCurrentPage}
+                                        onSelectAuthor={(author) => {
+                                            handleSelectAuthor(author);
+                                            setIsLeftPanelOpen(false);
+                                        }}
+                                        variant="drawer"
+                                        hidePagination
+                                    />
+                                </div>
+                            )}
                         </div>
                     </SideDrawer>
 
+                    {/* 右侧排盘/大纲抽屉 */}
                     <SideDrawer
                         open={isChartPanelOpen}
-                        title="排盘信息"
+                        title={selectedCategory === 'duanfa' ? '大纲' : '排盘信息'}
                         side="right"
+                        size="xxs"
                         onClose={() => setIsChartPanelOpen(false)}
                     >
-                        {chartPanel}
+                        {selectedCategory === 'duanfa' ? (
+                            <DuanFaOutline
+                                outline={duanFa.outline}
+                                activeSectionId={duanFa.activeSectionId}
+                                onItemClick={(id) => {
+                                    duanFa.handleOutlineClick(id);
+                                    setIsChartPanelOpen(false);
+                                }}
+                                variant="drawer"
+                            />
+                        ) : (
+                            chartPanel
+                        )}
                     </SideDrawer>
                 </>
             )}

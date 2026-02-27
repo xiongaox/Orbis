@@ -27,6 +27,7 @@ interface CaseListSidebarProps {
     onPageChange: (page: number) => void;
     onSelectAuthor: (author: string) => void;
     variant?: 'sidebar' | 'drawer';
+    hidePagination?: boolean;
 }
 
 export default function CaseListSidebar({
@@ -44,6 +45,7 @@ export default function CaseListSidebar({
     onPageChange,
     onSelectAuthor,
     variant = 'sidebar',
+    hidePagination = false,
 }: CaseListSidebarProps) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -63,7 +65,7 @@ export default function CaseListSidebar({
                 <div className="flex items-center justify-between">
                     <h3 className="font-medium text-sm">案例列表</h3>
                     {/* 分页控件 */}
-                    {totalPages > 1 && (
+                    {!hidePagination && totalPages > 1 && (
                         <div className="flex items-center gap-1">
                             <button
                                 onClick={() => onPageChange(Math.max(1, currentPage - 1))}

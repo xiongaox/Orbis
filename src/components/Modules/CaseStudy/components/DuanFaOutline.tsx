@@ -30,10 +30,12 @@ export default function DuanFaOutline({ outline, activeSectionId, onItemClick, v
 
     return (
         <div className={containerClassName}>
-            {/* 标题 */}
-            <div className="py-3 px-3 border-b border-border/40 bg-muted/20 flex-shrink-0">
-                <span className="text-xs font-medium text-muted-foreground">大纲</span>
-            </div>
+            {/* 标题 - drawer 模式下 SideDrawer 已提供标题，无需重复 */}
+            {variant !== 'drawer' && (
+                <div className="py-3 px-3 border-b border-border/40 bg-muted/20 flex-shrink-0">
+                    <span className="text-xs font-medium text-muted-foreground">大纲</span>
+                </div>
+            )}
 
             {/* 大纲列表 */}
             <div className="flex-1 overflow-y-auto scrollbar-none py-2">

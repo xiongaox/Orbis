@@ -153,19 +153,20 @@ export default function LearningPanelModal({
             {/* 遮罩 */}
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
-            {/* 弹窗主体 */}
+            {/* 弹窗主体 - 移动端全屏，桌面端居中 */}
             <div
                 className="
-                    relative z-10 bg-card rounded-xl shadow-2xl
-                    w-full max-w-3xl h-[600px] max-h-[80vh]
+                    relative z-10 bg-card shadow-2xl
+                    w-full h-full
+                    lg:w-full lg:max-w-3xl lg:h-[600px] lg:max-h-[80vh] lg:rounded-xl
                     flex flex-col overflow-hidden
-                    animate-in fade-in zoom-in-95 duration-200
+                    animate-in fade-in lg:zoom-in-95 duration-200
                 "
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* 头部 */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-                    <h2 className="text-lg font-semibold">文章管理</h2>
+                <div className="flex items-center justify-between px-5 py-3 lg:px-6 lg:py-4 border-b border-border">
+                    <h2 className="text-base lg:text-lg font-semibold">文章管理</h2>
                     <button
                         onClick={onClose}
                         className="p-2 rounded-lg hover:bg-muted transition-colors cursor-pointer"
@@ -175,10 +176,16 @@ export default function LearningPanelModal({
                     </button>
                 </div>
 
-                {/* 内容区 */}
-                <div className="flex-1 flex overflow-hidden">
-                    {/* 左侧菜单 */}
-                    <div className="w-48 bg-muted/20 border-r border-border p-3 space-y-1 shrink-0">
+                {/* 内容区 - 移动端纵向(Tab在上)，桌面端横向(菜单在左) */}
+                <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+                    {/* 移动端：顶部水平 Tab 按钮 / 桌面端：左侧菜单 */}
+                    <div className="
+                        flex flex-row lg:flex-col
+                        lg:w-48 bg-muted/20
+                        border-b lg:border-b-0 lg:border-r border-border
+                        p-1.5 lg:p-3 gap-1 lg:space-y-1
+                        shrink-0
+                    ">
                         {MENU_ITEMS.map((item) => {
                             const Icon = item.icon;
                             const isActive = activeMenu === item.id;
@@ -187,8 +194,10 @@ export default function LearningPanelModal({
                                     key={item.id}
                                     onClick={() => setActiveMenu(item.id)}
                                     className={`
-                                        w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
-                                        transition-colors cursor-pointer text-left
+                                        flex-1 lg:flex-none
+                                        flex items-center justify-center lg:justify-start
+                                        gap-1.5 lg:gap-3 px-3 py-2 lg:py-2.5 rounded-lg
+                                        transition-colors cursor-pointer text-center lg:text-left
                                         ${isActive
                                             ? 'bg-primary text-primary-foreground'
                                             : 'hover:bg-muted text-foreground'
@@ -196,7 +205,7 @@ export default function LearningPanelModal({
                                     `}
                                 >
                                     <Icon className="w-4 h-4" />
-                                    <span className="text-sm font-medium">{item.label}</span>
+                                    <span className="text-xs lg:text-sm font-medium">{item.label}</span>
                                 </button>
                             );
                         })}
