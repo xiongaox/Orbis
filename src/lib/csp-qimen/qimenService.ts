@@ -18,6 +18,7 @@ import { getEightCharFromDate, getSolarToLunarInfo } from '../../utils/lunarUtil
 import { LunarUtil } from 'lunar-typescript';
 import { getXingWang, getMenWang, getGanShiErCS, getPalaceWangShuai } from './qimenUtils';
 import { getGanShiShen, getXingShiShen, getMenShiShen } from './qimenShiShenUtils';
+import { ZHI_PALACE_MAP, MA_XING_MAP } from '../../components/Modules/Qimen/utils/qimenInfoUtils';
 
 // ============ 类型定义 ============
 
@@ -383,26 +384,7 @@ const PALACE_NUM_MAP: Record<number, number[]> = {
     9: [9, 3, 2, 7],   // 离
 };
 
-// 地支与宫位映射 (用于手动计算马星和空亡位置)
-// 1:子, 8:丑寅, 3:卯, 4:辰巳, 9:午, 2:未申, 7:酉, 6:戌亥
-const ZHI_PALACE_MAP: Record<string, number> = {
-    '子': 1,
-    '丑': 8, '寅': 8,
-    '卯': 3,
-    '辰': 4, '巳': 4,
-    '午': 9,
-    '未': 2, '申': 2,
-    '酉': 7,
-    '戌': 6, '亥': 6
-};
 
-// 驿马查找表 (时支 -> 马星)
-const MA_XING_MAP: Record<string, string> = {
-    '申': '寅', '子': '寅', '辰': '寅',
-    '寅': '申', '午': '申', '戌': '申',
-    '巳': '亥', '酉': '亥', '丑': '亥',
-    '亥': '巳', '卯': '巳', '未': '巳',
-};
 
 // 地盘干顺序：戊己庚辛壬癸丁丙乙
 // 用来补全中宫地盘干（虽然 Demo 逻辑中直接置空，但保留此逻辑可防止 UI 数据缺失）

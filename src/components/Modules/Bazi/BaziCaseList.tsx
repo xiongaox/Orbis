@@ -3,13 +3,11 @@
  * 支持 Supabase 云端同步
  */
 import { useMemo, useState, useEffect, useCallback } from 'react';
-import { Search, LogIn, ArrowUpFromLine, ArrowDownToLine } from 'lucide-react';
 import { getBaziPillarsFromDateString } from '../../../utils/lunarUtil';
 import { useAuth } from '../../../contexts/AuthContext';
 import { baziCaseService, CASE_TAGS, type BaziCase, type CaseTag, type CreateCaseInput } from '../../../services/baziCaseService';
 import type { Case } from '../../../types';
 import ConfirmModal from '../../Common/ConfirmModal';
-
 import CreateCaseModal from './CreateCaseModal';
 import ImportCaseModal from './ImportCaseModal';
 import { BAZI_CASES_CHANGED_EVENT } from '../../../data/caseConstants';
@@ -17,7 +15,7 @@ import EditCaseModal from './EditCaseModal';
 import ExportCaseModal from '../../Common/ExportCaseModal';
 import CaseCard from './components/CaseList/CaseCard';
 import CaseTagFilter from './components/CaseList/CaseTagFilter';
-import CaseSearch from './components/CaseList/CaseSearch';
+import BaseCaseList from '../../Common/BaseCaseList';
 
 type ChartType =
   | 'bazi'
@@ -121,11 +119,8 @@ export default function CaseList({
 
   // 转换为显示格式
   const displayCases = useMemo(() => {
-    if (!isAuthenticated) {
-      return [];
-    }
+    if (!isAuthenticated) return [];
 
-    // 已登录时显示云端案例
     return cases.filter(item => {
       const matchesSearch =
         item.name.includes(search) ||
@@ -149,16 +144,12 @@ export default function CaseList({
 
   const handleDeleteCase = (id: string) => {
     const target = cases.find(c => c.id === id);
-    if (target) {
-      setCaseToDelete(target);
-    }
+    if (target) setCaseToDelete(target);
   };
 
   const handleEditCase = (id: string) => {
     const target = cases.find(c => c.id === id);
-    if (target) {
-      setEditingCase(target);
-    }
+    if (target) setEditingCase(target);
   };
 
   const executeDelete = async () => {
@@ -181,161 +172,81 @@ export default function CaseList({
   };
 
   return (
-    <aside className={variant === 'drawer'
-      ? "w-full h-full bg-muted/5 flex flex-col min-h-0"
-      : "w-56 bg-muted/5 border-r border-border/50 flex flex-col min-h-0"
-    }>
-      <div className={variant === 'drawer' ? 'p-3 border-b border-border/40 space-y-2' : 'p-4 border-b border-border/40 space-y-3'}>
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={onOpenLibrary}
-            className="px-2 py-1 -ml-2 rounded-lg font-display text-base font-medium text-foreground hover:text-primary hover:bg-primary/5 transition-colors flex items-center gap-2 group"
-          >
-            案例库
-            <Search className="w-3.5 h-3.5 opacity-0 group-hover:opacity-50 transition-opacity" />
-          </button>
-          <CaseTagFilter
-            selectedTag={selectedTag}
-            onSelectTag={setSelectedTag}
+    <BaseCaseList
+      variant={variant}
+      isAuthenticated={isAuthenticated}
+      onLoginClick={onLoginClick}
+      onOpenLibrary={onOpenLibrary}
+      renderFilter={
+        <CaseTagFilter
+          selectedTag={selectedTag}
+          onSelectTag={setSelectedTag}
+          cases={cases}
+        />
+      }
+      search={search}
+      onSearchChange={setSearch}
+      onExport={() => setShowExportModal(true)}
+      onImport={() => setShowImportModal(true)}
+      onCreate={() => setShowCreateModal(true)}
+      isLoading={loading}
+      isEmpty={displayCases.length === 0}
+      emptyText={isAuthenticated ? '暂无案例，点击上方按钮新建' : '登录后查看您的案例'}
+      modals={
+        <>
+          <CreateCaseModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} onCreated={handleCaseCreated} onPreview={onPreviewCase ? handlePreviewCase : undefined} />
+          <ImportCaseModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} onImported={handleCaseCreated} />
+          <ExportCaseModal
+            isOpen={showExportModal}
+            onClose={() => setShowExportModal(false)}
+            title="导出八字案例"
+            options={CASE_TAGS.map((tag) => ({ id: tag, name: tag }))}
             cases={cases}
+            getCaseFilter={(c) => c.tags}
+            formatCase={(c) => {
+              const pillars = getBaziPillarsFromDateString(c.birth_date);
+              const displayPillars = pillars.length === 8
+                ? [pillars[0] + pillars[1], pillars[2] + pillars[3], pillars[4] + pillars[5], pillars[6] + pillars[7]]
+                : [];
+              return {
+                '姓名': c.name,
+                '性别': c.gender === 'male' ? '男' : '女',
+                '出生时间': c.birth_date.replace('T', ' ').slice(0, 16),
+                '天干地支': displayPillars.join(' '),
+                '标签': c.tags?.join('、') || '',
+                '备注': c.notes || '',
+              };
+            }}
+            filename="bazi_cases"
           />
-        </div>
-        <CaseSearch
-          value={search}
-          onChange={setSearch}
+          {editingCase && <EditCaseModal isOpen caseData={editingCase} onClose={() => setEditingCase(null)} onSaved={() => setEditingCase(null)} />}
+          <ConfirmModal
+            isOpen={!!caseToDelete}
+            onClose={() => setCaseToDelete(null)}
+            onConfirm={executeDelete}
+            title="删除确认"
+            description={<>确定要删除案例 <span className="font-medium text-foreground">「{caseToDelete?.name}」</span> 吗？此操作无法撤销。</>}
+            confirmText="删除"
+            variant="destructive"
+            loading={!!deletingCaseId}
+          />
+        </>
+      }
+    >
+      {displayCases.map((item) => (
+        <CaseCard
+          key={item.id}
+          item={item}
+          isSelected={selectedCaseId === item.id}
+          isAuthenticated={isAuthenticated}
+          onSelectCase={(id) => {
+            onSelectCase?.(id);
+            if (variant === 'drawer') onDrawerClose?.();
+          }}
+          onEdit={handleEditCase}
+          onDelete={handleDeleteCase}
         />
-
-        {isAuthenticated ? (
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setShowExportModal(true)}
-              className="flex items-center justify-center px-2.5 py-2 bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
-              title="导出案例"
-            >
-              <ArrowUpFromLine className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowImportModal(true)}
-              className="flex items-center justify-center px-2.5 py-2 bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
-              title="导入案例"
-            >
-              <ArrowDownToLine className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowCreateModal(true)}
-              className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/30"
-              title="新建案例"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
-              新建
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={onLoginClick}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-secondary/50 hover:bg-secondary text-[hsl(var(--text-secondary-light))] hover:text-[hsl(var(--text-primary-light))] dark:text-muted-foreground dark:hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border"
-          >
-            <LogIn className="w-4 h-4" />
-            登录后可保存案例
-          </button>
-        )}
-      </div>
-
-      <div className={`flex-1 min-h-0 overflow-y-auto ${variant === 'drawer' ? 'px-1.5 py-2' : 'px-2 py-3'}`}>
-        {loading ? (
-          <div className="text-center text-xs text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground py-6">
-            加载中...
-          </div>
-        ) : displayCases.length === 0 ? (
-          <div className="text-center text-xs text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground py-6 rounded-lg border border-dashed border-[hsl(var(--border-light))] dark:border-sidebar-border/70 bg-[hsl(var(--muted-hover))] dark:bg-sidebar-accent/40">
-            {isAuthenticated ? '暂无案例，点击上方按钮新建' : '登录后查看您的案例'}
-          </div>
-        ) : (
-          <>
-            {displayCases.map((item) => (
-              <CaseCard
-                key={item.id}
-                item={item}
-                isSelected={selectedCaseId === item.id}
-                isAuthenticated={isAuthenticated}
-                onSelectCase={(id) => {
-                  onSelectCase?.(id);
-                  if (variant === 'drawer') onDrawerClose?.();
-                }}
-                onEdit={handleEditCase}
-                onDelete={handleDeleteCase}
-              />
-            ))}
-          </>
-        )}
-      </div>
-
-      {/* 新建案例 Modal */}
-      <CreateCaseModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onCreated={handleCaseCreated}
-        onPreview={onPreviewCase ? handlePreviewCase : undefined}
-      />
-
-      {/* 导入案例 Modal */}
-      <ImportCaseModal
-        isOpen={showImportModal}
-        onClose={() => setShowImportModal(false)}
-        onImported={handleCaseCreated}
-      />
-
-      {/* 导出案例 Modal */}
-      <ExportCaseModal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        title="导出八字案例"
-        options={CASE_TAGS.map((tag) => ({ id: tag, name: tag }))}
-        cases={cases}
-        getCaseFilter={(c) => c.tags}
-        formatCase={(c) => {
-          // 计算天干地支
-          const pillars = getBaziPillarsFromDateString(c.birth_date);
-          const displayPillars = pillars.length === 8
-            ? [pillars[0] + pillars[1], pillars[2] + pillars[3], pillars[4] + pillars[5], pillars[6] + pillars[7]]
-            : [];
-          const ganZhi = displayPillars.join(' ');
-
-          return {
-            '姓名': c.name,
-            '性别': c.gender === 'male' ? '男' : '女',
-            '出生时间': c.birth_date.replace('T', ' ').slice(0, 16),
-            '天干地支': ganZhi,
-            '标签': c.tags?.join('、') || '',
-            '备注': c.notes || '',
-          };
-        }}
-        filename="bazi_cases"
-      />
-
-      {editingCase && (
-        <EditCaseModal
-          isOpen
-          caseData={editingCase}
-          onClose={() => setEditingCase(null)}
-          onSaved={() => setEditingCase(null)}
-        />
-      )}
-      <ConfirmModal
-        isOpen={!!caseToDelete}
-        onClose={() => setCaseToDelete(null)}
-        onConfirm={executeDelete}
-        title="删除确认"
-        description={<>确定要删除案例 <span className="font-medium text-foreground">「{caseToDelete?.name}」</span> 吗？此操作无法撤销。</>}
-        confirmText="删除"
-        variant="destructive"
-        loading={!!deletingCaseId}
-      />
-    </aside>
+      ))}
+    </BaseCaseList>
   );
 }

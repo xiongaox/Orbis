@@ -10,6 +10,7 @@ import GanZhiDiagramModal from './GanZhiDiagramModal';
 import GanZhiLiuTongModal from './GanZhiLiuTongModal';
 import AiPromptModal from './AiPromptModal';
 import { useIsPadLandscape } from '../../../hooks/useIsPadLandscape';
+import { calcJiaoYunInfo } from '../../../utils/yunInfoUtils';
 
 interface BaziCaseInfoProps {
   caseData: Case | null;
@@ -145,54 +146,7 @@ export default function BaziCaseInfo({
                         起运日期：{baziData.yunInfo.startSolarDate}
                       </div>
                       <div className="col-span-2 truncate text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground">
-                        {(() => {
-                          const str = baziData.yunInfo.startSolarDate;
-                          const match = str.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
-                          if (!match) return null;
-                          const year = parseInt(match[1]);
-                          const month = parseInt(match[2]);
-                          const day = parseInt(match[3]);
-
-                          const stems = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
-                          const idx = (year - 4) % 10;
-                          const stemIdx = idx < 0 ? idx + 10 : idx;
-                          const stem = stems[stemIdx];
-                          const pairStem = stems[(stemIdx + 5) % 10];
-
-                          const jieqiMap = [
-                            { name: '小寒', m: 1, d: 5 }, { name: '大寒', m: 1, d: 20 },
-                            { name: '立春', m: 2, d: 4 }, { name: '雨水', m: 2, d: 19 },
-                            { name: '惊蛰', m: 3, d: 5 }, { name: '春分', m: 3, d: 20 },
-                            { name: '清明', m: 4, d: 4 }, { name: '谷雨', m: 4, d: 20 },
-                            { name: '立夏', m: 5, d: 5 }, { name: '小满', m: 5, d: 21 },
-                            { name: '芒种', m: 6, d: 5 }, { name: '夏至', m: 6, d: 21 },
-                            { name: '小暑', m: 7, d: 7 }, { name: '大暑', m: 7, d: 22 },
-                            { name: '立秋', m: 8, d: 7 }, { name: '处暑', m: 8, d: 23 },
-                            { name: '白露', m: 9, d: 7 }, { name: '秋分', m: 9, d: 23 },
-                            { name: '寒露', m: 10, d: 8 }, { name: '霜降', m: 10, d: 23 },
-                            { name: '立冬', m: 11, d: 7 }, { name: '小雪', m: 11, d: 22 },
-                            { name: '大雪', m: 12, d: 7 }, { name: '冬至', m: 12, d: 21 },
-                          ];
-
-                          const targetDate = new Date(year, month - 1, day);
-                          let bestJieqi = '冬至';
-                          let bestDate = new Date(year - 1, 11, 21);
-
-                          for (const jq of jieqiMap) {
-                            const d = new Date(year, jq.m - 1, jq.d);
-                            if (targetDate >= d) {
-                              bestDate = d;
-                              bestJieqi = jq.name;
-                            } else {
-                              break;
-                            }
-                          }
-
-                          const diffTime = Math.abs(targetDate.getTime() - bestDate.getTime());
-                          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                          return `交运：逢${stem}、${pairStem}年 ${bestJieqi}后${diffDays}天 交大运`;
-                        })()}
+                        {calcJiaoYunInfo(baziData.yunInfo.startSolarDate)}
                       </div>
                     </>
                   )}
@@ -284,112 +238,13 @@ export default function BaziCaseInfo({
                       <span>起运日期：{baziData.yunInfo.startSolarDate}</span>
                       {/* 桌面端：交运与起运同行 */}
                       {!isPadLandscape && (
-                        <span>
-                          {(() => {
-                            const getDateInfo = () => {
-                              const str = baziData.yunInfo.startSolarDate;
-                              const match = str.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
-                              if (!match) return null;
-                              const year = parseInt(match[1]);
-                              const month = parseInt(match[2]);
-                              const day = parseInt(match[3]);
-
-                              const stems = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
-                              const idx = (year - 4) % 10;
-                              const stemIdx = idx < 0 ? idx + 10 : idx;
-                              const stem = stems[stemIdx];
-                              const pairStem = stems[(stemIdx + 5) % 10];
-
-                              const jieqiMap = [
-                                { name: '小寒', m: 1, d: 5 }, { name: '大寒', m: 1, d: 20 },
-                                { name: '立春', m: 2, d: 4 }, { name: '雨水', m: 2, d: 19 },
-                                { name: '惊蛰', m: 3, d: 5 }, { name: '春分', m: 3, d: 20 },
-                                { name: '清明', m: 4, d: 4 }, { name: '谷雨', m: 4, d: 20 },
-                                { name: '立夏', m: 5, d: 5 }, { name: '小满', m: 5, d: 21 },
-                                { name: '芒种', m: 6, d: 5 }, { name: '夏至', m: 6, d: 21 },
-                                { name: '小暑', m: 7, d: 7 }, { name: '大暑', m: 7, d: 22 },
-                                { name: '立秋', m: 8, d: 7 }, { name: '处暑', m: 8, d: 23 },
-                                { name: '白露', m: 9, d: 7 }, { name: '秋分', m: 9, d: 23 },
-                                { name: '寒露', m: 10, d: 8 }, { name: '霜降', m: 10, d: 23 },
-                                { name: '立冬', m: 11, d: 7 }, { name: '小雪', m: 11, d: 22 },
-                                { name: '大雪', m: 12, d: 7 }, { name: '冬至', m: 12, d: 21 },
-                              ];
-
-                              const targetDate = new Date(year, month - 1, day);
-                              let bestJieqi = '冬至';
-                              let bestDate = new Date(year - 1, 11, 21);
-
-                              for (const jq of jieqiMap) {
-                                const d = new Date(year, jq.m - 1, jq.d);
-                                if (targetDate >= d) {
-                                  bestDate = d;
-                                  bestJieqi = jq.name;
-                                } else {
-                                  break;
-                                }
-                              }
-
-                              const diffTime = Math.abs(targetDate.getTime() - bestDate.getTime());
-                              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                              return `交运：逢${stem}、${pairStem}年 ${bestJieqi}后${diffDays}天 交大运`;
-                            };
-                            return getDateInfo();
-                          })()}
-                        </span>
+                        <span>{calcJiaoYunInfo(baziData.yunInfo.startSolarDate)}</span>
                       )}
                     </div>
                     {/* Pad 端：交运独立一行 */}
                     {isPadLandscape && (
                       <div className="text-xs text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground mt-1">
-                        {(() => {
-                          const str = baziData.yunInfo.startSolarDate;
-                          const match = str.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
-                          if (!match) return null;
-                          const year = parseInt(match[1]);
-                          const month = parseInt(match[2]);
-                          const day = parseInt(match[3]);
-
-                          const stems = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
-                          const idx = (year - 4) % 10;
-                          const stemIdx = idx < 0 ? idx + 10 : idx;
-                          const stem = stems[stemIdx];
-                          const pairStem = stems[(stemIdx + 5) % 10];
-
-                          const jieqiMap = [
-                            { name: '小寒', m: 1, d: 5 }, { name: '大寒', m: 1, d: 20 },
-                            { name: '立春', m: 2, d: 4 }, { name: '雨水', m: 2, d: 19 },
-                            { name: '惊蛰', m: 3, d: 5 }, { name: '春分', m: 3, d: 20 },
-                            { name: '清明', m: 4, d: 4 }, { name: '谷雨', m: 4, d: 20 },
-                            { name: '立夏', m: 5, d: 5 }, { name: '小满', m: 5, d: 21 },
-                            { name: '芒种', m: 6, d: 5 }, { name: '夏至', m: 6, d: 21 },
-                            { name: '小暑', m: 7, d: 7 }, { name: '大暑', m: 7, d: 22 },
-                            { name: '立秋', m: 8, d: 7 }, { name: '处暑', m: 8, d: 23 },
-                            { name: '白露', m: 9, d: 7 }, { name: '秋分', m: 9, d: 23 },
-                            { name: '寒露', m: 10, d: 8 }, { name: '霜降', m: 10, d: 23 },
-                            { name: '立冬', m: 11, d: 7 }, { name: '小雪', m: 11, d: 22 },
-                            { name: '大雪', m: 12, d: 7 }, { name: '冬至', m: 12, d: 21 },
-                          ];
-
-                          const targetDate = new Date(year, month - 1, day);
-                          let bestJieqi = '冬至';
-                          let bestDate = new Date(year - 1, 11, 21);
-
-                          for (const jq of jieqiMap) {
-                            const d = new Date(year, jq.m - 1, jq.d);
-                            if (targetDate >= d) {
-                              bestDate = d;
-                              bestJieqi = jq.name;
-                            } else {
-                              break;
-                            }
-                          }
-
-                          const diffTime = Math.abs(targetDate.getTime() - bestDate.getTime());
-                          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                          return `交运：逢${stem}、${pairStem}年 ${bestJieqi}后${diffDays}天 交大运`;
-                        })()}
+                        {calcJiaoYunInfo(baziData.yunInfo.startSolarDate)}
                       </div>
                     )}
                   </>

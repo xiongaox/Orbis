@@ -2,8 +2,7 @@ import { cloneElement, isValidElement, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import SideDrawer from '../UI/SideDrawer';
-import { useMediaQuery } from '../../hooks/useMediaQuery';
-import { useIsPadLandscape } from '../../hooks/useIsPadLandscape';
+import { useLayoutMode } from '../../hooks/useLayoutMode';
 
 interface MainLayoutProps {
     sidebar?: ReactNode;
@@ -17,9 +16,7 @@ interface MainLayoutProps {
  * 左侧栏 + 中间内容 + 右侧栏（干支留意 + 智能咨询参考）
  */
 export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children }: MainLayoutProps) {
-    const isDesktop = useMediaQuery('(min-width: 1024px)');
-    const isPadLandscape = useIsPadLandscape();
-    const useDesktopLayout = isDesktop && !isPadLandscape;
+    const { isPadLandscape, useDesktopLayout } = useLayoutMode();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
 

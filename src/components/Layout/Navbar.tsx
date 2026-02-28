@@ -4,30 +4,20 @@
  * 包含实时时钟显示（公历、农历、四柱）
  * 响应式设计：小屏幕折叠菜单 + 时钟互斥显示
  */
-import { useState, useEffect, useRef } from 'react';
-import {
-  Calendar,
-  Compass,
-  Grid3X3,
-  LogOut,
-  Moon,
-  Sun,
-  User,
-  Loader2,
-  Key,
-  Menu,
-} from 'lucide-react';
-import type { ComponentType } from 'react';
+import { useState, useEffect } from 'react';
+import { Calendar, Compass, Grid3X3, Sun, Moon, Menu } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useIsPadLandscape } from '../../hooks/useIsPadLandscape';
+import { useLayoutMode } from '../../hooks/useLayoutMode';
 import BaseModal from '../UI/BaseModal';
 import SideDrawer from '../UI/SideDrawer';
-import { getRealtimeClockData } from '../../utils/lunarUtil';
 import ChangePasswordModal from '../Auth/ChangePasswordModal';
 import AdvancedDatePicker from '../Common/AdvancedDatePicker';
 import { profileService } from '../../services/profileService';
+import RealtimeClock from './RealtimeClock';
+import UserMenu from './UserMenu';
+import { NavButton, DrawerNavButton, type NavItemType } from './NavButton';
 
-type ChartType =
+export type ChartType =
   | 'bazi'
   | 'qimen'
   | 'liuyao'
@@ -38,46 +28,12 @@ type ChartType =
   | 'wannianli'
   | 'sanyuan';
 
-const navItems: { id: ChartType; name: string; icon: ComponentType<{ className?: string }>; priority: 'core' | 'extra' }[] = [
+const navItems: NavItemType[] = [
   { id: 'wannianli', name: '万年通历', icon: Calendar, priority: 'core' },
   { id: 'bazi', name: '四柱八字', icon: Compass, priority: 'core' },
   { id: 'qimen', name: '奇门遁甲', icon: Grid3X3, priority: 'core' },
   { id: 'xiaoliuren', name: '案例学习', icon: Sun, priority: 'core' },
 ];
-
-const ZODIAC_IMAGES = [
-  '鼠.svg', '牛.svg', '虎.svg', '兔.svg', '龙.svg', '蛇.svg',
-  '马.svg', '羊.svg', '猴.svg', '鸡.svg', '狗.svg', '猪.svg'
-];
-
-/**
- * 根据年份计算生肖索引 (1900年是鼠年)
- */
-function getZodiacIndexByYear(year: number) {
-  const offset = year - 1900;
-  // Handle negative offset if year < 1900 (though picker is 1900+)
-  const index = offset % 12;
-  return index < 0 ? index + 12 : index;
-}
-
-/**
- * 根据邮箱获取固定的随机头像
- * 如果提供了 birthYear，则使用对应的生肖头像
- */
-function getUserAvatar(email?: string, birthYear?: number) {
-  if (birthYear) {
-    const index = getZodiacIndexByYear(birthYear);
-    return `/zodiac/${ZODIAC_IMAGES[index]}`;
-  }
-
-  if (!email) return `/zodiac/${ZODIAC_IMAGES[0]}`;
-  let hash = 0;
-  for (let i = 0; i < email.length; i++) {
-    hash = email.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % ZODIAC_IMAGES.length;
-  return `/zodiac/${ZODIAC_IMAGES[index]}`;
-}
 
 interface NavbarProps {
   activeChart: ChartType;
@@ -85,97 +41,10 @@ interface NavbarProps {
   onLoginClick?: () => void;
 }
 
-// 实时时钟组件
-function RealtimeClock() {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const clockData = getRealtimeClockData(now);
-
-  return (
-    <div className="flex items-center gap-4 text-base">
-      {/* 四柱 */}
-      <div className="flex gap-1">
-        {[clockData.pillars.year, clockData.pillars.month, clockData.pillars.day, clockData.pillars.hour].map((pillar, i) => (
-          <div
-            key={i}
-            className="flex flex-col items-center px-1.5 py-0.5"
-          >
-            <span className="text-primary font-serif text-base">{pillar[0]}</span>
-            <span className="text-muted-foreground font-serif text-base">{pillar[1]}</span>
-          </div>
-        ))}
-      </div>
-      {/* 公历 + 农历 */}
-      <div className="flex flex-col font-serif items-start leading-tight text-base">
-        <span className="text-foreground/80">{clockData.solar.formatted}</span>
-        <span className="text-muted-foreground">
-          {clockData.lunar.yearInChinese}年{clockData.lunar.monthInChinese}月{clockData.lunar.dayInChinese}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-// 导航菜单按钮组件
-function NavButton({
-  item,
-  isActive,
-  onClick,
-}: {
-  item: typeof navItems[0];
-  isActive: boolean;
-  onClick: () => void;
-}) {
-  const Icon = item.icon;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex items-center gap-1 px-2 md:px-3 py-1.5 text-sm md:text-base font-medium transition-all duration-200 whitespace-nowrap ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-        }`}
-    >
-      <Icon className="w-4 h-4" />
-      <span className="hidden md:inline">{item.name}</span>
-    </button>
-  );
-}
-
-function DrawerNavButton({
-  item,
-  isActive,
-  onClick,
-}: {
-  item: typeof navItems[0];
-  isActive: boolean;
-  onClick: () => void;
-}) {
-  const Icon = item.icon;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium border transition-colors ${isActive
-        ? 'bg-primary/10 text-primary border-primary/30'
-        : 'bg-card/60 text-muted-foreground border-border/60 hover:text-foreground hover:bg-secondary/50'
-        }`}
-    >
-      <Icon className="w-4 h-4" />
-      <span>{item.name}</span>
-    </button>
-  );
-}
-
 export default function Navbar({ activeChart, onChartChange, onLoginClick }: NavbarProps) {
-  const { user, isAuthenticated, signOut, loading } = useAuth();
-  const isPadLandscape = useIsPadLandscape();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { user } = useAuth();
+  const { isPadLandscape } = useLayoutMode();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
 
@@ -207,21 +76,6 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
     return document.documentElement.classList.contains('dark');
   });
 
-  const handleLogout = async () => {
-    setLoggingOut(true);
-    try {
-      await signOut();
-      setMenuOpen(false);
-    } finally {
-      setLoggingOut(false);
-    }
-  };
-
-  const handleLoginClick = () => {
-    setMenuOpen(false);
-    onLoginClick?.();
-  };
-
   const handleToggleTheme = () => {
     setIsDark((prev) => {
       const next = !prev;
@@ -231,14 +85,9 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
     });
   };
 
-  // 获取显示名称
-  const displayName = user?.email?.split('@')[0] || '用户';
-  const avatarPath = getUserAvatar(user?.email, birthDate?.getFullYear());
-
   const handleBirthdayConfirm = async (date: Date) => {
     setBirthDate(date); // Optimistic update
     setShowBirthdayModal(false);
-    setMenuOpen(false);
 
     if (user?.id) {
       // Save to Supabase
@@ -253,24 +102,6 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
       }
     }
   };
-
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  // 点击外部关闭菜单
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    }
-
-    if (menuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [menuOpen]);
 
   return (
     <>
@@ -360,7 +191,6 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
                 </a>
               )}
 
-
               {/* 联系作者 - 仅桌面端显示（Pad 端收入折叠菜单） */}
               {!isPadLandscape && (
                 <button
@@ -390,126 +220,15 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
               </button>
 
               {/* 用户菜单 */}
-              <div className="relative" ref={menuRef}>
-                <button
-                  type="button"
-                  onClick={() => setMenuOpen((prev) => !prev)}
-                  className="inline-flex items-center justify-center md:justify-start gap-0 md:gap-2 w-9 h-9 md:w-auto md:h-auto p-0 md:px-3 md:py-2 rounded-xl md:rounded-lg border border-border/60 md:border-transparent bg-card/55 md:bg-transparent hover:bg-secondary/50 transition-colors"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
-                  ) : isAuthenticated ? (
-                    <img src={avatarPath} alt={displayName} className="w-[22px] h-[22px] md:w-4 md:h-4 rounded-full object-cover" />
-                  ) : (
-                    <User className="w-4 h-4 text-muted-foreground" />
-                  )}
-                  <span className="hidden md:inline text-sm text-muted-foreground max-w-[120px] truncate">
-                    {loading ? '加载中...' : isAuthenticated ? displayName : '未登录'}
-                  </span>
-                </button>
-                {menuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-card border border-border rounded-lg shadow-lg py-1 animate-fade-in">
-                    {isAuthenticated ? (
-                      <>
-                        {/* GitHub 和联系作者：移动端 + Pad 端显示，桌面端隐藏 */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            window.open('https://github.com/xiongaox/Orbis', '_blank', 'noopener,noreferrer');
-                            setMenuOpen(false);
-                          }}
-                          className={`${isPadLandscape ? '' : 'md:hidden'} w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2`}
-                        >
-                          <Compass className="w-4 h-4" />
-                          GitHub 仓库
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowContactModal(true);
-                            setMenuOpen(false);
-                          }}
-                          className={`${isPadLandscape ? '' : 'md:hidden'} w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2`}
-                        >
-                          <User className="w-4 h-4" />
-                          联系作者
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowBirthdayModal(true);
-                            setMenuOpen(false);
-                          }}
-                          className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
-                        >
-                          <Calendar className="w-4 h-4" />
-                          设置生日
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowPasswordModal(true);
-                            setMenuOpen(false);
-                          }}
-                          className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
-                        >
-                          <Key className="w-4 h-4" />
-                          修改密码
-                        </button>
-                        <button
-                          onClick={handleLogout}
-                          disabled={loggingOut}
-                          className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 flex items-center gap-2"
-                        >
-                          {loggingOut ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <LogOut className="w-4 h-4" />
-                          )}
-                          退出登录
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        {/* GitHub 和联系作者：移动端 + Pad 端显示，桌面端隐藏 */}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            window.open('https://github.com/xiongaox/Orbis', '_blank', 'noopener,noreferrer');
-                            setMenuOpen(false);
-                          }}
-                          className={`${isPadLandscape ? '' : 'md:hidden'} w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2`}
-                        >
-                          <Compass className="w-4 h-4" />
-                          GitHub 仓库
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowContactModal(true);
-                            setMenuOpen(false);
-                          }}
-                          className={`${isPadLandscape ? '' : 'md:hidden'} w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2`}
-                        >
-                          <User className="w-4 h-4" />
-                          联系作者
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleLoginClick}
-                          className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
-                        >
-                          <User className="w-4 h-4" />
-                          登录 / 注册
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
+              <UserMenu
+                onLoginClick={() => onLoginClick?.()}
+                onShowContact={() => setShowContactModal(true)}
+                onShowBirthday={() => setShowBirthdayModal(true)}
+                onShowPassword={() => setShowPasswordModal(true)}
+                birthDate={birthDate}
+              />
             </div>
           </div>
-
         </div>
       </header>
 
@@ -569,6 +288,7 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
           </p>
         </div>
       </BaseModal>
+
       <ChangePasswordModal
         isOpen={showPasswordModal}
         onClose={() => setShowPasswordModal(false)}
