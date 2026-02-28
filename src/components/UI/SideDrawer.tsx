@@ -6,7 +6,7 @@ interface SideDrawerProps {
   open: boolean;
   title?: string;
   side?: 'left' | 'right';
-  size?: 'xxs' | 'xs' | 'sm' | 'md' | 'lg' | 'full';
+  size?: 'xxs' | 'xs' | 'sm' | 'ms' | 'md' | 'lg' | 'full';
   hideHeader?: boolean;
   onClose: () => void;
   children: ReactNode;
@@ -43,9 +43,11 @@ export default function SideDrawer({
           ? 'w-[70vw] max-w-[280px]'
           : size === 'sm'
             ? 'w-[78vw] max-w-[320px]'
-            : size === 'lg'
-              ? 'w-[92vw] max-w-[520px]'
-              : 'w-[92vw] max-w-[420px]';
+            : size === 'ms'
+              ? 'w-[85vw] max-w-[370px]'
+              : size === 'lg'
+                ? 'w-[92vw] max-w-[520px]'
+                : 'w-[92vw] max-w-[420px]';
 
   return (
     <div className="fixed inset-0 z-[60]">

@@ -391,32 +391,38 @@ export default function CaseStudyPage() {
         </div>
     );
 
+
+
     const chartPanel = (
         <div className="h-full bg-muted/10 flex flex-col overflow-hidden">
-            <div className="p-2 border-b border-border bg-muted/20 flex justify-between items-center h-[40px]">
-                <span className="text-xs font-medium text-muted-foreground">排盘信息</span>
-
-                {/* 多排盘切换按钮 */}
-                {activeCase && chartCount > 1 && (
-                    <div className="flex space-x-1">
-                        {Array.from({ length: chartCount }).map((_, i) => (
-                            <button
-                                key={i}
-                                onClick={() => setActiveChartIndex(i)}
-                                className={`
-                                        text-[10px] px-2 py-0.5 rounded border transition-colors
-                                        ${activeChartIndex === i
-                                        ? 'bg-primary text-primary-foreground border-primary'
-                                        : 'bg-background text-muted-foreground border-border hover:bg-muted'
-                                    }
-                                    `}
-                            >
-                                盘式{toChineseNum(i + 1)}
-                            </button>
-                        ))}
-                    </div>
-                )}
-            </div>
+            {/* 标题行：非桌面端在 SideDrawer 中已有标题，仅当有多盘切换时显示 */}
+            {(useDesktopLayout || (activeCase && chartCount > 1)) && (
+                <div className="p-2 border-b border-border bg-muted/20 flex justify-between items-center h-[40px]">
+                    {useDesktopLayout && (
+                        <span className="text-xs font-medium text-muted-foreground">排盘信息</span>
+                    )}
+                    {/* 多排盘切换按钮 */}
+                    {activeCase && chartCount > 1 && (
+                        <div className="flex space-x-1">
+                            {Array.from({ length: chartCount }).map((_, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => setActiveChartIndex(i)}
+                                    className={`
+                                            text-[10px] px-2 py-0.5 rounded border transition-colors
+                                            ${activeChartIndex === i
+                                            ? 'bg-primary text-primary-foreground border-primary'
+                                            : 'bg-background text-muted-foreground border-border hover:bg-muted'
+                                        }
+                                        `}
+                                >
+                                    盘式{toChineseNum(i + 1)}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
             <div className="flex-1 overflow-y-auto p-0 scrollbar-thin scrollbar-thumb-border/40 scrollbar-track-transparent flex flex-col">
                 {selectedCategory === 'bazi' && activeCase ? (
                     <>
@@ -426,6 +432,7 @@ export default function CaseStudyPage() {
                                 data={baziData}
                                 selectedDaYunIndex={selectedDaYunIndex}
                                 selectedLiuNianYear={selectedLiuNianYear}
+                                isMobile={!useDesktopLayout && !isPadLandscape}
                             />
                         </div>
 
@@ -437,6 +444,7 @@ export default function CaseStudyPage() {
                                 selectedLiuNianYear={selectedLiuNianYear}
                                 onSelectDaYun={setSelectedDaYunIndex}
                                 onSelectLiuNian={setSelectedLiuNianYear}
+                                isMobile={!useDesktopLayout && !isPadLandscape}
                             />
                         </div>
                     </>
@@ -601,7 +609,7 @@ export default function CaseStudyPage() {
                         open={isChartPanelOpen}
                         title="排盘信息"
                         side="right"
-                        size="lg"
+                        size={(!useDesktopLayout && !isPadLandscape) ? "full" : "lg"}
                         onClose={() => setIsChartPanelOpen(false)}
                     >
                         {chartPanel}
@@ -743,7 +751,7 @@ export default function CaseStudyPage() {
                         open={isChartPanelOpen}
                         title={selectedCategory === 'duanfa' ? '大纲' : '排盘信息'}
                         side="right"
-                        size="xxs"
+                        size={selectedCategory === 'duanfa' ? 'xxs' : 'ms'}
                         onClose={() => setIsChartPanelOpen(false)}
                     >
                         {selectedCategory === 'duanfa' ? (

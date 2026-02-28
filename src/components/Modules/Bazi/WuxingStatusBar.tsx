@@ -17,6 +17,7 @@ interface WuxingStatusBarProps {
     onToggleHideDetails: () => void;
     onGoToCurrentYear: () => void;
     isMobileLayout?: boolean;
+    isPadLandscape?: boolean;
 }
 
 export default function WuxingStatusBar({
@@ -29,6 +30,7 @@ export default function WuxingStatusBar({
     onToggleHideDetails,
     onGoToCurrentYear,
     isMobileLayout = false,
+    isPadLandscape = false,
 }: WuxingStatusBarProps) {
     // 获取月支
     const monthBranch = baziData?.pillars?.[1]?.dizhi || '';
@@ -53,8 +55,8 @@ export default function WuxingStatusBar({
         <div className={`bg-card rounded-xl border border-border text-sm ${isMobileLayout ? 'px-3 py-2 space-y-2' : 'px-4 py-2.5 flex items-center justify-between'
             }`}>
             {/* 五行旺衰状态 + 年龄 */}
-            <div className={`flex items-center ${isMobileLayout ? 'justify-between' : 'gap-3'}`}>
-                <div className={`flex items-center ${isMobileLayout ? 'gap-1.5 text-xs' : 'gap-3'}`}>
+            <div className={`flex items-center ${isMobileLayout ? 'justify-between' : isPadLandscape ? 'gap-1.5' : 'gap-3'}`}>
+                <div className={`flex items-center ${isMobileLayout ? 'gap-1.5 text-xs' : isPadLandscape ? 'gap-1 text-xs' : 'gap-3'}`}>
                     {wuxingStatus.map((item, index) => (
                         <div key={item.element} className="flex items-center">
                             <span
@@ -67,7 +69,7 @@ export default function WuxingStatusBar({
                                 {item.state}
                             </span>
                             {index < wuxingStatus.length - 1 && (
-                                <span className={`text-border ${isMobileLayout ? 'ml-1.5' : 'ml-3'}`}>|</span>
+                                <span className={`text-border ${isMobileLayout ? 'ml-1.5' : isPadLandscape ? 'ml-1' : 'ml-3'}`}>|</span>
                             )}
                         </div>
                     ))}
@@ -84,7 +86,7 @@ export default function WuxingStatusBar({
             </div>
 
             {/* 右侧：按钮组 */}
-            <div className={`flex items-center ${isMobileLayout ? 'gap-1.5' : 'gap-3'}`}>
+            <div className={`flex items-center ${isMobileLayout ? 'gap-1.5' : isPadLandscape ? 'gap-1.5' : 'gap-3'}`}>
                 {/* 桌面端年龄显示 */}
                 {!isMobileLayout && currentAge !== null && (
                     <div className="text-foreground">
@@ -104,7 +106,7 @@ export default function WuxingStatusBar({
                     type="button"
                     onClick={onToggleTaiMingShen}
                     className={`
-                        ${isMobileLayout ? 'flex-1 h-7 text-[12px]' : 'px-3 py-1 text-xs'} rounded-lg font-medium transition-all border
+                        ${isMobileLayout ? 'flex-1 h-7 text-[12px]' : isPadLandscape ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-xs'} rounded-lg font-medium transition-all border
                         ${showTaiMingShen
                             ? 'bg-primary text-primary-foreground border-primary'
                             : 'bg-muted text-foreground border-border hover:bg-muted/80'
@@ -118,7 +120,7 @@ export default function WuxingStatusBar({
                 <button
                     type="button"
                     onClick={onGoToCurrentYear}
-                    className={`${isMobileLayout ? 'flex-1 h-7 text-[12px]' : 'px-3 py-1 text-xs'} rounded-lg font-medium transition-all border bg-muted text-foreground border-border hover:bg-muted/80`}
+                    className={`${isMobileLayout ? 'flex-1 h-7 text-[12px]' : isPadLandscape ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-xs'} rounded-lg font-medium transition-all border bg-muted text-foreground border-border hover:bg-muted/80`}
                 >
                     当前流年
                 </button>
@@ -128,7 +130,7 @@ export default function WuxingStatusBar({
                     type="button"
                     onClick={onToggleHideDetails}
                     className={`
-                        ${isMobileLayout ? 'flex-1 h-7 text-[12px]' : 'px-3 py-1 text-xs'} rounded-lg font-medium transition-all border
+                        ${isMobileLayout ? 'flex-1 h-7 text-[12px]' : isPadLandscape ? 'px-2 py-0.5 text-xs' : 'px-3 py-1 text-xs'} rounded-lg font-medium transition-all border
                         ${(isMobileLayout ? !hideDetails : hideDetails)
                             ? 'bg-primary text-primary-foreground border-primary'
                             : 'bg-muted text-foreground border-border hover:bg-muted/80'

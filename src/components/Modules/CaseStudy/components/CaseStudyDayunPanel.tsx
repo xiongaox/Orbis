@@ -17,6 +17,7 @@ interface CaseStudyDayunPanelProps {
     selectedLiuNianYear?: number | null;
     onSelectDaYun?: (index: number | null) => void;
     onSelectLiuNian?: (year: number | null) => void;
+    isMobile?: boolean;
 }
 
 export default function CaseStudyDayunPanel({
@@ -27,6 +28,7 @@ export default function CaseStudyDayunPanel({
     selectedLiuNianYear: propLiuNianYear,
     onSelectDaYun,
     onSelectLiuNian,
+    isMobile = false,
 }: CaseStudyDayunPanelProps) {
     // 内部状态
     const [internalDaYunIndex, setInternalDaYunIndex] = useState<number | null>(null);
@@ -203,38 +205,38 @@ export default function CaseStudyDayunPanel({
                                     return (
                                         <div
                                             key={`dayun-${item.index}`}
-                                            className={`min-w-0 p-3 border-r border-border last:border-r-0 cursor-pointer transition-colors hover:bg-primary/10 h-full flex flex-col justify-center ${isActive ? 'bg-primary/5' : ''}`}
+                                            className={`min-w-0 ${isMobile ? 'p-1.5' : 'p-3'} border-r border-border last:border-r-0 cursor-pointer transition-colors hover:bg-primary/10 h-full flex flex-col justify-center ${isActive ? 'bg-primary/5' : ''}`}
                                             onClick={() => handleDaYunClick(item.index)}
                                         >
                                             <div className="flex flex-col items-center text-center">
-                                                <div className="flex flex-col items-center gap-1">
-                                                    <div className="text-sm text-muted-foreground leading-snug">
+                                                <div className="flex flex-col items-center gap-0.5">
+                                                    <div className={`${isMobile ? 'text-[9px]' : 'text-sm'} text-muted-foreground leading-snug whitespace-nowrap`}>
                                                         {item.startAge}岁
                                                     </div>
-                                                    <div className="text-sm text-muted-foreground leading-snug">
+                                                    <div className={`${isMobile ? 'text-[9px]' : 'text-sm'} text-muted-foreground leading-snug whitespace-nowrap`}>
                                                         {item.startYear}
                                                     </div>
                                                 </div>
-                                                <div className="mt-3 space-y-1">
-                                                    <div className="flex items-baseline justify-center gap-x-1">
+                                                <div className={`${isMobile ? 'mt-1.5' : 'mt-3'} space-y-1`}>
+                                                    <div className="flex items-baseline justify-center gap-x-0.5">
                                                         <span
-                                                            className="font-display text-base text-foreground leading-none"
+                                                            className={`font-display ${isMobile ? 'text-sm' : 'text-base'} text-foreground leading-none`}
                                                             style={{ color: getElementColor(item.tiangan) }}
                                                         >
                                                             {item.tiangan}
                                                         </span>
-                                                        <span className="text-sm text-muted-foreground leading-none">
+                                                        <span className={`${isMobile ? 'text-[12px]' : 'text-sm'} text-muted-foreground leading-none`}>
                                                             {getShiShenAbbr(dayMaster, item.tiangan)}
                                                         </span>
                                                     </div>
-                                                    <div className="flex items-baseline justify-center gap-x-1">
+                                                    <div className="flex items-baseline justify-center gap-x-0.5">
                                                         <span
-                                                            className="font-display text-base text-foreground leading-none"
+                                                            className={`font-display ${isMobile ? 'text-sm' : 'text-base'} text-foreground leading-none`}
                                                             style={{ color: getElementColor(item.dizhi) }}
                                                         >
                                                             {item.dizhi}
                                                         </span>
-                                                        <span className="text-sm text-muted-foreground leading-none">
+                                                        <span className={`${isMobile ? 'text-[12px]' : 'text-sm'} text-muted-foreground leading-none`}>
                                                             {getShiShenAbbr(dayMaster, item.dizhi)}
                                                         </span>
                                                     </div>
@@ -261,11 +263,11 @@ export default function CaseStudyDayunPanel({
 
                         {/* 流年格子 */}
                         <div className="flex-1 min-w-0 overflow-x-auto">
-                            <div className="grid grid-cols-10 min-w-0 w-full relative">
+                            <div className={`grid ${isMobile ? 'grid-cols-5' : 'grid-cols-10'} min-w-0 w-full relative`}>
                                 {displayLiuNian.map((item, idx) => {
                                     const isCurrentYear = item.year === currentYear;
                                     const isSelected = item.year === selectedLiuNianYear;
-                                    const isLastColumn = idx === 9;
+                                    const isLastInRow = isMobile ? (idx % 5 === 4) : (idx === 9);
 
                                     // 计算特殊状态
                                     const status = checkLiunianStatus(item, activeDaYunObject, pillars);
@@ -290,31 +292,31 @@ export default function CaseStudyDayunPanel({
                                     return (
                                         <div
                                             key={item.year}
-                                            className={`relative min-w-0 p-3 pb-6 border-r border-border cursor-pointer transition-colors hover:bg-primary/10 ${isLastColumn ? '!border-r-0' : ''} ${isSelected ? 'bg-primary/10' : isCurrentYear ? 'bg-primary/5' : ''}`}
+                                            className={`relative min-w-0 ${isMobile ? 'p-1 pb-5' : 'p-3 pb-6'} border-r border-border cursor-pointer transition-colors hover:bg-primary/10 ${isLastInRow ? '!border-r-0' : ''} ${isMobile && idx < 5 ? 'border-b' : ''} ${isSelected ? 'bg-primary/10' : isCurrentYear ? 'bg-primary/5' : ''}`}
                                             onClick={() => handleLiuNianClick(item.year)}
                                         >
                                             <div className="flex flex-col items-center text-center">
-                                                <div className="text-sm text-foreground leading-snug">{item.year}</div>
-                                                <div className="mt-2 space-y-1">
-                                                    <div className="flex items-baseline justify-center gap-x-1">
+                                                <div className={`${isMobile ? 'text-[9px]' : 'text-sm'} text-foreground leading-snug`}>{item.year}</div>
+                                                <div className={`${isMobile ? 'mt-1' : 'mt-2'} space-y-0.5`}>
+                                                    <div className="flex items-baseline justify-center gap-x-0.5">
                                                         <span
-                                                            className="font-display text-base text-foreground leading-none"
+                                                            className={`font-display ${isMobile ? 'text-[14px]' : 'text-base'} text-foreground leading-none`}
                                                             style={{ color: getElementColor(item.tiangan) }}
                                                         >
                                                             {item.tiangan}
                                                         </span>
-                                                        <span className="text-sm text-muted-foreground leading-none">
+                                                        <span className={`${isMobile ? 'text-[12px]' : 'text-sm'} text-muted-foreground leading-none`}>
                                                             {getShiShenAbbr(dayMaster, item.tiangan)}
                                                         </span>
                                                     </div>
-                                                    <div className="flex items-baseline justify-center gap-x-1">
+                                                    <div className="flex items-baseline justify-center gap-x-0.5">
                                                         <span
-                                                            className="font-display text-base text-foreground leading-none"
+                                                            className={`font-display ${isMobile ? 'text-[14px]' : 'text-base'} text-foreground leading-none`}
                                                             style={{ color: getElementColor(item.dizhi) }}
                                                         >
                                                             {item.dizhi}
                                                         </span>
-                                                        <span className="text-sm text-muted-foreground leading-none">
+                                                        <span className={`${isMobile ? 'text-[12px]' : 'text-sm'} text-muted-foreground leading-none`}>
                                                             {getShiShenAbbr(dayMaster, item.dizhi)}
                                                         </span>
                                                     </div>
@@ -326,7 +328,7 @@ export default function CaseStudyDayunPanel({
                                             {status && (
                                                 <div
                                                     role="button"
-                                                    className="absolute bottom-1.5 left-1/2 -translate-x-1/2 cursor-pointer z-10 p-1 group"
+                                                    className={`absolute ${isMobile ? 'bottom-0.5' : 'bottom-1.5'} left-1/2 -translate-x-1/2 cursor-pointer z-10 p-1 group`}
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         if (activeHint?.year === item.year) {
