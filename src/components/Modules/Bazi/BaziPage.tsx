@@ -91,6 +91,7 @@ export default function BaziPage() {
                             hideDetails={hideDetails}
                             onToggleHideDetails={() => setHideDetails(!hideDetails)}
                             isMobileLayout={isMobileLayout}
+                            isPadLandscape={isPadLandscape}
                             onGoToCurrentYear={() => {
                                 // 使用 lunarUtil 封装获取当前干支年（以立春为界）
                                 const now = new Date();
