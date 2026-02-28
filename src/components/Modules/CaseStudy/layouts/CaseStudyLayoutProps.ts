@@ -1,7 +1,7 @@
-import type { RefObject } from 'react';
+import type { RefObject, Dispatch, SetStateAction } from 'react';
 import type { BaziApiResponse } from '../../../../types/bazi';
 import type { CaseItem } from '../hooks/useCaseStudy';
-import type { QimenResult } from '../../../../lib/csp-qimen/qimenService';
+import type { PaiPanMethod, QimenResult } from '../../../../lib/csp-qimen/qimenService';
 import type { useDuanFa } from '../hooks/useDuanFa';
 
 export interface CaseStudyLayoutProps {
@@ -51,8 +51,8 @@ export interface CaseStudyLayoutProps {
 
     // 奇门状态
     qimenResult: QimenResult | null;
-    qimenMethod: string;
-    setQimenMethod: (m: string) => void;
+    qimenMethod: PaiPanMethod;
+    setQimenMethod: Dispatch<SetStateAction<PaiPanMethod>>;
 
     // 断法系统状态
     duanFa: ReturnType<typeof useDuanFa>;
