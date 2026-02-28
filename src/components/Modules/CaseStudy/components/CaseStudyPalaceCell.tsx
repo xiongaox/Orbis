@@ -17,6 +17,7 @@ interface PalaceCellProps {
     isHourStem: boolean;
     isJiGongDayStem?: boolean;
     isJiGongHourStem?: boolean;
+    isMobile?: boolean;
 }
 
 export default function CaseStudyPalaceCell({
@@ -31,6 +32,7 @@ export default function CaseStudyPalaceCell({
     isHourStem,
     isJiGongDayStem,
     isJiGongHourStem,
+    isMobile = false,
 }: PalaceCellProps) {
     // 显示状态计算：十神或长生二选一
     const showExtraInfo = showShiShen || showChangSheng;
@@ -44,39 +46,39 @@ export default function CaseStudyPalaceCell({
                 <div className={`w-full h-full flex flex-col p-0.5 ${showExtraInfo ? 'justify-center gap-y-1' : 'justify-evenly gap-y-1'}`}>
                     {/* 第一行：暗干 - 与普通宫位对齐 */}
                     <div className="grid grid-cols-3 w-full items-start">
-                        <div className="flex items-center justify-center"><span className="text-sm font-serif text-muted-foreground opacity-70">{palace.anGan}</span></div>
-                        <div className="flex items-center justify-center"><span className="text-sm font-serif text-foreground/60">&nbsp;</span></div>
-                        <div className="flex items-center justify-center"><span className="text-sm font-serif text-muted-foreground">&nbsp;</span></div>
+                        <div className="flex items-center justify-center"><span className={`${isMobile ? 'text-xs' : 'text-sm'} font-serif text-muted-foreground opacity-70`}>{palace.anGan}</span></div>
+                        <div className="flex items-center justify-center"><span className={`${isMobile ? 'text-xs' : 'text-sm'} font-serif text-foreground/60`}>&nbsp;</span></div>
+                        <div className="flex items-center justify-center"><span className={`${isMobile ? 'text-xs' : 'text-sm'} font-serif text-muted-foreground`}>&nbsp;</span></div>
                     </div>
                     {/* 第二行：占位 - 与普通宫位对齐，包含长生占位 */}
                     <div className="grid grid-cols-3 w-full items-end">
                         <div className="flex flex-col items-center justify-end leading-none">
-                            <span className="text-base font-serif text-foreground">&nbsp;</span>
-                            {showExtraInfo && <span className="text-[12px] text-muted-foreground whitespace-nowrap">&nbsp;</span>}
+                            <span className={`${isMobile ? 'text-sm' : 'text-base'} font-serif text-foreground`}>&nbsp;</span>
+                            {showExtraInfo && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap`}>&nbsp;</span>}
                         </div>
                         <div className="flex flex-col items-center justify-end leading-none">
-                            <span className="text-xl font-serif font-bold text-foreground">&nbsp;</span>
-                            {showExtraInfo && <span className="text-[12px] text-muted-foreground whitespace-nowrap mt-0.5">&nbsp;</span>}
+                            <span className={`${isMobile ? 'text-base' : 'text-xl'} font-serif font-bold text-foreground`}>&nbsp;</span>
+                            {showExtraInfo && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap mt-0.5`}>&nbsp;</span>}
                         </div>
                         <div className="flex flex-col items-center justify-end leading-none">
-                            <span className="text-base font-serif text-foreground">&nbsp;</span>
-                            {showExtraInfo && <span className="text-[12px] text-muted-foreground whitespace-nowrap mt-0.5">&nbsp;</span>}
+                            <span className={`${isMobile ? 'text-sm' : 'text-base'} font-serif text-foreground`}>&nbsp;</span>
+                            {showExtraInfo && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap mt-0.5`}>&nbsp;</span>}
                         </div>
                     </div>
                     {/* 第三行：地盘干 - 与普通宫位对齐，包含长生占位 */}
                     <div className="grid grid-cols-3 w-full items-end">
                         <div className="flex flex-col items-center justify-end leading-none">
-                            <span className="text-base font-serif text-foreground">&nbsp;</span>
-                            {showExtraInfo && <span className="text-[12px] text-muted-foreground whitespace-nowrap">&nbsp;</span>}
+                            <span className={`${isMobile ? 'text-sm' : 'text-base'} font-serif text-foreground`}>&nbsp;</span>
+                            {showExtraInfo && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap`}>&nbsp;</span>}
                         </div>
                         <div className="flex flex-col items-center justify-end leading-none">
-                            <span className="text-lg font-serif text-foreground">&nbsp;</span>
-                            {showExtraInfo && <span className="text-[12px] text-muted-foreground whitespace-nowrap mt-0.5">&nbsp;</span>}
+                            <span className={`${isMobile ? 'text-sm' : 'text-lg'} font-serif text-foreground`}>&nbsp;</span>
+                            {showExtraInfo && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap mt-0.5`}>&nbsp;</span>}
                         </div>
                         <div className="flex flex-col items-center justify-end leading-none">
-                            <span className="text-base font-serif text-foreground">{palace.diPan}</span>
-                            {showShiShen && <span className="text-[12px] text-muted-foreground whitespace-nowrap mt-0.5">{palace.diPanShiShen}</span>}
-                            {showChangSheng && <span className="text-[12px] text-muted-foreground whitespace-nowrap mt-0.5">&nbsp;</span>}
+                            <span className={`${isMobile ? 'text-sm' : 'text-base'} font-serif text-foreground`}>{palace.diPan}</span>
+                            {showShiShen && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap mt-0.5`}>{palace.diPanShiShen}</span>}
+                            {showChangSheng && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap mt-0.5`}>&nbsp;</span>}
                         </div>
                     </div>
                 </div>
@@ -89,81 +91,81 @@ export default function CaseStudyPalaceCell({
     const menPoStatus = getMenPoStatus(palace.men, palace.position);
     const diPanStatus = getTianPanStatus(palace.diPan, palace.position);
 
-    const jiGongClass = `text-base font-serif ${isJiGongDayStem || isJiGongHourStem ? 'text-primary font-bold' : 'text-foreground'}`;
+    const jiGongClass = `${isMobile ? 'text-sm' : 'text-base'} font-serif ${isJiGongDayStem || isJiGongHourStem ? 'text-primary font-bold' : 'text-foreground'}`;
 
     return (
         <button type="button" onClick={onSelect} className={baseClass}>
             <div className={`w-full h-full flex flex-col p-0.5 ${showExtraInfo ? 'justify-center gap-y-1' : 'justify-evenly gap-y-1'}`}>
                 {/* 第一行：暗干 + 八神 + 马/空 */}
                 <div className="grid grid-cols-3 w-full items-start">
-                    <div className="flex items-center justify-center"><span className="text-sm font-serif text-muted-foreground opacity-70">{palace.anGan}</span></div>
-                    <div className="flex items-center justify-center"><span className="text-sm font-serif text-foreground/60">{palace.shen}</span></div>
-                    <div className="flex items-center justify-center"><span className="text-sm font-serif text-muted-foreground">{palace.maKong}</span></div>
+                    <div className="flex items-center justify-center"><span className={`${isMobile ? 'text-xs' : 'text-sm'} font-serif text-muted-foreground opacity-70`}>{palace.anGan}</span></div>
+                    <div className="flex items-center justify-center"><span className={`${isMobile ? 'text-xs' : 'text-sm'} font-serif text-foreground/60`}>{palace.shen}</span></div>
+                    <div className="flex items-center justify-center"><span className={`${isMobile ? 'text-xs' : 'text-sm'} font-serif text-muted-foreground`}>{palace.maKong}</span></div>
                 </div>
 
                 {/* 第二行：寄宫天盘 + 九星 + 天盘干 */}
                 <div className="grid grid-cols-3 w-full items-end">
                     <div className="flex flex-col items-center justify-end leading-none">
                         <span className={jiGongClass}>{palace.jiGongTianPan}</span>
-                        {showShiShen && <span className="text-[12px] text-muted-foreground whitespace-nowrap">{palace.jiGongTianPanShiShen}</span>}
-                        {showChangSheng && <span className="text-[12px] text-muted-foreground whitespace-nowrap">{palace.jiGongTianPanCS}</span>}
+                        {showShiShen && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap`}>{palace.jiGongTianPanShiShen}</span>}
+                        {showChangSheng && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap`}>{palace.jiGongTianPanCS}</span>}
                     </div>
                     <div className="flex flex-col items-center justify-end leading-none">
-                        <span className={`text-xl font-serif font-bold ${isZhiFu ? 'text-primary' : 'text-foreground'}`}>{palace.xing}</span>
-                        {showShiShen && <span className="text-[12px] text-muted-foreground whitespace-nowrap mt-0.5">{palace.xingShiShen}</span>}
-                        {showChangSheng && <span className="text-[12px] text-muted-foreground whitespace-nowrap mt-0.5">{palace.xingWang}</span>}
+                        <span className={`${isMobile ? 'text-base' : 'text-xl'} font-serif font-bold ${isZhiFu ? 'text-primary' : 'text-foreground'}`}>{palace.xing}</span>
+                        {showShiShen && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap mt-0.5`}>{palace.xingShiShen}</span>}
+                        {showChangSheng && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap mt-0.5`}>{palace.xingWang}</span>}
                     </div>
                     <div className="flex flex-col items-center justify-end leading-none">
                         {tianPanStatus.status === 'jiXing' ? (
-                            <span className="inline-flex items-center justify-center w-5 h-5 rounded border border-fuchsia-500 text-fuchsia-500 bg-fuchsia-500/5 font-serif font-bold text-sm">
+                            <span className={`inline-flex items-center justify-center ${isMobile ? 'w-4 h-4 text-xs' : 'w-5 h-5 text-sm'} rounded border border-fuchsia-500 text-fuchsia-500 bg-fuchsia-500/5 font-serif font-bold`}>
                                 {palace.tianPan}
                             </span>
                         ) : tianPanStatus.status === 'ruMu' ? (
-                            <span className="inline-flex items-center justify-center w-5 h-5 rounded border border-[#cd853f] text-[#cd853f] bg-[#cd853f]/10 font-serif font-bold text-sm">
+                            <span className={`inline-flex items-center justify-center ${isMobile ? 'w-4 h-4 text-xs' : 'w-5 h-5 text-sm'} rounded border border-[#cd853f] text-[#cd853f] bg-[#cd853f]/10 font-serif font-bold`}>
                                 {palace.tianPan}
                             </span>
                         ) : tianPanStatus.status === 'jiXingRuMu' ? (
-                            <span className="inline-flex items-center justify-center w-5 h-5 rounded border border-[#3b82f6] text-[#3b82f6] bg-[#3b82f6]/10 font-serif font-bold text-sm">
+                            <span className={`inline-flex items-center justify-center ${isMobile ? 'w-4 h-4 text-xs' : 'w-5 h-5 text-sm'} rounded border border-[#3b82f6] text-[#3b82f6] bg-[#3b82f6]/10 font-serif font-bold`}>
                                 {palace.tianPan}
                             </span>
                         ) : (
-                            <span className={tianPanStatus.colorVar ? 'text-base font-serif font-bold' : `text-base font-serif ${isDayStem || isHourStem ? 'text-primary font-bold' : 'text-foreground'}`} style={tianPanStatus.colorVar ? { color: tianPanStatus.colorVar } : undefined}>{palace.tianPan}</span>
+                            <span className={tianPanStatus.colorVar ? `${isMobile ? 'text-sm' : 'text-base'} font-serif font-bold` : `${isMobile ? 'text-sm' : 'text-base'} font-serif ${isDayStem || isHourStem ? 'text-primary font-bold' : 'text-foreground'}`} style={tianPanStatus.colorVar ? { color: tianPanStatus.colorVar } : undefined}>{palace.tianPan}</span>
                         )}
-                        {showShiShen && <span className="text-[12px] text-muted-foreground whitespace-nowrap mt-0.5">{palace.tianPanShiShen}</span>}
-                        {showChangSheng && <span className="text-[12px] text-muted-foreground whitespace-nowrap mt-0.5">{palace.tianPanShiErCS}</span>}
+                        {showShiShen && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap mt-0.5`}>{palace.tianPanShiShen}</span>}
+                        {showChangSheng && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap mt-0.5`}>{palace.tianPanShiErCS}</span>}
                     </div>
                 </div>
 
                 {/* 第三行：寄宫地盘 + 八门 + 地盘干 */}
                 <div className="grid grid-cols-3 w-full items-end">
                     <div className="flex flex-col items-center justify-end leading-none">
-                        <span className="text-base font-serif text-foreground">{palace.jiGongDiPan}</span>
-                        {showShiShen && <span className="text-[12px] text-muted-foreground whitespace-nowrap">{palace.jiGongDiPanShiShen}</span>}
-                        {showChangSheng && <span className="text-[12px] text-muted-foreground whitespace-nowrap">{palace.jiGongDiPanCS}</span>}
+                        <span className={`${isMobile ? 'text-sm' : 'text-base'} font-serif text-foreground`}>{palace.jiGongDiPan}</span>
+                        {showShiShen && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap`}>{palace.jiGongDiPanShiShen}</span>}
+                        {showChangSheng && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap`}>{palace.jiGongDiPanCS}</span>}
                     </div>
                     <div className="flex flex-col items-center justify-end leading-none">
-                        <span className={menPoStatus.colorVar ? 'text-lg font-serif font-bold' : `text-lg font-serif ${isZhiShi ? 'text-primary' : 'text-foreground'}`} style={menPoStatus.colorVar ? { color: menPoStatus.colorVar } : undefined}>{palace.men}</span>
-                        {showShiShen && <span className="text-[12px] text-muted-foreground whitespace-nowrap mt-0.5">{palace.menShiShen}</span>}
-                        {showChangSheng && <span className="text-[12px] text-muted-foreground whitespace-nowrap mt-0.5">{palace.menWang}</span>}
+                        <span className={menPoStatus.colorVar ? `${isMobile ? 'text-sm' : 'text-lg'} font-serif font-bold` : `${isMobile ? 'text-sm' : 'text-lg'} font-serif ${isZhiShi ? 'text-primary' : 'text-foreground'}`} style={menPoStatus.colorVar ? { color: menPoStatus.colorVar } : undefined}>{palace.men}</span>
+                        {showShiShen && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap mt-0.5`}>{palace.menShiShen}</span>}
+                        {showChangSheng && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap mt-0.5`}>{palace.menWang}</span>}
                     </div>
                     <div className="flex flex-col items-center justify-end leading-none">
                         {diPanStatus.status === 'jiXing' ? (
-                            <span className="inline-flex items-center justify-center w-5 h-5 rounded border border-fuchsia-500 text-fuchsia-500 bg-fuchsia-500/5 font-serif font-bold text-sm">
+                            <span className={`inline-flex items-center justify-center ${isMobile ? 'w-4 h-4 text-xs' : 'w-5 h-5 text-sm'} rounded border border-fuchsia-500 text-fuchsia-500 bg-fuchsia-500/5 font-serif font-bold`}>
                                 {palace.diPan}
                             </span>
                         ) : diPanStatus.status === 'ruMu' ? (
-                            <span className="inline-flex items-center justify-center w-5 h-5 rounded border border-[#cd853f] text-[#cd853f] bg-[#cd853f]/10 font-serif font-bold text-sm">
+                            <span className={`inline-flex items-center justify-center ${isMobile ? 'w-4 h-4 text-xs' : 'w-5 h-5 text-sm'} rounded border border-[#cd853f] text-[#cd853f] bg-[#cd853f]/10 font-serif font-bold`}>
                                 {palace.diPan}
                             </span>
                         ) : diPanStatus.status === 'jiXingRuMu' ? (
-                            <span className="inline-flex items-center justify-center w-5 h-5 rounded border border-[#3b82f6] text-[#3b82f6] bg-[#3b82f6]/10 font-serif font-bold text-sm">
+                            <span className={`inline-flex items-center justify-center ${isMobile ? 'w-4 h-4 text-xs' : 'w-5 h-5 text-sm'} rounded border border-[#3b82f6] text-[#3b82f6] bg-[#3b82f6]/10 font-serif font-bold`}>
                                 {palace.diPan}
                             </span>
                         ) : (
-                            <span className={diPanStatus.colorVar ? 'text-base font-serif font-bold' : 'text-base font-serif text-foreground'} style={diPanStatus.colorVar ? { color: diPanStatus.colorVar } : undefined}>{palace.diPan}</span>
+                            <span className={diPanStatus.colorVar ? `${isMobile ? 'text-sm' : 'text-base'} font-serif font-bold` : `${isMobile ? 'text-sm' : 'text-base'} font-serif text-foreground`} style={diPanStatus.colorVar ? { color: diPanStatus.colorVar } : undefined}>{palace.diPan}</span>
                         )}
-                        {showShiShen && <span className="text-[12px] text-muted-foreground whitespace-nowrap mt-0.5">{palace.diPanShiShen}</span>}
-                        {showChangSheng && <span className="text-[12px] text-muted-foreground whitespace-nowrap mt-0.5">{palace.diPanShiErCS}</span>}
+                        {showShiShen && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap mt-0.5`}>{palace.diPanShiShen}</span>}
+                        {showChangSheng && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap mt-0.5`}>{palace.diPanShiErCS}</span>}
                     </div>
                 </div>
             </div>

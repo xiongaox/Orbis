@@ -3,8 +3,9 @@
  * 支持按标签/分类筛选后导出为 JSON 格式
  */
 import { useState, useMemo } from 'react';
-import { Download, Check } from 'lucide-react';
+import { Download, Check, X } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 interface ExportOption {
     id: string;
@@ -36,6 +37,7 @@ export default function ExportCaseModal<T extends object>({
 }: ExportCaseModalProps<T>) {
     // 选中的标签/分类 ID
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const isMobile = !useMediaQuery('(min-width: 768px)');
 
     // 根据筛选条件过滤案例
     const filteredCases = useMemo(() => {
@@ -136,12 +138,37 @@ export default function ExportCaseModal<T extends object>({
         <BaseModal
             isOpen={isOpen}
             onClose={handleClose}
-            title={title}
-            titleIcon={<Download className="w-5 h-5" />}
-            footer={footerContent}
-            maxWidth="max-w-md"
+            title={isMobile ? null : title}
+            titleIcon={isMobile ? undefined : <Download className="w-5 h-5" />}
+            footer={isMobile ? undefined : footerContent}
+            maxWidth={isMobile ? 'max-w-full' : 'max-w-md'}
+            fullScreen={isMobile}
+            showCloseButton={!isMobile}
+            className={isMobile ? 'p-0' : ''}
+            bodyClassName={isMobile ? 'p-0 flex flex-col h-full overflow-hidden' : ''}
         >
-            <div className="space-y-4">
+            {/* 移动端：自定义顶部标题栏 */}
+            {isMobile && (
+                <div className="bg-muted/30 border-b border-border px-4 py-4 flex-shrink-0">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-card border border-border flex items-center justify-center shadow-sm">
+                                <Download className="w-4 h-4 text-primary" />
+                            </div>
+                            <h2 className="text-lg font-bold text-foreground">{title}</h2>
+                        </div>
+                        <button
+                            onClick={handleClose}
+                            className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-all"
+                            aria-label="Close"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <div className={`${isMobile ? 'flex-1 overflow-y-auto px-4 py-4' : ''} space-y-4`}>
                 {/* 头部控制栏 */}
                 <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">
@@ -157,7 +184,7 @@ export default function ExportCaseModal<T extends object>({
                 </div>
 
                 {/* 选项列表 */}
-                <div className="grid grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto p-1">
+                <div className={`grid grid-cols-2 gap-3 ${isMobile ? '' : 'max-h-[60vh] overflow-y-auto'} p-1`}>
                     {options.map((option) => {
                         const isChecked = selectedIds.has(option.id);
                         const count = cases.filter((c) => {
@@ -208,6 +235,13 @@ export default function ExportCaseModal<T extends object>({
                     </div>
                 </div>
             </div>
+
+            {/* 移动端：底部固定操作栏 */}
+            {isMobile && (
+                <div className="flex-shrink-0 border-t border-border px-4 py-4 flex justify-end gap-3 bg-background">
+                    {footerContent}
+                </div>
+            )}
         </BaseModal>
     );
 }

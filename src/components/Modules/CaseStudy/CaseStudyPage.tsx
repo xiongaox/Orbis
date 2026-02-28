@@ -226,6 +226,8 @@ export default function CaseStudyPage() {
         selectedLiuNianYear,
         setSelectedLiuNianYear,
         qimenResult, // Get result
+        qimenMethod,
+        setQimenMethod,
         customJu,
         setCustomJu,
         activeChartIndex,
@@ -392,16 +394,18 @@ export default function CaseStudyPage() {
     );
 
 
+    // 判断是否为移动端
+    const isMobile = !useDesktopLayout && !isPadLandscape;
 
     const chartPanel = (
         <div className="h-full bg-muted/10 flex flex-col overflow-hidden">
-            {/* 标题行：非桌面端在 SideDrawer 中已有标题，仅当有多盘切换时显示 */}
-            {(useDesktopLayout || (activeCase && chartCount > 1)) && (
+            {/* 标题行：桌面端始终显示，非移动端有多盘时也显示（移动端多盘切换移到底部） */}
+            {(useDesktopLayout || (!isMobile && activeCase && chartCount > 1)) && (
                 <div className="p-2 border-b border-border bg-muted/20 flex justify-between items-center h-[40px]">
                     {useDesktopLayout && (
                         <span className="text-xs font-medium text-muted-foreground">排盘信息</span>
                     )}
-                    {/* 多排盘切换按钮 */}
+                    {/* 多排盘切换按钮（桌面端/Pad端） */}
                     {activeCase && chartCount > 1 && (
                         <div className="flex space-x-1">
                             {Array.from({ length: chartCount }).map((_, i) => (
@@ -432,7 +436,7 @@ export default function CaseStudyPage() {
                                 data={baziData}
                                 selectedDaYunIndex={selectedDaYunIndex}
                                 selectedLiuNianYear={selectedLiuNianYear}
-                                isMobile={!useDesktopLayout && !isPadLandscape}
+                                isMobile={isMobile}
                             />
                         </div>
 
@@ -444,7 +448,7 @@ export default function CaseStudyPage() {
                                 selectedLiuNianYear={selectedLiuNianYear}
                                 onSelectDaYun={setSelectedDaYunIndex}
                                 onSelectLiuNian={setSelectedLiuNianYear}
-                                isMobile={!useDesktopLayout && !isPadLandscape}
+                                isMobile={isMobile}
                             />
                         </div>
                     </>
@@ -464,6 +468,9 @@ export default function CaseStudyPage() {
                                 header={qimenResult.header}
                                 globalPatterns={qimenResult.globalPatterns}
                                 onJuClick={() => setIsJuDialogOpen(true)}
+                                isMobile={isMobile}
+                                method={qimenMethod}
+                                onMethodChange={setQimenMethod}
                             />
                         </div>
                     ) : (
@@ -483,6 +490,28 @@ export default function CaseStudyPage() {
                     </div>
                 )}
             </div>
+
+            {/* 移动端：多盘切换按钮放在底部，平分一行，填满宽度，无圆角 */}
+            {isMobile && activeCase && chartCount > 1 && (
+                <div className="flex-shrink-0 flex border-t border-border">
+                    {Array.from({ length: chartCount }).map((_, i) => (
+                        <button
+                            key={i}
+                            onClick={() => setActiveChartIndex(i)}
+                            className={`
+                                flex-1 text-xs py-2.5 font-medium transition-colors border-0
+                                ${activeChartIndex === i
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-muted/30 text-muted-foreground hover:bg-muted/60'
+                                }
+                                ${i > 0 ? 'border-l border-border' : ''}
+                            `}
+                        >
+                            盘式{toChineseNum(i + 1)}
+                        </button>
+                    ))}
+                </div>
+            )}
         </div>
     );
 
