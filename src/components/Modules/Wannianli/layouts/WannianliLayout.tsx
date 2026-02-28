@@ -1,9 +1,9 @@
 import classNames from 'classnames';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Solar, Lunar } from 'lunar-typescript';
-import HolidayCountdown from './HolidayCountdown';
-import SideDrawer from '../../UI/SideDrawer';
-import type { WannianliLayoutProps } from './layouts/WannianliLayoutProps';
+import HolidayCountdown from '../HolidayCountdown';
+import SideDrawer from '../../../UI/SideDrawer';
+import type { WannianliLayoutProps } from './WannianliLayoutProps';
 
 export default function WannianliLayout(props: WannianliLayoutProps) {
     const {
@@ -249,7 +249,7 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
         <div className={classNames('flex flex-1 h-full min-h-0 overflow-hidden relative bg-background', useDesktopLayout ? 'flex-row' : 'flex-col')}>
             {useDesktopLayout && (
                 <HolidayCountdown
-                    onSelectDate={(date) => { setSelectedDate(date); setViewDate(date); }}
+                    onSelectDate={(date: Date) => { setSelectedDate(date); setViewDate(date); }}
                 />
             )}
             <main className={classNames("flex-shrink-0 flex flex-col min-h-0", isPadLandscape ? 'h-full w-full border-r-0 overflow-y-auto' : useDesktopLayout ? 'h-full w-[65%] border-r border-border/50' : 'h-full w-full', isMobileLayout && 'overflow-y-auto')}>
@@ -270,7 +270,7 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
                     <div className={classNames('w-full flex flex-col', isMobileLayout ? 'max-w-none justify-start' : 'max-w-4xl flex-1 justify-center')}>
                         {renderWeekHeader()}
                         <div className={classNames(isMobileLayout ? 'grid grid-cols-7 gap-1 px-1' : 'flex-1 grid grid-cols-7 grid-rows-6 gap-2 px-2 mt-2')}>
-                            {calendarData.map((day, index) => (
+                            {calendarData.map((day: any, index: number) => (
                                 <div
                                     key={index}
                                     onClick={() => { const date = new Date(day.solar.getYear(), day.solar.getMonth() - 1, day.solar.getDay()); setSelectedDate(date); if (!day.isCurrentMonth) { setViewDate(date); } }}
@@ -313,7 +313,7 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
             )}
             {!useDesktopLayout && (
                 <SideDrawer open={isCountdownOpen} title="节日倒计时" side={isPadLandscape ? 'left' : 'right'} size={isPadLandscape ? 'sm' : 'xs'} hideHeader={isPadLandscape} onClose={() => setIsCountdownOpen(false)}>
-                    <HolidayCountdown variant="drawer" onSelectDate={(date) => { setSelectedDate(date); setViewDate(date); setIsCountdownOpen(false); }} />
+                    <HolidayCountdown variant="drawer" onSelectDate={(date: Date) => { setSelectedDate(date); setViewDate(date); setIsCountdownOpen(false); }} />
                 </SideDrawer>
             )}
             {isPadLandscape && (
