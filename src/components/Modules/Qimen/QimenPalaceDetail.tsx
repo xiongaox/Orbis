@@ -100,11 +100,11 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
     return (
         <aside className="w-full h-full bg-card border-l border-border flex min-h-0 text-foreground">
             {/* 左侧竖向 Tabs */}
-            <div className="w-[100px] flex-shrink-0 flex flex-col border-r border-border bg-muted/20 overflow-y-auto custom-scrollbar">
-                <div className="p-3 text-center border-b border-border">
+            <div className="w-[100px] flex-shrink-0 flex flex-col border-r border-border bg-muted/20 min-h-0">
+                <div className="p-3 text-center border-b border-border shrink-0">
                     <div className="font-serif text-lg text-foreground font-bold">{palace.gongName}宫</div>
                 </div>
-                <div className="flex flex-col">
+                <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
                     {menuItems.map((item) => {
                         const isActive = (activeItem?.id === item.id);
                         return (
