@@ -12,6 +12,7 @@ import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
 import QimenNewCaseModal from './QimenNewCaseModal';
 import QimenJuInfo, { type PillarKey } from './QimenJuInfo';
 import SideDrawer from '../../UI/SideDrawer';
+import BaseModal from '../../UI/BaseModal';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useIsPadLandscape } from '../../../hooks/useIsPadLandscape';
 import {
@@ -479,33 +480,22 @@ export default function QimenPage() {
                         />
                     </main>
 
-                    {/* 右侧常驻详情栏 - Pad 专用 compact 版 */}
-                    <div className="w-72 flex-shrink-0 min-h-0 overflow-y-auto flex flex-col border-l border-border/50 bg-card/10">
-                        {selectedPalaceData ? (
-                            <QimenPalaceDetail
-                                palace={selectedPalaceData}
-                                timeZhi={header?.siZhu?.hour?.slice(1, 2)}
-                                zhiShiMen={header?.zhiShi ? header.zhiShi + '门' : ''}
-                                zhiFuXing={header?.zhiFu}
-                                siZhu={header?.siZhu}
-                                xunShou={header?.xunShou}
-                            />
-                        ) : (
-                            <QimenJuInfo
-                                date={selectedDate}
-                                header={header}
-                                caseData={currentCase}
-                                onCaseUpdated={(updatedCase) => {
-                                    setCurrentCase(updatedCase);
-                                    setRefreshTrigger(prev => prev + 1);
-                                }}
-                                selectedKongWangKey={selectedKongWangKey}
-                                selectedMaXingKey={selectedMaXingKey}
-                                onKongWangKeyChange={setSelectedKongWangKey}
-                                onMaXingKeyChange={setSelectedMaXingKey}
-                                compact
-                            />
-                        )}
+                    {/* 右侧详情面板 - Pad 横屏下固定显示局信息 */}
+                    <div className="w-72 flex-shrink-0 min-h-0 overflow-y-auto border-l border-border/50 bg-card/10">
+                        <QimenJuInfo
+                            date={selectedDate}
+                            header={header}
+                            caseData={currentCase}
+                            onCaseUpdated={(updatedCase) => {
+                                setCurrentCase(updatedCase);
+                                setRefreshTrigger(prev => prev + 1);
+                            }}
+                            selectedKongWangKey={selectedKongWangKey}
+                            selectedMaXingKey={selectedMaXingKey}
+                            onKongWangKeyChange={setSelectedKongWangKey}
+                            onMaXingKeyChange={setSelectedMaXingKey}
+                            compact
+                        />
                     </div>
 
                     {/* 左侧案例抽屉 */}
@@ -536,6 +526,28 @@ export default function QimenPage() {
                             refreshTrigger={refreshTrigger}
                         />
                     </SideDrawer>
+
+                    {/* Pad 横屏专用宫位详情弹窗 */}
+                    <BaseModal
+                        isOpen={selectedPalace !== null}
+                        onClose={() => setSelectedPalace(null)}
+                        title="宫位详情"
+                        maxWidth="max-w-2xl"
+                        bodyClassName="p-0 flex flex-col overflow-hidden"
+                    >
+                        {selectedPalaceData && (
+                            <div className="bg-card flex flex-col h-[75vh]">
+                                <QimenPalaceDetail
+                                    palace={selectedPalaceData}
+                                    timeZhi={header?.siZhu?.hour?.slice(1, 2)}
+                                    zhiShiMen={header?.zhiShi ? header.zhiShi + '门' : ''}
+                                    zhiFuXing={header?.zhiFu}
+                                    siZhu={header?.siZhu}
+                                    xunShou={header?.xunShou}
+                                />
+                            </div>
+                        )}
+                    </BaseModal>
                 </>
             ) : (
                 /* ========== 手机/Pad 竖屏抽屉布局 ========== */
