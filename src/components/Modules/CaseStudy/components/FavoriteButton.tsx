@@ -15,12 +15,11 @@ interface FavoriteButtonProps {
 export default function FavoriteButton({ articleId, onFavoriteChange }: FavoriteButtonProps) {
     const { user } = useAuth();
     const [isFavorited, setIsFavorited] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(!!user);
 
     // 初始化时检查收藏状态
     useEffect(() => {
         if (!user) {
-            setIsLoading(false);
             return;
         }
 

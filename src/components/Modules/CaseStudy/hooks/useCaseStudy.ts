@@ -2,7 +2,7 @@
  * CaseStudy 页面状态管理 Hook
  * 封装所有 useState 和 useMemo 逻辑
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { extractBazi } from '../../../../lib/caseStudy/parsers';
 import { AUTHOR_MAP } from '../../../../lib/caseStudy/types';
 import type { PaiPanMethod } from '../../../../lib/csp-qimen/qimenService';
@@ -169,60 +169,63 @@ export function useCaseStudy() {
     }, [selectedCaseId]);
 
     // 当选中案例改变时，重置排盘索引
-    useMemo(() => {
+    useEffect(() => {
         setActiveChartIndex(0);
         setCustomJu(0);
     }, [selectedCaseId]);
 
     // 计算排盘数量和当前结果
-    useMemo(async () => {
-        if (!activeCase) {
-            setQimenResult(null);
-            setChartCount(0);
-            return;
-        }
+    useEffect(() => {
+        const loadChart = async () => {
+            if (!activeCase) {
+                setQimenResult(null);
+                setChartCount(0);
+                return;
+            }
 
-        if (activeCase.category === 'qimen') {
-            const { parseAllQimenTime } = await import('../../../../lib/caseStudy/parsers');
-            const times = parseAllQimenTime(activeCase.content);
-            setChartCount(times.length);
+            if (activeCase.category === 'qimen') {
+                const { parseAllQimenTime } = await import('../../../../lib/caseStudy/parsers');
+                const times = parseAllQimenTime(activeCase.content);
+                setChartCount(times.length);
 
-            if (times.length > 0) {
-                // 确保索引在有效范围内
-                const index = activeChartIndex >= times.length ? 0 : activeChartIndex;
-                const time = times[index];
-                const result = await calculateQimen(time, qimenMethod, customJu);
-                setQimenResult(result);
+                if (times.length > 0) {
+                    // 确保索引在有效范围内
+                    const index = activeChartIndex >= times.length ? 0 : activeChartIndex;
+                    const time = times[index];
+                    const result = await calculateQimen(time, qimenMethod, customJu);
+                    setQimenResult(result);
+                } else {
+                    setQimenResult(null);
+                }
             } else {
+                // 八字的多排盘逻辑（如果需要支持）
+                // 目前主要针对奇门，八字暂保持原样或后续添加 parseAllBaziInfo 支持
+                // 如果八字也需要支持多盘，可以在这里调用 parseAllBaziInfo
+                const { parseAllBaziInfo } = await import('../../../../lib/caseStudy/parsers');
+                const infos = parseAllBaziInfo(activeCase.content);
+                setChartCount(infos.length);
+                // 八字的数据计算是在 UI 层通过 parseBaziInfo 做的，这里只需更新计数
+                // 注意：CaseStudyPage 中的八字数据计算也需要更新以支持 activeChartIndex
                 setQimenResult(null);
             }
-        } else {
-            // 八字的多排盘逻辑（如果需要支持）
-            // 目前主要针对奇门，八字暂保持原样或后续添加 parseAllBaziInfo 支持
-            // 如果八字也需要支持多盘，可以在这里调用 parseAllBaziInfo
-            const { parseAllBaziInfo } = await import('../../../../lib/caseStudy/parsers');
-            const infos = parseAllBaziInfo(activeCase.content);
-            setChartCount(infos.length);
-            // 八字的数据计算是在 UI 层通过 parseBaziInfo 做的，这里只需更新计数
-            // 注意：CaseStudyPage 中的八字数据计算也需要更新以支持 activeChartIndex
-            setQimenResult(null);
-        }
+        };
+        loadChart();
     }, [activeCase, activeChartIndex, customJu, qimenMethod]);
 
     // 搜索重置页码
-    useMemo(() => {
+    useEffect(() => {
         setCurrentPage(1);
     }, [searchTerm]);
 
     // 案例切换时重置大运/流年
-    useMemo(() => {
+    useEffect(() => {
         setSelectedDaYunIndex(null);
         setSelectedLiuNianYear(null);
         setDaYunPage(0);
     }, [selectedCaseId]);
 
     // 分类切换时重置筛选，并默认选中第一篇文章
-    useMemo(() => {
+    useEffect(() => {
         setSelectedDayMaster('all');
         setSelectedAuthor(null);
         setSearchTerm('');

@@ -10,8 +10,7 @@ import WuxingStatusBar from './WuxingStatusBar';
 import BaziBasicInfoPanel from './BaziBasicInfoPanel';
 import { getRealtimeClockData } from '../../../utils/lunarUtil';
 import { useBaziContext } from '../../../contexts/BaziContext';
-import { useMediaQuery } from '../../../hooks/useMediaQuery';
-import { useIsPadLandscape } from '../../../hooks/useIsPadLandscape';
+import { useLayoutMode } from '../../../hooks/useLayoutMode';
 
 export default function BaziPage() {
     // 使用 Context 获取八字状态，避免 Prop Drilling
@@ -29,9 +28,8 @@ export default function BaziPage() {
     } = useBaziContext();
 
     // 布局检测：仅用于移动端条件分支
-    const isDesktop = useMediaQuery('(min-width: 1024px)');
-    const isPadLandscape = useIsPadLandscape();
-    const isMobileLayout = !isDesktop && !isPadLandscape;
+    const { isPadLandscape, isDesktop, isMobile } = useLayoutMode();
+    const isMobileLayout = isMobile || (!isDesktop && !isPadLandscape);
 
     // 胎命身显示开关状态
     const [showTaiMingShen, setShowTaiMingShen] = useState(false);

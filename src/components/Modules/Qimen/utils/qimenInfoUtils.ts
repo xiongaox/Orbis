@@ -12,6 +12,12 @@ export const MA_XING_MAP: Record<string, string> = {
     '亥': '巳', '卯': '巳', '未': '巳',
 };
 
+// 地支到宫位映射
+export const ZHI_PALACE_MAP: Record<string, number> = {
+    '子': 1, '丑': 8, '寅': 8, '卯': 3, '辰': 4, '巳': 4,
+    '午': 9, '未': 2, '申': 2, '酉': 7, '戌': 6, '亥': 6,
+};
+
 // 旬空计算
 export const getXunKong = (ganZhi: string) => {
     if (!ganZhi) return '';

@@ -4,6 +4,8 @@
  */
 import type { Components } from 'react-markdown';
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 export const duanfaHeadingStyles = {
     h1: {
         wrapper: 'not-prose mt-6 mb-4 lg:mt-10 lg:mb-6',

@@ -14,9 +14,9 @@ export default function JuSelectDialog({
     currentJu,
     onSelectJu,
 }: JuSelectDialogProps) {
-    if (!isOpen) return null;
-
     const [isYang, setIsYang] = useState(currentJu >= 0); // Default to Yang if 0 or positive
+
+    if (!isOpen) return null;
 
     // Helper to get selected number (absolute value)
     const selectedNum = currentJu === 0 ? 0 : Math.abs(currentJu);
