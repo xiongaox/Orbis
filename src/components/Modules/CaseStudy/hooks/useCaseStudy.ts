@@ -5,6 +5,7 @@
 import { useState, useMemo } from 'react';
 import { extractBazi } from '../../../../lib/caseStudy/parsers';
 import { AUTHOR_MAP } from '../../../../lib/caseStudy/types';
+import type { PaiPanMethod } from '../../../../lib/csp-qimen/qimenService';
 
 // 加载案例文件
 // 加载案例文件
@@ -128,6 +129,7 @@ export function useCaseStudy() {
 
     // 奇门排盘结果和自定义局数
     const [qimenResult, setQimenResult] = useState<QimenResult | null>(null);
+    const [qimenMethod, setQimenMethod] = useState<PaiPanMethod>('zhirun');
     const [customJu, setCustomJu] = useState<number>(0);  // 0=自动计算, 正数=阳遏, 负数=阴遏
     const [chartCount, setChartCount] = useState<number>(0); // 当前案例包含的排盘数量
 
@@ -189,7 +191,7 @@ export function useCaseStudy() {
                 // 确保索引在有效范围内
                 const index = activeChartIndex >= times.length ? 0 : activeChartIndex;
                 const time = times[index];
-                const result = await calculateQimen(time, 'zhirun', customJu);
+                const result = await calculateQimen(time, qimenMethod, customJu);
                 setQimenResult(result);
             } else {
                 setQimenResult(null);
@@ -205,7 +207,7 @@ export function useCaseStudy() {
             // 注意：CaseStudyPage 中的八字数据计算也需要更新以支持 activeChartIndex
             setQimenResult(null);
         }
-    }, [activeCase, activeChartIndex, customJu]);
+    }, [activeCase, activeChartIndex, customJu, qimenMethod]);
 
     // 搜索重置页码
     useMemo(() => {
@@ -299,6 +301,8 @@ export function useCaseStudy() {
 
         // 奇门结果和自定义局数
         qimenResult,
+        qimenMethod,
+        setQimenMethod,
         customJu,
         setCustomJu,
 

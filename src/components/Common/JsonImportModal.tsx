@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback } from 'react';
 import { Upload, FileJson, Check, AlertCircle, LayoutTemplate, X } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 
 export interface JsonImportModalProps<T> {
     isOpen: boolean;
@@ -51,6 +52,7 @@ export default function JsonImportModal<T>({
     const [error, setError] = useState<string | null>(null);
     const [dragOver, setDragOver] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const isMobile = !useMediaQuery('(min-width: 768px)');
 
     const resetState = useCallback(() => {
         setStep('upload');
@@ -152,36 +154,49 @@ export default function JsonImportModal<T>({
         <BaseModal
             isOpen={isOpen}
             onClose={handleClose}
-            title={null} // Using custom side layout, title inside can be custom if needed, or null
-            maxWidth="max-w-3xl"
-            className="flex-row p-0 overflow-hidden !h-[640px] !max-h-[95vh]"
-            bodyClassName="p-0 overflow-hidden flex flex-row h-full"
+            title={null}
+            maxWidth={isMobile ? 'max-w-full' : 'max-w-3xl'}
+            fullScreen={isMobile}
+            className={isMobile
+                ? 'flex-col p-0 overflow-hidden'
+                : 'flex-row p-0 overflow-hidden !h-[640px] !max-h-[95vh]'
+            }
+            bodyClassName={isMobile
+                ? 'p-0 overflow-hidden flex flex-col h-full'
+                : 'p-0 overflow-hidden flex flex-row h-full'
+            }
             showCloseButton={false}
         >
-            {/* LEFT SIDEBAR: Context & Timeline */}
-            <div className="w-[220px] bg-muted/30 border-r border-border flex flex-col p-6 relative overflow-hidden flex-shrink-0">
-                {/* Logo/Icon */}
-                <div className="mb-8 relative z-10">
-                    <div className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center shadow-sm mb-3">
-                        <FileJson className="w-5 h-5 text-primary" />
+            {/* 移动端：顶部精简步骤条 + 标题 */}
+            {isMobile ? (
+                <div className="bg-muted/30 border-b border-border px-4 py-4 flex-shrink-0">
+                    {/* 标题行 + 关闭按钮 */}
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-card border border-border flex items-center justify-center shadow-sm">
+                                <FileJson className="w-4 h-4 text-primary" />
+                            </div>
+                            <h2 className="text-lg font-bold text-foreground">{title}</h2>
+                        </div>
+                        <button
+                            onClick={handleClose}
+                            className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-all"
+                            aria-label="Close"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
                     </div>
-                    <h2 className="text-lg font-bold text-foreground tracking-tight">{title}</h2>
-                    <p className="text-xs text-muted-foreground mt-1.5">支持批量导入 JSON 格式数据</p>
-                </div>
-
-                {/* Vertical Stepper */}
-                <div className="flex-1 space-y-6 relative z-10">
-                    {steps.map((s, idx) => {
-                        const isActive = idx === currentStepIndex;
-                        const isCompleted = idx < currentStepIndex;
-
-                        return (
-                            <div key={s.id} className="flex gap-3 group">
-                                <div className="relative flex flex-col items-center">
+                    {/* 水平步骤条 */}
+                    <div className="flex items-center gap-1">
+                        {steps.map((s, idx) => {
+                            const isActive = idx === currentStepIndex;
+                            const isCompleted = idx < currentStepIndex;
+                            return (
+                                <div key={s.id} className="flex items-center gap-1 flex-1">
                                     <div className={`
-                                        w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border transition-all duration-300 z-10
+                                        w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border transition-all flex-shrink-0
                                         ${isActive
-                                            ? 'bg-primary border-primary text-primary-foreground shadow-sm'
+                                            ? 'bg-primary border-primary text-primary-foreground'
                                             : isCompleted
                                                 ? 'bg-muted border-primary/20 text-muted-foreground'
                                                 : 'bg-muted/50 border-border text-muted-foreground/50'
@@ -189,49 +204,95 @@ export default function JsonImportModal<T>({
                                     `}>
                                         {isCompleted ? <Check className="w-3 h-3" /> : idx + 1}
                                     </div>
+                                    <span className={`text-sm font-medium truncate ${isActive ? 'text-foreground' : 'text-muted-foreground/60'}`}>
+                                        {s.label}
+                                    </span>
                                     {idx !== steps.length - 1 && (
-                                        <div className={`w-0.5 flex-1 mt-1.5 mb-[-1.25rem] transition-colors duration-300 ${isCompleted ? 'bg-primary/20' : 'bg-border'}`} />
+                                        <div className={`flex-1 h-px mx-1 ${isCompleted ? 'bg-primary/30' : 'bg-border'}`} />
                                     )}
                                 </div>
-                                <div className={`pt-0.5 transition-colors duration-300 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
-                                    <div className="font-medium text-xs">{s.label}</div>
-                                    {isActive && s.id === 'upload' && <div className="text-xs text-muted-foreground mt-0.5">请选择或拖拽文件</div>}
-                                    {isActive && s.id === 'preview' && <div className="text-xs text-muted-foreground mt-0.5">确认数据无误后导入</div>}
-                                </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
                 </div>
+            ) : (
+                /* 桌面端：左侧边栏（原样保留） */
+                <div className="w-[220px] bg-muted/30 border-r border-border flex flex-col p-6 relative overflow-hidden flex-shrink-0">
+                    {/* Logo/Icon */}
+                    <div className="mb-8 relative z-10">
+                        <div className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center shadow-sm mb-3">
+                            <FileJson className="w-5 h-5 text-primary" />
+                        </div>
+                        <h2 className="text-lg font-bold text-foreground tracking-tight">{title}</h2>
+                        <p className="text-xs text-muted-foreground mt-1.5">支持批量导入 JSON 格式数据</p>
+                    </div>
 
-                {/* Bottom Action: Download Template */}
-                <div className="mt-auto relative z-10">
-                    <button
-                        onClick={downloadTemplate}
-                        className="w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/40 hover:bg-muted border border-transparent hover:border-border transition-all text-left group focus-ring"
-                    >
-                        <div className="p-1.5 rounded-lg bg-background text-muted-foreground group-hover:text-foreground transition-colors border border-border">
-                            <LayoutTemplate className="w-3.5 h-3.5" />
-                        </div>
-                        <div>
-                            <div className="text-xs text-muted-foreground group-hover:text-muted-foreground/80">还没有数据?</div>
-                            <div className="text-xs font-medium text-foreground group-hover:text-primary transition-colors">下载标准模版</div>
-                        </div>
-                    </button>
+                    {/* Vertical Stepper */}
+                    <div className="flex-1 space-y-6 relative z-10">
+                        {steps.map((s, idx) => {
+                            const isActive = idx === currentStepIndex;
+                            const isCompleted = idx < currentStepIndex;
+
+                            return (
+                                <div key={s.id} className="flex gap-3 group">
+                                    <div className="relative flex flex-col items-center">
+                                        <div className={`
+                                            w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border transition-all duration-300 z-10
+                                            ${isActive
+                                                ? 'bg-primary border-primary text-primary-foreground shadow-sm'
+                                                : isCompleted
+                                                    ? 'bg-muted border-primary/20 text-muted-foreground'
+                                                    : 'bg-muted/50 border-border text-muted-foreground/50'
+                                            }
+                                        `}>
+                                            {isCompleted ? <Check className="w-3 h-3" /> : idx + 1}
+                                        </div>
+                                        {idx !== steps.length - 1 && (
+                                            <div className={`w-0.5 flex-1 mt-1.5 mb-[-1.25rem] transition-colors duration-300 ${isCompleted ? 'bg-primary/20' : 'bg-border'}`} />
+                                        )}
+                                    </div>
+                                    <div className={`pt-0.5 transition-colors duration-300 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                        <div className="font-medium text-xs">{s.label}</div>
+                                        {isActive && s.id === 'upload' && <div className="text-xs text-muted-foreground mt-0.5">请选择或拖拽文件</div>}
+                                        {isActive && s.id === 'preview' && <div className="text-xs text-muted-foreground mt-0.5">确认数据无误后导入</div>}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Bottom Action: Download Template */}
+                    <div className="mt-auto relative z-10">
+                        <button
+                            onClick={downloadTemplate}
+                            className="w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/40 hover:bg-muted border border-transparent hover:border-border transition-all text-left group focus-ring"
+                        >
+                            <div className="p-1.5 rounded-lg bg-background text-muted-foreground group-hover:text-foreground transition-colors border border-border">
+                                <LayoutTemplate className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                                <div className="text-xs text-muted-foreground group-hover:text-muted-foreground/80">还没有数据?</div>
+                                <div className="text-xs font-medium text-foreground group-hover:text-primary transition-colors">下载标准模版</div>
+                            </div>
+                        </button>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* RIGHT CONTENT: Workspace */}
             <div className="flex-1 bg-background flex flex-col relative w-full overflow-hidden">
-                {/* Custom Close Button */}
-                <button
-                    onClick={handleClose}
-                    className="absolute top-6 right-6 p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-all z-20 focus-ring"
-                    aria-label="Close"
-                >
-                    <X className="w-4 h-4" />
-                </button>
+                {/* Custom Close Button - 桌面端显示（移动端关闭按钮已在顶部步骤条中） */}
+                {!isMobile && (
+                    <button
+                        onClick={handleClose}
+                        className="absolute top-6 right-6 p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-all z-20 focus-ring"
+                        aria-label="Close"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                )}
 
-                <div className="flex-1 p-6 flex flex-col justify-center h-full overflow-hidden">
+                <div className={`flex-1 ${isMobile ? 'p-4' : 'p-6'} flex flex-col justify-center h-full overflow-hidden`}>
 
                     {/* Step 1: Upload Dropzone */}
                     {step === 'upload' && (
@@ -294,8 +355,8 @@ export default function JsonImportModal<T>({
                             <div className="flex-1 overflow-hidden border border-border rounded-xl bg-muted/20 flex flex-col relative">
                                 <div className="absolute inset-0 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] p-3">
                                     {renderCard ? (
-                                        /* CARD GRID VIEW */
-                                        <div className={`grid ${gridClassName} gap-3 auto-rows-min`}>
+                                        /* CARD GRID VIEW - 移动端单列，桌面端使用传入的 gridClassName */
+                                        <div className={`grid ${isMobile ? 'grid-cols-1' : gridClassName} gap-3 auto-rows-min`}>
                                             {parsedData.map((item, i) => (
                                                 <div key={i} className="animate-in fade-in zoom-in-95 fill-mode-both" style={{ animationDelay: `${i * 30}ms` }}>
                                                     {renderCard(item, i)}
@@ -336,7 +397,7 @@ export default function JsonImportModal<T>({
                                 {/* Re-upload Button */}
                                 <button
                                     onClick={resetState}
-                                    className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1 focus-ring"
+                                    className="text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-1 focus-ring"
                                 >
                                     取消并重新上传
                                 </button>
@@ -382,6 +443,24 @@ export default function JsonImportModal<T>({
                         </div>
                     )}
                 </div>
+
+                {/* 移动端：底部下载模版按钮（上传和预览步骤时显示） */}
+                {isMobile && (step === 'upload' || step === 'preview') && (
+                    <div className="flex-shrink-0 px-4 pb-4">
+                        <button
+                            onClick={downloadTemplate}
+                            className="w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/40 hover:bg-muted border border-transparent hover:border-border transition-all text-left group focus-ring"
+                        >
+                            <div className="p-1.5 rounded-lg bg-background text-muted-foreground group-hover:text-foreground transition-colors border border-border">
+                                <LayoutTemplate className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                                <div className="text-xs text-muted-foreground">还没有数据?</div>
+                                <div className="text-xs font-medium text-foreground group-hover:text-primary transition-colors">下载标准模版</div>
+                            </div>
+                        </button>
+                    </div>
+                )}
             </div>
         </BaseModal>
     );

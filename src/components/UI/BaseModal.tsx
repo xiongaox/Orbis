@@ -13,6 +13,7 @@ interface BaseModalProps {
     showCloseButton?: boolean;
     className?: string; // For the modal card itself
     bodyClassName?: string; // For the content wrapper
+    fullScreen?: boolean; // 全屏模式（移动端适配）
 }
 
 export default function BaseModal({
@@ -27,6 +28,7 @@ export default function BaseModal({
     showCloseButton = true,
     className = '',
     bodyClassName = '',
+    fullScreen = false,
 }: BaseModalProps) {
 
     // Handle Escape key
@@ -53,7 +55,7 @@ export default function BaseModal({
 
     return (
         <div
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-[2px] animate-in fade-in duration-200"
+            className={`fixed inset-0 z-[100] flex items-center justify-center ${fullScreen ? 'p-0' : 'p-4'} bg-black/50 backdrop-blur-[2px] animate-in fade-in duration-200`}
             role="dialog"
             aria-modal="true"
             aria-labelledby={title ? "modal-title" : undefined}
@@ -65,9 +67,9 @@ export default function BaseModal({
         >
             <div
                 className={`
-                    bg-background border border-border rounded-xl shadow-2xl flex flex-col 
-                    w-full ${maxWidth} max-h-[85vh] 
-                    animate-in zoom-in-95 duration-200 
+                    bg-background ${fullScreen ? '' : 'border border-border rounded-xl'} shadow-2xl flex flex-col 
+                    w-full ${maxWidth} ${fullScreen ? 'h-full' : 'max-h-[85vh]'} 
+                    ${fullScreen ? '' : 'animate-in zoom-in-95 duration-200'} 
                     ${className}
                 `}
                 onClick={(e) => e.stopPropagation()}

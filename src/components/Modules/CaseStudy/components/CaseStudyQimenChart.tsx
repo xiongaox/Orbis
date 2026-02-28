@@ -63,6 +63,7 @@ interface CaseStudyQimenChartProps {
     };
     globalPatterns?: GlobalPattern[];
     onPatternClick?: (pattern: GlobalPattern) => void;
+    isMobile?: boolean;
 }
 
 // 洛书九宫布局顺序
@@ -85,6 +86,7 @@ export default function CaseStudyQimenChart({
     header,
     globalPatterns = [],
     onPatternClick,
+    isMobile = false,
 }: CaseStudyQimenChartProps) {
     const orderedPalaces = LUOSHU_ORDER.map(pos => palaces.find(p => p.position === pos)!);
     const [showChangSheng, setShowChangSheng] = useState(true);
@@ -132,6 +134,7 @@ export default function CaseStudyQimenChart({
                         onToggleChangSheng={handleToggleChangSheng}
                         showShiShen={showShiShen}
                         onToggleShiShen={handleToggleShiShen}
+                        isMobile={isMobile}
                     />
                 </div>
 
@@ -152,6 +155,7 @@ export default function CaseStudyQimenChart({
                                     isHourStem={palace.tianPan === targetHourStem}
                                     isJiGongDayStem={palace.jiGongTianPan === targetDayStem}
                                     isJiGongHourStem={palace.jiGongTianPan === targetHourStem}
+                                    isMobile={isMobile}
                                 />
                             </div>
                         ))}
@@ -159,17 +163,17 @@ export default function CaseStudyQimenChart({
 
                     {/* 新增：空亡与驿马信息 (五等分) - 顶满排版 */}
                     <div className="w-full bg-card border-t-0 border-border">
-                        <div className="grid grid-cols-5 text-sm font-serif">
+                        <div className={`grid grid-cols-5 ${isMobile ? 'text-xs' : 'text-sm'} font-serif`}>
                             {/* 空亡行 */}
-                            <div className="flex items-center justify-center py-4 bg-muted/30 border-r border-b border-border text-muted-foreground font-bold">空亡</div>
+                            <div className={`flex items-center justify-center ${isMobile ? 'py-2' : 'py-4'} bg-muted/30 border-r border-b border-border text-muted-foreground font-bold`}>空亡</div>
                             {['year', 'month', 'day', 'hour'].map((key) => {
                                 const gz = header.siZhu[key as keyof typeof header.siZhu];
                                 return (
-                                    <div key={'kw-' + key} className="flex items-baseline justify-center py-4 border-r border-b border-border last:border-r-0">
-                                        <span className="text-[14px] text-muted-foreground/70 mr-2">{
+                                    <div key={'kw-' + key} className={`flex items-baseline justify-center ${isMobile ? 'py-2' : 'py-4'} border-r border-b border-border last:border-r-0`}>
+                                        <span className={`${isMobile ? 'text-[10px]' : 'text-[14px]'} text-muted-foreground/70 mr-1`}>{
                                             key === 'year' ? '年' : key === 'month' ? '月' : key === 'day' ? '日' : '时'
                                         }</span>
-                                        <span className="text-base font-medium text-foreground">
+                                        <span className={`${isMobile ? 'text-xs' : 'text-base'} font-medium text-foreground`}>
                                             {gz ? LunarUtil.getXunKong(gz) : '-'}
                                         </span>
                                     </div>
@@ -177,16 +181,16 @@ export default function CaseStudyQimenChart({
                             })}
 
                             {/* 驿马行 */}
-                            <div className="flex items-center justify-center py-4 bg-muted/30 border-r border-b border-border text-muted-foreground font-bold">驿马</div>
+                            <div className={`flex items-center justify-center ${isMobile ? 'py-2' : 'py-4'} bg-muted/30 border-r border-b border-border text-muted-foreground font-bold`}>驿马</div>
                             {['year', 'month', 'day', 'hour'].map((key) => {
                                 const gz = header.siZhu[key as keyof typeof header.siZhu];
                                 const zhi = gz ? gz[1] : '';
                                 return (
-                                    <div key={'ym-' + key} className="flex items-baseline justify-center py-4 border-r border-b border-border last:border-r-0">
-                                        <span className="text-[14px] text-muted-foreground/70 mr-2">{
+                                    <div key={'ym-' + key} className={`flex items-baseline justify-center ${isMobile ? 'py-2' : 'py-4'} border-r border-b border-border last:border-r-0`}>
+                                        <span className={`${isMobile ? 'text-[10px]' : 'text-[14px]'} text-muted-foreground/70 mr-1`}>{
                                             key === 'year' ? '年' : key === 'month' ? '月' : key === 'day' ? '日' : '时'
                                         }</span>
-                                        <span className="text-base font-medium text-foreground">
+                                        <span className={`${isMobile ? 'text-xs' : 'text-base'} font-medium text-foreground`}>
                                             {zhi ? (MA_XING_MAP[zhi] || '-') : '-'}
                                         </span>
                                     </div>
@@ -194,6 +198,32 @@ export default function CaseStudyQimenChart({
                             })}
                         </div>
                     </div>
+
+                    {/* 移动端：排盘方法切换按钮 - 在驿马行下方 */}
+                    {isMobile && (
+                        <div className="w-full bg-card px-2 py-2">
+                            <div className="grid grid-cols-4 gap-1">
+                                {([
+                                    { value: 'zhirun' as PaiPanMethod, label: '置润法' },
+                                    { value: 'yinpan' as PaiPanMethod, label: '阴盘法' },
+                                    { value: 'chaibu' as PaiPanMethod, label: '拆补法' },
+                                    { value: 'maoshan' as PaiPanMethod, label: '茅山法' },
+                                ]).map((m) => (
+                                    <button
+                                        key={m.value}
+                                        type="button"
+                                        onClick={() => onMethodChange?.(m.value)}
+                                        className={`py-1 text-[11px] rounded-md transition-colors font-serif border ${method === m.value
+                                                ? 'bg-primary/15 text-primary border-primary/40 font-medium'
+                                                : 'bg-muted/10 text-muted-foreground border-border hover:bg-muted/20'
+                                            }`}
+                                    >
+                                        {m.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
