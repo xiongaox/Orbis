@@ -2,7 +2,7 @@
  * 基础案例列表布局 (Base Case List Layout)
  * 提取了 Sidebar 结构的通用外围容器、搜索栏和操作按钮栏
  */
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { Search, LogIn, ArrowUpFromLine, ArrowDownToLine } from 'lucide-react';
 
 interface BaseCaseListProps {
@@ -52,10 +52,10 @@ export default function BaseCaseList({
 }: BaseCaseListProps) {
     return (
         <aside className={variant === 'drawer'
-            ? "w-full h-full bg-sidebar/5 flex flex-col min-h-0"
-            : "w-56 bg-sidebar/5 border-r border-sidebar-border flex flex-col min-h-0"
+            ? "w-full h-full bg-card flex flex-col min-h-0"
+            : "w-full h-full bg-sidebar/5 border-r border-border/50 flex flex-col min-h-0"
         }>
-            <div className={variant === 'drawer' ? 'p-3 border-b border-sidebar-border/60 space-y-2 shrink-0' : 'p-4 border-b border-sidebar-border/60 space-y-3 shrink-0'}>
+            <div className={variant === 'drawer' ? 'p-3 border-b border-border/60 space-y-2 shrink-0' : 'p-4 border-b border-border/50 space-y-3 shrink-0'}>
                 {/* 顶部：案例库与筛选 */}
                 <div className="flex items-center justify-between">
                     <button
@@ -130,7 +130,7 @@ export default function BaseCaseList({
             </div>
 
             {/* 列表内容区 */}
-            <div className={`flex-1 min-h-0 overflow-y-auto ${variant === 'drawer' ? 'px-1.5 py-2' : 'px-2 py-3'}`}>
+            <div className={`flex-1 min-h-0 overflow-y-auto ${variant === 'drawer' ? 'px-1.5 py-2' : 'p-4'}`}>
                 {isLoading ? (
                     <div className="text-center text-xs text-muted-foreground py-6">
                         加载中...

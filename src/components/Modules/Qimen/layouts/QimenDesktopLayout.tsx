@@ -52,7 +52,7 @@ export default function QimenDesktopLayout(props: QimenLayoutProps) {
     return (
         <>
             {/* 左侧案例列表 */}
-            <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 overflow-hidden">
+            <div className="w-72 xl:w-80 2xl:w-96 h-full flex-shrink-0 overflow-hidden">
                 <QimenCaseList
                     selectedCaseId={selectedCaseId}
                     onSelectCase={(id, caseItem) => {
