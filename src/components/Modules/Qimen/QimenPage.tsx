@@ -554,21 +554,7 @@ export default function QimenPage() {
                 <>
                     <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
                         <div className="p-2 border-b border-border/40 bg-background/70 backdrop-blur-sm">
-                            <div className="grid grid-cols-6 gap-1.5">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsCaseListOpen(true)}
-                                    className="py-1.5 rounded-lg border border-border bg-card/60 text-xs text-foreground hover:bg-muted/40 transition-colors"
-                                >
-                                    案例
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setIsInfoOpen(true)}
-                                    className="py-1.5 rounded-lg border border-border bg-card/60 text-xs text-foreground hover:bg-muted/40 transition-colors"
-                                >
-                                    局信息
-                                </button>
+                            <div className="grid grid-cols-4 gap-1.5">
                                 <button
                                     type="button"
                                     onClick={() => setIsAiModalOpen(true)}
@@ -614,6 +600,35 @@ export default function QimenPage() {
                         )}
 
                         <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col relative">
+                            {/* 左侧竖线触发按钮 - 案例 */}
+                            <button
+                                type="button"
+                                onClick={() => setIsCaseListOpen(true)}
+                                className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-start group focus:outline-none"
+                                aria-label="打开案例列表"
+                            >
+                                <span className="w-[3px] h-20 rounded-r bg-primary/35 group-hover:bg-primary/70 group-active:bg-primary/80 transition-colors shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none" />
+                                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span className="px-2 py-1 rounded-md text-xs bg-card border border-border shadow-sm text-foreground/80 whitespace-nowrap">
+                                        案例
+                                    </span>
+                                </span>
+                            </button>
+
+                            {/* 右侧竖线触发按钮 - 局信息 */}
+                            <button
+                                type="button"
+                                onClick={() => setIsInfoOpen(true)}
+                                className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-end group focus:outline-none"
+                                aria-label="打开局信息"
+                            >
+                                <span className="w-[3px] h-20 rounded-l bg-primary/35 group-hover:bg-primary/70 group-active:bg-primary/80 transition-colors shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none" />
+                                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span className="px-2 py-1 rounded-md text-xs bg-card border border-border shadow-sm text-foreground/80 whitespace-nowrap">
+                                        局信息
+                                    </span>
+                                </span>
+                            </button>
                             {/* 加载状态 */}
                             {isLoading && (
                                 <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-20">

@@ -160,8 +160,8 @@ function DrawerNavButton({
       type="button"
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium border transition-colors ${isActive
-          ? 'bg-primary/10 text-primary border-primary/30'
-          : 'bg-card/60 text-muted-foreground border-border/60 hover:text-foreground hover:bg-secondary/50'
+        ? 'bg-primary/10 text-primary border-primary/30'
+        : 'bg-card/60 text-muted-foreground border-border/60 hover:text-foreground hover:bg-secondary/50'
         }`}
     >
       <Icon className="w-4 h-4" />
@@ -293,7 +293,7 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
                 onClick={() => {
                   window.location.href = '/';
                 }}
-                className="w-14 h-14 lg:w-16 lg:h-16 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
+                className="w-24 h-24 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
                 title="刷新并返回首页"
               >
                 <img
