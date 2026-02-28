@@ -18,6 +18,7 @@ interface QimenCaseListProps {
     onDeleteCase?: (id: string) => void;
     onEditCase?: (caseItem: QimenCase) => void;
     refreshTrigger?: number; // Trigger refresh
+    variant?: 'sidebar' | 'drawer';
 }
 
 export default function QimenCaseList({
@@ -27,7 +28,8 @@ export default function QimenCaseList({
     onOpenDatePicker,
     onDeleteCase,
     onEditCase,
-    refreshTrigger = 0
+    refreshTrigger = 0,
+    variant = 'sidebar'
 }: QimenCaseListProps) {
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -74,7 +76,7 @@ export default function QimenCaseList({
 
     return (
         <BaseCaseList
-            // Qimen 只有 Sidebar 模式，但为了兼容预设，保持传参
+            variant={variant}
             isAuthenticated={true} // QimenCaseService 内部处理 Auth
             onLoginClick={onLoginClick}
             onOpenLibrary={() => setShowLibraryModal(true)}

@@ -56,8 +56,8 @@ export default function CaseListSidebar({
     const currentCategoryTotal = allCases.filter(c => c.category === selectedCategory).length;
 
     const containerClassName = variant === 'drawer'
-        ? 'w-full h-full border-b border-border bg-card flex flex-col min-w-0'
-        : 'w-[15%] border-r border-border bg-card flex flex-col min-w-[200px]';
+        ? 'w-full h-full bg-transparent flex flex-col'
+        : 'w-[15%] h-full border-r border-border bg-card flex flex-col min-w-[200px]';
 
     return (
         <div className={containerClassName}>

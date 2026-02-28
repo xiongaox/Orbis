@@ -37,7 +37,11 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children
     if (useDesktopLayout) {
         return (
             <div className="flex flex-1 min-h-0 overflow-hidden">
-                {sidebarNode}
+                {sidebarNode && (
+                    <div className="w-56 2xl:w-64 flex-shrink-0 h-full">
+                        {sidebarNode}
+                    </div>
+                )}
                 <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
                     {children}
                 </main>

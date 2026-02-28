@@ -204,6 +204,7 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
                     onDeleteCase={handleDeleteCase}
                     onEditCase={handleEditCase}
                     refreshTrigger={refreshTrigger}
+                    variant="drawer"
                 />
             </SideDrawer>
 
