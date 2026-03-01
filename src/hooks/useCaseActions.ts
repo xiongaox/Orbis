@@ -4,7 +4,7 @@
  * 复用于 CaseList 和 CaseLibraryModal
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { baziCaseService, type BaziCase, type CaseTag } from '../services/baziCaseService';
 import { BAZI_CASES_CHANGED_EVENT } from '../data/caseConstants';
 

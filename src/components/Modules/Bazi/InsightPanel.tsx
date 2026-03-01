@@ -77,7 +77,7 @@ export default function InsightPanel({
   const renderTianGanText = (text: string) => {
     const chars = text.split('');
     return chars.map((char, index) => {
-      if (tianGanList.includes(char as any)) {
+      if (tianGanList.includes(char as (typeof tianGanList)[number])) {
         return (
           <span
             key={index}
@@ -425,4 +425,3 @@ export default function InsightPanel({
     </div>
   );
 }
-

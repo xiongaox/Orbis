@@ -9,6 +9,9 @@ import {
     isDiZhiChong
 } from '../../../../lib/xuan-bazi/utils/baziGanZhiLiuYiUtil';
 import { TIAN_GAN_XIANG_KE, TIAN_GAN_XIANG_CHONG } from '../../../../lib/xuan-bazi/maps/baziGanZhiLiuYiMap';
+import { JIEQI_LABELS } from '../../../../constants/calendar';
+
+export { JIEQI_LABELS };
 
 /**
  * 兼容辅助函数：获取十神缩写（两参数版本）
@@ -101,6 +104,3 @@ export function checkLiunianStatus(
     }
     return null;
 }
-
-// 节气月份映射
-export const JIEQI_LABELS = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '腊'];

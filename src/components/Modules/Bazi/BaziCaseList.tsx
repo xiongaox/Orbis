@@ -4,7 +4,7 @@
  */
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { getBaziPillarsFromDateString } from '../../../utils/lunarUtil';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/useAuth';
 import { baziCaseService, CASE_TAGS, type BaziCase, type CaseTag, type CreateCaseInput } from '../../../services/baziCaseService';
 import type { Case } from '../../../types';
 import ConfirmModal from '../../Common/ConfirmModal';

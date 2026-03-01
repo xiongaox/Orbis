@@ -1,21 +1,45 @@
 import { useMemo, useState } from 'react';
 import { getShiShen } from '../../../../lib/xuan-bazi/utils';
-import { DI_ZHI_CANG_GAN } from '../../../../lib/xuan-bazi/maps/baziJichuMap';
+import { DI_ZHI_CANG_GAN } from '../../../../lib/xuan-bazi/constants';
 import {
     SHISHEN_GROUP_MAP,
     SHISHEN_SHENG,
     SHISHEN_KE,
     TIANGAN_HE,
     type ShiShenGroup,
-} from '../../../../lib/xuan-bazi/maps/shishenGroupMap';
+} from '../../../../lib/xuan-bazi/constants';
 
 export type Selection = { idx: number; type: 'gan' | 'zhi' } | null;
 
+interface LiuTongItem {
+    label: string;
+    gan: string;
+    zhi: string;
+    originalIndex: number;
+}
+
+interface RelationType {
+    type: 'he' | 'sheng' | 'ke' | 'zhu';
+    label: string;
+    direction?: 'left' | 'right';
+}
+
+type VerticalRelation = {
+    type: 'he' | 'sheng' | 'zhu';
+    label: string;
+};
+
+interface BaziLiuTongData {
+    pillars: Array<{ tiangan: string; dizhi: string }>;
+    daYun?: Array<{ startYear: number; endYear: number; ganZhi: string }>;
+    liuNian?: Array<{ year: number; ganZhi: string }>;
+}
+
 export interface ChartData {
-    items: any[];
-    tianGanAdjacentMap: Record<string, any>;
-    diZhiAdjacentMap: Record<string, any>;
-    verticalMap: Record<number, { type: 'he' | 'sheng' | 'zhu', label: string }>;
+    items: LiuTongItem[];
+    tianGanAdjacentMap: Record<string, RelationType>;
+    diZhiAdjacentMap: Record<string, RelationType>;
+    verticalMap: Record<number, VerticalRelation>;
     dayMaster: string;
 }
 
@@ -28,7 +52,7 @@ const hasGanZhiHe = (gan: string, zhi: string): boolean => {
 };
 
 export function useGanZhiLiuTong(
-    baziData: any,
+    baziData: BaziLiuTongData | null,
     selectedDaYunIndex: number | null,
     selectedLiuNianYear: number | null,
     currentYear: number,
@@ -43,31 +67,31 @@ export function useGanZhiLiuTong(
         const { pillars, daYun, liuNian } = baziData;
 
         // 确定大运
-        let activeDaYun = null;
+        let activeDaYun: { startYear: number; endYear: number; ganZhi: string } | null = null;
         if (selectedDaYunIndex !== null && daYun && daYun[selectedDaYunIndex]) {
             activeDaYun = daYun[selectedDaYunIndex];
         } else if (daYun) {
-            activeDaYun = daYun.find((dy: any) => currentYear >= dy.startYear && currentYear <= dy.endYear);
+            activeDaYun = daYun.find((dy) => currentYear >= dy.startYear && currentYear <= dy.endYear) || null;
             if (!activeDaYun && daYun.length > 1) activeDaYun = daYun[1];
             else if (!activeDaYun && daYun.length > 0) activeDaYun = daYun[0];
         }
 
         // 确定流年
-        let activeLiuNian = null;
+        let activeLiuNian: { year: number; ganZhi: string } | null = null;
         if (selectedLiuNianYear !== null && liuNian) {
-            activeLiuNian = liuNian.find((ln: any) => ln.year === selectedLiuNianYear);
+            activeLiuNian = liuNian.find((ln) => ln.year === selectedLiuNianYear) || null;
         } else if (liuNian) {
-            activeLiuNian = liuNian.find((ln: any) => ln.year === currentYear);
+            activeLiuNian = liuNian.find((ln) => ln.year === currentYear) || null;
         }
 
-        const baseItems = [
+        const baseItems: LiuTongItem[] = [
             { label: '年柱', gan: pillars[0].tiangan, zhi: pillars[0].dizhi, originalIndex: 0 },
             { label: '月柱', gan: pillars[1].tiangan, zhi: pillars[1].dizhi, originalIndex: 1 },
             { label: '日柱', gan: pillars[2].tiangan, zhi: pillars[2].dizhi, originalIndex: 2 },
             { label: '时柱', gan: pillars[3].tiangan, zhi: pillars[3].dizhi, originalIndex: 3 },
         ];
 
-        const dynamicItems = [];
+        const dynamicItems: LiuTongItem[] = [];
         let dynamicOffset = 4;
 
         if (showDaYun && activeDaYun?.ganZhi) {
@@ -86,8 +110,8 @@ export function useGanZhiLiuTong(
             return shiShen ? SHISHEN_GROUP_MAP[shiShen] : null;
         };
 
-        const buildHorizontalRelations = (items: any[], isGan: boolean) => {
-            const adjacentMap: Record<string, any> = {};
+        const buildHorizontalRelations = (items: LiuTongItem[], isGan: boolean): Record<string, RelationType> => {
+            const adjacentMap: Record<string, RelationType> = {};
             for (let i = 0; i < items.length - 1; i++) {
                 const key = `${i}-${i + 1}`;
                 const char1 = isGan ? items[i].gan : items[i].zhi;
@@ -121,8 +145,8 @@ export function useGanZhiLiuTong(
             return adjacentMap;
         };
 
-        const buildVerticalRelations = (items: any[]) => {
-            const relMap: Record<number, { type: 'he' | 'sheng' | 'zhu', label: string }> = {};
+        const buildVerticalRelations = (items: LiuTongItem[]): Record<number, VerticalRelation> => {
+            const relMap: Record<number, VerticalRelation> = {};
             items.forEach((item, idx) => {
                 const ganGroup = getShiShenGroup(item.gan);
                 const zhiGroup = getShiShenGroup(item.zhi);

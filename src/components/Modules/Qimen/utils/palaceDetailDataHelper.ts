@@ -57,7 +57,7 @@ export function getDetailDisplayData(
 
     let title = cleanLabel;
     let subTitle = '';
-    let tags: string[] = [];
+    const tags: string[] = [];
     let content = '';
 
     switch (type) {
@@ -249,8 +249,8 @@ export function getDetailDisplayData(
             if (d) {
                 title = '驿马';
                 const appItems = d.应用 ? Object.entries(d.应用).map(([k, v]) => `• ${k}：${v}`).join('\n') : '';
-                const limaItems = d.临马星含义 ? d.临马星含义.map((item: string) => `• ${item}`).join('\n') : '';
-                const desc = d.描述 ? d.描述.replace(/驿马/g, '马星') : '';
+                const limaItems = Array.isArray(d.临马星含义) ? d.临马星含义.map((item) => `• ${item}`).join('\n') : '';
+                const desc = typeof d.描述 === 'string' ? d.描述.replace(/驿马/g, '马星') : '';
                 content = [
                     desc && `【描述】\n${desc}`,
                     d.口诀 && `【口诀】\n${d.口诀}`,
@@ -266,7 +266,7 @@ export function getDetailDisplayData(
             if (d) {
                 title = '空亡';
                 const appItems = d.应用 ? Object.entries(d.应用).map(([k, v]) => `• ${k}：${v}`).join('\n') : '';
-                const desc = d.描述 ? d.描述.replace(/空亡/g, '旬空') : '';
+                const desc = typeof d.描述 === 'string' ? d.描述.replace(/空亡/g, '旬空') : '';
                 content = [
                     desc && `【描述】\n${desc}`,
                     d.日干落空亡 && `【日干落空亡】\n${d.日干落空亡}`,
@@ -309,7 +309,8 @@ export function getDetailDisplayData(
                 }
 
                 if (subPatternKey && d[subPatternKey]) {
-                    content = `【${subPatternKey}】\n${d[subPatternKey]}`;
+                    const subContent = d[subPatternKey];
+                    content = typeof subContent === 'string' ? `【${subPatternKey}】\n${subContent}` : '';
                 } else {
                     content = [
                         d.定义 && `【定义】\n${d.定义}`,

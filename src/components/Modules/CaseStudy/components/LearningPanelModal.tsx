@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { X, Heart, Clock, ChevronLeft, ChevronRight, Loader2, AlertCircle, BookOpen, Trash2 } from 'lucide-react';
-import { useAuth } from '../../../../contexts/AuthContext';
+import { useAuth } from '../../../../contexts/useAuth';
 import { learningPanelService, type CaseFavorite, type CaseProgress } from '../../../../services/learningPanelService';
 import ArticleCard from './ArticleCard';
 

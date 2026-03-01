@@ -2,23 +2,11 @@
  * 认证上下文
  * 全局提供用户认证状态
  */
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
-import type { User } from '@supabase/supabase-js';
+import { useEffect, useState, useCallback, type ReactNode } from 'react';
 import { authService } from '../services/authService';
-
-interface AuthContextType {
-    user: User | null;
-    loading: boolean;
-    signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-    signUp: (email: string, password: string) => Promise<{ error: string | null }>;
-    signOut: () => Promise<void>;
-    resetPassword: (email: string) => Promise<{ error: string | null }>;
-    sendOtp: (email: string) => Promise<{ error: string | null }>;
-    verifyOtp: (email: string, token: string) => Promise<{ error: string | null }>;
-    isAuthenticated: boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+import type { User } from '@supabase/supabase-js';
+import { AuthContext } from './authContextStore';
+import type { AuthContextType } from './authContextStore';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
@@ -115,12 +103,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             {children}
         </AuthContext.Provider>
     );
-}
-
-export function useAuth() {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
 }

@@ -1029,7 +1029,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
         const getDaySeatDefense = (dayBr: string): { isDefense: boolean; reason: string } => {
             const dayBranchRoots = RAW_HIDDEN_STEMS[dayBr] || {};
             // 必须是本气强根 (>=18)
-            const mainQi = Object.entries(dayBranchRoots).find(([_, w]) => w >= 18);
+            const mainQi = Object.entries(dayBranchRoots).find(([, w]) => w >= 18);
             if (mainQi) {
                 const mainQiStem = mainQi[0];
                 const mainQiInfo = STEMS_INFO[mainQiStem];

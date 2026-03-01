@@ -4,7 +4,7 @@
  */
 import { useState, useEffect } from 'react';
 import { Heart, Loader2 } from 'lucide-react';
-import { useAuth } from '../../../../contexts/AuthContext';
+import { useAuth } from '../../../../contexts/useAuth';
 import { learningPanelService } from '../../../../services/learningPanelService';
 
 interface FavoriteButtonProps {

@@ -5,14 +5,14 @@
  */
 import { useMemo } from 'react';
 import { getShiShen } from '../lib/xuan-bazi/utils';
-import { DI_ZHI_CANG_GAN } from '../lib/xuan-bazi/maps/baziJichuMap';
+import { DI_ZHI_CANG_GAN } from '../lib/xuan-bazi/constants';
 import {
     SHISHEN_GROUP_MAP,
     SHISHEN_SHENG,
     SHISHEN_KE,
     TIANGAN_HE,
     type ShiShenGroup,
-} from '../lib/xuan-bazi/maps/shishenGroupMap';
+} from '../lib/xuan-bazi/constants';
 
 // 布局项类型
 export interface LiuTongItem {
@@ -38,9 +38,14 @@ export interface GanZhiLiuTongData {
     dayMaster: string;
 }
 
+interface BaziLiuTongSourceData {
+    pillars: Array<{ tiangan: string; dizhi: string }>;
+    daYun?: Array<{ startYear: number; endYear: number; ganZhi: string }>;
+    liuNian?: Array<{ year: number; ganZhi: string }>;
+}
+
 interface UseGanZhiLiuTongParams {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    baziData: any;
+    baziData: BaziLiuTongSourceData | null;
     selectedDaYunIndex: number | null;
     selectedLiuNianYear: number | null;
     currentYear: number;
@@ -77,21 +82,21 @@ export function useGanZhiLiuTong({
         const dayMaster = pillars[2].tiangan;
 
         // 确定大运
-        let activeDaYun = null;
+        let activeDaYun: { startYear: number; endYear: number; ganZhi: string } | null = null;
         if (selectedDaYunIndex !== null && daYun && daYun[selectedDaYunIndex]) {
             activeDaYun = daYun[selectedDaYunIndex];
         } else if (daYun) {
-            activeDaYun = daYun.find((dy: any) => currentYear >= dy.startYear && currentYear <= dy.endYear);
+            activeDaYun = daYun.find((dy) => currentYear >= dy.startYear && currentYear <= dy.endYear) || null;
             if (!activeDaYun && daYun.length > 1) activeDaYun = daYun[1];
             else if (!activeDaYun && daYun.length > 0) activeDaYun = daYun[0];
         }
 
         // 确定流年
-        let activeLiuNian = null;
+        let activeLiuNian: { year: number; ganZhi: string } | null = null;
         if (selectedLiuNianYear !== null && liuNian) {
-            activeLiuNian = liuNian.find((ln: any) => ln.year === selectedLiuNianYear);
+            activeLiuNian = liuNian.find((ln) => ln.year === selectedLiuNianYear) || null;
         } else if (liuNian) {
-            activeLiuNian = liuNian.find((ln: any) => ln.year === currentYear);
+            activeLiuNian = liuNian.find((ln) => ln.year === currentYear) || null;
         }
 
         // 布局项

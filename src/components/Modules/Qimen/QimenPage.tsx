@@ -116,7 +116,7 @@ export default function QimenPage() {
 
                                 const sections = displayKeys.map(key => {
                                     const value = data[key];
-                                    if (!value) return null;
+                                    if (typeof value !== 'string' || !value) return null;
                                     return (
                                         <div key={key} className="mb-5 last:mb-0">
                                             <div className="flex items-center gap-2 mb-2">

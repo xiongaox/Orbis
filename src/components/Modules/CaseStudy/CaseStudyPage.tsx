@@ -5,7 +5,7 @@
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/useAuth';
 import { useCaseStudy, ALL_CASES } from './hooks/useCaseStudy';
 import { useReadingProgress } from './hooks/useReadingProgress';
 import { useDuanFa } from './hooks/useDuanFa';
@@ -52,7 +52,7 @@ export default function CaseStudyPage() {
     });
 
     useEffect(() => {
-        if (caseStudyState.activeCase && contentScrollRef.current) {
+        if (caseStudyState.activeCase?.id && contentScrollRef.current) {
             contentScrollRef.current.scrollTo({ top: 0 });
         }
     }, [caseStudyState.activeCase?.id]);

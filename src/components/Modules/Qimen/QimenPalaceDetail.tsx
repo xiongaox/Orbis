@@ -2,7 +2,7 @@
  * 奇门遁甲模块 - 宫位详情面板 (竖向 Tab 版)
  * 左侧显示宫位内的所有元素列表，右侧显示选中元素的详细解读
  */
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { BookOpen } from 'lucide-react';
 import type { QimenPalace } from './QimenChart';
 import { QimenDataService } from '../../../lib/csp-qimen/qimenDataService';
@@ -92,10 +92,9 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
 
     const activeItem = menuItems.find(i => i.id === selectedTab) || menuItems[0];
 
-    const detailData = useMemo(() => {
-        if (!activeItem) return { title: '', subTitle: '', tags: [], content: '' };
-        return getDetailDisplayData(activeItem.type, activeItem.label, palace.position, timeZhi);
-    }, [activeItem, palace.position, timeZhi]);
+    const detailData = activeItem
+        ? getDetailDisplayData(activeItem.type, activeItem.label, palace.position, timeZhi)
+        : { title: '', subTitle: '', tags: [], content: '' };
 
     return (
         <aside className="w-full h-full bg-card border-l border-border flex min-h-0 text-foreground">

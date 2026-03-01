@@ -35,8 +35,9 @@ function runOnce(parts: string[]) {
         printResult(result, timeInMs);
         process.exit(0);
 
-    } catch (e: any) {
-        console.error(`❌ 错误: ${e.message}`);
+    } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
+        console.error(`❌ 错误: ${message}`);
         process.exit(1);
     }
 }
@@ -69,8 +70,9 @@ function prompt() {
 
             printResult(result, timeInMs);
 
-        } catch (e: any) {
-            console.error(`❌ 错误: ${e.message}`);
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : String(e);
+            console.error(`❌ 错误: ${message}`);
         }
 
         prompt();

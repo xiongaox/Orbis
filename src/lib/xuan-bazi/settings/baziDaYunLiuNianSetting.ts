@@ -9,9 +9,7 @@
 /**
  * 大运流年设置接口
  */
-export interface BaZiDaYunLiuNianSetting {
-    // 预留扩展字段
-}
+export type BaZiDaYunLiuNianSetting = Record<string, never>;
 
 /**
  * 创建默认大运流年设置

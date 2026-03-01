@@ -2,7 +2,7 @@
  * 登录/注册 Modal
  * 支持：密码登录、注册、忘记密码、验证码登录
  */
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ArrowLeft, LogIn, UserPlus } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
 import LoginForm from './LoginForm';
@@ -20,13 +20,12 @@ export type AuthMode = 'login' | 'register' | 'forgot' | 'otp';
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     const [mode, setMode] = useState<AuthMode>('login');
 
-    if (!isOpen) return null;
+    const handleClose = () => {
+        setMode('login');
+        onClose();
+    };
 
-    useEffect(() => {
-        if (!isOpen) {
-            setMode('login'); // 弹窗关闭时恢复初始状态
-        }
-    }, [isOpen]);
+    if (!isOpen) return null;
 
     const getTitle = () => {
         switch (mode) {
@@ -62,15 +61,15 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     return (
         <BaseModal
             isOpen={isOpen}
-            onClose={onClose}
+            onClose={handleClose}
             title={getTitle()}
             titleIcon={getTitleIcon()}
             maxWidth="max-w-[380px]"
         >
-            {mode === 'login' && <LoginForm onSwitchMode={setMode} onClose={onClose} />}
+            {mode === 'login' && <LoginForm onSwitchMode={setMode} onClose={handleClose} />}
             {mode === 'register' && <RegisterForm onSwitchMode={setMode} />}
             {mode === 'forgot' && <ForgotPasswordForm onSwitchMode={setMode} />}
-            {mode === 'otp' && <OtpLoginForm onSwitchMode={setMode} onClose={onClose} />}
+            {mode === 'otp' && <OtpLoginForm onSwitchMode={setMode} onClose={handleClose} />}
         </BaseModal>
     );
 }

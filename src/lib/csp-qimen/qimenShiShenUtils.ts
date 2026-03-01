@@ -3,24 +3,11 @@
  * 以日干为太极点，计算天干、九星、八门的十神
  */
 
-import { SHI_SHEN } from '../xuan-bazi/maps/baziJichuMap';
-import { XING_WUXING, MEN_WUXING } from './qimenUtils';
+import { SHI_SHEN } from '../xuan-bazi/constants';
+import { SHI_SHEN_ABBR } from '../xuan-bazi/utils/baziJichuUtil';
+import { XING_WUXING, MEN_WUXING } from './constants';
 
 // ============ 十神简称映射 ============
-
-/** 十神 -> 简称 */
-const SHI_SHEN_ABBR: Record<string, string> = {
-    '比肩': '比',
-    '劫财': '劫',
-    '食神': '食',
-    '伤官': '伤',
-    '偏财': '才',
-    '正财': '财',
-    '七杀': '杀',
-    '正官': '官',
-    '偏印': '枭',
-    '正印': '印',
-};
 
 // ============ 五行对应虚拟天干 ============
 
@@ -144,4 +131,3 @@ export function getMenShiShen(riGan: string, men: string): string {
     if (!virtualGan) return '';
     return getGanShiShen(riGan, virtualGan);
 }
-

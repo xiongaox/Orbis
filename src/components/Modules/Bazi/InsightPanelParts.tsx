@@ -225,19 +225,3 @@ export function CollapsibleSection({ title, icon, isOpen, onToggle, children }: 
         </div>
     );
 }
-
-/**
- * 解析滴天髓逻辑内容
- */
-export function parseLogicContent(point: string): LogicAnalysisCardProps {
-    const lines = point.split('\n');
-    const segmentMatch = lines[0]?.match(/\*\*(.+?)\*\*/);
-    const segment = segmentMatch ? segmentMatch[1] : lines[0];
-    const tagsMatch = lines[1]?.match(/【(.+?)】/);
-    const tags = tagsMatch ? tagsMatch[1].split('、') : [];
-    const reasoning = lines[2] || '';
-    const modernMatch = lines[3]?.match(/💡\s*(.+)/);
-    const modern = modernMatch ? modernMatch[1] : '';
-
-    return { segment, tags, reasoning, modern };
-}

@@ -9,7 +9,7 @@ import DayunLiunianPanel from './DayunLiunianPanel';
 import WuxingStatusBar from './WuxingStatusBar';
 import BaziBasicInfoPanel from './BaziBasicInfoPanel';
 import { getRealtimeClockData } from '../../../utils/lunarUtil';
-import { useBaziContext } from '../../../contexts/BaziContext';
+import { useBaziContext } from '../../../contexts/useBaziContext';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 
 export default function BaziPage() {

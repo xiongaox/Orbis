@@ -19,8 +19,6 @@ export default function PhysicsLogModal({
     description,
     highlightColor = ""
 }: PhysicsLogModalProps) {
-    if (!isOpen) return null;
-
     // 解析日志条目，返回带有样式属性的对象
     const parseLog = (log: string) => {
         let theme = 'default';
@@ -69,6 +67,8 @@ export default function PhysicsLogModal({
     };
 
     const parsedLogs = useMemo(() => logs.map(parseLog), [logs]);
+
+    if (!isOpen) return null;
 
     const header = (
         <div className="flex flex-col">

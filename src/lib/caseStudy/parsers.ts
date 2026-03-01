@@ -16,12 +16,14 @@ import type { HiddenStem, BaziApiResponse } from '../../types/bazi';
 import {
     type CaseMetadata,
     type ParsedBaziInfo,
+} from './types';
+import {
     LUNAR_MONTH_MAP,
     LUNAR_DAY_MAP,
     HOUR_MAP,
     TIAN_GAN,
     DI_ZHI,
-} from './types';
+} from './constants';
 
 // ====== 元数据解析 ======
 
@@ -95,7 +97,7 @@ export const extractBazi = (content: string): string => {
 
     const match = content.match(/[乾坤]造[：:]\s*([^\n(（]+)/);
     if (match) {
-        let bazi = match[1].replace(/[年月日时，,、\s]+/g, ' ').trim();
+        const bazi = match[1].replace(/[年月日时，,、\s]+/g, ' ').trim();
         const pillars = bazi.split(/\s+/);
         if (pillars.length >= 4) {
             return pillars.slice(0, 4).join(' ');

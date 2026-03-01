@@ -88,7 +88,8 @@ export default function ExportCaseModal<T extends object>({
                 return formatCase(c);
             }
             // 默认：清理敏感字段（如 user_id）
-            const { user_id, ...rest } = c as T & { user_id?: string };
+            const rest = { ...(c as T & { user_id?: string }) };
+            delete rest.user_id;
             return rest;
         });
 

@@ -6,7 +6,7 @@
  */
 import { useState, useEffect } from 'react';
 import { Calendar, Compass, Grid3X3, Sun, Moon, Menu } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/useAuth';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import BaseModal from '../UI/BaseModal';
 import SideDrawer from '../UI/SideDrawer';
@@ -62,14 +62,20 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
           // Fallback to local storage for backward compatibility during migration
           if (user.email) {
             const saved = localStorage.getItem(`user_birthday_${user.email}`);
-            if (saved) setBirthDate(new Date(saved));
+            if (saved) {
+              setBirthDate(new Date(saved));
+            } else {
+              setBirthDate(undefined);
+            }
+          } else {
+            setBirthDate(undefined);
           }
         }
       });
-    } else {
-      setBirthDate(undefined);
     }
   }, [user]);
+
+  const displayBirthDate = user ? birthDate : undefined;
 
   const [isDark, setIsDark] = useState(() => {
     if (typeof document === 'undefined') return true;
@@ -165,7 +171,7 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
                     <NavButton
                       item={item}
                       isActive={activeChart === item.id}
-                      onClick={() => onChartChange(item.id)}
+                      onClick={() => onChartChange(item.id as ChartType)}
                     />
                     {index < navItems.length - 1 && (
                       <span className="text-border">|</span>
@@ -225,7 +231,7 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
                 onShowContact={() => setShowContactModal(true)}
                 onShowBirthday={() => setShowBirthdayModal(true)}
                 onShowPassword={() => setShowPasswordModal(true)}
-                birthDate={birthDate}
+                birthDate={displayBirthDate}
               />
             </div>
           </div>
@@ -246,7 +252,7 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
               item={item}
               isActive={activeChart === item.id}
               onClick={() => {
-                onChartChange(item.id);
+                onChartChange(item.id as ChartType);
                 setMobileNavOpen(false);
               }}
             />
@@ -259,7 +265,7 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
         isOpen={showBirthdayModal}
         onClose={() => setShowBirthdayModal(false)}
         onConfirm={handleBirthdayConfirm}
-        value={birthDate}
+        value={displayBirthDate}
         hideBazi={true}
       />
 

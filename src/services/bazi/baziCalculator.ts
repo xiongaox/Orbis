@@ -12,6 +12,26 @@ import {
     KONG_WANG,
 } from '../../lib/xuan-bazi/maps';
 
+interface BaziMethodHost {
+    [key: string]: unknown;
+    getDayGan: () => string;
+    getYun: (gender: number) => {
+        getStartSolar: () => { getYear: () => number; getMonth: () => number; getDay: () => number };
+        getStartYear: () => number;
+        getStartMonth: () => number;
+        getStartDay: () => number;
+        getStartHour?: () => number;
+        isForward: () => boolean;
+        getDaYun: () => unknown[];
+    };
+    getYearGan: () => string;
+    getTimeGan: () => string;
+    getTimeZhi: () => string;
+    getTaiYuan: () => string;
+    getMingGong: () => string;
+    getShenGong: () => string;
+}
+
 // 获取五行的辅助函数
 function getElement(char: string): string {
     return TIAN_GAN_WU_XING[char] || DI_ZHI_WU_XING[char] || '';
@@ -22,23 +42,31 @@ function getXunKong(ganZhi: string): string {
     return KONG_WANG[ganZhi] || '';
 }
 
-function buildPillar(bazi: any, pillarType: string, gender?: 'male' | 'female'): PillarData {
+function buildPillar(bazi: BaziMethodHost, pillarType: string, gender?: 'male' | 'female'): PillarData {
     const labelMap: Record<string, string> = { 'year': '年柱', 'month': '月柱', 'day': '日柱', 'time': '时柱' };
     const capType = pillarType.charAt(0).toUpperCase() + pillarType.slice(1);
 
-    const getPillar = bazi[`get${capType}`].bind(bazi);
-    const getGan = bazi[`get${capType}Gan`].bind(bazi);
-    const getZhi = bazi[`get${capType}Zhi`].bind(bazi);
-
-    // 安全调用帮助函数，如果方法存在才调用
-    const safeCall = (methodName: string, arg?: any) => {
+    const getMethod = (methodName: string) => {
         const method = bazi[methodName];
-        return typeof method === 'function' ? method.call(bazi, arg) : null;
+        if (typeof method !== 'function') {
+            return () => '';
+        }
+        return (method as (...args: unknown[]) => unknown).bind(bazi);
     };
 
-    const ganZhiStr = getPillar();
-    const tiangan = getGan();
-    const dizhi = getZhi();
+    const getPillar = getMethod(`get${capType}`);
+    const getGan = getMethod(`get${capType}Gan`);
+    const getZhi = getMethod(`get${capType}Zhi`);
+
+    // 安全调用帮助函数，如果方法存在才调用
+    const safeCall = (methodName: string, arg?: unknown) => {
+        const method = bazi[methodName];
+        return typeof method === 'function' ? (method as (this: BaziMethodHost, arg?: unknown) => unknown).call(bazi, arg) : null;
+    };
+
+    const ganZhiStr = String(getPillar() || '');
+    const tiangan = String(getGan() || '');
+    const dizhi = String(getZhi() || '');
     const dayGan = bazi.getDayGan();
 
     let tianganShiShen = '';
@@ -58,9 +86,9 @@ function buildPillar(bazi: any, pillarType: string, gender?: 'male' | 'female'):
 
     const dizhiShiShen = zanggan.map((zg: { shiShen: string }) => zg.shiShen);
 
-    const naYin = safeCall(`get${capType}NaYin`) || NA_YIN[ganZhiStr] || '';
-    const kongWang = safeCall(`get${capType}XunKong`) || getXunKong(ganZhiStr);
-    const diShi = safeCall(`get${capType}DiShi`) || SHI_ER_ZHANG_SHENG[dayGan + dizhi] || '';
+    const naYin = String(safeCall(`get${capType}NaYin`) || NA_YIN[ganZhiStr] || '');
+    const kongWang = String(safeCall(`get${capType}XunKong`) || getXunKong(ganZhiStr));
+    const diShi = String(safeCall(`get${capType}DiShi`) || SHI_ER_ZHANG_SHENG[dayGan + dizhi] || '');
     const ziZuo = SHI_ER_ZHANG_SHENG[tiangan + dizhi] || '';
 
     return {
@@ -126,7 +154,7 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
     // 1. 创建公历和农历对象
     const solar = Solar.fromYmdHms(year, month, day, hour, minute, 0);
     const lunar = solar.getLunar();
-    const bazi = lunar.getEightChar();
+    const bazi = lunar.getEightChar() as unknown as BaziMethodHost;
 
     // 设置用于计算大运的性别 (1=男, 0=女)
     // 注意: lunar-javascript 使用 1 代表男, 0 代表女
@@ -167,21 +195,31 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
     if (dayunArr && dayunArr.length) {
         for (let i = 0; i < dayunArr.length; i++) {
             try {
-                const dayun = dayunArr[i];
-                if (!dayun) continue;
+                const dayunRaw = dayunArr[i];
+                if (!dayunRaw || typeof dayunRaw !== 'object') continue;
+
+                const dayun = dayunRaw as {
+                    getGanZhi?: () => string;
+                    getIndex?: () => number;
+                    getStartYear?: () => number;
+                    getEndYear?: () => number;
+                    getStartAge?: () => number;
+                    getEndAge?: () => number;
+                    getXunKong?: () => string;
+                };
 
                 // 安全访问帮助函数
-                const getSafeResult = (fn: () => any) => {
+                const getSafeResult = (fn: () => unknown): unknown => {
                     try { return fn(); } catch { return ''; }
                 };
 
-                const ganZhi = getSafeResult(() => dayun.getGanZhi());
+                const ganZhi = String(getSafeResult(() => dayun.getGanZhi?.()) || '');
                 const index = typeof dayun.getIndex === 'function' ? dayun.getIndex() : i;
-                const startYear = getSafeResult(() => dayun.getStartYear()) || 0;
-                const endYear = getSafeResult(() => dayun.getEndYear()) || 0;
-                const startAge = getSafeResult(() => dayun.getStartAge()) || 0;
-                const endAge = getSafeResult(() => dayun.getEndAge()) || 0;
-                const xunKong = getSafeResult(() => dayun.getXunKong ? dayun.getXunKong() : '');
+                const startYear = Number(getSafeResult(() => dayun.getStartYear?.()) || 0);
+                const endYear = Number(getSafeResult(() => dayun.getEndYear?.()) || 0);
+                const startAge = Number(getSafeResult(() => dayun.getStartAge?.()) || 0);
+                const endAge = Number(getSafeResult(() => dayun.getEndAge?.()) || 0);
+                const xunKong = String(getSafeResult(() => dayun.getXunKong?.()) || '');
 
                 const tiangan = ganZhi ? ganZhi[0] : '';
                 const dizhi = ganZhi && ganZhi.length > 1 ? ganZhi[1] : '';
@@ -376,7 +414,7 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
         const startGan = getStartMonthGan(yearGan);
         if (!startGan) return;
 
-        let startGanIdx = ganListSeq.indexOf(startGan as typeof TIAN_GAN[number]);
+        const startGanIdx = ganListSeq.indexOf(startGan as typeof TIAN_GAN[number]);
         const lyList = [];
 
         for (let m = 0; m < 12; m++) {
@@ -416,16 +454,16 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
     const timePillarGan = bazi.getTimeGan();
     const timePillarZhi = bazi.getTimeZhi();
 
-    let xyGanIdx = ganListSeq.indexOf(timePillarGan as typeof TIAN_GAN[number]);
+    const xyGanIdx = ganListSeq.indexOf(timePillarGan as typeof TIAN_GAN[number]);
     // 修正: 应该使用标准的 12 地支序列来查找索引
     const zhiListSeq = DI_ZHI;
-    let xyZhiIdx = zhiListSeq.indexOf(timePillarZhi as typeof DI_ZHI[number]);
+    const xyZhiIdx = zhiListSeq.indexOf(timePillarZhi as typeof DI_ZHI[number]);
 
 
     allLiuNian.forEach(ln => {
         // 根据系统计算偏移量 (从出生或年龄)
         // 假设 1 岁 = 时柱 + 1 步顺/逆
-        let shift = ln.age;
+        const shift = ln.age;
 
         let targetGanIdx, targetZhiIdx;
 

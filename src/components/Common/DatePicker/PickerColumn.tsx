@@ -25,7 +25,7 @@ export default function PickerColumn({ items, value, onChange, label, formatItem
                 scrollRef.current.scrollTop = index * ITEM_HEIGHT;
             }
         }
-    }, []);
+    }, [items, value]);
 
     // Sync external value change
     useEffect(() => {

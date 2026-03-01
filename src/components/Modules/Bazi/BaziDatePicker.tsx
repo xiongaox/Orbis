@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Loader2, Search, ChevronRight } from 'lucide-react';
-import { baziReverseSearch, type BaziSearchResult } from '../../../lib/xuan-bazi/utils/baziSearchUtil';
+import { baziReverseSearch, type BaziSearchResult, type BaziTarget } from '../../../lib/xuan-bazi/utils/baziSearchUtil';
 import { TIAN_GAN, DI_ZHI } from '../../../lib/xuan-bazi/maps/baziJichuMap';
 import { getElementTextColor, getElementBgColor } from '../../../lib/xuan-bazi/maps/baziStyleMap';
 
 interface BaziDatePickerProps {
-    onChange?: (val: any) => void;
+    onChange?: (val: (string | null)[]) => void;
     onSelectDate?: (date: Date) => void;
 }
 
@@ -54,11 +54,11 @@ export default function BaziDatePicker({ onChange, onSelectDate }: BaziDatePicke
 
         setIsSearching(true);
         try {
-            const target = {
-                yearGan: slots[0]! as any, yearZhi: slots[1]! as any,
-                monthGan: slots[2]! as any, monthZhi: slots[3]! as any,
-                dayGan: slots[4]! as any, dayZhi: slots[5]! as any,
-                hourGan: slots[6]! as any, hourZhi: slots[7]! as any
+            const target: BaziTarget = {
+                yearGan: slots[0]!, yearZhi: slots[1]!,
+                monthGan: slots[2]!, monthZhi: slots[3]!,
+                dayGan: slots[4]!, dayZhi: slots[5]!,
+                hourGan: slots[6]!, hourZhi: slots[7]!
             };
 
             const results = await baziReverseSearch(target);
@@ -89,7 +89,7 @@ export default function BaziDatePicker({ onChange, onSelectDate }: BaziDatePicke
         const selectedStem = slots[stemSlotIndex];
 
         if (selectedStem) {
-            const stemIndex = STEMS.indexOf(selectedStem as any);
+            const stemIndex = STEMS.indexOf(selectedStem as typeof STEMS[number]);
             const isYang = stemIndex % 2 === 0;
             currentOptions = BRANCHES.filter((_, idx) => (idx % 2 === 0) === isYang);
         }

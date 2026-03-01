@@ -4,11 +4,7 @@
  */
 
 import type { QimenPalace } from '../../components/Modules/Qimen/QimenChart';
-
-// 三奇
-const SAN_QI = ['乙', '丙', '丁'];
-// 三吉门
-const SAN_JI_MEN = ['开门', '休门', '生门'];
+import { SAN_QI, SAN_JI_MEN } from './constants';
 
 // 天干墓库宫位
 const GAN_MU: Record<string, number[]> = {

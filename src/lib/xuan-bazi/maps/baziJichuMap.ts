@@ -4,13 +4,11 @@
  * @author 善待 (原作者)
  */
 
+import { TIAN_GAN, DI_ZHI } from '../../../constants/ganZhi';
+
+export { TIAN_GAN, DI_ZHI };
+
 // ==================== 基础常量 ====================
-
-/** 天干列表 */
-export const TIAN_GAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'] as const;
-
-/** 地支列表 */
-export const DI_ZHI = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'] as const;
 
 /** 五行列表 */
 export const WU_XING = ['木', '火', '土', '金', '水'] as const;

@@ -59,7 +59,6 @@ export default function QimenAiPromptModal({
     header,
     palaces,
     globalPatterns,
-    selectedPalace,
     methodLabel = '时家奇门'
 }: QimenAiPromptModalProps) {
     const [includeAllPalaces, setIncludeAllPalaces] = useState(true);
@@ -135,7 +134,7 @@ export default function QimenAiPromptModal({
         }
 
         return text;
-    }, [header, palaces, globalPatterns, includeAllPalaces, includeGlobalPatterns, userQuestion, selectedPalace, methodLabel]);
+    }, [header, palaces, globalPatterns, includeAllPalaces, includeGlobalPatterns, userQuestion, methodLabel]);
 
     const options: PromptOption[] = [
         { label: '包含全局格局信息', checked: includeGlobalPatterns, onChange: setIncludeGlobalPatterns },

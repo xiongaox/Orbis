@@ -16,7 +16,7 @@ import { getShiShen } from '../../../lib/xuan-bazi/utils';
 import {
     LIUTONG_COLORS,
     SHISHEN_SHENG
-} from '../../../lib/xuan-bazi/maps/shishenGroupMap';
+} from '../../../lib/xuan-bazi/constants';
 import { useGanZhiLiuTong } from './hooks/useGanZhiLiuTong';
 
 interface GanZhiLiuTongModalProps {
