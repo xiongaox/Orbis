@@ -4,8 +4,9 @@
  */
 import { useState, useMemo, useEffect } from 'react';
 import { extractBazi } from '../../../../lib/caseStudy/parsers';
-import { AUTHOR_MAP } from '../../../../lib/caseStudy/types';
+import { AUTHOR_MAP } from '../../../../lib/caseStudy/constants';
 import type { PaiPanMethod } from '../../../../lib/csp-qimen/qimenService';
+import { TIAN_GAN } from '../../../../constants/ganZhi';
 
 // 加载案例文件
 // 加载案例文件
@@ -84,8 +85,6 @@ const ALL_CASES: CaseItem[] = Object.entries(rawCases)
         };
     })
     .sort((a, b) => {
-        const TIAN_GAN = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
-
         const getTianganIndex = (str: string) => {
             for (let i = 0; i < TIAN_GAN.length; i++) {
                 if (str.includes(TIAN_GAN[i])) return i;

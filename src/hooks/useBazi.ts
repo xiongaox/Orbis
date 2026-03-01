@@ -2,7 +2,7 @@
  * 八字模块状态与逻辑 Hook
  */
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/useAuth';
 import { baziCaseService } from '../services/baziCaseService';
 import { calculateBazi } from '../services/bazi/baziCalculator';
 import type { BaziApiResponse } from '../types/bazi';

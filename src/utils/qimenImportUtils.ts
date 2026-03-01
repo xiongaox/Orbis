@@ -60,21 +60,25 @@ function parseJuText(text: string): { dun: string; ju: number } | null {
 /**
  * 解析并验证导入数据
  */
-export function parseQimenImportData(jsonData: any[] | any): CreateQimenCaseInput[] {
+export function parseQimenImportData(jsonData: unknown[] | unknown): CreateQimenCaseInput[] {
     const inputs = Array.isArray(jsonData) ? jsonData : [jsonData];
     const validCases: CreateQimenCaseInput[] = [];
 
     for (const item of inputs) {
-        const caseInput: any = {
+        if (!item || typeof item !== 'object') continue;
+
+        const caseInput: CreateQimenCaseInput = {
             title: '',
             test_date: '',
             category: 'other',
         };
 
+        const record = item as Record<string, unknown>;
+
         let juText = '';
 
         // 1. 字段映射
-        for (const [key, value] of Object.entries(item)) {
+        for (const [key, value] of Object.entries(record)) {
             if (!value) continue;
             // 尝试匹配键名（包含去空）
             const cleanKey = key.trim();
@@ -84,7 +88,15 @@ export function parseQimenImportData(jsonData: any[] | any): CreateQimenCaseInpu
                 if (mappedKey === 'ju_text') {
                     juText = String(value);
                 } else {
-                    caseInput[mappedKey] = value;
+                    if (mappedKey === 'title' || mappedKey === 'test_date' || mappedKey === 'description' || mappedKey === 'feedback' || mappedKey === 'analysis') {
+                        caseInput[mappedKey] = String(value);
+                    }
+                    if (mappedKey === 'category') {
+                        caseInput.category = String(value) as QimenCategory;
+                    }
+                    if (mappedKey === 'qimen_data' && typeof value === 'object' && value !== null) {
+                        caseInput.qimen_data = value as Record<string, unknown>;
+                    }
                 }
             }
         }
@@ -130,14 +142,14 @@ export function parseQimenImportData(jsonData: any[] | any): CreateQimenCaseInpu
             const parsed = parseJuText(juText);
             if (parsed) {
                 caseInput.qimen_data = {
-                    ...(caseInput.qimen_data || {}),
+                    ...((caseInput.qimen_data as Record<string, unknown>) || {}),
                     custom_ju: parsed.ju,
                     custom_dun: parsed.dun
                 };
             }
         }
 
-        validCases.push(caseInput as CreateQimenCaseInput);
+        validCases.push(caseInput);
     }
 
     return validCases;

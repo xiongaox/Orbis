@@ -40,22 +40,23 @@ export default function BaziChart({
   const isPadLandscape = useIsPadLandscape();
 
   // 提取数据
-  const pillars = data?.pillars || [];
-  const daYun = data?.daYun || [];
-  const dayGan = pillars[2]?.tiangan || '';
+  const pillars = data?.pillars;
+  const daYun = data?.daYun;
+  const dayGan = pillars?.[2]?.tiangan || '';
 
   // 是否显示大运/流年列
   const showDaYunLiuNian = selectedDaYunIndex !== null || selectedLiuNianYear !== null;
 
   // 确定当前显示的大运和流年
-  const activeDaYunIndex = selectedDaYunIndex ?? daYun.find(dy =>
+  const activeDaYunIndex = selectedDaYunIndex ?? daYun?.find(dy =>
     currentYear >= dy.startYear && currentYear <= dy.endYear
   )?.index ?? 1;
   const activeLiuNianYear = selectedLiuNianYear ?? currentYear;
 
   // 获取当前流年和大运
   const currentLiuNian = (data && showDaYunLiuNian) ? data.liuNian.find(ln => ln.year === activeLiuNianYear) : null;
-  const currentDaYun = (data && showDaYunLiuNian) ? daYun.find(dy => dy.index === activeDaYunIndex) : null;
+  const currentDaYun = (data && showDaYunLiuNian) ? daYun?.find(dy => dy.index === activeDaYunIndex) : null;
+  const displayPillars = pillars ?? [];
 
   // 神煞计算上下文
   const shenShaContext = useMemo((): ShenShaContext | null => {
@@ -180,7 +181,7 @@ export default function BaziChart({
           )}
 
           {/* 四柱 */}
-          {pillars.map((pillar, index) => {
+          {displayPillars.map((pillar, index) => {
             const shenshaList = pillarShenSha ? (
               index === 0 ? pillarShenSha.year : index === 1 ? pillarShenSha.month : index === 2 ? pillarShenSha.day : pillarShenSha.hour
             ).map(s => s.name) : [];
@@ -199,4 +200,3 @@ export default function BaziChart({
     </div>
   );
 }
-

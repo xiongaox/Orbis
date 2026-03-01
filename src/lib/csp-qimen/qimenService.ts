@@ -18,6 +18,7 @@ import { getEightCharFromDate, getSolarToLunarInfo } from '../../utils/lunarUtil
 import { LunarUtil } from 'lunar-typescript';
 import { getXingWang, getMenWang, getGanShiErCS, getPalaceWangShuai } from './qimenUtils';
 import { getGanShiShen, getXingShiShen, getMenShiShen } from './qimenShiShenUtils';
+import { GONG_NAMES, DI_PAN_GAN_SHUN, AN_GAN_ORDER, INNER_YANG, OUTER_YANG } from './constants';
 import { ZHI_PALACE_MAP, MA_XING_MAP } from '../../components/Modules/Qimen/utils/qimenInfoUtils';
 
 // ============ 类型定义 ============
@@ -79,9 +80,67 @@ interface CspParsedData {
     palaces: CspPalace[]; // 9个宫位（按洛书顺序：4,9,2,3,5,7,8,1,6）
 }
 
+interface WasmCmdParam {
+    year: number;
+    mon: number;
+    day: number;
+    hour: number;
+    min: number;
+    sec: number;
+    zone: number;
+    str_dt: string;
+    ju: number;
+    type: number;
+    delete: () => void;
+}
+
+interface WasmQimenUse {
+    run_captured: (param: WasmCmdParam) => string;
+    delete: () => void;
+}
+
+interface WasmModule {
+    CmdParam: new () => WasmCmdParam;
+    CQimenUse: new () => WasmQimenUse;
+}
+
+type CspModuleFactory = (options: { locateFile: (path: string) => string }) => Promise<WasmModule>;
+
+declare global {
+    interface Window {
+        createCspModule?: CspModuleFactory;
+    }
+}
+
+function stripAnsiCodes(text: string): string {
+    let result = '';
+    let i = 0;
+
+    while (i < text.length) {
+        const char = text[i];
+        const next = text[i + 1];
+
+        if (char === '\u001b' && next === '[') {
+            i += 2;
+            while (i < text.length && text[i] !== 'm') {
+                i += 1;
+            }
+            if (i < text.length && text[i] === 'm') {
+                i += 1;
+            }
+            continue;
+        }
+
+        result += char;
+        i += 1;
+    }
+
+    return result;
+}
+
 // ============ WASM 模块管理 ============
 
-let wasmModule: any = null;
+let wasmModule: WasmModule | null = null;
 let isWasmLoading = false;
 let wasmLoadPromise: Promise<boolean> | null = null;
 
@@ -92,7 +151,7 @@ export async function initCspWasm(): Promise<boolean> {
     if (wasmModule) return true;
     if (wasmLoadPromise) return wasmLoadPromise;
 
-    wasmLoadPromise = new Promise(async (resolve) => {
+    wasmLoadPromise = new Promise((resolve) => {
         if (isWasmLoading) {
             resolve(false);
             return;
@@ -101,35 +160,39 @@ export async function initCspWasm(): Promise<boolean> {
         isWasmLoading = true;
         console.log('🔄 Initializing CSP WASM...');
 
-        try {
-            const script = document.createElement('script');
-            script.src = '/wasm/csp_qimen.js';
-            script.async = true;
+        const bootstrap = async () => {
+            try {
+                const script = document.createElement('script');
+                script.src = '/wasm/csp_qimen.js';
+                script.async = true;
 
-            const loadPromise = new Promise<void>((res, rej) => {
-                script.onload = () => res();
-                script.onerror = rej;
-            });
-
-            document.body.appendChild(script);
-            await loadPromise;
-
-            if ((window as any).createCspModule) {
-                wasmModule = await (window as any).createCspModule({
-                    locateFile: (path: string) => `/wasm/${path}`
+                const loadPromise = new Promise<void>((res, rej) => {
+                    script.onload = () => res();
+                    script.onerror = rej;
                 });
-                console.log('🔥 CSP WASM Loaded Successfully!');
-                resolve(true);
-            } else {
-                console.error('createCspModule not found');
+
+                document.body.appendChild(script);
+                await loadPromise;
+
+                if (window.createCspModule) {
+                    wasmModule = await window.createCspModule({
+                        locateFile: (path: string) => `/wasm/${path}`
+                    });
+                    console.log('🔥 CSP WASM Loaded Successfully!');
+                    resolve(true);
+                } else {
+                    console.error('createCspModule not found');
+                    resolve(false);
+                }
+            } catch (e) {
+                console.error('Failed to load CSP WASM:', e);
                 resolve(false);
+            } finally {
+                isWasmLoading = false;
             }
-        } catch (e) {
-            console.error('Failed to load CSP WASM:', e);
-            resolve(false);
-        } finally {
-            isWasmLoading = false;
-        }
+        };
+
+        void bootstrap();
     });
 
     return wasmLoadPromise;
@@ -180,7 +243,7 @@ function callCspWasm(time: QimenTime, type: number, customJu: number = 0): strin
         qm.delete();
 
         return output;
-    } catch (e: any) {
+    } catch (e) {
         console.error('WASM Execution Error:', e);
         return '';
     }
@@ -195,7 +258,7 @@ function parseCspOutput(output: string): CspParsedData | null {
     if (!output || output.length < 50) return null;
 
     // 移除 ANSI 颜色码
-    const cleanOutput = output.replace(/\x1b\[[0-9;]*m/g, '');
+    const cleanOutput = stripAnsiCodes(output);
     const lines = cleanOutput.split('\n');
 
     const result: CspParsedData = {
@@ -330,9 +393,6 @@ function parseCspOutput(output: string): CspParsedData | null {
 
 // ============ 数据转换 ============
 
-// 宫位名称映射 (后天八卦，洛书九宫)
-const GONG_NAMES = ['', '坎', '坤', '震', '巽', '中', '乾', '兑', '艮', '离'];
-
 // 先天八卦在各方位的分布 (后天宫位 -> 该位置的先天卦)
 const XIAN_TIAN_GUA: Record<number, string> = {
     1: '坤', // 坎宫(北)，先天北方为坤
@@ -385,14 +445,6 @@ const PALACE_NUM_MAP: Record<number, number[]> = {
 };
 
 
-
-// 地盘干顺序：戊己庚辛壬癸丁丙乙
-// 用来补全中宫地盘干（虽然 Demo 逻辑中直接置空，但保留此逻辑可防止 UI 数据缺失）
-const DI_PAN_GAN_SHUN = ['戊', '己', '庚', '辛', '壬', '癸', '丁', '丙', '乙'];
-
-// 暗干使用的九干（六仪三奇，甲永远隐藏）
-// 顺序：戊己庚辛壬癸丁丙乙（地盘干顺序）
-const AN_GAN_ORDER = ['戊', '己', '庚', '辛', '壬', '癸', '丁', '丙', '乙'];
 
 // 实际上中宫通常视为寄宫，WASM 并未直接输出中宫独立内容
 // Demo 做法：中宫天盘显示 戊 (或根据局数? Demo里写死戊，但实际上应该跟局数有关?)
@@ -453,9 +505,6 @@ function getZhongGongDiPan(juStr: string): string {
  * 中宫(5)：寄坤宫(2)，通常跟随坤宫属性
  */
 function getPanType(pos: number, isYang: boolean): string {
-    const INNER_YANG = [1, 8, 3, 4];
-    const OUTER_YANG = [9, 2, 7, 6];
-
     // 中宫寄坤(2)，跟随坤
     const realPos = pos === 5 ? 2 : pos;
 

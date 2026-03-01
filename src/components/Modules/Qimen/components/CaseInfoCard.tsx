@@ -2,7 +2,7 @@
  * 奇门案例信息卡片
  * 显示/编辑案例描述、反馈和断语
  */
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff, FileText, Pencil, Save, X } from 'lucide-react';
 import { type QimenCase, qimenCaseService } from '../../../../services/qimenCaseService';
 
@@ -21,7 +21,7 @@ export default function CaseInfoCard({ caseData, onCaseUpdated }: CaseInfoCardPr
         analysis: caseData?.analysis || '',
     });
 
-    useMemo(() => {
+    useEffect(() => {
         if (caseData) {
             setEditData({
                 description: caseData.description || '',
@@ -29,7 +29,7 @@ export default function CaseInfoCard({ caseData, onCaseUpdated }: CaseInfoCardPr
                 analysis: caseData.analysis || '',
             });
         }
-    }, [caseData?.id, caseData?.description, caseData?.feedback, caseData?.analysis]);
+    }, [caseData]);
 
     const handleSave = async () => {
         if (!caseData) return;

@@ -11,7 +11,7 @@ export interface CalendarDay {
     bottomText: string;
     ganZhi: string;
     isJieQi: boolean;
-    holiday: any;
+    holiday: ReturnType<typeof HolidayUtil.getHoliday>;
     isWork: boolean;
     isHoliday: boolean;
     isWeekend: boolean;

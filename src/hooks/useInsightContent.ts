@@ -5,7 +5,7 @@
  */
 import { useMemo } from 'react';
 import type { InsightContent } from '../components/Modules/Bazi/InsightPanel';
-import type { BaziApiResponse } from '../types/bazi';
+import type { BaziApiResponse, PillarData } from '../types/bazi';
 import { getQiongtongEntry } from '../lib/xuan-bazi/utils/qiongtongUtil';
 import { getDiZhiCangGan } from '../lib/xuan-bazi/utils/baziJichuUtil';
 import { getDiTianSuiEntry, getDiTianSuiMonthlyEntry } from '../lib/xuan-bazi/utils/ditiansuiUtil';
@@ -28,7 +28,7 @@ interface UseInsightContentParams {
 /**
  * 计算透藏分析
  */
-function calculateTouCangHint(pillars: any[], tiaohou: string | undefined): string {
+function calculateTouCangHint(pillars: PillarData[], tiaohou: string | undefined): string {
     if (!tiaohou) return '';
 
     const touGans = new Set(pillars.map(p => p.tiangan));
@@ -66,7 +66,7 @@ function calculateTouCangHint(pillars: any[], tiaohou: string | undefined): stri
 /**
  * 构建滴天髓内容
  */
-function buildDiTianSuiContent(pillars: any[]): InsightContent | undefined {
+function buildDiTianSuiContent(pillars: PillarData[]): InsightContent | undefined {
     const riZhu = pillars[2]?.tiangan;
     if (!riZhu) return undefined;
 
@@ -118,7 +118,7 @@ function buildDiTianSuiContent(pillars: any[]): InsightContent | undefined {
 /**
  * 构建三命通会内容
  */
-function buildSanMingInsightContent(pillars: any[]): InsightContent | undefined {
+function buildSanMingInsightContent(pillars: PillarData[]): InsightContent | undefined {
     const dayGanZhi = pillars[2]?.ganZhi;
     if (!dayGanZhi) {
         return {
@@ -148,7 +148,7 @@ function buildSanMingInsightContent(pillars: any[]): InsightContent | undefined 
 /**
  * 构建穷通宝鉴内容
  */
-function buildQiongtongContent(pillars: any[]): InsightContent | undefined {
+function buildQiongtongContent(pillars: PillarData[]): InsightContent | undefined {
     const riZhu = pillars[2]?.tiangan;
     const yueZhi = pillars[1]?.dizhi;
 

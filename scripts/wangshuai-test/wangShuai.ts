@@ -768,14 +768,14 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
     let totalOppositeParty = 0; // 异党 (Output, Wealth, Official)
 
     // 辅助函数：计算单元素分数
-    const addScore = (el: Element, weight: number, isStem: boolean) => {
+    const addScore = (el: Element, weight: number) => {
         if (el === dmEl) {
             // 比劫：帮身最强 (1.0)
             totalSameParty += weight;
         } else if (supportEls.includes(el)) {
             // 印星：帮身稍弱 (0.7)，且需检查有效性
             // V33.1: 剔除无效印星 (如燥土不生金)
-            const { ineffective, reason } = isResourceIneffective(
+            const { ineffective } = isResourceIneffective(
                 dmEl, el, monthBranch, branches, stems
             );
             if (ineffective) {
@@ -806,7 +806,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
                 if (hEl === relations['Output'] && ['午', '巳'].includes(monthBranch)) {
                     adjustedWeight *= 0.8;
                 }
-                addScore(hEl, adjustedWeight, false);
+                addScore(hEl, adjustedWeight);
             }
         });
     });
@@ -817,7 +817,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
             const sEl = getElement(s);
             if (sEl) {
                 // 天干权重设为 12 (略高于地支中气)
-                addScore(sEl, 12, true);
+                addScore(sEl, 12);
             }
         }
     });
@@ -881,7 +881,6 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
 
     // 规则 1.5: V35 新增：阳刃/得令专项加分 (Lu/Ren Bonus)
     let luRenBonus = 0;
-    const isYangStem = ['甲', '丙', '戊', '庚', '壬'].includes(dmStem);
     const REN_MAP: Record<string, string> = {
         '甲': '卯', '丙': '午', '戊': '午', '庚': '酉', '壬': '子'
     };
@@ -1047,7 +1046,7 @@ export function calculateWangShuai(pillars: Array<{ tiangan: string, dizhi: stri
         const getDaySeatDefense = (dmStem: string, dayBranch: string): { isDefense: boolean; reason: string } => {
             const dayBranchRoots = RAW_HIDDEN_STEMS[dayBranch] || {};
             // 必须是本气强根 (>=18)
-            const mainQi = Object.entries(dayBranchRoots).find(([_, w]) => w >= 18);
+            const mainQi = Object.entries(dayBranchRoots).find(([, w]) => w >= 18);
             if (mainQi) {
                 const mainQiStem = mainQi[0];
                 const mainQiInfo = STEMS_INFO[mainQiStem];

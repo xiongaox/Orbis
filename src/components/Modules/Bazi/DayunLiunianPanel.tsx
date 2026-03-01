@@ -24,6 +24,11 @@ interface DayunLiunianPanelProps {
   isMobileLayout?: boolean;
 }
 
+const EMPTY_DAYUN: BaziApiResponse['daYun'] = [];
+const EMPTY_LIUNIAN: BaziApiResponse['liuNian'] = [];
+const EMPTY_XIAOYUN: BaziApiResponse['currentXiaoYun'] = [];
+const EMPTY_PILLARS: BaziApiResponse['pillars'] = [];
+
 export default function DayunLiunianPanel({
   data,
   loading = false,
@@ -47,10 +52,10 @@ export default function DayunLiunianPanel({
   const selectedLiuNianYear = propLiuNianYear !== undefined ? propLiuNianYear : internalLiuNianYear;
 
   // 数据提取
-  const daYun = data?.daYun ?? [];
-  const liuNian = data?.liuNian ?? [];
-  const currentXiaoYun = data?.currentXiaoYun ?? [];
-  const pillars = data?.pillars ?? [];
+  const daYun = data?.daYun ?? EMPTY_DAYUN;
+  const liuNian = data?.liuNian ?? EMPTY_LIUNIAN;
+  const currentXiaoYun = data?.currentXiaoYun ?? EMPTY_XIAOYUN;
+  const pillars = data?.pillars ?? EMPTY_PILLARS;
   const dayMaster = pillars[2]?.tiangan || '丙';
 
   // 大运分页显示
@@ -133,7 +138,7 @@ export default function DayunLiunianPanel({
   }, [data]);
 
   // 大运切换时重置提示
-  useMemo(() => {
+  useEffect(() => {
     setActiveHint(null);
   }, [activeDaYunIndex]);
 

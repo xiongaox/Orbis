@@ -3,7 +3,7 @@
  * 负责进度采集、保存和恢复
  */
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { useAuth } from '../../../../contexts/AuthContext';
+import { useAuth } from '../../../../contexts/useAuth';
 import { learningPanelService } from '../../../../services/learningPanelService';
 
 interface UseReadingProgressOptions {

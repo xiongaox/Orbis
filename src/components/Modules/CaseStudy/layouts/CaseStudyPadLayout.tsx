@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
-import { CATEGORIES } from '../../../../lib/caseStudy/types';
+import { CATEGORIES } from '../../../../lib/caseStudy/constants';
 import SideDrawer from '../../../UI/SideDrawer';
 import CategoryTabs from '../components/CategoryTabs';
 import CaseListSidebar from '../components/CaseListSidebar';

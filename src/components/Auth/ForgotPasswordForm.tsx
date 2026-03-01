@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Mail, Loader2 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/useAuth';
 import { type AuthMode } from './AuthModal';
 
 interface ForgotPasswordFormProps {

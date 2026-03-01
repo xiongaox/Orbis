@@ -88,11 +88,12 @@ export default function CaseStudyBaziChart({
     selectedLiuNianYear,
     isMobile = false,
 }: CaseStudyBaziChartProps) {
-    const pillars = data?.pillars || [];
-    const daYun = data?.daYun || [];
-    const liuNian = data?.liuNian || [];
-    const monthBranch = pillars[1]?.dizhi || '';
-    const dayGan = pillars[2]?.tiangan || '';
+    const pillars = data?.pillars;
+    const daYun = data?.daYun;
+    const liuNian = data?.liuNian;
+    const monthBranch = pillars?.[1]?.dizhi || '';
+    const dayGan = pillars?.[2]?.tiangan || '';
+    const displayPillars = pillars ?? [];
 
     // 计算五行旺衰状态
     const wuxingStatus = useMemo(() => {
@@ -102,13 +103,13 @@ export default function CaseStudyBaziChart({
     // 获取选中的大运
     const selectedDaYun = useMemo(() => {
         if (selectedDaYunIndex === null || selectedDaYunIndex === undefined) return null;
-        return daYun.find(dy => dy.index === selectedDaYunIndex);
+        return daYun?.find(dy => dy.index === selectedDaYunIndex) ?? null;
     }, [daYun, selectedDaYunIndex]);
 
     // 获取选中的流年
     const selectedLiuNian = useMemo(() => {
         if (selectedLiuNianYear === null || selectedLiuNianYear === undefined) return null;
-        return liuNian.find(ln => ln.year === selectedLiuNianYear);
+        return liuNian?.find(ln => ln.year === selectedLiuNianYear) ?? null;
     }, [liuNian, selectedLiuNianYear]);
 
     // 构造大运柱数据
@@ -221,7 +222,7 @@ export default function CaseStudyBaziChart({
                     )}
 
                     {/* 四柱 */}
-                    {pillars.map((pillar, index) => (
+                    {displayPillars.map((pillar, index) => (
                         <div key={pillar.label} className="flex-1 border-r border-border last:border-r-0">
                             <SimplePillarCard
                                 pillar={pillar}

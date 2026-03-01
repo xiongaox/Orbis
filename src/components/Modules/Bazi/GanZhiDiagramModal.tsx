@@ -1,11 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { GitBranch } from 'lucide-react';
 import BaseModal from '../../UI/BaseModal';
+import type { BaziApiResponse } from '../../../types/bazi';
 import { createDefaultGanZhiLiuYiSetting } from '../../../lib/xuan-bazi/settings/baziGanZhiLiuYiSetting';
 import {
     calculateTianGanLiuYi,
-    calculateDiZhiLiuYi
+    calculateDiZhiLiuYi,
+    type GanZhiLiuYiResult,
 } from '../../../lib/xuan-bazi/utils/baziGanZhiLiuYiUtil';
 import { getElementColor } from '../../../lib/xuan-bazi/maps/baziStyleMap';
 import {
@@ -23,11 +24,17 @@ import { TextLabelsLayer } from './components/GanZhiRender/TextLabelsLayer';
 interface GanZhiDiagramModalProps {
     isOpen: boolean;
     onClose: () => void;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    baziData: any; // Using any for flexibility as types might need update
+    baziData: BaziApiResponse | null;
     selectedDaYunIndex: number | null;
     selectedLiuNianYear: number | null;
     currentYear?: number;
+}
+
+interface ChartItem {
+    label: string;
+    gan: string;
+    zhi: string;
+    originalIndex: number;
 }
 
 const CENTER_AREA_HEIGHT = 200; // 中间文字区域高度
@@ -118,15 +125,15 @@ export default function GanZhiDiagramModal({
         const { pillars, daYun, liuNian } = baziData;
 
         // 1. 准备天干地支数据
-        const staticGans = pillars.map((p: any) => p.tiangan);
-        const staticZhis = pillars.map((p: any) => p.dizhi);
+        const staticGans = pillars.map((p) => p.tiangan);
+        const staticZhis = pillars.map((p) => p.dizhi);
 
         // 确定大运
         let activeDaYun = null;
         if (selectedDaYunIndex !== null && daYun && daYun[selectedDaYunIndex]) {
             activeDaYun = daYun[selectedDaYunIndex];
         } else if (daYun) {
-            activeDaYun = daYun.find((dy: any) => currentYear >= dy.startYear && currentYear <= dy.endYear);
+            activeDaYun = daYun.find((dy) => currentYear >= dy.startYear && currentYear <= dy.endYear);
             if (!activeDaYun && daYun.length > 1) {
                 activeDaYun = daYun[1];
             } else if (!activeDaYun && daYun.length > 0) {
@@ -138,9 +145,9 @@ export default function GanZhiDiagramModal({
         // 确定流年
         let activeLiuNian = null;
         if (selectedLiuNianYear !== null && liuNian) {
-            activeLiuNian = liuNian.find((ln: any) => ln.year === selectedLiuNianYear);
+            activeLiuNian = liuNian.find((ln) => ln.year === selectedLiuNianYear);
         } else if (liuNian) {
-            activeLiuNian = liuNian.find((ln: any) => ln.year === currentYear);
+            activeLiuNian = liuNian.find((ln) => ln.year === currentYear);
         }
         const currentLiuNian = activeLiuNian;
 
@@ -187,7 +194,7 @@ export default function GanZhiDiagramModal({
             { label: '时柱', gan: pillars[3].tiangan, zhi: pillars[3].dizhi, originalIndex: 3 },
         ];
 
-        const dynamicItems = [];
+        const dynamicItems: ChartItem[] = [];
         let dynamicOffset = 4;
 
         if (showDaYun && currentDaYun?.ganZhi) {
@@ -205,9 +212,9 @@ export default function GanZhiDiagramModal({
             indexMap[item.originalIndex] = idx;
         });
 
-        const mapRelations = (relations: any[]) => {
+        const mapRelations = (relations: GanZhiLiuYiResult[]) => {
             return relations.map(r => {
-                const mappedPositions = r.positions.map((p: string) => indexMap[parseInt(p)]);
+                const mappedPositions = r.positions.map((p: string) => indexMap[Number.parseInt(p, 10)]);
                 return {
                     ...r,
                     positions: mappedPositions
@@ -227,7 +234,7 @@ export default function GanZhiDiagramModal({
             diZhiData: diZhiTracks
         };
 
-    }, [baziData, selectedDaYunIndex, selectedLiuNianYear, showDaYun, showLiuNian]);
+    }, [baziData, selectedDaYunIndex, selectedLiuNianYear, showDaYun, showLiuNian, currentYear]);
 
     if (!isOpen || !mounted) return null;
 
@@ -250,7 +257,7 @@ export default function GanZhiDiagramModal({
         <div className="flex items-center justify-between w-full">
             <span className="text-lg font-medium text-foreground">干支流通图解</span>
             <div className="flex items-center gap-2 mr-6">
-                {showLiuNian && (!chartData?.items.find((i: any) => i.label === '流年')) && (
+                {showLiuNian && (!chartData?.items.find((i: ChartItem) => i.label === '流年')) && (
                     <span className="text-sm text-yellow-500 animate-pulse inline-block">请先选择流年</span>
                 )}
                 <button
@@ -352,7 +359,7 @@ export default function GanZhiDiagramModal({
                             />
 
                             {/* 3. 中间文字区域 */}
-                            {chartData.items.map((item: any, index: number) => {
+                            {chartData.items.map((item: ChartItem, index: number) => {
                                 const x = getX(index);
                                 const isDynamic = item.label === '流年' || item.label === '大运';
 

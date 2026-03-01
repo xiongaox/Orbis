@@ -15,8 +15,9 @@ import {
 } from '../../lib/xuan-bazi/maps';
 import type { BaziChartData } from '../../types';
 
-export function calculateBazi(birthDate: string, _gender: 'male' | 'female'): BaziChartData {
+export function calculateBazi(birthDate: string, gender: 'male' | 'female'): BaziChartData {
     try {
+        void gender;
         const date = new Date(birthDate);
         const solar = Solar.fromYmdHms(
             date.getFullYear(),
@@ -113,4 +114,3 @@ export function calculateBazi(birthDate: string, _gender: 'male' | 'female'): Ba
         return {};
     }
 }
-

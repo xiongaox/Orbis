@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 
 export interface NavItemType {
-    id: any;
+    id: string;
     name: string;
     icon: ComponentType<{ className?: string }>;
     priority: 'core' | 'extra';

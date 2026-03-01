@@ -3,6 +3,8 @@
  * 用于检测天盘干的入墓、击刑、刑+墓状态，以及八门的门迫状态
  */
 
+import { MEN_WUXING, GONG_WUXING, WUXING_KE } from './constants';
+
 // ==================== 天盘干入墓检测 ====================
 
 /** 天干墓库宫位映射
@@ -67,40 +69,6 @@ export function getTianPanStatus(tianPan: string, position: number): {
 
 // ==================== 八门门迫检测 ====================
 
-/** 八门五行属性 */
-const MEN_WU_XING: Record<string, string> = {
-    '休门': '水',
-    '生门': '土',
-    '伤门': '木',
-    '杜门': '木',
-    '景门': '火',
-    '死门': '土',
-    '惊门': '金',
-    '开门': '金',
-};
-
-/** 宫位五行属性 */
-const GONG_WU_XING: Record<number, string> = {
-    1: '水',  // 坎宫
-    2: '土',  // 坤宫
-    3: '木',  // 震宫
-    4: '木',  // 巽宫
-    5: '土',  // 中宫
-    6: '金',  // 乾宫
-    7: '金',  // 兑宫
-    8: '土',  // 艮宫
-    9: '火',  // 离宫
-};
-
-/** 五行相克关系：克方 → 被克方 */
-const WU_XING_KE: Record<string, string> = {
-    '金': '木',
-    '木': '土',
-    '土': '水',
-    '水': '火',
-    '火': '金',
-};
-
 /**
  * 检测八门的门迫状态
  * 门克宫 = 门迫
@@ -116,20 +84,18 @@ export function getMenPoStatus(men: string, position: number): {
         return { isPo: false, colorVar: null };
     }
 
-    const menWuXing = MEN_WU_XING[men];
-    const gongWuXing = GONG_WU_XING[position];
+    const menWuXing = MEN_WUXING[men];
+    const gongWuXing = GONG_WUXING[position];
 
     if (!menWuXing || !gongWuXing) {
         return { isPo: false, colorVar: null };
     }
 
     // 门克宫 = 门迫
-    const isPo = WU_XING_KE[menWuXing] === gongWuXing;
+    const isPo = WUXING_KE[menWuXing] === gongWuXing;
 
     return {
         isPo,
         colorVar: isPo ? 'var(--element-fire)' : null,  // 火色
     };
 }
-
-

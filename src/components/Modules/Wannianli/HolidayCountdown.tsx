@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Lunar, Solar } from 'lunar-typescript';
 import classNames from 'classnames';
+import { WEEK_DAYS_SUN_FIRST } from '../../../constants/calendar';
 
 type HolidayItem = {
     name: string;
@@ -281,7 +282,7 @@ function createHolidayItem(name: string, targetSolar: Solar, todaySolar: Solar, 
 
     // 星期几
     const jsDate = new Date(year, month - 1, day);
-    const weekDay = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][jsDate.getDay()];
+    const weekDay = WEEK_DAYS_SUN_FIRST[jsDate.getDay()];
 
     // 农历字符串
     const lunar = targetSolar.getLunar();

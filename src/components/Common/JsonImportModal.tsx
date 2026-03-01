@@ -7,10 +7,10 @@ export interface JsonImportModalProps<T> {
     isOpen: boolean;
     title: string;
     onClose: () => void;
-    onParse: (jsonData: any) => T[];
+    onParse: (jsonData: unknown) => T[];
     onSave: (data: T[]) => Promise<number>;
     onFinish: () => void;
-    templateData: any;
+    templateData: unknown;
     /**
      * Optional card renderer for Grid View.
      * If provided, the preview will default to Card Grid mode.
@@ -67,7 +67,7 @@ export default function JsonImportModal<T>({
         onClose();
     };
 
-    const handleFileSelect = async (file: File) => {
+    const handleFileSelect = useCallback(async (file: File) => {
         if (!file.name.endsWith('.json')) {
             setError('仅支持 JSON 格式文件 (.json)');
             return;
@@ -79,7 +79,7 @@ export default function JsonImportModal<T>({
             let jsonData;
             try {
                 jsonData = JSON.parse(text);
-            } catch (e) {
+            } catch {
                 throw new Error('JSON 文件解析失败');
             }
 
@@ -94,7 +94,7 @@ export default function JsonImportModal<T>({
         } catch (err) {
             setError(err instanceof Error ? err.message : '解析错误');
         }
-    };
+    }, [onParse]);
 
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -103,7 +103,7 @@ export default function JsonImportModal<T>({
         if (file) {
             handleFileSelect(file);
         }
-    }, [onParse]);
+    }, [handleFileSelect]);
 
     const handleImport = async () => {
         if (parsedData.length === 0) return;

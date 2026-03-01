@@ -14,7 +14,7 @@ import { useIsPadLandscape } from '../../../hooks/useIsPadLandscape';
 
 
 // 学习面板相关
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/useAuth';
 import { useReadingProgress } from './hooks/useReadingProgress';
 import LearningPanelModal from './components/LearningPanelModal';
 import LearningPanelFAB from './components/LearningPanelFAB';

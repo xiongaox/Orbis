@@ -3,7 +3,8 @@
  * 基于《奇门遁甲预测》PDF 提取的规则
  */
 
-import { SHI_ER_ZHANG_SHENG } from '../xuan-bazi/maps/baziJichuMap';
+import { SHI_ER_ZHANG_SHENG } from '../xuan-bazi/constants';
+import { GONG_WUXING, XING_WUXING, MEN_WUXING, WUXING_KE } from './constants';
 
 // ============ 常量定义 ============
 
@@ -23,43 +24,6 @@ export const GONG_TO_ZHI: Record<number, string[]> = {
     9: ['午'],           // 离宫
 };
 
-/** 宫位对应五行（洛书数 -> 五行） */
-export const GONG_WUXING: Record<number, string> = {
-    1: '水',  // 坎宫
-    2: '土',  // 坤宫
-    3: '木',  // 震宫
-    4: '木',  // 巽宫
-    5: '土',  // 中宫
-    6: '金',  // 乾宫
-    7: '金',  // 兑宫
-    8: '土',  // 艮宫
-    9: '火',  // 离宫
-};
-
-/** 九星五行属性 */
-export const XING_WUXING: Record<string, string> = {
-    '天蓬': '水',
-    '天芮': '土',
-    '天冲': '木',
-    '天辅': '木',
-    '天禽': '土',
-    '天心': '金',
-    '天柱': '金',
-    '天任': '土',
-    '天英': '火',
-};
-
-/** 八门五行属性 */
-export const MEN_WUXING: Record<string, string> = {
-    '休': '水', '休门': '水',
-    '生': '土', '生门': '土',
-    '伤': '木', '伤门': '木',
-    '杜': '木', '杜门': '木',
-    '景': '火', '景门': '火',
-    '死': '土', '死门': '土',
-    '惊': '金', '惊门': '金',
-    '开': '金', '开门': '金',
-};
 
 /** 地支对应五行 */
 const ZHI_WUXING: Record<string, string> = {
@@ -80,11 +44,6 @@ const ZHI_TO_SEASON: Record<string, string> = {
 /** 五行相生关系：我生谁 */
 const WUXING_SHENG: Record<string, string> = {
     '木': '火', '火': '土', '土': '金', '金': '水', '水': '木',
-};
-
-/** 五行相克关系：我克谁 */
-const WUXING_KE: Record<string, string> = {
-    '木': '土', '土': '水', '水': '火', '火': '金', '金': '木',
 };
 
 /** 五行被克关系：谁克我 */

@@ -41,11 +41,10 @@ export default function CaseStudyDayunPanel({
     const selectedLiuNianYear = propLiuNianYear !== undefined ? propLiuNianYear : internalLiuNianYear;
 
     // 数据提取
-    const rawDaYun = data?.daYun ?? [];
-    const daYun = rawDaYun.slice(0, 14);
+    const daYun = useMemo(() => (data?.daYun ?? []).slice(0, 14), [data?.daYun]);
 
-    const liuNian = data?.liuNian ?? [];
-    const pillars = data?.pillars ?? [];
+    const liuNian = useMemo(() => data?.liuNian ?? [], [data?.liuNian]);
+    const pillars = useMemo(() => data?.pillars ?? [], [data?.pillars]);
     const dayMaster = pillars[2]?.tiangan || '丙';
 
     // 每页显示7个大运

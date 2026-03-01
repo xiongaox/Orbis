@@ -1,7 +1,7 @@
 import { GitBranch, ArrowRightLeft, Sparkles, ChevronUp, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import classNames from 'classnames';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/useAuth';
 import { baziCaseService } from '../../../services/baziCaseService';
 import { BAZI_CASES_CHANGED_EVENT } from '../../../data/caseConstants';
 import type { Case } from '../../../types';

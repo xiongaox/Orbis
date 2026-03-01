@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Search, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
-import { DAY_MASTER_CATEGORIES, QIMEN_CATEGORIES } from '../../../../lib/caseStudy/types';
+import { DAY_MASTER_CATEGORIES, QIMEN_CATEGORIES } from '../../../../lib/caseStudy/constants';
 
 interface CaseItem {
     id: string;

@@ -1,4 +1,5 @@
-import type { CreateCaseInput } from '../services/baziCaseService';
+import { CASE_TAGS } from '../services/baziCaseService';
+import type { CaseTag, CreateCaseInput } from '../services/baziCaseService';
 
 /**
  * 八字案例导入工具
@@ -32,12 +33,14 @@ const GENDER_MAP: Record<string, 'male' | 'female'> = {
 /**
  * 解析并验证导入数据
  */
-export function parseBaziImportData(jsonData: any[] | any): CreateCaseInput[] {
+export function parseBaziImportData(jsonData: unknown[] | unknown): CreateCaseInput[] {
     const inputs = Array.isArray(jsonData) ? jsonData : [jsonData];
     const validCases: CreateCaseInput[] = [];
 
     for (const item of inputs) {
-        const caseInput: any = {
+        if (!item || typeof item !== 'object') continue;
+
+        const caseInput: CreateCaseInput = {
             name: '',
             gender: 'male',
             birth_date: '',
@@ -45,8 +48,10 @@ export function parseBaziImportData(jsonData: any[] | any): CreateCaseInput[] {
             notes: ''
         };
 
+        const record = item as Record<string, unknown>;
+
         // 1. 字段映射
-        for (const [key, value] of Object.entries(item)) {
+        for (const [key, value] of Object.entries(record)) {
             if (value === undefined || value === null || value === '') continue;
 
             const cleanKey = key.trim();
@@ -70,10 +75,12 @@ export function parseBaziImportData(jsonData: any[] | any): CreateCaseInput[] {
                     }
 
                     if (firstTag) {
-                        caseInput.tags = [firstTag];
+                        caseInput.tags = [(CASE_TAGS.includes(firstTag as CaseTag) ? firstTag : '其他') as CaseTag];
                     }
                 } else {
-                    caseInput[mappedKey] = value;
+                    if (mappedKey === 'name' || mappedKey === 'birth_date' || mappedKey === 'notes') {
+                        caseInput[mappedKey] = String(value);
+                    }
                 }
             }
         }
@@ -106,7 +113,7 @@ export function parseBaziImportData(jsonData: any[] | any): CreateCaseInput[] {
         // 目前 baziCaseService 中 CASE_TAGS 是 const, 但 interface 中 CaseTag 是 union type.
         // 假设允许自由标签或者做了兼容
 
-        validCases.push(caseInput as CreateCaseInput);
+        validCases.push(caseInput);
     }
 
     return validCases;

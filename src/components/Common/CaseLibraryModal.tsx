@@ -15,7 +15,7 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { Search, Plus, Upload, LogIn, Library } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/useAuth';
 import ConfirmModal from './ConfirmModal';
 import BaseModal from '../UI/BaseModal';
 

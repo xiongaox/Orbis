@@ -8,6 +8,9 @@ import {
     isDiZhiChong
 } from './baziGanZhiLiuYiUtil';
 import { TIAN_GAN_XIANG_KE, TIAN_GAN_XIANG_CHONG } from '../maps/baziGanZhiLiuYiMap';
+import { JIEQI_LABELS } from '../../../constants/calendar';
+
+export { JIEQI_LABELS };
 
 // 流年状态类型
 export interface LiunianStatus {
@@ -92,6 +95,3 @@ export function checkLiunianStatus(
     }
     return null;
 }
-
-// 节气月份映射（用于流月显示）
-export const JIEQI_LABELS = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '腊'];

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Compass, User, Calendar, Key, LogOut, Loader2 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/useAuth';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { getUserAvatar } from '../../utils/userUtil';
 

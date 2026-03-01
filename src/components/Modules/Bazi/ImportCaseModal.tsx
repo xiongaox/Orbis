@@ -34,7 +34,7 @@ const IMPORT_TEMPLATE = [
 export default function ImportCaseModal({ isOpen, onClose, onImported }: ImportCaseModalProps) {
 
     // 解析逻辑适配
-    const handleParse = (jsonData: any) => {
+    const handleParse = (jsonData: unknown) => {
         return parseBaziImportData(jsonData);
     };
 

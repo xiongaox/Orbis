@@ -1,6 +1,7 @@
 import classNames from 'classnames';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Solar, Lunar } from 'lunar-typescript';
+import { WEEK_DAYS_MON_FIRST, WEEK_DAYS_SUN_FIRST } from '../../../../constants/calendar';
 import HolidayCountdown from '../HolidayCountdown';
 import SideDrawer from '../../../UI/SideDrawer';
 import type { WannianliLayoutProps } from './WannianliLayoutProps';
@@ -18,9 +19,7 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
     } = props;
 
     const renderWeekHeader = () => {
-        const weekDays = weekStart === 1
-            ? ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
-            : ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+        const weekDays = weekStart === 1 ? WEEK_DAYS_MON_FIRST : WEEK_DAYS_SUN_FIRST;
 
         return (
             <div className={classNames(
@@ -42,7 +41,7 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
 
     const renderCalendarHeader = () => {
         const selectedLunar = Lunar.fromDate(selectedDate);
-        const selectedWeekday = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'][selectedDate.getDay()];
+        const selectedWeekday = WEEK_DAYS_SUN_FIRST[selectedDate.getDay()];
 
         const headerClassName = classNames(
             'border-b border-border/50 bg-background/50 backdrop-blur-md sticky top-0 z-30',
@@ -163,7 +162,7 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
                         <div className="px-3 py-1 rounded-[4px] bg-[#2a2422] border border-[#3e3632] flex items-center justify-center shadow-sm">
                             <span className="text-[#e2d5c5] text-sm font-medium tracking-wide font-serif">{Lunar.fromDate(selectedDate).getMonthInChinese()}月{Lunar.fromDate(selectedDate).getDayInChinese()}</span>
                         </div>
-                        <div className="text-base text-muted-foreground/60 font-serif">{['周日', '周一', '周二', '周三', '周四', '周五', '周六'][selectedDate.getDay()]}</div>
+                        <div className="text-base text-muted-foreground/60 font-serif">{WEEK_DAYS_SUN_FIRST[selectedDate.getDay()]}</div>
                     </div>
                 </div>
             )}
@@ -270,7 +269,7 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
                     <div className={classNames('w-full flex flex-col', isMobileLayout ? 'max-w-none justify-start' : 'max-w-4xl flex-1 justify-center')}>
                         {renderWeekHeader()}
                         <div className={classNames(isMobileLayout ? 'grid grid-cols-7 gap-1 px-1' : 'flex-1 grid grid-cols-7 grid-rows-6 gap-2 px-2 mt-2')}>
-                            {calendarData.map((day: any, index: number) => (
+                            {calendarData.map((day, index: number) => (
                                 <div
                                     key={index}
                                     onClick={() => { const date = new Date(day.solar.getYear(), day.solar.getMonth() - 1, day.solar.getDay()); setSelectedDate(date); if (!day.isCurrentMonth) { setViewDate(date); } }}

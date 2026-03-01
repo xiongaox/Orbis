@@ -5,6 +5,9 @@
  */
 import { useMemo } from 'react';
 import type { BaziApiResponse } from '../types/bazi';
+import { JIEQI_LABELS } from '../constants/calendar';
+
+export { JIEQI_LABELS };
 
 // 大运项类型
 export interface DaYunItem {
@@ -50,6 +53,11 @@ interface UseDayunLiunianParams {
     daYunPage: number;
 }
 
+const EMPTY_DAYUN: BaziApiResponse['daYun'] = [];
+const EMPTY_LIUNIAN: BaziApiResponse['liuNian'] = [];
+const EMPTY_XIAOYUN: BaziApiResponse['currentXiaoYun'] = [];
+const EMPTY_PILLARS: BaziApiResponse['pillars'] = [];
+
 // Hook 返回类型
 export interface DayunLiunianData {
     displayDaYun: DaYunItem[];
@@ -74,10 +82,10 @@ export function useDayunLiunian({
     daYunPage,
 }: UseDayunLiunianParams): DayunLiunianData {
     // 提取基础数据
-    const daYun = (data?.daYun ?? []) as DaYunItem[];
-    const liuNian = (data?.liuNian ?? []) as LiuNianItem[];
-    const currentXiaoYun = (data?.currentXiaoYun ?? []) as XiaoYunItem[];
-    const pillars = data?.pillars ?? [];
+    const daYun = (data?.daYun ?? EMPTY_DAYUN) as DaYunItem[];
+    const liuNian = (data?.liuNian ?? EMPTY_LIUNIAN) as LiuNianItem[];
+    const currentXiaoYun = (data?.currentXiaoYun ?? EMPTY_XIAOYUN) as XiaoYunItem[];
+    const pillars = data?.pillars ?? EMPTY_PILLARS;
     const dayMaster = pillars[2]?.tiangan || '丙';
 
     // 分页显示大运
@@ -153,6 +161,3 @@ export function useDayunLiunian({
         dayMaster,
     };
 }
-
-// 节气月份标签（用于流月显示）
-export const JIEQI_LABELS = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '腊'];

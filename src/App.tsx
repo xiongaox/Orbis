@@ -4,7 +4,8 @@
  */
 import { useState, useEffect } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
-import { BaziProvider, useBaziContext } from './contexts/BaziContext';
+import { BaziProvider } from './contexts/BaziContext';
+import { useBaziContext } from './contexts/useBaziContext';
 import Navbar from './components/Layout/Navbar';
 import MainLayout from './components/Layout/MainLayout';
 import BaziCaseList from './components/Modules/Bazi/BaziCaseList';
@@ -30,6 +31,7 @@ function AppContent() {
   const [activeBookId, setActiveBookId] = useState<string>(DEFAULT_BOOK_ID);
   // 使用 Context 获取八字状态
   const bazi = useBaziContext();
+  const initializeBazi = bazi.initializeBazi;
 
   // 根据当前模块决定是否显示侧边栏（奇门模块有自己的布局）
   const showSidebar = activeChart === 'bazi';
@@ -38,9 +40,9 @@ function AppContent() {
   // 切换到八字时初始化数据
   useEffect(() => {
     if (activeChart === 'bazi') {
-      bazi.initializeBazi();
+      initializeBazi();
     }
-  }, [activeChart]);
+  }, [activeChart, initializeBazi]);
 
   const handleLoginClick = () => {
     setShowAuthModal(true);
