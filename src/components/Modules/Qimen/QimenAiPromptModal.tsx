@@ -137,8 +137,8 @@ export default function QimenAiPromptModal({
     }, [header, palaces, globalPatterns, includeAllPalaces, includeGlobalPatterns, userQuestion, methodLabel]);
 
     const options: PromptOption[] = [
-        { label: '包含全局格局信息', checked: includeGlobalPatterns, onChange: setIncludeGlobalPatterns },
-        { label: '包含全盘宫位详情', checked: includeAllPalaces, onChange: setIncludeAllPalaces },
+        { label: '包含全局格局', checked: includeGlobalPatterns, onChange: setIncludeGlobalPatterns },
+        { label: '包含全盘宫位', checked: includeAllPalaces, onChange: setIncludeAllPalaces },
     ];
 
     return (

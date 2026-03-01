@@ -86,8 +86,8 @@ export default function AiPromptModal({ isOpen, onClose, data, selectedLiuNianYe
     }, [data, includeDaYun, includeLiuNian, userQuestion, selectedLiuNianYear, selectedDaYunIndex]);
 
     const options: PromptOption[] = [
-        { label: '包含大运排盘信息', checked: includeDaYun, onChange: setIncludeDaYun },
-        { label: '包含流年排盘信息', checked: includeLiuNian, onChange: setIncludeLiuNian },
+        { label: '包含大运排盘', checked: includeDaYun, onChange: setIncludeDaYun },
+        { label: '包含流年排盘', checked: includeLiuNian, onChange: setIncludeLiuNian },
     ];
 
     return (
