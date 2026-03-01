@@ -1,6 +1,21 @@
 /**
- * 奇门遁甲模块 - 主页面容器
- * 分流到桌面端、Pad 端和移动端不同布局
+ * QimenPage - 应用源码层
+ *
+ * 模块定位：
+ * - 所在层级：应用源码层
+ * - 主要目标：承载具体业务模块的前端功能
+ *
+ * 关键职责：
+ * - 渲染 UI 视图并处理交互逻辑
+ * - 处理用户输入与展示边界行为
+ * - 向上层提供稳定可复用能力
+ *
+ * 主要导出：
+ * - `default QimenPage`
+ *
+ * 依赖关系：
+ * - 上游依赖：内部模块 `AdvancedDatePicker`、内部模块 `QimenNewCaseModal`、内部模块 `qimenService` 等 10 个模块
+ * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
 import QimenNewCaseModal from './QimenNewCaseModal';

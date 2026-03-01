@@ -1,7 +1,21 @@
 /**
- * 八字 - 神煞常量
- * 移植自 Java 版本 BaZiShenShaMap.java
- * @author 善待 (原作者)
+ * baziShenShaMap - 应用底层设施
+ *
+ * 模块定位：
+ * - 所在层级：应用底层设施
+ * - 主要目标：封装第三方库或核心底层能力
+ *
+ * 关键职责：
+ * - 提供核心逻辑实现或数据处理能力
+ * - 处理数据流转与异常边界
+ * - 向上层提供稳定可复用能力
+ *
+ * 主要导出：
+ * - `TAI_JI_GUI_REN`, `TIAN_YI_GUI_REN`, `FU_XING_GUI_REN`, `WEN_CHANG_GUI_REN`, `TIAN_CHU_GUI_REN`, `TIAN_GUAN_GUI_REN`, `YUE_DE_GUI_REN`, `TIAN_DE_GUI_REN`, `DE_XIU_GUI_REN`, `GUO_YIN`, `JIN_YU`, `HONG_YAN_SHA`, `YANG_REN`, `FEI_REN`, `LIU_XIA`, `LU_SHEN`, `YI_MA`, `JIE_SHA`, `JIANG_XING`, `TAO_HUA`, `WANG_SHEN`, `HUA_GAI`, `DIAO_KE`, `PI_MA`, `TIAN_XI`, `GOU_JIAO_SHA`, `HONG_LUAN`, `SANG_MEN`, `ZAI_SHA`, `GU_CHEN`, `GUA_XIU`, `YUAN_CHEN_YANG_NAN`, `YUAN_CHEN_YIN_NAN`, `LIU_E`, `XUE_REN`, `TIAN_YI`, `TIAN_DE_HE`, `YUE_DE_HE`, `YIN_ZHU_YANG_SHOU`, `TIAN_SHE`, `TIAN_ZHUAN`, `DI_ZHUAN`, `SI_FEI_RI`, `TIAN_LUO_DI_WANG`, `GONG_LU`, `JIE_KONG`, `TONG_ZI_SHA`, `SAN_QI_GUI_REN`, `CI_GUAN_LU_MING`, `XUE_TANG_LU_MING`, `CI_GUAN_ZI_PING`, `XUE_TANG_ZI_PING`, `SHI_E_DA_BAI`, `YIN_CHA_YANG_CUO`, `GU_LUAN_SHA`, `LIU_XIU_RI`, `SHI_LING_RI`, `KUI_GANG_RI`, `BA_ZHUAN_RI`, `JIU_CHOU_RI`, `JIN_SHEN`, `SHEN_SHA_KONG_WANG`
+ *
+ * 依赖关系：
+ * - 上游依赖：无显式外部模块依赖
+ * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 
 // ==================== 贵人类神煞 ====================

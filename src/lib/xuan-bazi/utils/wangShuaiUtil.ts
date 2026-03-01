@@ -1,6 +1,21 @@
 /**
- * 李双林八字旺衰算法 V36 (TypeScript Port)
- * 包含：严谨定格、物理引擎（化气、从格、燥土防从、战克检测）、智能防御系统
+ * wangShuaiUtil - 应用底层设施
+ *
+ * 模块定位：
+ * - 所在层级：应用底层设施
+ * - 主要目标：封装第三方库或核心底层能力
+ *
+ * 关键职责：
+ * - 提供核心逻辑实现或数据处理能力
+ * - 处理数据流转与异常边界
+ * - 向上层提供稳定可复用能力
+ *
+ * 主要导出：
+ * - `WangShuaiResult`, `calculateWangShuai`
+ *
+ * 依赖关系：
+ * - 上游依赖：内部模块 `baziJichuMap`
+ * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 
 import { DI_ZHI_CANG_GAN, TIAN_GAN_WU_XING, DI_ZHI_WU_XING } from '../maps/baziJichuMap';

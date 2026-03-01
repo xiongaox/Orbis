@@ -1,3 +1,23 @@
+/**
+ * constants - 应用底层设施
+ *
+ * 模块定位：
+ * - 所在层级：应用底层设施
+ * - 主要目标：封装第三方库或核心底层能力
+ *
+ * 关键职责：
+ * - 提供核心逻辑实现或数据处理能力
+ * - 处理数据流转与异常边界
+ * - 向上层提供稳定可复用能力
+ *
+ * 主要导出：
+ * - `TIAN_GAN`, `DI_ZHI`, `CATEGORIES`, `LUNAR_MONTH_MAP`, `LUNAR_DAY_MAP`, `HOUR_MAP`, `AUTHOR_MAP`, `DAY_MASTER_CATEGORIES`, `QIMEN_CATEGORIES`
+ *
+ * 依赖关系：
+ * - 上游依赖：内部模块 `ganZhi`
+ * - 下游影响：由依赖方的业务逻辑或视图组装调用
+ */
+
 import { TIAN_GAN as BASE_TIAN_GAN, DI_ZHI as BASE_DI_ZHI } from '../../constants/ganZhi';
 
 export const TIAN_GAN: string[] = [...BASE_TIAN_GAN];

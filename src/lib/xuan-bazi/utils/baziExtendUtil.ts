@@ -1,7 +1,21 @@
-
 /**
- * 八字 - 扩展工具函数
- * 用于计算命卦、星座、缺失五行等额外信息
+ * baziExtendUtil - 应用底层设施
+ *
+ * 模块定位：
+ * - 所在层级：应用底层设施
+ * - 主要目标：封装第三方库或核心底层能力
+ *
+ * 关键职责：
+ * - 提供核心逻辑实现或数据处理能力
+ * - 处理数据流转与异常边界
+ * - 向上层提供稳定可复用能力
+ *
+ * 主要导出：
+ * - `getMingGua`, `getConstellation`, `getWuXingStatistics`, `getSolarTerms`, `getMoonPhase`, `getYueJiang`, `getPattern`, `getJoyGods`, `getXingXiu`, `getRenYuanSiLing`, `getTaiXi`, `getDetailedSolarTerms`
+ *
+ * 依赖关系：
+ * - 上游依赖：外部依赖 `lunar-typescript`、内部模块 `baziJichuMap`
+ * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 
 import { Solar } from 'lunar-typescript';

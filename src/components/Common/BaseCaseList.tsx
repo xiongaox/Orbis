@@ -1,6 +1,21 @@
 /**
- * 基础案例列表布局 (Base Case List Layout)
- * 提取了 Sidebar 结构的通用外围容器、搜索栏和操作按钮栏
+ * BaseCaseList - 应用源码层
+ *
+ * 模块定位：
+ * - 所在层级：应用源码层
+ * - 主要目标：提供跨模块的通用 UI 组件
+ *
+ * 关键职责：
+ * - 渲染 UI 视图并处理交互逻辑
+ * - 处理用户输入与展示边界行为
+ * - 向上层提供稳定可复用能力
+ *
+ * 主要导出：
+ * - `default BaseCaseList`
+ *
+ * 依赖关系：
+ * - 上游依赖：外部依赖 `react`、外部依赖 `lucide-react`
+ * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import type { ReactNode } from 'react';
 import { Search, LogIn, ArrowUpFromLine, ArrowDownToLine } from 'lucide-react';

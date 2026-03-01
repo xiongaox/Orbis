@@ -1,5 +1,21 @@
 /**
- * 八字 API 相关类型定义
+ * bazi - 类型定义层
+ *
+ * 模块定位：
+ * - 所在层级：类型定义层
+ * - 主要目标：定义应用内的 TypeScript 类型和接口
+ *
+ * 关键职责：
+ * - 提供核心逻辑实现或数据处理能力
+ * - 处理数据流转与异常边界
+ * - 向上层提供稳定可复用能力
+ *
+ * 主要导出：
+ * - `HiddenStem`, `PillarData`, `YunInfo`, `DaYunPeriod`, `LiuYue`, `LiuNian`, `XiaoYun`, `ExtraInfo`, `ShenShaInfo`, `DynamicYunPillar`, `BaziApiResponse`, `FetchBaziParams`
+ *
+ * 依赖关系：
+ * - 上游依赖：无显式外部模块依赖
+ * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 
 // 藏干结构

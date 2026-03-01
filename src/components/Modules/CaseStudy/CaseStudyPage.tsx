@@ -1,7 +1,21 @@
 /**
- * CaseStudy 页面 - 极致解耦重构版
- * 状态逻辑提取至 useCaseStudy 和 useCaseStudyBaziData，
- * UI 布局彻底分离为 Desktop/Pad/Mobile 三端布局组件。
+ * CaseStudyPage - 应用源码层
+ *
+ * 模块定位：
+ * - 所在层级：应用源码层
+ * - 主要目标：承载具体业务模块的前端功能
+ *
+ * 关键职责：
+ * - 渲染 UI 视图并处理交互逻辑
+ * - 处理用户输入与展示边界行为
+ * - 向上层提供稳定可复用能力
+ *
+ * 主要导出：
+ * - `default CaseStudyPage`
+ *
+ * 依赖关系：
+ * - 上游依赖：外部依赖 `react`、内部模块 `useLayoutMode`、内部模块 `useAuth` 等 14 个模块
+ * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';

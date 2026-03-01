@@ -1,7 +1,21 @@
 /**
- * useGanZhiDiagram Hook
- * 计算干支图解数据（天干/地支关系、布局项、轨道分配）
- * 从 GanZhiDiagramModal.tsx 提取的核心业务逻辑
+ * useGanZhiDiagram - 应用源码层
+ *
+ * 模块定位：
+ * - 所在层级：应用源码层
+ * - 主要目标：提供复用状态和副作用逻辑的自定义 Hook
+ *
+ * 关键职责：
+ * - 提供核心逻辑实现或数据处理能力
+ * - 处理数据流转与异常边界
+ * - 向上层提供稳定可复用能力
+ *
+ * 主要导出：
+ * - `DiagramItem`, `GanZhiDiagramData`, `useGanZhiDiagram`
+ *
+ * 依赖关系：
+ * - 上游依赖：外部依赖 `react`、内部模块 `baziGanZhiLiuYiSetting`、内部模块 `diagramLayout`
+ * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { useMemo } from 'react';
 import { createDefaultGanZhiLiuYiSetting } from '../lib/xuan-bazi/settings/baziGanZhiLiuYiSetting';
