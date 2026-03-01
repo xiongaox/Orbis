@@ -1,6 +1,21 @@
 /**
- * 奇门盘面凶象状态检测工具
- * 用于检测天盘干的入墓、击刑、刑+墓状态，以及八门的门迫状态
+ * qimenStatusUtils - 应用底层设施
+ *
+ * 模块定位：
+ * - 所在层级：应用底层设施
+ * - 主要目标：封装第三方库或核心底层能力
+ *
+ * 关键职责：
+ * - 提供核心逻辑实现或数据处理能力
+ * - 处理数据流转与异常边界
+ * - 向上层提供稳定可复用能力
+ *
+ * 主要导出：
+ * - `TianPanStatus`, `getTianPanStatus`, `getMenPoStatus`
+ *
+ * 依赖关系：
+ * - 上游依赖：内部模块 `constants`
+ * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 
 import { MEN_WUXING, GONG_WUXING, WUXING_KE } from './constants';

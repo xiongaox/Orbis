@@ -1,12 +1,21 @@
 /**
- * 干支流通图解弹窗
- * 展示八字四柱之间的生克流通关系
- * 
- * 符号规则：
- * - 生：》生》 箭头指向被生的一方
- * - 克：《克》 方框形式，不带箭头
- * - 助：=助= 同五行
- * - 合：只在同柱天干地支之间显示（如己亥合）
+ * GanZhiLiuTongModal - 应用源码层
+ *
+ * 模块定位：
+ * - 所在层级：应用源码层
+ * - 主要目标：承载具体业务模块的前端功能
+ *
+ * 关键职责：
+ * - 渲染 UI 视图并处理交互逻辑
+ * - 处理用户输入与展示边界行为
+ * - 向上层提供稳定可复用能力
+ *
+ * 主要导出：
+ * - `default GanZhiLiuTongModal`
+ *
+ * 依赖关系：
+ * - 上游依赖：外部依赖 `react`、外部依赖 `lucide-react`、内部模块 `BaseModal` 等 6 个模块
+ * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ChevronsLeft, ChevronsRight, ChevronsUp, ChevronsDown, ArrowRightLeft } from 'lucide-react';

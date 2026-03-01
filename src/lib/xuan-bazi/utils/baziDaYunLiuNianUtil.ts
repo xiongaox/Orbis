@@ -1,9 +1,21 @@
 /**
- * 八字 - 大运流年工具
- * 移植自 Java 版本 BaZiDaYunLiuNianUtil.java
- * @author 善待 (原作者)
- * 
- * 提供大运、流年、流月、流日、流时的计算功能
+ * baziDaYunLiuNianUtil - 应用底层设施
+ *
+ * 模块定位：
+ * - 所在层级：应用底层设施
+ * - 主要目标：封装第三方库或核心底层能力
+ *
+ * 关键职责：
+ * - 提供核心逻辑实现或数据处理能力
+ * - 处理数据流转与异常边界
+ * - 向上层提供稳定可复用能力
+ *
+ * 主要导出：
+ * - `DaYunInfo`, `LiuNianInfo`, `LiuYueInfo`, `LiuRiInfo`, `LiuShiInfo`, `getGan`, `getZhi`, `getLiuNianGanZhi`, `getShiErJie`, `getShiErShi`, `getDiZhiHanMing`, `calculateQiYunAge`, `isShunXing`
+ *
+ * 依赖关系：
+ * - 上游依赖：外部依赖 `lunar-typescript`、内部模块 `baziDaYunLiuNianMap`、内部模块 `baziJichuMap`
+ * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 
 import { Solar, Lunar } from 'lunar-typescript';

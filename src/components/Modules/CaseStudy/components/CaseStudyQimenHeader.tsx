@@ -1,6 +1,21 @@
 /**
- * 案例学习专用奇门头部 - 精简版
- * 去掉：现在、重新选择、设置、上一局、下一局按钮
+ * CaseStudyQimenHeader - 应用源码层
+ *
+ * 模块定位：
+ * - 所在层级：应用源码层
+ * - 主要目标：承载具体业务模块的前端功能
+ *
+ * 关键职责：
+ * - 渲染 UI 视图并处理交互逻辑
+ * - 处理用户输入与展示边界行为
+ * - 向上层提供稳定可复用能力
+ *
+ * 主要导出：
+ * - `default CaseStudyQimenHeader`
+ *
+ * 依赖关系：
+ * - 上游依赖：外部依赖 `react`、内部模块 `qimenService`、内部模块 `patternDetector`
+ * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { useState } from 'react';
 import type { PaiPanMethod } from '../../../../lib/csp-qimen/qimenService';

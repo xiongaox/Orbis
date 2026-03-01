@@ -1,6 +1,21 @@
 /**
- * 案例库弹窗组件
- * 封装了通用的 CaseLibraryModal
+ * BaziCaseLibraryModal - 应用源码层
+ *
+ * 模块定位：
+ * - 所在层级：应用源码层
+ * - 主要目标：承载具体业务模块的前端功能
+ *
+ * 关键职责：
+ * - 渲染 UI 视图并处理交互逻辑
+ * - 处理用户输入与展示边界行为
+ * - 向上层提供稳定可复用能力
+ *
+ * 主要导出：
+ * - `default BaziCaseLibraryModal`
+ *
+ * 依赖关系：
+ * - 上游依赖：内部模块 `baziCaseService`、内部模块 `caseConstants`、内部模块 `SortableCaseCard` 等 7 个模块
+ * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { baziCaseService, CASE_TAGS, type BaziCase, type CaseTag } from '../../../services/baziCaseService';
 import { BAZI_CASES_CHANGED_EVENT } from '../../../data/caseConstants';

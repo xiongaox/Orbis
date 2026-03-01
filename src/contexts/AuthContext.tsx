@@ -1,6 +1,21 @@
 /**
- * 认证上下文
- * 全局提供用户认证状态
+ * AuthContext - 应用源码层
+ *
+ * 模块定位：
+ * - 所在层级：应用源码层
+ * - 主要目标：承载前端具体功能
+ *
+ * 关键职责：
+ * - 渲染 UI 视图并处理交互逻辑
+ * - 处理用户输入与展示边界行为
+ * - 向上层提供稳定可复用能力
+ *
+ * 主要导出：
+ * - `AuthProvider`
+ *
+ * 依赖关系：
+ * - 上游依赖：外部依赖 `react`、内部模块 `authService`、外部依赖 `@supabase/supabase-js` 等 4 个模块
+ * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { useEffect, useState, useCallback, type ReactNode } from 'react';
 import { authService } from '../services/authService';

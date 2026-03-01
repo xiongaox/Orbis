@@ -1,5 +1,21 @@
 /**
- * 占位组件 - 用于尚未开发的模块
+ * PlaceholderChart - 应用源码层
+ *
+ * 模块定位：
+ * - 所在层级：应用源码层
+ * - 主要目标：提供跨模块的通用 UI 组件
+ *
+ * 关键职责：
+ * - 渲染 UI 视图并处理交互逻辑
+ * - 处理用户输入与展示边界行为
+ * - 向上层提供稳定可复用能力
+ *
+ * 主要导出：
+ * - `default PlaceholderChart`
+ *
+ * 依赖关系：
+ * - 上游依赖：内部模块 `types`、内部模块 `chartConfig`
+ * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import type { ChartType } from '../../types';
 import { chartMeta } from '../../utils/chartConfig';

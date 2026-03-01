@@ -1,6 +1,21 @@
 /**
- * lunarUtil - 农历/八字工具封装
- * 统一封装 lunar-typescript 的调用，避免组件直接依赖底层库
+ * lunarUtil - 应用源码层
+ *
+ * 模块定位：
+ * - 所在层级：应用源码层
+ * - 主要目标：提供纯函数工具和辅助模块
+ *
+ * 关键职责：
+ * - 提供核心逻辑实现或数据处理能力
+ * - 处理数据流转与异常边界
+ * - 向上层提供稳定可复用能力
+ *
+ * 主要导出：
+ * - `EightCharResult`, `LunarDateInfo`, `RealtimeClockData`, `getEightCharFromDate`, `getEightCharFromYmd`, `getBaziPillarsFromDateString`, `getRealtimeClockData`, `getLunarToSolarDate`, `getSolarToLunarInfo`, `getLunarMonthDays`, `getAgeFromBirth`
+ *
+ * 依赖关系：
+ * - 上游依赖：外部依赖 `lunar-typescript`
+ * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { Solar, Lunar } from 'lunar-typescript';
 
