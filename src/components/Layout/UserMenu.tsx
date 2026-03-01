@@ -20,7 +20,7 @@ export default function UserMenu({
     birthDate
 }: UserMenuProps) {
     const { user, isAuthenticated, signOut, loading } = useAuth();
-    const { isPadLandscape } = useLayoutMode();
+    const { isPadLandscape, useDesktopLayout } = useLayoutMode();
     const [menuOpen, setMenuOpen] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -54,17 +54,17 @@ export default function UserMenu({
             <button
                 type="button"
                 onClick={() => setMenuOpen((prev) => !prev)}
-                className="inline-flex items-center justify-center md:justify-start gap-0 md:gap-2 w-9 h-9 md:w-auto md:h-auto p-0 md:px-3 md:py-2 rounded-xl md:rounded-lg border border-border/60 md:border-transparent bg-card/55 md:bg-transparent hover:bg-secondary/50 transition-colors"
+                className={`inline-flex items-center justify-center md:justify-start gap-0 md:gap-2 w-9 h-9 md:w-auto md:h-auto p-0 md:px-3 ${useDesktopLayout ? 'lg:py-1.5' : 'md:py-2'} rounded-xl md:rounded-lg border border-border/60 md:border-transparent bg-card/55 md:bg-transparent hover:bg-secondary/50 transition-colors`}
                 disabled={loading}
             >
                 {loading ? (
-                    <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+                    <Loader2 className={`w-4 h-4 ${useDesktopLayout ? 'lg:w-5 lg:h-5' : ''} text-muted-foreground animate-spin`} />
                 ) : isAuthenticated ? (
-                    <img src={avatarPath} alt={displayName} className="w-[22px] h-[22px] md:w-4 md:h-4 rounded-full object-cover" />
+                    <img src={avatarPath} alt={displayName} className={`w-[22px] h-[22px] ${useDesktopLayout ? 'lg:w-[26px] lg:h-[26px]' : 'md:w-[22px] md:h-[22px]'} rounded-full object-cover`} />
                 ) : (
-                    <User className="w-4 h-4 text-muted-foreground" />
+                    <User className={`w-4 h-4 ${useDesktopLayout ? 'lg:w-5 lg:h-5' : ''} text-muted-foreground`} />
                 )}
-                <span className="hidden md:inline text-sm text-muted-foreground max-w-[120px] truncate">
+                <span className={`hidden md:inline ${useDesktopLayout ? 'lg:text-[15px]' : 'text-sm'} text-muted-foreground max-w-[120px] truncate`}>
                     {loading ? '加载中...' : isAuthenticated ? displayName : '未登录'}
                 </span>
             </button>

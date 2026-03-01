@@ -95,12 +95,35 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
         }
     };
 
+    const footer = (
+        <div className="flex justify-end gap-3 w-full">
+            <button
+                type="button"
+                onClick={onClose}
+                disabled={isSubmitting}
+                className="modal-btn focus-ring"
+            >
+                取消
+            </button>
+            <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="modal-btn primary flex items-center gap-2 focus-ring"
+            >
+                {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                {initialData ? '保存' : '创建'}
+            </button>
+        </div>
+    );
+
     return (
         <BaseModal
             isOpen={isOpen}
             onClose={onClose}
             title={initialData ? '编辑案例' : '新建案例'}
             titleIcon={initialData ? <Pencil className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+            footer={footer}
             maxWidth="max-w-md"
         >
             <div className="space-y-5">
@@ -201,26 +224,6 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
                         className="w-full px-3 py-2 bg-muted/30 border border-border rounded-lg text-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50 resize-none focus-ring"
                     />
                 </div>
-            </div>
-
-            {/* 底部按钮 - Custom Footer inside Body, or use footer prop? 
-                The design has it inside the card. BaseModal has footer prop.
-                Let's use footer prop for consistency. */}
-            <div className="flex justify-end gap-3 mt-6">
-                <button
-                    onClick={onClose}
-                    className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted/50 rounded-lg transition-colors focus-ring"
-                >
-                    取消
-                </button>
-                <button
-                    onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    className="px-6 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-lg shadow-lg hover:shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 focus-ring"
-                >
-                    {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {initialData ? '保存' : '创建'}
-                </button>
             </div>
 
             {/* 时间选择器 - Must be outside BaseModal content flow if it's a portal, or inside if it's inline. 

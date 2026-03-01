@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { X, Copy, ExternalLink, Sparkles, Check } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
+import { useLayoutMode } from '../../hooks/useLayoutMode';
 
 // AI 平台配置
 const AI_PLATFORMS = [
@@ -45,6 +46,7 @@ export default function BaseAiPromptModal({
 }: BaseAiPromptModalProps) {
     const [copied, setCopied] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const { isPadLandscape } = useLayoutMode();
 
     useEffect(() => {
         const check = () => setIsMobile(window.innerWidth < 640);
@@ -180,15 +182,17 @@ export default function BaseAiPromptModal({
                             {options.length > 0 && (
                                 <div className="space-y-3">
                                     <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">扩展数据</div>
-                                    {options.map((opt, i) => (
-                                        <label key={i} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 cursor-pointer transition-colors group has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/30">
-                                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${opt.checked ? 'bg-amber-500 border-amber-500' : 'border-input group-hover:border-foreground/50'}`}>
-                                                {opt.checked && <Check className="w-3 h-3 text-black" />}
-                                            </div>
-                                            <input type="checkbox" className="sr-only" checked={opt.checked} onChange={(e) => opt.onChange(e.target.checked)} />
-                                            <span className="text-sm text-foreground">{opt.label}</span>
-                                        </label>
-                                    ))}
+                                    <div className={isPadLandscape ? "grid grid-cols-2 gap-3" : "space-y-3"}>
+                                        {options.map((opt, i) => (
+                                            <label key={i} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 cursor-pointer transition-colors group has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/30">
+                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${opt.checked ? 'bg-amber-500 border-amber-500' : 'border-input group-hover:border-foreground/50'}`}>
+                                                    {opt.checked && <Check className="w-3 h-3 text-black" />}
+                                                </div>
+                                                <input type="checkbox" className="sr-only" checked={opt.checked} onChange={(e) => opt.onChange(e.target.checked)} />
+                                                <span className="text-sm text-foreground">{opt.label}</span>
+                                            </label>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                             <div className="space-y-3">
