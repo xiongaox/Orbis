@@ -79,7 +79,7 @@ export default function SanYuanChart() {
     };
 
     return (
-        <div className="w-full h-full max-h-[800px] max-w-[800px] aspect-square grid grid-cols-3 grid-rows-3 gap-2 md:gap-4 p-4 lg:p-8 bg-card/20 rounded-2xl shadow-inner mx-auto my-auto">
+        <div className="w-full max-w-[640px] aspect-square grid grid-cols-3 grid-rows-3 gap-2 md:gap-3 p-2 bg-card/20 border border-border/50 rounded-2xl shadow-inner mx-auto my-auto overflow-hidden">
             {renderGrid()}
         </div>
     );
