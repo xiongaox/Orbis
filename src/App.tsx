@@ -30,6 +30,7 @@ import PlaceholderChart from './components/Common/PlaceholderChart';
 import BaziPage from './components/Modules/Bazi/BaziPage';
 import QimenPage from './components/Modules/Qimen/QimenPage';
 import WannianliPage from './components/Modules/Wannianli/WannianliPage';
+import SanYuanPage from './components/Modules/SanYuan/SanYuanPage';
 import CaseStudyPage from './components/Modules/CaseStudy/CaseStudyPage';
 import AuthModal from './components/Auth/AuthModal';
 import BaziCaseLibraryModal from './components/Modules/Bazi/BaziCaseLibraryModal';
@@ -85,6 +86,8 @@ function AppContent() {
         return <CaseStudyPage />;
       case 'wannianli':
         return <WannianliPage />;
+      case 'sanyuan':
+        return <SanYuanPage />;
       case 'bazi':
         return (
           <MainLayout

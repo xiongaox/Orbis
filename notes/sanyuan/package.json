@@ -1,0 +1,39 @@
+{
+  "name": "sanyuan-tianxing",
+  "version": "1.0.0",
+  "description": "三元天星排盘算法 - 大玄空、玄空飞星、地/天/人盘计算",
+  "main": "app.js",
+  "module": "app.mjs",
+  "types": "app.d.ts",
+  "exports": {
+    ".": {
+      "require": "./app.js",
+      "import": "./app.mjs",
+      "types": "./app.d.ts"
+    }
+  },
+  "scripts": {
+    "test": "node app.js",
+    "demo": "node -e \"const S = require('./app.js'); console.log(S.computeYunPan(9))\""
+  },
+  "keywords": [
+    "feng-shui",
+    "风水",
+    "三元",
+    "天星",
+    "玄空",
+    "飞星",
+    "排盘",
+    "chinese-metaphysics"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "bugs": {
+    "url": ""
+  },
+  "homepage": ""
+}
