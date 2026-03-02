@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>三元天星盘</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+
+<body>
+  <header>
+    <div class="logo">天星</div>
+    <h1><span>三元</span>天星盘</h1>
+  </header>
+
+  <main>
+    <form id="form" class="control-bar">
+      <div class="field">
+        <label>山向</label>
+        <div class="custom-select" id="directionSelect">
+          <div class="custom-select-trigger">
+            <span class="custom-select-value">壬山丙向</span>
+            <span class="custom-select-arrow"></span>
+          </div>
+          <div class="custom-select-options"></div>
+        </div>
+        <select id="direction" class="hidden-select"></select>
+      </div>
+      <div class="field">
+        <label>元运</label>
+        <div class="custom-select" id="yunSelect">
+          <div class="custom-select-trigger">
+            <span class="custom-select-value">9运</span>
+            <span class="custom-select-arrow"></span>
+          </div>
+          <div class="custom-select-options"></div>
+        </div>
+        <select id="yun" class="hidden-select"></select>
+      </div>
+      <div class="field">
+        <label>卦类</label>
+        <div class="custom-select" id="tiGuaSelect">
+          <div class="custom-select-trigger">
+            <span class="custom-select-value">下卦（9°内）</span>
+            <span class="custom-select-arrow"></span>
+          </div>
+          <div class="custom-select-options"></div>
+        </div>
+        <select id="tiGua" class="hidden-select">
+          <option value="false">下卦（9°内）</option>
+          <option value="true">替卦（9°外）</option>
+        </select>
+      </div>
+      <button type="submit">排盘</button>
+    </form>
+
+    <div id="header"></div>
+    <div id="result" class="panels"></div>
+  </main>
+
+  <!-- 核心算法 -->
+  <script src="./app.js"></script>
+  <!-- 页面交互逻辑 -->
+  <script src="./index.js"></script>
+</body>
+
+</html>

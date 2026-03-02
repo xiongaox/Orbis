@@ -18,7 +18,7 @@
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { useState, useEffect } from 'react';
-import { Calendar, Compass, Grid3X3, Sun, Moon, Menu } from 'lucide-react';
+import { Calendar, Compass, Grid3X3, Sun, Moon, Menu, Star } from 'lucide-react';
 import { useAuth } from '../../contexts/useAuth';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import BaseModal from '../UI/BaseModal';
@@ -45,6 +45,7 @@ const navItems: NavItemType[] = [
   { id: 'wannianli', name: '万年通历', icon: Calendar, priority: 'core' },
   { id: 'bazi', name: '四柱八字', icon: Compass, priority: 'core' },
   { id: 'qimen', name: '奇门遁甲', icon: Grid3X3, priority: 'core' },
+  { id: 'sanyuan', name: '三元天星', icon: Star, priority: 'core' },
   { id: 'xiaoliuren', name: '案例学习', icon: Sun, priority: 'core' },
 ];
 
