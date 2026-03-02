@@ -273,7 +273,7 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
             )}
             <main className={classNames("flex-shrink-0 flex flex-col min-h-0", isPadLandscape ? 'h-full w-full border-r-0 overflow-y-auto' : useDesktopLayout ? 'h-full w-[65%] border-r border-border/50' : 'h-full w-full', isMobileLayout && 'overflow-y-auto')}>
                 {renderCalendarHeader()}
-                <div className={classNames(isMobileLayout ? 'flex flex-col bg-muted/5 relative items-stretch justify-start p-2 pt-1' : isPadLandscape ? 'flex flex-col bg-muted/5 relative items-center justify-start p-4' : 'flex-1 flex flex-col overflow-hidden bg-muted/5 relative items-center justify-center p-4')}>
+                <div className={classNames(isMobileLayout ? 'flex flex-col bg-muted/5 relative items-stretch justify-start p-2 pt-1' : isPadLandscape ? 'flex flex-col bg-muted/5 relative items-center justify-start p-2' : 'flex-1 flex flex-col overflow-hidden bg-muted/5 relative items-center justify-center p-2')}>
                     {isPadLandscape && (
                         <>
                             <button type="button" onClick={() => setIsCountdownOpen(true)} className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-start group focus:outline-none" aria-label="打开节日倒计时">

@@ -1,4 +1,5 @@
 import SanYuanChart from '../components/SanYuanChart';
+import SanYuanInfoBar from '../components/SanYuanInfoBar';
 
 export default function SanYuanDesktopLayout() {
     return (
@@ -12,8 +13,13 @@ export default function SanYuanDesktopLayout() {
             </div>
 
             {/* 中间盘面 */}
-            <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col p-4 relative items-center justify-center">
-                <SanYuanChart />
+            <main className="flex-1 min-h-0 min-w-0 flex flex-col p-4 relative overflow-y-auto">
+                <div className="w-full max-w-4xl mx-auto flex flex-col pt-4 pb-8 min-h-full">
+                    <SanYuanInfoBar />
+                    <div className="flex-1 min-h-0 flex items-center justify-center">
+                        <SanYuanChart />
+                    </div>
+                </div>
             </main>
 
             {/* 右侧详情 */}
