@@ -116,6 +116,7 @@ export default function CaseList({
     loadCases();
     if (newCase) {
       onSelectCase?.(newCase.id);
+      onDrawerClose?.();
     }
   };
 
@@ -256,7 +257,7 @@ export default function CaseList({
           isAuthenticated={isAuthenticated}
           onSelectCase={(id) => {
             onSelectCase?.(id);
-            if (variant === 'drawer') onDrawerClose?.();
+            onDrawerClose?.();
           }}
           onEdit={handleEditCase}
           onDelete={handleDeleteCase}
