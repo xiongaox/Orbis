@@ -12,6 +12,6 @@ jobs:
     steps:
       - name: Ping Supabase to keep it active
         run: |
-          curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
+          curl -X GET "https://xwawvlxsdojvlrknazgr.supabase.co/rest/v1/" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3YXd2bHhzZG9qdmxya25hemdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcyNTYwNjksImV4cCI6MjA4MjgzMjA2OX0.haXFMoz73i3beWLud1SDojRUETWFK09WgeS9pIynEm0" \
+            -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh3YXd2bHhzZG9qdmxya25hemdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcyNTYwNjksImV4cCI6MjA4MjgzMjA2OX0.haXFMoz73i3beWLud1SDojRUETWFK09WgeS9pIynEm0"
