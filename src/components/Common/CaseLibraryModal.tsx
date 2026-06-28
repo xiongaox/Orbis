@@ -310,7 +310,10 @@ export default function CaseLibraryModal<T extends { id: string }>({
                                         {filteredCases.map((caseData) => renderCard({
                                             caseData,
                                             isSelected: selectedCaseId === caseData.id,
-                                            onSelect: () => onSelectCase?.(caseData.id, caseData),
+                                            onSelect: () => {
+                                                onSelectCase?.(caseData.id, caseData);
+                                                if (isMobile) onClose();
+                                            },
                                             onEdit: () => setEditingCase(caseData),
                                             onDelete: () => setCaseToDelete(caseData)
                                         }))}
