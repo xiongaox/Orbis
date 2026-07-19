@@ -53,11 +53,11 @@ const DIZHI_WUXING: Record<string, string> = {
 };
 
 const getWuxingColor = (wx: string): string => {
-    if (wx.includes('水')) return 'text-blue-500';
-    if (wx.includes('金')) return 'text-amber-500';
-    if (wx.includes('木')) return 'text-green-500';
-    if (wx.includes('火')) return 'text-red-500';
-    if (wx.includes('土')) return 'text-yellow-600';
+    if (wx.includes('水')) return 'text-[color:var(--element-water)]';
+    if (wx.includes('金')) return 'text-[color:var(--element-metal)]';
+    if (wx.includes('木')) return 'text-[color:var(--element-wood)]';
+    if (wx.includes('火')) return 'text-[color:var(--element-fire)]';
+    if (wx.includes('土')) return 'text-[color:var(--element-earth)]';
     return '';
 };
 
@@ -239,13 +239,7 @@ export default function BaziBasicInfoPanel({ baziData, isMobileLayout = false }:
                 <InfoItem
                     label="日主属性"
                     value={info.dayMasterProfile}
-                    valueClass={
-                        info.dayMasterWuxing === '木' ? 'text-green-500' :
-                            info.dayMasterWuxing === '火' ? 'text-red-500' :
-                                info.dayMasterWuxing === '土' ? 'text-yellow-600' :
-                                    info.dayMasterWuxing === '金' ? 'text-amber-500' :
-                                        info.dayMasterWuxing === '水' ? 'text-blue-500' : ''
-                    }
+                    valueClass={getWuxingColor(info.dayMasterWuxing)}
                     isMobileLayout={isMobileLayout}
                 />
             </div>

@@ -114,15 +114,15 @@ export default function BaseAiPromptModal({
                             value={userQuestion}
                             onChange={(e) => setUserQuestion(e.target.value)}
                             placeholder={placeholder}
-                            className="w-full h-20 bg-muted/50 border border-border rounded-lg p-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-amber-500/50 resize-none transition-colors"
+                            className="w-full h-20 bg-muted/50 border border-border rounded-lg p-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus-ring resize-none transition-colors"
                         />
 
                         {/* 扩展选项与复制按钮（多选项自适应，或者通过 grid 控制） */}
                         <div className={`grid grid-cols-${Math.min(options.length + 1, 3)} gap-2`}>
                             {options.map((opt, i) => (
                                 <label key={i} className="flex items-center gap-2 px-2 py-2.5 rounded-lg border border-border bg-muted/30 cursor-pointer text-xs">
-                                    <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${opt.checked ? 'bg-amber-500 border-amber-500' : 'border-input'}`}>
-                                        {opt.checked && <Check className="w-2.5 h-2.5 text-black" />}
+                                    <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${opt.checked ? 'bg-primary border-primary' : 'border-input'}`}>
+                                        {opt.checked && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                                     </div>
                                     <input type="checkbox" className="sr-only" checked={opt.checked} onChange={(e) => opt.onChange(e.target.checked)} />
                                     {opt.label}
@@ -130,7 +130,7 @@ export default function BaseAiPromptModal({
                             ))}
                             <button
                                 onClick={handleCopy}
-                                className="py-2.5 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-semibold shadow-lg transition-all flex items-center justify-center gap-1.5 active:scale-95 text-sm"
+                                className="py-2.5 px-3 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-lg transition-all flex items-center justify-center gap-1.5 active:scale-95 text-sm focus-ring"
                             >
                                 {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                                 {copied ? '已复制' : '复制'}
@@ -160,14 +160,14 @@ export default function BaseAiPromptModal({
                     <div className="w-full md:w-[60%] flex flex-col min-h-0 border-b md:border-b-0 md:border-r border-border bg-muted/30">
                         <div className="p-4 h-14 border-b border-border flex items-center justify-between shrink-0">
                             <div className="flex items-center gap-2 text-foreground font-medium">
-                                <Sparkles className="w-4 h-4 text-amber-500" />
+                                <Sparkles className="w-4 h-4 text-primary" />
                                 {titleText}
                             </div>
                             <div className="text-xs text-muted-foreground">已生成 {promptText.length} 字</div>
                         </div>
 
                         <div className="p-4 flex flex-col flex-1 min-h-0 overflow-hidden">
-                            <div className="h-full bg-muted/50 rounded-lg p-4 border border-border/50 font-serif text-foreground text-sm leading-relaxed whitespace-pre-wrap selection:bg-amber-500/20 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                            <div className="h-full bg-muted/50 rounded-lg p-4 border border-border/50 font-serif text-foreground text-sm leading-relaxed whitespace-pre-wrap selection:bg-primary/20 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                                 {promptText}
                             </div>
                         </div>
@@ -177,7 +177,7 @@ export default function BaseAiPromptModal({
                                 value={userQuestion}
                                 onChange={(e) => setUserQuestion(e.target.value)}
                                 placeholder={placeholder}
-                                className="w-full h-20 bg-muted/50 border border-border rounded-lg p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-amber-500/50 focus-ring resize-none transition-colors"
+                                className="w-full h-20 bg-muted/50 border border-border rounded-lg p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus-ring resize-none transition-colors"
                             />
                         </div>
                     </div>
@@ -200,8 +200,8 @@ export default function BaseAiPromptModal({
                                     <div className={isPadLandscape ? "grid grid-cols-2 gap-3" : "space-y-3"}>
                                         {options.map((opt, i) => (
                                             <label key={i} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 cursor-pointer transition-colors group has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-primary/30">
-                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${opt.checked ? 'bg-amber-500 border-amber-500' : 'border-input group-hover:border-foreground/50'}`}>
-                                                    {opt.checked && <Check className="w-3 h-3 text-black" />}
+                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${opt.checked ? 'bg-primary border-primary' : 'border-input group-hover:border-foreground/50'}`}>
+                                                    {opt.checked && <Check className="w-3 h-3 text-primary-foreground" />}
                                                 </div>
                                                 <input type="checkbox" className="sr-only" checked={opt.checked} onChange={(e) => opt.onChange(e.target.checked)} />
                                                 <span className="text-sm text-foreground">{opt.label}</span>
@@ -214,7 +214,7 @@ export default function BaseAiPromptModal({
                                 <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">操作</div>
                                 <button
                                     onClick={handleCopy}
-                                    className="w-full py-3 px-4 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-semibold shadow-lg hover:shadow-xl hover:shadow-amber-500/10 transition-all flex items-center justify-center gap-2 active:scale-95 focus-ring"
+                                    className="w-full py-3 px-4 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-lg hover:shadow-xl hover:shadow-primary/10 transition-all flex items-center justify-center gap-2 active:scale-95 focus-ring"
                                 >
                                     {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                                     {copied ? '已复制提示词' : '一键复制提示词'}

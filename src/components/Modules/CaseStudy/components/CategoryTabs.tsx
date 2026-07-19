@@ -52,10 +52,10 @@ export default function CategoryTabs({ categories, selectedId, onSelect, variant
                                     ${isActive ? 'bg-primary/5' : 'hover:bg-muted/30'}
                                 `}
                             >
-                                <span className={`text-[10px] ${isActive ? 'text-[#d4b185]/80' : 'text-muted-foreground/50'}`}>
+                                <span className={`text-[10px] ${isActive ? 'text-primary/80' : 'text-muted-foreground/50'}`}>
                                     {cat.label}
                                 </span>
-                                <span className={`text-sm font-serif ${isActive ? 'text-[#d4b185] font-bold' : 'text-muted-foreground'}`}>
+                                <span className={`text-sm font-serif ${isActive ? 'text-primary font-bold' : 'text-muted-foreground'}`}>
                                     {cat.name}
                                 </span>
                             </button>
@@ -85,16 +85,16 @@ export default function CategoryTabs({ categories, selectedId, onSelect, variant
                     >
                         {/* Active Indicator Line */}
                         {isActive && (
-                            <div className="absolute left-0 top-3 bottom-3 w-1 bg-[#d4b185] rounded-r-md" />
+                            <div className="absolute left-0 top-3 bottom-3 w-1 bg-primary rounded-r-md" />
                         )}
 
                         {/* Label */}
-                        <span className={`text-[10px] ${isActive ? 'text-[#d4b185]/80' : 'text-muted-foreground/50'}`}>
+                        <span className={`text-[10px] ${isActive ? 'text-primary/80' : 'text-muted-foreground/50'}`}>
                             {cat.label}
                         </span>
 
                         {/* Value */}
-                        <span className={`text-sm font-serif ${isActive ? 'text-[#d4b185] font-bold' : 'text-muted-foreground'}`}>
+                        <span className={`text-sm font-serif ${isActive ? 'text-primary font-bold' : 'text-muted-foreground'}`}>
                             {cat.name}
                         </span>
                     </button>
