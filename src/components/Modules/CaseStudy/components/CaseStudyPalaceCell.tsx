@@ -19,6 +19,7 @@
  */
 import type { QimenPalace } from '../../../Modules/Qimen/QimenChart';
 import { getTianPanStatus, getMenPoStatus } from '../../../../lib/csp-qimen/qimenStatusUtils';
+import QimenStatusStem from '../../../Common/QimenStatusStem';
 
 interface PalaceCellProps {
     palace: QimenPalace;
@@ -132,17 +133,11 @@ export default function CaseStudyPalaceCell({
                     </div>
                     <div className="flex flex-col items-center justify-end leading-none">
                         {tianPanStatus.status === 'jiXing' ? (
-                            <span className={`inline-flex items-center justify-center ${isMobile ? 'w-4 h-4 text-xs' : 'w-5 h-5 text-sm'} rounded border border-fuchsia-500 text-fuchsia-500 bg-fuchsia-500/5 font-serif font-bold`}>
-                                {palace.tianPan}
-                            </span>
+                            <QimenStatusStem status={tianPanStatus.status} value={palace.tianPan} isMobile={isMobile} mobileAsBadge mobileClassName="w-4 h-4 text-xs" desktopClassName="w-5 h-5 text-sm" />
                         ) : tianPanStatus.status === 'ruMu' ? (
-                            <span className={`inline-flex items-center justify-center ${isMobile ? 'w-4 h-4 text-xs' : 'w-5 h-5 text-sm'} rounded border border-[#cd853f] text-[#cd853f] bg-[#cd853f]/10 font-serif font-bold`}>
-                                {palace.tianPan}
-                            </span>
+                            <QimenStatusStem status={tianPanStatus.status} value={palace.tianPan} isMobile={isMobile} mobileAsBadge mobileClassName="w-4 h-4 text-xs" desktopClassName="w-5 h-5 text-sm" />
                         ) : tianPanStatus.status === 'jiXingRuMu' ? (
-                            <span className={`inline-flex items-center justify-center ${isMobile ? 'w-4 h-4 text-xs' : 'w-5 h-5 text-sm'} rounded border border-[#3b82f6] text-[#3b82f6] bg-[#3b82f6]/10 font-serif font-bold`}>
-                                {palace.tianPan}
-                            </span>
+                            <QimenStatusStem status={tianPanStatus.status} value={palace.tianPan} isMobile={isMobile} mobileAsBadge mobileClassName="w-4 h-4 text-xs" desktopClassName="w-5 h-5 text-sm" />
                         ) : (
                             <span className={tianPanStatus.colorVar ? `${isMobile ? 'text-sm' : 'text-base'} font-serif font-bold` : `${isMobile ? 'text-sm' : 'text-base'} font-serif ${isDayStem || isHourStem ? 'text-primary font-bold' : 'text-foreground'}`} style={tianPanStatus.colorVar ? { color: tianPanStatus.colorVar } : undefined}>{palace.tianPan}</span>
                         )}
@@ -165,17 +160,11 @@ export default function CaseStudyPalaceCell({
                     </div>
                     <div className="flex flex-col items-center justify-end leading-none">
                         {diPanStatus.status === 'jiXing' ? (
-                            <span className={`inline-flex items-center justify-center ${isMobile ? 'w-4 h-4 text-xs' : 'w-5 h-5 text-sm'} rounded border border-fuchsia-500 text-fuchsia-500 bg-fuchsia-500/5 font-serif font-bold`}>
-                                {palace.diPan}
-                            </span>
+                            <QimenStatusStem status={diPanStatus.status} value={palace.diPan} isMobile={isMobile} mobileAsBadge mobileClassName="w-4 h-4 text-xs" desktopClassName="w-5 h-5 text-sm" />
                         ) : diPanStatus.status === 'ruMu' ? (
-                            <span className={`inline-flex items-center justify-center ${isMobile ? 'w-4 h-4 text-xs' : 'w-5 h-5 text-sm'} rounded border border-[#cd853f] text-[#cd853f] bg-[#cd853f]/10 font-serif font-bold`}>
-                                {palace.diPan}
-                            </span>
+                            <QimenStatusStem status={diPanStatus.status} value={palace.diPan} isMobile={isMobile} mobileAsBadge mobileClassName="w-4 h-4 text-xs" desktopClassName="w-5 h-5 text-sm" />
                         ) : diPanStatus.status === 'jiXingRuMu' ? (
-                            <span className={`inline-flex items-center justify-center ${isMobile ? 'w-4 h-4 text-xs' : 'w-5 h-5 text-sm'} rounded border border-[#3b82f6] text-[#3b82f6] bg-[#3b82f6]/10 font-serif font-bold`}>
-                                {palace.diPan}
-                            </span>
+                            <QimenStatusStem status={diPanStatus.status} value={palace.diPan} isMobile={isMobile} mobileAsBadge mobileClassName="w-4 h-4 text-xs" desktopClassName="w-5 h-5 text-sm" />
                         ) : (
                             <span className={diPanStatus.colorVar ? `${isMobile ? 'text-sm' : 'text-base'} font-serif font-bold` : `${isMobile ? 'text-sm' : 'text-base'} font-serif text-foreground`} style={diPanStatus.colorVar ? { color: diPanStatus.colorVar } : undefined}>{palace.diPan}</span>
                         )}

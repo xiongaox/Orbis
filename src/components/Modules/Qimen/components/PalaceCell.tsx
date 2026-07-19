@@ -20,6 +20,7 @@
 import { useRef, useCallback } from 'react';
 import type { QimenPalace } from '../QimenChart';
 import { getTianPanStatus, getMenPoStatus } from '../../../../lib/csp-qimen/qimenStatusUtils';
+import QimenStatusStem from '../../../Common/QimenStatusStem';
 
 interface PalaceCellProps {
     palace: QimenPalace;
@@ -218,17 +219,11 @@ export default function PalaceCell({
                     <div className="flex flex-col items-center justify-end leading-none">
                         <div className={`flex items-center justify-center ${isMobileLayout ? '' : 'min-h-6 2xl:min-h-7'}`}>
                             {tianPanStatus.status === 'jiXing' ? (
-                                <span className={isMobileLayout ? 'text-base font-serif font-bold text-fuchsia-500' : 'inline-flex items-center justify-center w-6 h-6 2xl:w-7 2xl:h-7 rounded-md border border-fuchsia-500 text-fuchsia-500 bg-fuchsia-500/5 font-serif font-bold text-base 2xl:text-lg'}>
-                                    {palace.tianPan}
-                                </span>
+                                <QimenStatusStem status={tianPanStatus.status} value={palace.tianPan} isMobile={isMobileLayout} mobileClassName="text-base" desktopClassName="w-6 h-6 2xl:w-7 2xl:h-7 text-base 2xl:text-lg" />
                             ) : tianPanStatus.status === 'ruMu' ? (
-                                <span className={isMobileLayout ? 'text-base font-serif font-bold text-[#cd853f]' : 'inline-flex items-center justify-center w-6 h-6 2xl:w-7 2xl:h-7 rounded-md border border-[#cd853f] text-[#cd853f] bg-[#cd853f]/10 font-serif font-bold text-base 2xl:text-lg'}>
-                                    {palace.tianPan}
-                                </span>
+                                <QimenStatusStem status={tianPanStatus.status} value={palace.tianPan} isMobile={isMobileLayout} mobileClassName="text-base" desktopClassName="w-6 h-6 2xl:w-7 2xl:h-7 text-base 2xl:text-lg" />
                             ) : tianPanStatus.status === 'jiXingRuMu' ? (
-                                <span className={isMobileLayout ? 'text-base font-serif font-bold text-[#3b82f6]' : 'inline-flex items-center justify-center w-6 h-6 2xl:w-7 2xl:h-7 rounded-md border border-[#3b82f6] text-[#3b82f6] bg-[#3b82f6]/10 font-serif font-bold text-base 2xl:text-lg'}>
-                                    {palace.tianPan}
-                                </span>
+                                <QimenStatusStem status={tianPanStatus.status} value={palace.tianPan} isMobile={isMobileLayout} mobileClassName="text-base" desktopClassName="w-6 h-6 2xl:w-7 2xl:h-7 text-base 2xl:text-lg" />
                             ) : (
                                 <span className={tianPanStatus.colorVar ? 'text-base 2xl:text-xl font-serif font-bold' : `text-base 2xl:text-xl font-serif ${isDayStem || isHourStem ? 'text-primary font-bold' : 'text-foreground'}`} style={tianPanStatus.colorVar ? { color: tianPanStatus.colorVar } : undefined}>{palace.tianPan}</span>
                             )}
@@ -257,17 +252,11 @@ export default function PalaceCell({
                     <div className="flex flex-col items-center justify-end leading-none">
                         <div className={`flex items-center justify-center ${isMobileLayout ? '' : 'min-h-6 2xl:min-h-7'}`}>
                             {diPanStatus.status === 'jiXing' ? (
-                                <span className={isMobileLayout ? 'text-base font-serif font-bold text-fuchsia-500' : 'inline-flex items-center justify-center w-6 h-6 2xl:w-7 2xl:h-7 rounded-md border border-fuchsia-500 text-fuchsia-500 bg-fuchsia-500/5 font-serif font-bold text-base 2xl:text-lg'}>
-                                    {palace.diPan}
-                                </span>
+                                <QimenStatusStem status={diPanStatus.status} value={palace.diPan} isMobile={isMobileLayout} mobileClassName="text-base" desktopClassName="w-6 h-6 2xl:w-7 2xl:h-7 text-base 2xl:text-lg" />
                             ) : diPanStatus.status === 'ruMu' ? (
-                                <span className={isMobileLayout ? 'text-base font-serif font-bold text-[#cd853f]' : 'inline-flex items-center justify-center w-6 h-6 2xl:w-7 2xl:h-7 rounded-md border border-[#cd853f] text-[#cd853f] bg-[#cd853f]/10 font-serif font-bold text-base 2xl:text-lg'}>
-                                    {palace.diPan}
-                                </span>
+                                <QimenStatusStem status={diPanStatus.status} value={palace.diPan} isMobile={isMobileLayout} mobileClassName="text-base" desktopClassName="w-6 h-6 2xl:w-7 2xl:h-7 text-base 2xl:text-lg" />
                             ) : diPanStatus.status === 'jiXingRuMu' ? (
-                                <span className={isMobileLayout ? 'text-base font-serif font-bold text-[#3b82f6]' : 'inline-flex items-center justify-center w-6 h-6 2xl:w-7 2xl:h-7 rounded-md border border-[#3b82f6] text-[#3b82f6] bg-[#3b82f6]/10 font-serif font-bold text-base 2xl:text-lg'}>
-                                    {palace.diPan}
-                                </span>
+                                <QimenStatusStem status={diPanStatus.status} value={palace.diPan} isMobile={isMobileLayout} mobileClassName="text-base" desktopClassName="w-6 h-6 2xl:w-7 2xl:h-7 text-base 2xl:text-lg" />
                             ) : (
                                 <span className={diPanStatus.colorVar ? 'text-base 2xl:text-xl font-serif font-bold' : 'text-base 2xl:text-xl font-serif text-foreground'} style={diPanStatus.colorVar ? { color: diPanStatus.colorVar } : undefined}>{palace.diPan}</span>
                             )}

@@ -10,7 +10,7 @@ export default function SanYuanPage() {
     return (
         <div className="flex flex-1 h-full min-h-0 overflow-hidden relative">
             {useDesktopLayout ? (
-                <SanYuanDesktopLayout />
+                <SanYuanDesktopLayout state={state} />
             ) : isPadLandscape ? (
                 <SanYuanPadLayout />
             ) : (

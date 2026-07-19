@@ -57,6 +57,7 @@ Orbis/
 - 模块解析为 bundler 模式；类型导入优先 `import type`。
 - UI 层保持组合职责，计算/聚合逻辑优先放 hooks/lib/services。
 - 样式基于 Tailwind + CSS 变量 token；暗色切换走 `class`。
+- 涉及 UI、样式、组件视觉或设计 token 的任务，必须先阅读根目录 `DESIGN.md`；修改设计规范后运行 `design.md lint DESIGN.md`。
 
 ## ANTI-PATTERNS (THIS PROJECT)
 - 不要提交 `.env`。

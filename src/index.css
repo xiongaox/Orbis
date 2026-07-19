@@ -12,7 +12,7 @@
   --popover: 0 0% 100%;
   --popover-foreground: 0 0% 10%;
   --primary: 40 64% 44%;
-  --primary-foreground: 45 69% 90%;
+  --primary-foreground: 30 19% 9%;
   --secondary: 0 0% 97%;
   --secondary-foreground: 0 0% 10%;
   --muted: 0 0% 97%;
@@ -32,7 +32,7 @@
   --sidebar: 0 0% 98%;
   --sidebar-foreground: 0 0% 25%;
   --sidebar-primary: 40 64% 44%;
-  --sidebar-primary-foreground: 45 69% 90%;
+  --sidebar-primary-foreground: 30 19% 9%;
   --sidebar-accent: 0 0% 97%;
   --sidebar-accent-foreground: 0 0% 10%;
   --sidebar-border: 0 0% 88%;
@@ -44,7 +44,7 @@
   --muted-active: 0 0% 88%;
   --muted-hover: 0 0% 94%;
   --accent-primary: 40 64% 44%;
-  --accent-primary-foreground: 45 69% 90%;
+  --accent-primary-foreground: 30 19% 9%;
   --destructive-primary: 0 95% 42%;
   --destructive-primary-foreground: 0 100% 97%;
   --success: 137 52% 88%;
@@ -93,6 +93,15 @@
   --qimen-shen: #B45309;
   --qimen-gan: #2563EB;
   --qimen-highlight: #A67C2A;
+  --qimen-status-ji-xing: #A21CAF;
+  --qimen-status-ji-xing-bg: rgba(162, 28, 175, 0.08);
+  --qimen-status-ru-mu: #8B6D03;
+  --qimen-status-ru-mu-bg: rgba(139, 109, 3, 0.1);
+  --qimen-status-ji-xing-ru-mu: #2563EB;
+  --qimen-status-ji-xing-ru-mu-bg: rgba(37, 99, 235, 0.1);
+  --lunar-badge-background: #2A2422;
+  --lunar-badge-border: #3E3632;
+  --lunar-badge-foreground: #E2D5C5;
   --shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -151,6 +160,12 @@
   --element-earth-text: rgba(205, 133, 63, 0.5);
   --element-metal-text: rgba(212, 175, 55, 0.5);
   --element-water-text: rgba(59, 130, 246, 0.5);
+  --qimen-status-ji-xing: #E879F9;
+  --qimen-status-ji-xing-bg: rgba(232, 121, 249, 0.1);
+  --qimen-status-ru-mu: #CD853F;
+  --qimen-status-ru-mu-bg: rgba(205, 133, 63, 0.1);
+  --qimen-status-ji-xing-ru-mu: #3B82F6;
+  --qimen-status-ji-xing-ru-mu-bg: rgba(59, 130, 246, 0.1);
   --font-weight-base: 400;
 }
 
@@ -208,6 +223,15 @@ button:focus-visible {
 .font-display {
   font-family: var(--font-serif);
   letter-spacing: 0.02em;
+}
+
+.lunar-badge {
+  background: var(--lunar-badge-background);
+  border-color: var(--lunar-badge-border);
+}
+
+.lunar-badge__text {
+  color: var(--lunar-badge-foreground);
 }
 
 .auto-hide-scrollbar {
