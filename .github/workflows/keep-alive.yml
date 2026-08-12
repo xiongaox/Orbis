@@ -2,16 +2,17 @@ name: Supabase Keep Alive
 
 on:
   schedule:
-    # 每天 UTC 时间 00:00 运行一次 (北京时间早上 8:00)
+    # 每天 UTC 00:00 运行一次，即北京时间 08:00。
     - cron: '0 0 * * *'
-  workflow_dispatch: # 允许在 GitHub 网页上手动点击运行，方便测试
+  workflow_dispatch:
 
 jobs:
   ping-supabase:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase to keep it active
+      - name: Ping Supabase
         run: |
-          curl -X GET "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/" \
+          curl --fail-with-body --silent --show-error --retry 3 --retry-delay 5 --max-time 30 \
+            "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/" \
             -H "apikey: ${{ secrets.VITE_SUPABASE_ANON_KEY }}" \
             -H "Authorization: Bearer ${{ secrets.VITE_SUPABASE_ANON_KEY }}"
