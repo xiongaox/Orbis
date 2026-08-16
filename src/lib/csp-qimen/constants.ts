@@ -11,7 +11,7 @@
  * - 向上层提供稳定可复用能力
  *
  * 主要导出：
- * - `GONG_NAMES`, `DI_PAN_GAN_SHUN`, `AN_GAN_ORDER`, `INNER_YANG`, `OUTER_YANG`, `CHINESE_NUMS`, `SAN_QI`, `SAN_JI_MEN`, `GONG_WUXING`, `XING_WUXING`, `MEN_WUXING`, `WUXING_KE`
+ * - `GONG_NAMES`, `DI_PAN_GAN_SHUN`, `INNER_YANG`, `OUTER_YANG`, `CHINESE_NUMS`, `SAN_QI`, `SAN_JI_MEN`, `GONG_WUXING`, `XING_WUXING`, `MEN_WUXING`, `WUXING_KE`
  *
  * 依赖关系：
  * - 上游依赖：无显式外部模块依赖
@@ -21,8 +21,6 @@
 export const GONG_NAMES: string[] = ['', '坎', '坤', '震', '巽', '中', '乾', '兑', '艮', '离'];
 
 export const DI_PAN_GAN_SHUN: string[] = ['戊', '己', '庚', '辛', '壬', '癸', '丁', '丙', '乙'];
-
-export const AN_GAN_ORDER: string[] = ['戊', '己', '庚', '辛', '壬', '癸', '丁', '丙', '乙'];
 
 export const INNER_YANG: number[] = [1, 8, 3, 4];
 

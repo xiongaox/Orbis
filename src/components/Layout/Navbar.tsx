@@ -43,8 +43,8 @@ export type ChartType =
 
 const navItems: NavItemType[] = [
   { id: 'wannianli', name: '万年通历', icon: Calendar, priority: 'core' },
-  { id: 'bazi', name: '四柱八字', icon: Compass, priority: 'core' },
-  { id: 'qimen', name: '奇门遁甲', icon: Grid3X3, priority: 'core' },
+  { id: 'bazi', name: '四柱八字', icon: Compass, priority: 'core', lockable: true },
+  { id: 'qimen', name: '奇门遁甲', icon: Grid3X3, priority: 'core', lockable: true },
   { id: 'sanyuan', name: '三元天星', icon: Star, priority: 'core' },
   { id: 'xiaoliuren', name: '案例学习', icon: Sun, priority: 'core' },
 ];
@@ -52,10 +52,18 @@ const navItems: NavItemType[] = [
 interface NavbarProps {
   activeChart: ChartType;
   onChartChange: (chart: ChartType) => void;
+  lockedCharts: ChartType[];
+  onToggleChartLock: (chart: ChartType) => void;
   onLoginClick?: () => void;
 }
 
-export default function Navbar({ activeChart, onChartChange, onLoginClick }: NavbarProps) {
+export default function Navbar({
+  activeChart,
+  onChartChange,
+  lockedCharts,
+  onToggleChartLock,
+  onLoginClick,
+}: NavbarProps) {
   const { user } = useAuth();
   const { isPadLandscape, useDesktopLayout } = useLayoutMode();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -185,7 +193,10 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
                     <NavButton
                       item={item}
                       isActive={activeChart === item.id}
+                      isLocked={lockedCharts.includes(item.id as ChartType)}
+                      isLockable={item.lockable === true}
                       onClick={() => onChartChange(item.id as ChartType)}
+                      onToggleLock={() => onToggleChartLock(item.id as ChartType)}
                     />
                     {index < navItems.length - 1 && (
                       <span className="text-border">|</span>
@@ -265,10 +276,13 @@ export default function Navbar({ activeChart, onChartChange, onLoginClick }: Nav
               key={item.id}
               item={item}
               isActive={activeChart === item.id}
+              isLocked={lockedCharts.includes(item.id as ChartType)}
+              isLockable={item.lockable === true}
               onClick={() => {
                 onChartChange(item.id as ChartType);
                 setMobileNavOpen(false);
               }}
+              onToggleLock={() => onToggleChartLock(item.id as ChartType)}
             />
           ))}
         </div>

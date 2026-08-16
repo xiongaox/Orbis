@@ -18,6 +18,7 @@
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 
+import { useState } from 'react';
 import QimenCaseList from '../QimenCaseList';
 import QimenChart from '../QimenChart';
 import QimenPalaceDetail from '../QimenPalaceDetail';
@@ -38,6 +39,21 @@ export default function QimenDesktopLayout(props: QimenLayoutProps) {
         selectedMaXingKey, setSelectedMaXingKey,
         dynamicMaKong
     } = props;
+    const [showChangSheng, setShowChangSheng] = useState(false);
+    const [showShiShen, setShowShiShen] = useState(false);
+    const [showPalaceMeta, setShowPalaceMeta] = useState(false);
+
+    const toggleChangSheng = () => setShowChangSheng((current) => {
+        if (current) return false;
+        setShowShiShen(false);
+        return true;
+    });
+    const toggleShiShen = () => setShowShiShen((current) => {
+        if (current) return false;
+        setShowChangSheng(false);
+        return true;
+    });
+    const togglePalaceMeta = () => setShowPalaceMeta((current) => !current);
 
     // 获取选中的宫位数据
     const selectedPalaceData = selectedPalace
@@ -66,6 +82,12 @@ export default function QimenDesktopLayout(props: QimenLayoutProps) {
             selectedMaXingKey={selectedMaXingKey}
             onKongWangKeyChange={setSelectedKongWangKey}
             onMaXingKeyChange={setSelectedMaXingKey}
+            showChangSheng={showChangSheng}
+            showShiShen={showShiShen}
+            showPalaceMeta={showPalaceMeta}
+            onToggleChangSheng={toggleChangSheng}
+            onToggleShiShen={toggleShiShen}
+            onTogglePalaceMeta={togglePalaceMeta}
         />
     );
 
@@ -121,6 +143,9 @@ export default function QimenDesktopLayout(props: QimenLayoutProps) {
                     onPatternClick={setSelectedPattern}
                     onOpenAiModal={() => setIsAiModalOpen(true)}
                     dynamicMaKong={dynamicMaKong}
+                    controlledShowChangSheng={showChangSheng}
+                    controlledShowShiShen={showShiShen}
+                    controlledShowPalaceMeta={showPalaceMeta}
                 />
             </main>
 

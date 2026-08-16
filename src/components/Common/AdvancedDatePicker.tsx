@@ -19,6 +19,7 @@
  */
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 import { getLunarToSolarDate, getSolarToLunarInfo } from '../../utils/lunarUtil';
 import BaziDatePicker from '../Modules/Bazi/BaziDatePicker';
@@ -214,7 +215,7 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm, 
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity animate-in fade-in duration-200" onClick={onClose}>
             <div className="w-[calc(100%-2rem)] max-w-md bg-popover rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-200 border border-border" onClick={e => e.stopPropagation()}>
                 {/* Header */}
@@ -342,7 +343,8 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm, 
                     </div>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
 

@@ -17,7 +17,6 @@
  * - 上游依赖：外部依赖 `react`、内部模块 `qimenService`、内部模块 `patternDetector` 等 5 个模块
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
-import { useState } from 'react';
 import type { PaiPanMethod } from '../../../lib/csp-qimen/qimenService';
 import type { GlobalPattern } from '../../../lib/csp-qimen/patternDetector';
 
@@ -142,43 +141,12 @@ export default function QimenChart({
     controlledShowChangSheng,
     controlledShowShiShen,
     controlledShowPalaceMeta,
-    onToggleChangSheng,
-    onToggleShiShen,
-    onTogglePalaceMeta,
     onLongPressPalace,
 }: QimenChartProps) {
     const orderedPalaces = LUOSHU_ORDER.map(pos => palaces.find(p => p.position === pos)!);
-    // 内部状态（桌面端使用）
-    const [internalShowChangSheng, setInternalShowChangSheng] = useState(false);
-    const [internalShowShiShen, setInternalShowShiShen] = useState(false);
-    const [internalShowPalaceMeta, setInternalShowPalaceMeta] = useState(false);
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
-    // 根据是否有外部受控状态决定使用哪个
-    const showChangSheng = controlledShowChangSheng ?? internalShowChangSheng;
-    const showShiShen = controlledShowShiShen ?? internalShowShiShen;
-    const showPalaceMeta = controlledShowPalaceMeta ?? internalShowPalaceMeta;
-
-    // 互斥切换逻辑：开启长生则关闭十神，开启十神则关闭长生
-    const handleToggleChangSheng = onToggleChangSheng ?? (() => {
-        if (!internalShowChangSheng) {
-            setInternalShowChangSheng(true);
-            setInternalShowShiShen(false);
-        } else {
-            setInternalShowChangSheng(false);
-        }
-    });
-
-    const handleToggleShiShen = onToggleShiShen ?? (() => {
-        if (!internalShowShiShen) {
-            setInternalShowShiShen(true);
-            setInternalShowChangSheng(false);
-        } else {
-            setInternalShowShiShen(false);
-        }
-    });
-
-    const handleTogglePalaceMeta = onTogglePalaceMeta ?? (() => setInternalShowPalaceMeta(!internalShowPalaceMeta));
+    const showChangSheng = controlledShowChangSheng ?? false;
+    const showShiShen = controlledShowShiShen ?? false;
+    const showPalaceMeta = controlledShowPalaceMeta ?? false;
 
     // 高亮计算
     const targetDayStem = getRealStem(header.siZhu.day[0], header.siZhu.day[1]);
@@ -204,8 +172,6 @@ export default function QimenChart({
                                 globalPatterns={globalPatterns}
                                 onPatternClick={onPatternClick}
                                 onOpenAiModal={onOpenAiModal}
-                                isSettingsOpen={isSettingsOpen}
-                                onToggleSettings={() => setIsSettingsOpen(!isSettingsOpen)}
                                 isMobileLayout={isMobileLayout}
                             />
                         </div>
@@ -241,59 +207,6 @@ export default function QimenChart({
                 </div>
             </div>
 
-            {/* 高级设置弹窗 - 绝对定位在右侧，弹窗底部与信息栏底部对齐 */}
-            {isSettingsOpen && (
-                <div className="absolute top-[60px] right-2 w-56 bg-card border border-border/80 rounded-xl shadow-xl p-3 animate-in fade-in slide-in-from-left-2 duration-200 ring-1 ring-black/5 z-10">
-                    <div className="flex items-center justify-between mb-3 border-b border-border/50 pb-2">
-                        <span className="text-xs text-muted-foreground font-serif">宫位元素显示</span>
-                        <button
-                            type="button"
-                            onClick={() => setIsSettingsOpen(false)}
-                            className="p-0.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                            title="关闭"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M18 6 6 18" /><path d="m6 6 12 12" />
-                            </svg>
-                        </button>
-                    </div>
-                    <div className="flex flex-col gap-3">
-                        {/* 长生状态开关 */}
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm font-serif text-foreground">长生状态</span>
-                            <button
-                                type="button"
-                                onClick={handleToggleChangSheng}
-                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${showChangSheng ? 'bg-primary' : 'bg-muted'}`}
-                            >
-                                <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showChangSheng ? 'translate-x-4' : 'translate-x-0'}`} />
-                            </button>
-                        </div>
-                        {/* 十神展示开关 */}
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm font-serif text-foreground">十神展示</span>
-                            <button
-                                type="button"
-                                onClick={handleToggleShiShen}
-                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${showShiShen ? 'bg-primary' : 'bg-muted'}`}
-                            >
-                                <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showShiShen ? 'translate-x-4' : 'translate-x-0'}`} />
-                            </button>
-                        </div>
-                        {/* 宫位元数据开关 */}
-                        <div className="flex items-center justify-between">
-                            <span className="text-sm font-serif text-foreground">宫位提示</span>
-                            <button
-                                type="button"
-                                onClick={handleTogglePalaceMeta}
-                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${showPalaceMeta ? 'bg-primary' : 'bg-muted'}`}
-                            >
-                                <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${showPalaceMeta ? 'translate-x-4' : 'translate-x-0'}`} />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
