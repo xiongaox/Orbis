@@ -17,6 +17,7 @@
  * - 上游依赖：内部模块 `AdvancedDatePicker`、内部模块 `QimenNewCaseModal`、内部模块 `qimenService` 等 10 个模块
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
+import { useEffect } from 'react';
 import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
 import QimenNewCaseModal from './QimenNewCaseModal';
 import { type PaiPanMethod } from '../../../lib/csp-qimen/qimenService';
@@ -24,6 +25,7 @@ import { QimenDataService } from '../../../lib/csp-qimen/qimenDataService';
 import CustomJuModal from './components/CustomJuModal';
 import QimenAiPromptModal from './QimenAiPromptModal';
 import { useQimenState } from './hooks/useQimenState';
+import type { QimenLockedSnapshot } from '../../../lib/lockedChartStorage';
 
 import QimenDesktopLayout from './layouts/QimenDesktopLayout';
 import QimenPadLayout from './layouts/QimenPadLayout';
@@ -36,8 +38,13 @@ const METHOD_LABELS: Record<PaiPanMethod, string> = {
     'maoshan': '时家茅山法',
 };
 
-export default function QimenPage() {
-    const qimenState = useQimenState();
+interface QimenPageProps {
+    lockedSnapshot?: QimenLockedSnapshot;
+    onSnapshotChange?: (snapshot: QimenLockedSnapshot) => void;
+}
+
+export default function QimenPage({ lockedSnapshot, onSnapshotChange }: QimenPageProps) {
+    const qimenState = useQimenState({ lockedSnapshot });
 
     // Destructure needed values for outer modals
     const {
@@ -46,8 +53,12 @@ export default function QimenPage() {
         isNewCaseModalOpen, editingCase, setIsNewCaseModalOpen, setEditingCase, setRefreshTrigger,
         selectedPattern, setSelectedPattern,
         isCustomJuModalOpen, setIsCustomJuModalOpen, header, setCustomJu,
-        isAiModalOpen, setIsAiModalOpen, palaces, globalPatterns, selectedPalace, paiPanMethod
+        isAiModalOpen, setIsAiModalOpen, palaces, globalPatterns, selectedPalace, paiPanMethod, lockSnapshot
     } = qimenState;
+
+    useEffect(() => {
+        onSnapshotChange?.(lockSnapshot);
+    }, [lockSnapshot, onSnapshotChange]);
 
     return (
         <div className="flex flex-1 h-full min-h-0 overflow-hidden relative">

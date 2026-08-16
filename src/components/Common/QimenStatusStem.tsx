@@ -39,12 +39,19 @@ export default function QimenStatusStem({
     const style = STATUS_STYLE_VARS[isQimenStemStatus(status) ? status : 'jiXing'];
 
     if (isMobile && !mobileAsBadge) {
-        return <span className={`${mobileClassName} font-serif font-bold`} style={style}>{value}</span>;
+        return (
+            <span
+                className={`inline-flex min-w-6 items-center justify-center px-1 rounded-md ${mobileClassName} font-serif font-bold`}
+                style={style}
+            >
+                {value}
+            </span>
+        );
     }
 
     return (
         <span
-            className={`inline-flex items-center justify-center ${isMobile ? mobileClassName : desktopClassName} rounded-md border font-serif font-bold`}
+            className={`inline-flex min-w-6 items-center justify-center px-1 ${isMobile ? mobileClassName : desktopClassName} rounded-md border font-serif font-bold`}
             style={{ ...style, borderColor: style.color }}
         >
             {value}

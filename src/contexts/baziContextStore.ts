@@ -21,6 +21,7 @@
 import { createContext } from 'react';
 import type { BaziApiResponse } from '../types/bazi';
 import type { Case } from '../types';
+import type { BaziLockedSnapshot } from '../lib/lockedChartStorage';
 
 export interface BaziContextValue {
     selectedCaseId: string | null;
@@ -36,6 +37,8 @@ export interface BaziContextValue {
     setSelectedLiuYueIndex: (index: number | null) => void;
     handleSelectCase: (caseId: string | null) => void;
     handleSetTransientCase: (caseData: Case) => void;
+    getLockedSnapshot: () => BaziLockedSnapshot;
+    restoreLockedSnapshot: (snapshot: BaziLockedSnapshot) => Promise<void>;
     initializeBazi: () => void;
 }
 
