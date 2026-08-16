@@ -48,10 +48,25 @@ CREATE TABLE IF NOT EXISTS sanyuan_cases (
     updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 4. AI 模型服务表（配置按当前登录用户跨设备同步）
+CREATE TABLE IF NOT EXISTS ai_model_services (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    protocol TEXT CHECK (protocol IN ('openai-compatible', 'anthropic-messages', 'google-generative-ai', 'azure-openai', 'ollama')) NOT NULL DEFAULT 'openai-compatible',
+    base_url TEXT NOT NULL,
+    api_key TEXT NOT NULL,
+    models TEXT[] DEFAULT '{}',
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- 4. 启用行级安全 (RLS)
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bazi_cases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sanyuan_cases ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_model_services ENABLE ROW LEVEL SECURITY;
 
 -- 5. 删除已存在的策略（如果有）
 DROP POLICY IF EXISTS "用户只能查看自己的资料" ON profiles;
@@ -67,6 +82,11 @@ DROP POLICY IF EXISTS "用户只能查看自己的三元案例" ON sanyuan_cases
 DROP POLICY IF EXISTS "用户只能创建自己的三元案例" ON sanyuan_cases;
 DROP POLICY IF EXISTS "用户只能更新自己的三元案例" ON sanyuan_cases;
 DROP POLICY IF EXISTS "用户只能删除自己的三元案例" ON sanyuan_cases;
+
+DROP POLICY IF EXISTS "用户只能查看自己的 AI 模型服务" ON ai_model_services;
+DROP POLICY IF EXISTS "用户只能创建自己的 AI 模型服务" ON ai_model_services;
+DROP POLICY IF EXISTS "用户只能更新自己的 AI 模型服务" ON ai_model_services;
+DROP POLICY IF EXISTS "用户只能删除自己的 AI 模型服务" ON ai_model_services;
 
 -- 6. profiles 表策略
 CREATE POLICY "用户只能查看自己的资料"
@@ -115,6 +135,23 @@ CREATE POLICY "用户只能删除自己的三元案例"
     ON sanyuan_cases FOR DELETE
     USING (auth.uid() = user_id);
 
+-- AI 模型服务表策略
+CREATE POLICY "用户只能查看自己的 AI 模型服务"
+    ON ai_model_services FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "用户只能创建自己的 AI 模型服务"
+    ON ai_model_services FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "用户只能更新自己的 AI 模型服务"
+    ON ai_model_services FOR UPDATE
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "用户只能删除自己的 AI 模型服务"
+    ON ai_model_services FOR DELETE
+    USING (auth.uid() = user_id);
+
 -- 9. 自动创建 profile 的触发器
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
@@ -143,6 +180,7 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS profiles_updated_at ON profiles;
 DROP TRIGGER IF EXISTS bazi_cases_updated_at ON bazi_cases;
 DROP TRIGGER IF EXISTS sanyuan_cases_updated_at ON sanyuan_cases;
+DROP TRIGGER IF EXISTS ai_model_services_updated_at ON ai_model_services;
 
 CREATE TRIGGER profiles_updated_at
     BEFORE UPDATE ON profiles
@@ -156,6 +194,10 @@ CREATE TRIGGER sanyuan_cases_updated_at
     BEFORE UPDATE ON sanyuan_cases
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
+CREATE TRIGGER ai_model_services_updated_at
+    BEFORE UPDATE ON ai_model_services
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
 -- 11. 创建索引优化查询
 CREATE INDEX IF NOT EXISTS idx_bazi_cases_user_id ON bazi_cases(user_id);
 CREATE INDEX IF NOT EXISTS idx_bazi_cases_created_at ON bazi_cases(created_at DESC);
@@ -163,6 +205,8 @@ CREATE INDEX IF NOT EXISTS idx_bazi_cases_tags ON bazi_cases USING GIN(tags);
 CREATE INDEX IF NOT EXISTS idx_sanyuan_cases_user_id ON sanyuan_cases(user_id);
 CREATE INDEX IF NOT EXISTS idx_sanyuan_cases_updated_at ON sanyuan_cases(updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sanyuan_cases_case_type ON sanyuan_cases(case_type);
+CREATE INDEX IF NOT EXISTS idx_ai_model_services_user_id ON ai_model_services(user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_model_services_updated_at ON ai_model_services(updated_at DESC);
 
 -- 完成
 SELECT '数据库迁移成功！' AS status;
