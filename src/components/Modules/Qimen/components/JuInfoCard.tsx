@@ -19,6 +19,7 @@
  */
 import { type QimenHeader } from '../../../../lib/csp-qimen/qimenService';
 import { getXunShouSuffix } from '../utils/qimenInfoUtils';
+import QimenDisplaySettings from './QimenDisplaySettings';
 
 interface JuInfoCardProps {
     header: QimenHeader;
@@ -33,10 +34,20 @@ interface JuInfoCardProps {
     selectedMaXingKey: 'year' | 'month' | 'day' | 'hour';
     onKongWangKeyChange: (key: 'year' | 'month' | 'day' | 'hour') => void;
     onMaXingKeyChange: (key: 'year' | 'month' | 'day' | 'hour') => void;
+    showChangSheng?: boolean;
+    showShiShen?: boolean;
+    showPalaceMeta?: boolean;
+    onToggleChangSheng?: () => void;
+    onToggleShiShen?: () => void;
+    onTogglePalaceMeta?: () => void;
     compact?: boolean;
 }
 
-export default function JuInfoCard({ header, info, selectedKongWangKey, selectedMaXingKey, onKongWangKeyChange, onMaXingKeyChange, compact = false }: JuInfoCardProps) {
+export default function JuInfoCard({
+    header, info, selectedKongWangKey, selectedMaXingKey, onKongWangKeyChange, onMaXingKeyChange,
+    showChangSheng = false, showShiShen = false, showPalaceMeta = false,
+    onToggleChangSheng, onToggleShiShen, onTogglePalaceMeta, compact = false
+}: JuInfoCardProps) {
     return (
         <div className={compact ? 'p-3 space-y-3' : 'p-4 lg:p-6 space-y-4 lg:space-y-5'}>
             {/* 顶部标题 */}
@@ -78,6 +89,21 @@ export default function JuInfoCard({ header, info, selectedKongWangKey, selected
                     <span className="font-mono text-xs tracking-wider opacity-80">{info.nextJieQi.time}</span>
                 </div>
             </div>
+
+            {(onToggleChangSheng || onToggleShiShen || onTogglePalaceMeta) && (
+                <>
+                    <div className="h-px bg-border/50" />
+                    <QimenDisplaySettings
+                        showChangSheng={showChangSheng}
+                        showShiShen={showShiShen}
+                        showPalaceMeta={showPalaceMeta}
+                        onToggleChangSheng={onToggleChangSheng}
+                        onToggleShiShen={onToggleShiShen}
+                        onTogglePalaceMeta={onTogglePalaceMeta}
+                        compact={compact}
+                    />
+                </>
+            )}
 
             <div className="h-px bg-border/50" />
 

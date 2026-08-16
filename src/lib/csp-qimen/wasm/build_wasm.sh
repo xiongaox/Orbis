@@ -1,8 +1,14 @@
 #!/bin/bash
 set -e
 
-# Path to CSP library (adjust as needed)
-CSP_ROOT="../../../../../参考库/csp"
+# Path to the upstream CSP checkout. Set CSP_ROOT to update the kernel.
+CSP_ROOT="${CSP_ROOT:-../../../../../参考库/csp}"
+
+if [ ! -f "${CSP_ROOT}/src/csp_base.hpp" ]; then
+    echo "CSP source not found: ${CSP_ROOT}" >&2
+    echo "Clone https://github.com/taynpg/csp and set CSP_ROOT to that directory." >&2
+    exit 1
+fi
 
 echo "Compiling CSP to WebAssembly..."
 

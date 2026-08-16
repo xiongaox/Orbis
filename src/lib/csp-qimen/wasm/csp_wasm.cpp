@@ -38,6 +38,7 @@ EMSCRIPTEN_BINDINGS(csp_module) {
         .property("ju", &CmdParam::ju)
         .property("type", &CmdParam::type)
         .property("zone", &CmdParam::zone)
+        .property("angan", &CmdParam::angan)
         .property("is_auto", &CmdParam::is_auto)
         .property("str_dt", &CmdParam::str_dt)
         ;

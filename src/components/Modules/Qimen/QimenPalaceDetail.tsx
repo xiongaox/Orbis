@@ -22,6 +22,7 @@ import { BookOpen } from 'lucide-react';
 import type { QimenPalace } from './QimenChart';
 import { QimenDataService } from '../../../lib/csp-qimen/qimenDataService';
 import { detectPalacePatterns, type PatternContext } from '../../../lib/csp-qimen/patternDetector';
+import { getMenPoStatus, getTianPanStatus } from '../../../lib/csp-qimen/qimenStatusUtils';
 import { getGanLabel, getDetailDisplayData } from './utils/palaceDetailDataHelper';
 
 interface QimenPalaceDetailProps {
@@ -31,6 +32,87 @@ interface QimenPalaceDetailProps {
     zhiFuXing?: string;
     siZhu?: { year: string; month: string; day: string; hour: string };
     xunShou?: string;
+}
+
+interface PalaceStatusNotice {
+    label: string;
+    style: {
+        color: string;
+        backgroundColor: string;
+        borderColor: string;
+    };
+}
+
+const STATUS_NOTICE_STYLES = {
+    zhiFu: {
+        color: 'var(--primary)',
+        backgroundColor: 'color-mix(in srgb, var(--primary) 10%, transparent)',
+        borderColor: 'color-mix(in srgb, var(--primary) 25%, transparent)',
+    },
+    zhiShi: {
+        color: 'var(--primary)',
+        backgroundColor: 'color-mix(in srgb, var(--primary) 10%, transparent)',
+        borderColor: 'color-mix(in srgb, var(--primary) 25%, transparent)',
+    },
+    menPo: {
+        color: 'var(--element-fire)',
+        backgroundColor: 'var(--element-fire-bg)',
+        borderColor: 'var(--element-fire)',
+    },
+    jiXing: {
+        color: 'var(--qimen-status-ji-xing)',
+        backgroundColor: 'var(--qimen-status-ji-xing-bg)',
+        borderColor: 'var(--qimen-status-ji-xing)',
+    },
+    ruMu: {
+        color: 'var(--qimen-status-ru-mu)',
+        backgroundColor: 'var(--qimen-status-ru-mu-bg)',
+        borderColor: 'var(--qimen-status-ru-mu)',
+    },
+    jiXingRuMu: {
+        color: 'var(--qimen-status-ji-xing-ru-mu)',
+        backgroundColor: 'var(--qimen-status-ji-xing-ru-mu-bg)',
+        borderColor: 'var(--qimen-status-ji-xing-ru-mu)',
+    },
+} satisfies Record<string, PalaceStatusNotice['style']>;
+
+function getPalaceStatusNotices(
+    item: { type: string; label: string },
+    palace: QimenPalace,
+    zhiFuXing?: string,
+    zhiShiMen?: string,
+): PalaceStatusNotice[] {
+    if (item.type === '九星' && palace.xing === zhiFuXing) {
+        return [{ label: '值符', style: STATUS_NOTICE_STYLES.zhiFu }];
+    }
+
+    if (item.type === '八门') {
+        const notices: PalaceStatusNotice[] = [];
+        if (palace.men === zhiShiMen) {
+            notices.push({ label: '值使', style: STATUS_NOTICE_STYLES.zhiShi });
+        }
+        if (getMenPoStatus(palace.men, palace.position).isPo) {
+            notices.push({ label: '门迫', style: STATUS_NOTICE_STYLES.menPo });
+        }
+        return notices;
+    }
+
+    if (item.type !== '天盘干' && item.type !== '地盘干') {
+        return [];
+    }
+
+    const stem = item.type === '天盘干' ? palace.tianPan : palace.diPan;
+    const status = getTianPanStatus(stem, palace.position).status;
+    switch (status) {
+        case 'jiXing':
+            return [{ label: '击刑', style: STATUS_NOTICE_STYLES.jiXing }];
+        case 'ruMu':
+            return [{ label: '入墓', style: STATUS_NOTICE_STYLES.ruMu }];
+        case 'jiXingRuMu':
+            return [{ label: '刑+墓', style: STATUS_NOTICE_STYLES.jiXingRuMu }];
+        default:
+            return [];
+    }
 }
 
 export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXing, siZhu, xunShou }: QimenPalaceDetailProps) {
@@ -110,6 +192,9 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
     const detailData = activeItem
         ? getDetailDisplayData(activeItem.type, activeItem.label, palace.position, timeZhi)
         : { title: '', subTitle: '', tags: [], content: '' };
+    const statusNotices = activeItem
+        ? getPalaceStatusNotices(activeItem, palace, zhiFuXing, zhiShiMen)
+        : [];
 
     return (
         <aside className="w-full h-full bg-card border-l border-border flex min-h-0 text-foreground">
@@ -163,6 +248,19 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
                 )}
 
                 <div className="flex-1 overflow-y-auto p-3 custom-scrollbar">
+                    {statusNotices.length > 0 && activeItem && (
+                        <div className="mb-4 space-y-2">
+                            {statusNotices.map((notice) => (
+                                <div
+                                    key={notice.label}
+                                    className="rounded-md border px-2.5 py-2 text-sm font-serif"
+                                    style={notice.style}
+                                >
+                                    {detailData.title}当前状态是：{notice.label}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                     <div className="prose prose-invert prose-sm max-w-none">
                         <div className="leading-loose text-foreground/60 font-normal text-base">
                             {typeof detailData.content === 'string' ? (
