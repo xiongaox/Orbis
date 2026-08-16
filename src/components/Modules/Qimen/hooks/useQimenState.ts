@@ -18,7 +18,7 @@
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { type QimenPalace } from '../QimenChart';
 import {
     calculateQimen,
@@ -32,6 +32,7 @@ import { type GlobalPattern } from '../../../../lib/csp-qimen/patternDetector';
 import { type PillarKey } from '../QimenJuInfo';
 import { getXunKong, ZHI_PALACE_MAP, MA_XING_MAP } from '../utils/qimenInfoUtils';
 import { useLayoutMode } from '../../../../hooks/useLayoutMode';
+import type { QimenLockedSnapshot } from '../../../../lib/lockedChartStorage';
 
 // 默认空的宫位数据
 const EMPTY_PALACES: QimenPalace[] = Array.from({ length: 9 }, (_, i) => ({
@@ -59,14 +60,22 @@ const DEFAULT_HEADER: QimenHeader = {
     siZhu: { year: '', month: '', day: '', hour: '' },
 };
 
-export function useQimenState() {
+interface UseQimenStateOptions {
+    lockedSnapshot?: QimenLockedSnapshot;
+}
+
+export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
     const { isPadLandscape, useDesktopLayout } = useLayoutMode();
-    const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+    const initialLockedSnapshotRef = useRef(lockedSnapshot);
+    const initialLockedSnapshot = initialLockedSnapshotRef.current;
+    const [selectedCaseId, setSelectedCaseId] = useState<string | null>(initialLockedSnapshot?.selectedCaseId ?? null);
     const [selectedPalace, setSelectedPalace] = useState<number | null>(null);
 
     // 时间选择器状态
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
-    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const [selectedDate, setSelectedDate] = useState<Date>(() => (
+        initialLockedSnapshot ? new Date(initialLockedSnapshot.selectedDate) : new Date()
+    ));
 
     // 新建案例弹窗状态
     const [isNewCaseModalOpen, setIsNewCaseModalOpen] = useState(false);
@@ -76,10 +85,10 @@ export function useQimenState() {
     const [header, setHeader] = useState<QimenHeader>(DEFAULT_HEADER);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [paiPanMethod, setPaiPanMethod] = useState<PaiPanMethod>('zhirun');
+    const [paiPanMethod, setPaiPanMethod] = useState<PaiPanMethod>(initialLockedSnapshot?.paiPanMethod ?? 'zhirun');
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const [editingCase, setEditingCase] = useState<QimenCase | null>(null);
-    const [currentCase, setCurrentCase] = useState<QimenCase | null>(null);
+    const [currentCase, setCurrentCase] = useState<QimenCase | null>(initialLockedSnapshot?.currentCase ?? null);
     // 全局格局状态
     const [globalPatterns, setGlobalPatterns] = useState<GlobalPattern[]>([]);
 
@@ -87,7 +96,7 @@ export function useQimenState() {
     const [selectedPattern, setSelectedPattern] = useState<GlobalPattern | null>(null);
 
     // 自定义局数状态
-    const [customJu, setCustomJu] = useState<number>(0);  // 0=自动计算
+    const [customJu, setCustomJu] = useState<number>(initialLockedSnapshot?.customJu ?? 0);  // 0=自动计算
     const [isCustomJuModalOpen, setIsCustomJuModalOpen] = useState(false);
 
     // AI 提示词弹窗状态
@@ -140,7 +149,11 @@ export function useQimenState() {
     }, [header.siZhu, selectedKongWangKey, selectedMaXingKey]);
 
     // 根据指定日期计算奇门盘
-    const calculateQimenByDate = useCallback(async (date: Date, juOverride?: number) => {
+    const calculateQimenByDate = useCallback(async (
+        date: Date,
+        juOverride?: number,
+        methodOverride?: PaiPanMethod,
+    ) => {
         setIsLoading(true);
         setError(null);
         setSelectedDate(date);
@@ -155,7 +168,7 @@ export function useQimenState() {
                 day: date.getDate(),
                 hour: date.getHours(),
                 minute: date.getMinutes(),
-            }, paiPanMethod, effectiveJu);
+            }, methodOverride ?? paiPanMethod, effectiveJu);
 
             if (result) {
                 setPalaces(result.palaces);
@@ -221,14 +234,38 @@ export function useQimenState() {
         await calculateQimenByDate(newDate);
     }, [selectedDate, calculateQimenByDate]);
 
-    // 初始化 WASM 并计算当前时间的盘
+    // 初始化 WASM 并恢复锁定快照或计算当前时间的盘
     useEffect(() => {
         const init = async () => {
             await initCspWasm();
+            if (initialLockedSnapshot) {
+                await calculateQimenByDate(
+                    new Date(initialLockedSnapshot.selectedDate),
+                    initialLockedSnapshot.customJu,
+                    initialLockedSnapshot.paiPanMethod,
+                );
+                return;
+            }
             await calculateNow();
         };
         init();
-    }, [calculateNow]);
+    }, [calculateNow, calculateQimenByDate, initialLockedSnapshot]);
+
+    const lockSnapshot = useMemo((): QimenLockedSnapshot => ({
+        version: 1,
+        capturedAt: new Date().toISOString(),
+        selectedCaseId,
+        currentCase,
+        selectedDate: selectedDate.toISOString(),
+        paiPanMethod,
+        customJu,
+    }), [
+        selectedCaseId,
+        currentCase,
+        selectedDate,
+        paiPanMethod,
+        customJu,
+    ]);
 
     // 删除案例
     const handleDeleteCase = async (id: string) => {
@@ -303,5 +340,6 @@ export function useQimenState() {
         selectedKongWangKey, setSelectedKongWangKey,
         selectedMaXingKey, setSelectedMaXingKey,
         dynamicMaKong,
+        lockSnapshot,
     };
 }

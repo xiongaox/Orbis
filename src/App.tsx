@@ -17,7 +17,7 @@
  * - 上游依赖：外部依赖 `react`、内部模块 `AuthContext`、内部模块 `BaziContext` 等 20 个模块
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { BaziProvider } from './contexts/BaziContext';
 import { useBaziContext } from './contexts/useBaziContext';
@@ -38,17 +38,22 @@ import { useInsightContent } from './hooks/useInsightContent';
 import { useGanZhiLiuYi } from './hooks/useGanZhiLiuYi';
 import type { ChartType } from './types';
 import { INSIGHT_BOOKS, DEFAULT_BOOK_ID } from './data/booksConfig';
+import {
+  LOCKED_CHARTS_STORAGE_KEY,
+  LOCKED_CHART_SNAPSHOTS_STORAGE_KEY,
+  readLockedCharts,
+  readLockedChartSnapshots,
+  writeLockedCharts,
+  writeLockedChartSnapshots,
+  type LockedChartSnapshots,
+  type QimenLockedSnapshot,
+} from './lib/lockedChartStorage';
 
 function AppContent() {
   const [activeChart, setActiveChart] = useState<ChartType>('wannianli');
-  const [lockedCharts, setLockedCharts] = useState<ChartType[]>(() => {
-    try {
-      const stored = localStorage.getItem('orbis_locked_charts');
-      return stored ? JSON.parse(stored) as ChartType[] : [];
-    } catch {
-      return [];
-    }
-  });
+  const [lockedCharts, setLockedCharts] = useState<ChartType[]>(readLockedCharts);
+  const [lockedSnapshots, setLockedSnapshots] = useState<LockedChartSnapshots>(readLockedChartSnapshots);
+  const [qimenLiveSnapshot, setQimenLiveSnapshot] = useState<QimenLockedSnapshot | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCaseLibraryModal, setShowCaseLibraryModal] = useState(false);
   // 默认选中的经典书籍 ID
@@ -56,6 +61,15 @@ function AppContent() {
   // 使用 Context 获取八字状态
   const bazi = useBaziContext();
   const initializeBazi = bazi.initializeBazi;
+  const restoreBaziLockedSnapshot = bazi.restoreLockedSnapshot;
+  const baziIsLocked = lockedCharts.includes('bazi');
+  const qimenSnapshot = lockedSnapshots.qimen;
+
+  useEffect(() => {
+    if (baziIsLocked && lockedSnapshots.bazi) {
+      restoreBaziLockedSnapshot(lockedSnapshots.bazi);
+    }
+  }, [baziIsLocked, restoreBaziLockedSnapshot, lockedSnapshots.bazi]);
 
   // 切换到八字时初始化数据
   useEffect(() => {
@@ -65,19 +79,74 @@ function AppContent() {
   }, [activeChart, initializeBazi]);
 
   useEffect(() => {
-    localStorage.setItem('orbis_locked_charts', JSON.stringify(lockedCharts));
+    writeLockedChartSnapshots(lockedSnapshots);
+  }, [lockedSnapshots]);
+
+  useEffect(() => {
+    writeLockedCharts(lockedCharts);
   }, [lockedCharts]);
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.storageArea !== localStorage) return;
+
+      if (event.key === LOCKED_CHARTS_STORAGE_KEY) {
+        setLockedCharts(readLockedCharts());
+      }
+
+      if (event.key === LOCKED_CHART_SNAPSHOTS_STORAGE_KEY) {
+        setLockedSnapshots(readLockedChartSnapshots());
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const handleLoginClick = () => {
     setShowAuthModal(true);
   };
 
+  const handleQimenSnapshotChange = useCallback((snapshot: QimenLockedSnapshot) => {
+    setQimenLiveSnapshot(snapshot);
+  }, []);
+
   const handleToggleChartLock = (chart: ChartType) => {
-    setLockedCharts((current) => (
-      current.includes(chart)
-        ? current.filter((lockedChart) => lockedChart !== chart)
-        : [...current, chart]
-    ));
+    const isLocked = lockedCharts.includes(chart);
+
+    if (isLocked) {
+      setLockedCharts((current) => current.filter((lockedChart) => lockedChart !== chart));
+      setLockedSnapshots((current) => {
+        const next = { ...current };
+        delete next[chart as keyof LockedChartSnapshots];
+        return next;
+      });
+      return;
+    }
+
+    if (chart === 'bazi') {
+      setLockedSnapshots((current) => ({
+        ...current,
+        bazi: bazi.getLockedSnapshot(),
+      }));
+    }
+
+    if (chart === 'qimen') {
+      setLockedSnapshots((current) => ({
+        ...current,
+        qimen: {
+          version: 1,
+          capturedAt: new Date().toISOString(),
+          selectedCaseId: qimenLiveSnapshot?.selectedCaseId ?? null,
+          currentCase: qimenLiveSnapshot?.currentCase ?? null,
+          selectedDate: qimenLiveSnapshot?.selectedDate ?? new Date().toISOString(),
+          paiPanMethod: qimenLiveSnapshot?.paiPanMethod ?? 'zhirun',
+          customJu: qimenLiveSnapshot?.customJu ?? 0,
+        },
+      }));
+    }
+
+    setLockedCharts((current) => [...current, chart]);
   };
 
   // 使用提取的 Hook 计算干支留意数据
@@ -102,7 +171,13 @@ function AppContent() {
   const renderContent = (chart: ChartType) => {
     switch (chart) {
       case 'qimen':
-        return <QimenPage />;
+        return (
+          <QimenPage
+            key={qimenSnapshot?.capturedAt ?? 'unlocked'}
+            lockedSnapshot={qimenSnapshot}
+            onSnapshotChange={handleQimenSnapshotChange}
+          />
+        );
       case 'xiaoliuren':
         return <CaseStudyPage />;
       case 'wannianli':

@@ -17,13 +17,14 @@
  * - 上游依赖：外部依赖 `react`、内部模块 `useAuth`、内部模块 `baziCaseService` 等 7 个模块
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/useAuth';
 import { baziCaseService } from '../services/baziCaseService';
 import { calculateBazi } from '../services/bazi/baziCalculator';
 import type { BaziApiResponse } from '../types/bazi';
 import type { Case } from '../types';
 import { BAZI_CASES_CHANGED_EVENT } from '../data/caseConstants';
+import type { BaziLockedSnapshot } from '../lib/lockedChartStorage';
 
 export function useBazi() {
     const { isAuthenticated } = useAuth();
@@ -38,6 +39,7 @@ export function useBazi() {
     const [selectedLiuNianYear, setSelectedLiuNianYear] = useState<number | null>(null);
     const [selectedLiuYueIndex, setSelectedLiuYueIndex] = useState<number | null>(null);
     const [isTransient, setIsTransient] = useState(false);
+    const restoringLockedSnapshotRef = useRef(false);
 
     // 加载案例数据
     const loadCase = useCallback(async (caseId: string) => {
@@ -112,7 +114,7 @@ export function useBazi() {
 
     // 初始化加载
     const initializeBazi = useCallback(() => {
-        if (!baziData && !loading) {
+        if (!baziData && !loading && !restoringLockedSnapshotRef.current) {
             loadBaziData();
         }
     }, [baziData, loading, loadBaziData]);
@@ -164,6 +166,43 @@ export function useBazi() {
         loadBaziData(caseData);
     }, [loadBaziData]);
 
+    const getLockedSnapshot = useCallback((): BaziLockedSnapshot => ({
+        version: 1,
+        capturedAt: new Date().toISOString(),
+        selectedCaseId,
+        selectedCase,
+        selectedDaYunIndex,
+        selectedLiuNianYear,
+        selectedLiuYueIndex,
+    }), [
+        selectedCaseId,
+        selectedCase,
+        selectedDaYunIndex,
+        selectedLiuNianYear,
+        selectedLiuYueIndex,
+    ]);
+
+    const restoreLockedSnapshot = useCallback(async (snapshot: BaziLockedSnapshot) => {
+        restoringLockedSnapshotRef.current = true;
+        setSelectedDaYunIndex(snapshot.selectedDaYunIndex);
+        setSelectedLiuNianYear(snapshot.selectedLiuNianYear);
+        setSelectedLiuYueIndex(snapshot.selectedLiuYueIndex);
+        setIsTransient(true);
+        setSelectedCaseId(snapshot.selectedCaseId);
+
+        try {
+            const caseData = snapshot.selectedCase ?? (
+                snapshot.selectedCaseId && snapshot.selectedCaseId !== 'temp'
+                    ? await loadCase(snapshot.selectedCaseId)
+                    : null
+            );
+            setSelectedCase(caseData);
+            await loadBaziData(caseData);
+        } finally {
+            restoringLockedSnapshotRef.current = false;
+        }
+    }, [loadBaziData, loadCase]);
+
     return {
         // 状态
         selectedCaseId,
@@ -180,6 +219,8 @@ export function useBazi() {
         setSelectedLiuYueIndex,
         handleSelectCase,
         handleSetTransientCase,
+        getLockedSnapshot,
+        restoreLockedSnapshot,
         initializeBazi,
     };
 }
