@@ -17,7 +17,7 @@
  * - 上游依赖：外部依赖 `react`、内部模块 `AuthContext`、内部模块 `BaziContext` 等 20 个模块
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { BaziProvider } from './contexts/BaziContext';
 import { useBaziContext } from './contexts/useBaziContext';
@@ -41,6 +41,14 @@ import { INSIGHT_BOOKS, DEFAULT_BOOK_ID } from './data/booksConfig';
 
 function AppContent() {
   const [activeChart, setActiveChart] = useState<ChartType>('wannianli');
+  const [lockedCharts, setLockedCharts] = useState<ChartType[]>(() => {
+    try {
+      const stored = localStorage.getItem('orbis_locked_charts');
+      return stored ? JSON.parse(stored) as ChartType[] : [];
+    } catch {
+      return [];
+    }
+  });
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCaseLibraryModal, setShowCaseLibraryModal] = useState(false);
   // 默认选中的经典书籍 ID
@@ -49,10 +57,6 @@ function AppContent() {
   const bazi = useBaziContext();
   const initializeBazi = bazi.initializeBazi;
 
-  // 根据当前模块决定是否显示侧边栏（奇门模块有自己的布局）
-  const showSidebar = activeChart === 'bazi';
-  const showInsights = activeChart === 'bazi';
-
   // 切换到八字时初始化数据
   useEffect(() => {
     if (activeChart === 'bazi') {
@@ -60,8 +64,20 @@ function AppContent() {
     }
   }, [activeChart, initializeBazi]);
 
+  useEffect(() => {
+    localStorage.setItem('orbis_locked_charts', JSON.stringify(lockedCharts));
+  }, [lockedCharts]);
+
   const handleLoginClick = () => {
     setShowAuthModal(true);
+  };
+
+  const handleToggleChartLock = (chart: ChartType) => {
+    setLockedCharts((current) => (
+      current.includes(chart)
+        ? current.filter((lockedChart) => lockedChart !== chart)
+        : [...current, chart]
+    ));
   };
 
   // 使用提取的 Hook 计算干支留意数据
@@ -78,8 +94,13 @@ function AppContent() {
   });
 
   // 渲染主内容区域
-  const renderContent = () => {
-    switch (activeChart) {
+  const mountedCharts = useMemo(
+    () => Array.from(new Set([...lockedCharts, activeChart])),
+    [activeChart, lockedCharts],
+  );
+
+  const renderContent = (chart: ChartType) => {
+    switch (chart) {
       case 'qimen':
         return <QimenPage />;
       case 'xiaoliuren':
@@ -91,7 +112,7 @@ function AppContent() {
       case 'bazi':
         return (
           <MainLayout
-            sidebar={showSidebar ? (
+            sidebar={(
               <BaziCaseList
                 selectedCaseId={bazi.selectedCaseId}
                 onSelectCase={bazi.handleSelectCase}
@@ -99,17 +120,15 @@ function AppContent() {
                 onOpenLibrary={() => setShowCaseLibraryModal(true)}
                 onPreviewCase={bazi.handleSetTransientCase}
               />
-            ) : undefined}
-            liuYiPanel={showInsights ? <GanZhiLiuYiPanel data={ganZhiLiuYiData} /> : undefined}
+            )}
+            liuYiPanel={<GanZhiLiuYiPanel data={ganZhiLiuYiData} />}
             insightPanel={
-              showInsights ? (
-                <InsightPanel
-                  books={INSIGHT_BOOKS}
-                  activeBook={activeBookId}
-                  onBookChange={setActiveBookId}
-                  content={insightContent}
-                />
-              ) : undefined
+              <InsightPanel
+                books={INSIGHT_BOOKS}
+                activeBook={activeBookId}
+                onBookChange={setActiveBookId}
+                content={insightContent}
+              />
             }
           >
             <BaziPage />
@@ -118,16 +137,9 @@ function AppContent() {
       default:
         return (
           <MainLayout
-            sidebar={showSidebar ? (
-              <BaziCaseList
-                selectedCaseId={bazi.selectedCaseId}
-                onSelectCase={bazi.handleSelectCase}
-                onLoginClick={handleLoginClick}
-                onOpenLibrary={() => setShowCaseLibraryModal(true)}
-              />
-            ) : undefined}
+            sidebar={undefined}
           >
-            <PlaceholderChart chart={activeChart} />
+            <PlaceholderChart chart={chart} />
           </MainLayout>
         );
     }
@@ -138,12 +150,22 @@ function AppContent() {
       <Navbar
         activeChart={activeChart}
         onChartChange={setActiveChart}
+        lockedCharts={lockedCharts}
+        onToggleChartLock={handleToggleChartLock}
         onLoginClick={handleLoginClick}
       />
 
       {/* Main Content Area */}
       <div className="flex-1 min-h-0 min-w-0 overflow-hidden relative flex flex-col">
-        {renderContent()}
+        {mountedCharts.map((chart) => (
+          <div
+            key={chart}
+            className={chart === activeChart ? 'flex flex-1 min-h-0 min-w-0 overflow-hidden' : 'hidden'}
+            aria-hidden={chart !== activeChart}
+          >
+            {renderContent(chart)}
+          </div>
+        ))}
       </div>
 
       {/* 登录/注册 Modal */}

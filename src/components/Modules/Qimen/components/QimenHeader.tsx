@@ -51,8 +51,6 @@ interface QimenHeaderProps {
     globalPatterns: GlobalPattern[];
     onPatternClick?: (pattern: GlobalPattern) => void;
     onOpenAiModal?: () => void;
-    isSettingsOpen: boolean;
-    onToggleSettings: () => void;
     isMobileLayout?: boolean;
 }
 
@@ -68,8 +66,6 @@ export default function QimenHeader({
     globalPatterns,
     onPatternClick,
     onOpenAiModal,
-    isSettingsOpen,
-    onToggleSettings,
     isMobileLayout = false,
 }: QimenHeaderProps) {
     const [isMethodOpen, setIsMethodOpen] = useState(false);
@@ -181,23 +177,6 @@ export default function QimenHeader({
                     <button type="button" onClick={onNextHour} className={`${isMobileLayout ? 'px-3 flex items-center' : 'p-1 2xl:p-1.5'} bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors border border-border`} title="下一局">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isMobileLayout ? 'w-4 h-4' : 'w-3 h-3 2xl:w-3.5 2xl:h-3.5'}><path d="m9 18 6-6-6-6" /></svg>
                     </button>
-                    {!isMobileLayout && (
-                        <div className="relative">
-                            <button
-                                type="button"
-                                onClick={onToggleSettings}
-                                className={`flex items-center gap-1 px-1.5 2xl:px-2.5 py-0.5 text-xs 2xl:text-sm rounded-full transition-colors font-serif border border-border ${isSettingsOpen ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground hover:bg-secondary/80'}`}
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3 2xl:w-3.5 2xl:h-3.5">
-                                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-                                    <circle cx="12" cy="12" r="3" />
-                                </svg>
-                                <span>高级设置</span>
-                                <svg className={`h-3 w-3 fill-current transition-transform ${isSettingsOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
-                            </button>
-                            {/* 弹窗渲染已移至 QimenChart 层级 */}
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

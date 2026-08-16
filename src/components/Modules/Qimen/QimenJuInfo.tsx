@@ -39,12 +39,20 @@ interface QimenJuInfoProps {
     selectedMaXingKey: PillarKey;
     onKongWangKeyChange: (key: PillarKey) => void;
     onMaXingKeyChange: (key: PillarKey) => void;
+    showChangSheng?: boolean;
+    showShiShen?: boolean;
+    showPalaceMeta?: boolean;
+    onToggleChangSheng?: () => void;
+    onToggleShiShen?: () => void;
+    onTogglePalaceMeta?: () => void;
     compact?: boolean;
 }
 
 export default function QimenJuInfo({
     date, header, caseData, onCaseUpdated,
-    selectedKongWangKey, selectedMaXingKey, onKongWangKeyChange, onMaXingKeyChange, compact = false
+    selectedKongWangKey, selectedMaXingKey, onKongWangKeyChange, onMaXingKeyChange,
+    showChangSheng, showShiShen, showPalaceMeta,
+    onToggleChangSheng, onToggleShiShen, onTogglePalaceMeta, compact = false
 }: QimenJuInfoProps) {
     // 局基本信息计算
     const info = useMemo(() => {
@@ -103,6 +111,12 @@ export default function QimenJuInfo({
                 selectedMaXingKey={selectedMaXingKey}
                 onKongWangKeyChange={onKongWangKeyChange}
                 onMaXingKeyChange={onMaXingKeyChange}
+                showChangSheng={showChangSheng}
+                showShiShen={showShiShen}
+                showPalaceMeta={showPalaceMeta}
+                onToggleChangSheng={onToggleChangSheng}
+                onToggleShiShen={onToggleShiShen}
+                onTogglePalaceMeta={onTogglePalaceMeta}
                 compact={compact}
             />
 

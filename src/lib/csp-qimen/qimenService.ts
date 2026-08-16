@@ -32,7 +32,7 @@ import { getEightCharFromDate, getSolarToLunarInfo } from '../../utils/lunarUtil
 import { LunarUtil } from 'lunar-typescript';
 import { getXingWang, getMenWang, getGanShiErCS, getPalaceWangShuai } from './qimenUtils';
 import { getGanShiShen, getXingShiShen, getMenShiShen } from './qimenShiShenUtils';
-import { GONG_NAMES, DI_PAN_GAN_SHUN, AN_GAN_ORDER, INNER_YANG, OUTER_YANG } from './constants';
+import { GONG_NAMES, DI_PAN_GAN_SHUN, INNER_YANG, OUTER_YANG } from './constants';
 import { ZHI_PALACE_MAP, MA_XING_MAP } from '../../components/Modules/Qimen/utils/qimenInfoUtils';
 
 // ============ 类型定义 ============
@@ -72,6 +72,7 @@ export interface QimenResult {
 // CSP 原始宫位数据结构
 interface CspPalace {
     shen: string;       // 八神
+    anGan: string;      // 暗干
     xing: string;       // 九星
     men: string;        // 八门
     tianPan: string;    // 天盘干 (主)
@@ -102,6 +103,7 @@ interface WasmCmdParam {
     min: number;
     sec: number;
     zone: number;
+    angan: number;
     str_dt: string;
     ju: number;
     type: number;
@@ -235,6 +237,8 @@ function callCspWasm(time: QimenTime, type: number, customJu: number = 0): strin
         // Set zone to 0.0 because the input time (str_dt/hour/min) is already Local Time (Beijing Time).
         // If we set zone=8.0, the WASM engine treats input as UTC and adds 8 hours, causing incorrect ShiChen.
         param.zone = 0.0;
+        // 使用 CSP 的“入值使门”暗干排法，替代前端自算逻辑。
+        param.angan = 1;
         const pad = (n: number) => n.toString().padStart(2, '0');
         // Format YYYY-MM-DD HH:mm:ss
         param.str_dt = `${time.year}-${pad(time.month)}-${pad(time.day)} ${pad(time.hour)}:${pad(time.minute)}:00`;
@@ -312,7 +316,7 @@ function parseCspOutput(output: string): CspParsedData | null {
 
     // 解析九宫格
     const palaceData: CspPalace[] = Array(9).fill(null).map(() => ({
-        shen: '', xing: '', men: '',
+        shen: '', anGan: '', xing: '', men: '',
         tianPan: '', tianPanJi: '',
         diPan: '', diPanJi: '',
         isKong: false, isMa: false
@@ -371,12 +375,13 @@ function parseCspOutput(output: string): CspParsedData | null {
                 if (shenMatch[2] === '马') palaceData[idx].isMa = true;
             }
 
-            // 解析九星和天盘干
-            const xingMatch = xingCell.match(/^\s*(\S+)\s+(\S+)/);
+            // 解析暗干、九星和天盘干
+            const xingMatch = xingCell.match(/^\s*(\S+)\s+(\S+)\s+(\S+)/);
             if (xingMatch) {
-                palaceData[idx].xing = xingMatch[1];
+                palaceData[idx].anGan = xingMatch[1];
+                palaceData[idx].xing = xingMatch[2];
                 // 天盘干可能包含两个字（主干+寄宫干），需要拆分
-                const tianPanStr = xingMatch[2] || '';
+                const tianPanStr = xingMatch[3] || '';
                 if (tianPanStr.length === 2) {
                     palaceData[idx].tianPan = tianPanStr[0];
                     palaceData[idx].tianPanJi = tianPanStr[1];
@@ -534,100 +539,6 @@ function getPanType(pos: number, isYang: boolean): string {
 }
 
 /**
- * 计算暗干
- * 算法：时干找值使飞布，遇地盘相同入中
- * 
- * 关键点：
- * 1. 找值使门**实际所在的宫位**（转盘后的位置，非本宫）
- * 2. 从该宫位起，以时干为首，按飞宫顺序依次落干
- * 3. 当飞布之干 = 该宫地盘干时，此干入中宫
- * 
- * @param zhiShiMen 值使门名称（如 "休门" 或 "休"）
- * @param hourGan 时干（如 "戊"）
- * @param palaces 已构建的 QimenPalace 数组（有明确的 position 字段）
- * @returns 每个宫位的暗干映射 { position: anGan }
- */
-function calculateAnGan(
-    zhiShiMen: string,
-    hourGan: string,
-    palaces: QimenPalace[],
-    juName: string
-): Record<number, string> {
-    const result: Record<number, string> = {};
-
-    // 1. 找值使门**实际所在的宫位**
-    //    遍历 palaces，找到 men 字段包含值使门名称的宫位
-    const menNameToFind = zhiShiMen.replace('门', '');
-    let zhiShiPalacePos = 0;
-
-    for (const palace of palaces) {
-        const palaceMen = palace.men?.replace('门', '') || '';
-        if (palaceMen === menNameToFind) {
-            zhiShiPalacePos = palace.position;
-            break;
-        }
-    }
-
-    if (zhiShiPalacePos === 0) {
-        console.warn('[AnGan] Cannot find zhiShi palace for:', zhiShiMen, 'positions:', palaces.map(p => `${p.position}:${p.men}`));
-        return result;
-    }
-
-    // 2. 确定时干在九干中的位置（六仪三奇：戊己庚辛壬癸丁丙乙）
-    const hourGanIdx = AN_GAN_ORDER.indexOf(hourGan);
-    if (hourGanIdx === -1) {
-        console.warn('[AnGan] Invalid hourGan (not in 9 stems):', hourGan);
-        return result;
-    }
-
-    // 3. 构建地盘干映射 (用于判断入中)
-    const diPanMap: Record<number, string> = {};
-    for (const palace of palaces) {
-        diPanMap[palace.position] = palace.diPan || '';
-    }
-
-    // 4. 判断入中规则 (如果时干 == 值使门所在宫的地盘干，则起点改为5宫)
-    let startPos = zhiShiPalacePos;
-    if (hourGan === diPanMap[startPos]) {
-        startPos = 5;
-        // console.log(`[AnGan] 入中规则触发: 时干(${hourGan}) == 地盘干, 起点改为中宫(5)`);
-    }
-
-    // 5. 确定飞宫路径 (阳顺阴逆)
-    const isYang = juName.includes('阳'); // 局名包含"阳"即为阳遁
-    let posPath = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-    if (!isYang) {
-        posPath = [9, 8, 7, 6, 5, 4, 3, 2, 1]; // 阴遁逆排
-    }
-
-    // 6. 确定起始索引
-    let currentPathIdx = posPath.indexOf(startPos);
-    let currentGanIdx = hourGanIdx;
-
-    if (currentPathIdx === -1) {
-        console.warn('[AnGan] Start Pos not in path?', startPos);
-        return result;
-    }
-
-
-
-    // 7. 飞布排干
-    for (let i = 0; i < 9; i++) {
-        const pos = posPath[currentPathIdx];
-        const gan = AN_GAN_ORDER[currentGanIdx];
-
-        result[pos] = gan;
-
-        // 移动指针
-        currentPathIdx = (currentPathIdx + 1) % 9;
-        currentGanIdx = (currentGanIdx + 1) % 9;
-    }
-
-
-    return result;
-}
-
-/**
  * 将 CSP 解析数据转换为 QimenResult
  */
 function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResult {
@@ -712,7 +623,7 @@ function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResu
             men: pos === 5 ? '' : (cspPalace?.men ? `${cspPalace.men}门` : ''),
             xing: pos === 5 ? '' : (cspPalace?.xing === '天芮' ? '禽芮' : (cspPalace?.xing || '')),
             shen: pos === 5 ? '' : (cspPalace?.shen || ''),
-            anGan: '', // 将在后续填充
+            anGan: pos === 5 ? '' : (cspPalace?.anGan || ''),
             // 寄宫干支
             jiGongTianPan: pos === 5 ? '' : (cspPalace?.tianPanJi || ''),
             jiGongDiPan: pos === 5 ? '' : (cspPalace?.diPanJi || ''),
@@ -736,7 +647,7 @@ function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResu
             // 十二长生（使用 qimenUtils 计算）
             jiGongTianPanCS: pos === 5 ? '' : getGanShiErCS(cspPalace?.tianPanJi || '', pos),
             jiGongDiPanCS: pos === 5 ? '' : getGanShiErCS(cspPalace?.diPanJi || '', pos),
-            anGanShiErCS: '',
+            anGanShiErCS: pos === 5 ? '' : getGanShiErCS(cspPalace?.anGan || '', pos),
             tianPanShiErCS: pos === 5 ? '' : getGanShiErCS(cspPalace?.tianPan || '', pos),
             diPanShiErCS: pos === 5 ? '' : getGanShiErCS(cspPalace?.diPan || '', pos),
             // 十神（以日干为太极点）
@@ -759,43 +670,6 @@ function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResu
         palaces.push(palace);
     }
 
-    // 计算暗干
-    let hourGan = siZhu.hour.slice(0, 1);
-
-    // 特殊处理：如果时干是"甲"，则取旬首仪（六甲遁六仪）
-    if (hourGan === '甲') {
-        const hourZhi = siZhu.hour.slice(1, 2);
-
-        // 简单查表法：
-        const xunShouMap: Record<string, string> = {
-            '子': '戊', // 甲子戊
-            '戌': '己', // 甲戌己
-            '申': '庚', // 甲申庚
-            '午': '辛', // 甲午辛
-            '辰': '壬', // 甲辰壬
-            '寅': '癸'  // 甲寅癸
-        };
-        const newGan = xunShouMap[hourZhi];
-        if (newGan) {
-            // console.log(`[AnGan] 时干为甲(${siZhu.hour})，转换为旬首仪: ${newGan}`);
-            hourGan = newGan;
-        } else {
-            console.warn(`[AnGan] 时干为甲，但无法匹配旬首: ${siZhu.hour}`);
-        }
-    }
-
-
-
-    const anGanMap = calculateAnGan(parsed.zhiShi, hourGan, palaces, parsed.ju);
-
-    // 填充暗干到各宫位
-    for (const palace of palaces) {
-        palace.anGan = anGanMap[palace.position] || '';
-    }
-
-
-
-
     // 计算全局格局
     const patternCtx = {
         zhiShiMen: parsed.zhiShi,
@@ -803,7 +677,7 @@ function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResu
         yearGan: siZhu.year[0],
         monthGan: siZhu.month[0],
         dayGan: siZhu.day[0],
-        hourGan: hourGan,
+        hourGan: siZhu.hour.slice(0, 1),
         xunShou: xunShou || parsed.xunShou,
         siZhu: siZhu,
         allPalaces: palaces

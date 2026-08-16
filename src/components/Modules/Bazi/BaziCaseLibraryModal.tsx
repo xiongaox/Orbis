@@ -47,7 +47,12 @@ export default function BaziCaseLibraryModal({
             isOpen={isOpen}
             onClose={onClose}
             selectedCaseId={selectedCaseId}
-            onSelectCase={onSelectCase}
+            onSelectCase={(caseId) => {
+                onSelectCase?.(caseId);
+                if (caseId) {
+                    onClose();
+                }
+            }}
             onLoginClick={onLoginClick}
             fetchCases={baziCaseService.getCases}
             updateSortOrder={baziCaseService.updateSortOrder}
