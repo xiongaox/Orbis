@@ -215,8 +215,7 @@ button:focus-visible {
 }
 
 .glass-header {
-  background: hsl(var(--background) / 0.85);
-  backdrop-filter: blur(12px);
+  background: hsl(var(--background));
   border-bottom: 1px solid hsl(var(--border));
 }
 
@@ -242,13 +241,11 @@ button:focus-visible {
   display: none;
 }
 
-/* 细滚动条样式 (悬停时显示) */
+/* 保留固定滚动条槽位，避免悬停或滚动时改变内容可用宽度。 */
 .scrollbar-thin {
-  scrollbar-width: none;
-}
-
-.scrollbar-thin:hover {
   scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  scrollbar-gutter: stable;
 }
 
 .scrollbar-thin::-webkit-scrollbar {
@@ -267,6 +264,10 @@ button:focus-visible {
 
 .scrollbar-thin:hover::-webkit-scrollbar-thumb {
   background: hsl(var(--border));
+}
+
+.scrollbar-thin:hover {
+  scrollbar-color: hsl(var(--border)) transparent;
 }
 
 .scrollbar-thin:hover::-webkit-scrollbar-thumb:hover {
