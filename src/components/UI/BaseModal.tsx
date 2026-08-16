@@ -91,7 +91,7 @@ export default function BaseModal({
 
     return (
         <div
-            className={`fixed inset-0 z-[100] flex items-center justify-center ${fullScreen ? 'p-0' : 'p-4'} bg-black/50 backdrop-blur-[2px]`}
+            className={`fixed inset-0 z-[100] isolate flex items-center justify-center ${fullScreen ? 'p-0' : 'p-4'} bg-black/50`}
             role="dialog"
             aria-modal="true"
             aria-labelledby={title ? "modal-title" : undefined}
@@ -103,7 +103,7 @@ export default function BaseModal({
         >
             <div
                 className={`
-                    bg-background ${fullScreen ? '' : 'border border-border rounded-xl'} shadow-2xl flex flex-col 
+                    relative z-10 bg-background ${fullScreen ? '' : 'border border-border rounded-xl'} shadow-2xl flex flex-col
                     w-full ${maxWidth} ${fullScreen ? 'h-full' : 'max-h-[85vh]'} 
                     ${className}
                 `}

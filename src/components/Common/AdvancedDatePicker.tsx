@@ -216,8 +216,8 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm, 
     if (!isOpen) return null;
 
     return createPortal(
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity animate-in fade-in duration-200" onClick={onClose}>
-            <div className="w-[calc(100%-2rem)] max-w-md bg-popover rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-200 border border-border" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[110] isolate flex items-center justify-center bg-black/80" onClick={onClose}>
+            <div className="relative z-10 w-[calc(100%-2rem)] max-w-md bg-popover rounded-2xl shadow-2xl overflow-hidden border border-border" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-popover">
                     <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors text-sm px-2 py-1">取消</button>
