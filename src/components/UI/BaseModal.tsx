@@ -18,8 +18,11 @@
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 
-import React, { useEffect } from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+
+let openModalCount = 0;
+let previousBodyOverflow = '';
 
 interface BaseModalProps {
     isOpen: boolean;
@@ -50,32 +53,45 @@ export default function BaseModal({
     bodyClassName = '',
     fullScreen = false,
 }: BaseModalProps) {
+    const onCloseRef = useRef(onClose);
+
+    useLayoutEffect(() => {
+        onCloseRef.current = onClose;
+    }, [onClose]);
 
     // Handle Escape key
-    useEffect(() => {
+    useLayoutEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape' && isOpen) {
-                onClose();
+                onCloseRef.current();
             }
         };
 
         if (isOpen) {
             document.addEventListener('keydown', handleKeyDown);
-            // Lock body scroll
+            if (openModalCount === 0) {
+                previousBodyOverflow = document.body.style.overflow;
+            }
+            openModalCount += 1;
             document.body.style.overflow = 'hidden';
         }
 
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
-            document.body.style.overflow = '';
+            if (isOpen) {
+                openModalCount = Math.max(0, openModalCount - 1);
+                if (openModalCount === 0) {
+                    document.body.style.overflow = previousBodyOverflow;
+                }
+            }
         };
-    }, [isOpen, onClose]);
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
     return (
         <div
-            className={`fixed inset-0 z-[100] flex items-center justify-center ${fullScreen ? 'p-0' : 'p-4'} bg-black/50 backdrop-blur-[2px] animate-in fade-in duration-200`}
+            className={`fixed inset-0 z-[100] flex items-center justify-center ${fullScreen ? 'p-0' : 'p-4'} bg-black/50 backdrop-blur-[2px]`}
             role="dialog"
             aria-modal="true"
             aria-labelledby={title ? "modal-title" : undefined}
@@ -89,7 +105,6 @@ export default function BaseModal({
                 className={`
                     bg-background ${fullScreen ? '' : 'border border-border rounded-xl'} shadow-2xl flex flex-col 
                     w-full ${maxWidth} ${fullScreen ? 'h-full' : 'max-h-[85vh]'} 
-                    ${fullScreen ? '' : 'animate-in zoom-in-95 duration-200'} 
                     ${className}
                 `}
                 onClick={(e) => e.stopPropagation()}

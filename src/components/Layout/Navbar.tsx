@@ -29,6 +29,7 @@ import { profileService } from '../../services/profileService';
 import RealtimeClock from './RealtimeClock';
 import UserMenu from './UserMenu';
 import { NavButton, DrawerNavButton, type NavItemType } from './NavButton';
+import AiIntegrationModal from '../Common/AiIntegrationModal';
 
 export type ChartType =
   | 'bazi'
@@ -69,6 +70,7 @@ export default function Navbar({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [showAiIntegrationModal, setShowAiIntegrationModal] = useState(false);
 
   // 生日设置相关状态
   const [showBirthdayModal, setShowBirthdayModal] = useState(false);
@@ -129,6 +131,15 @@ export default function Navbar({
         localStorage.setItem(`user_birthday_${user.email}`, date.toISOString());
       }
     }
+  };
+
+  const handleShowAiIntegration = () => {
+    if (!user) {
+      onLoginClick?.();
+      return;
+    }
+
+    setShowAiIntegrationModal(true);
   };
 
   return (
@@ -256,6 +267,7 @@ export default function Navbar({
                 onShowContact={() => setShowContactModal(true)}
                 onShowBirthday={() => setShowBirthdayModal(true)}
                 onShowPassword={() => setShowPasswordModal(true)}
+                onShowAiIntegration={handleShowAiIntegration}
                 birthDate={displayBirthDate}
               />
             </div>
@@ -327,6 +339,14 @@ export default function Navbar({
         isOpen={showPasswordModal}
         onClose={() => setShowPasswordModal(false)}
       />
+
+      {showAiIntegrationModal && (
+        <AiIntegrationModal
+          isOpen={true}
+          onClose={() => setShowAiIntegrationModal(false)}
+          userId={user?.id ?? null}
+        />
+      )}
     </>
   );
 }

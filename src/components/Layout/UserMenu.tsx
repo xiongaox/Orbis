@@ -19,7 +19,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Compass, User, Calendar, Key, LogOut, Loader2 } from 'lucide-react';
+import { Bot, Compass, User, Calendar, Key, LogOut, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/useAuth';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { getUserAvatar } from '../../utils/userUtil';
@@ -29,6 +29,7 @@ interface UserMenuProps {
     onShowContact: () => void;
     onShowBirthday: () => void;
     onShowPassword: () => void;
+    onShowAiIntegration: () => void;
     birthDate?: Date;
 }
 
@@ -37,6 +38,7 @@ export default function UserMenu({
     onShowContact,
     onShowBirthday,
     onShowPassword,
+    onShowAiIntegration,
     birthDate
 }: UserMenuProps) {
     const { user, isAuthenticated, signOut, loading } = useAuth();
@@ -137,6 +139,17 @@ export default function UserMenu({
                                 修改密码
                             </button>
                             <button
+                                type="button"
+                                onClick={() => {
+                                    onShowAiIntegration();
+                                    setMenuOpen(false);
+                                }}
+                                className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
+                            >
+                                <Bot className="w-4 h-4" />
+                                AI 集成
+                            </button>
+                            <button
                                 onClick={handleLogout}
                                 disabled={loggingOut}
                                 className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 flex items-center gap-2"
@@ -183,6 +196,17 @@ export default function UserMenu({
                             >
                                 <User className="w-4 h-4" />
                                 登录 / 注册
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    onShowAiIntegration();
+                                    setMenuOpen(false);
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
+                            >
+                                <Bot className="w-4 h-4" />
+                                AI 集成
                             </button>
                         </>
                     )}
