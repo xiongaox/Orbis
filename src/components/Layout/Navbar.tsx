@@ -30,6 +30,7 @@ import RealtimeClock from './RealtimeClock';
 import UserMenu from './UserMenu';
 import { NavButton, DrawerNavButton, type NavItemType } from './NavButton';
 import AiIntegrationModal from '../Common/AiIntegrationModal';
+import MobileLockedChartSwitcher from './MobileLockedChartSwitcher';
 
 export type ChartType =
   | 'bazi'
@@ -299,6 +300,13 @@ export default function Navbar({
           ))}
         </div>
       </SideDrawer>
+
+      <MobileLockedChartSwitcher
+        activeChart={activeChart}
+        lockedCharts={lockedCharts}
+        items={navItems}
+        onChartChange={(chart) => onChartChange(chart as ChartType)}
+      />
 
       {/* Birthday Picker Modal */}
       <AdvancedDatePicker
