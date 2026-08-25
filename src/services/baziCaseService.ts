@@ -1,235 +1,94 @@
-/**
- * baziCaseService - 应用源码层
- *
- * 模块定位：
- * - 所在层级：应用源码层
- * - 主要目标：承载前端具体功能
- *
- * 关键职责：
- * - 提供核心逻辑实现或数据处理能力
- * - 处理数据流转与异常边界
- * - 向上层提供稳定可复用能力
- *
- * 主要导出：
- * - `CASE_TAGS`, `CaseTag`, `BaziCase`, `CreateCaseInput`, `UpdateCaseInput`, `baziCaseService`
- *
- * 依赖关系：
- * - 上游依赖：内部模块 `supabase`
- * - 下游影响：由依赖方的业务逻辑或视图组装调用
- */
-import { supabase } from '../lib/supabase';
+import { getPrivateUserId, localPrivateStore } from './localPrivateStore';
 
-// 预定义标签
 export const CASE_TAGS = [
-    '家人', '恋人', '自己', '朋友',
-    '父母', '孩子', '亲友', '同事', '领导',
-    '老师', '学生', '案例', '名人', '其他'
+  '家人', '恋人', '自己', '朋友', '父母', '孩子', '亲友', '同事', '领导',
+  '老师', '学生', '案例', '名人', '其他',
 ] as const;
 
 export type CaseTag = typeof CASE_TAGS[number];
 
 export interface BaziCase {
-    id: string;
-    user_id: string;
-    name: string;
-    gender: 'male' | 'female';
-    birth_date: string;
-    tags: CaseTag[];
-    notes?: string;
-    bazi_data?: Record<string, unknown>;
-    sort_order?: number;
-    created_at: string;
-    updated_at: string;
+  id: string;
+  user_id: string;
+  name: string;
+  gender: 'male' | 'female';
+  birth_date: string;
+  tags: CaseTag[];
+  notes?: string;
+  bazi_data?: Record<string, unknown>;
+  sort_order?: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export type CreateCaseInput = Omit<BaziCase, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
 export type UpdateCaseInput = Partial<CreateCaseInput>;
 
+const toCase = (payload: Record<string, unknown>) => payload as unknown as BaziCase;
+
+async function listCases() {
+  const userId = await getPrivateUserId();
+  const records = await localPrivateStore.list(userId, 'bazi_case');
+  return records.map((record) => toCase(record.payload));
+}
+
 export const baziCaseService = {
-    /**
-     * 获取当前用户的所有案例
-     */
-    async getCases(): Promise<BaziCase[]> {
-        const { data, error } = await supabase
-            .from('bazi_cases')
-            .select('*')
-            .order('sort_order', { ascending: true });
+  async getCases(): Promise<BaziCase[]> {
+    return listCases();
+  },
 
-        if (error) {
-            console.error('Failed to fetch cases:', error);
-            throw new Error(error.message);
-        }
+  async getCaseById(id: string): Promise<BaziCase | null> {
+    const userId = await getPrivateUserId();
+    const record = await localPrivateStore.get(userId, 'bazi_case', id);
+    return record ? toCase(record.payload) : null;
+  },
 
-        return data || [];
-    },
+  async createCase(input: CreateCaseInput): Promise<BaziCase> {
+    const userId = await getPrivateUserId();
+    const timestamp = new Date().toISOString();
+    const record = await localPrivateStore.put(userId, 'bazi_case', {
+      ...input, user_id: userId, created_at: timestamp, updated_at: timestamp,
+    });
+    return toCase(record.payload);
+  },
 
-    /**
-     * 根据 ID 获取单个案例
-     */
-    async getCaseById(id: string): Promise<BaziCase | null> {
-        const { data, error } = await supabase
-            .from('bazi_cases')
-            .select('*')
-            .eq('id', id)
-            .single();
+  async createCases(inputs: CreateCaseInput[]): Promise<BaziCase[]> {
+    const results: BaziCase[] = [];
+    for (const input of inputs) results.push(await this.createCase(input));
+    return results;
+  },
 
-        if (error) {
-            if (error.code === 'PGRST116') {
-                return null; // 未找到
-            }
-            console.error('Failed to fetch case:', error);
-            throw new Error(error.message);
-        }
+  async updateCase(id: string, input: UpdateCaseInput): Promise<BaziCase> {
+    const userId = await getPrivateUserId();
+    const current = await localPrivateStore.get(userId, 'bazi_case', id);
+    if (!current) throw new Error('未找到要更新的八字案例');
+    const updated = await localPrivateStore.put(userId, 'bazi_case', {
+      ...current.payload, ...input, id, user_id: userId,
+      created_at: current.payload.created_at, updated_at: new Date().toISOString(),
+    }, id, typeof input.sort_order === 'number' ? input.sort_order : current.sortOrder);
+    return toCase(updated.payload);
+  },
 
-        return data;
-    },
+  async deleteCase(id: string): Promise<void> {
+    await localPrivateStore.remove(await getPrivateUserId(), 'bazi_case', id);
+  },
 
-    /**
-     * 创建新案例
-     */
-    async createCase(input: CreateCaseInput): Promise<BaziCase> {
-        const { data: { user } } = await supabase.auth.getUser();
+  async getCasesByTags(tags: CaseTag[]): Promise<BaziCase[]> {
+    const cases = await listCases();
+    return cases.filter((item) => tags.some((tag) => item.tags?.includes(tag)));
+  },
 
-        if (!user) {
-            throw new Error('请先登录');
-        }
+  async searchCases(query: string): Promise<BaziCase[]> {
+    const normalized = query.trim().toLocaleLowerCase();
+    const cases = await listCases();
+    return normalized ? cases.filter((item) => item.name.toLocaleLowerCase().includes(normalized)) : cases;
+  },
 
-        const { data, error } = await supabase
-            .from('bazi_cases')
-            .insert({
-                ...input,
-                user_id: user.id,
-            })
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Failed to create case:', error);
-            throw new Error(error.message);
-        }
-
-        return data;
-    },
-
-    /**
-     * 批量创建案例
-     */
-    async createCases(inputs: CreateCaseInput[]): Promise<BaziCase[]> {
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (!user) {
-            throw new Error('请先登录');
-        }
-
-        if (inputs.length === 0) {
-            return [];
-        }
-
-        const records = inputs.map(input => ({
-            ...input,
-            user_id: user.id,
-        }));
-
-        const { data, error } = await supabase
-            .from('bazi_cases')
-            .insert(records)
-            .select();
-
-        if (error) {
-            console.error('Failed to create cases:', error);
-            throw new Error(error.message);
-        }
-
-        return data || [];
-    },
-
-    /**
-     * 更新案例
-     */
-    async updateCase(id: string, input: UpdateCaseInput): Promise<BaziCase> {
-        const { data, error } = await supabase
-            .from('bazi_cases')
-            .update(input)
-            .eq('id', id)
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Failed to update case:', error);
-            throw new Error(error.message);
-        }
-
-        return data;
-    },
-
-    /**
-     * 删除案例
-     */
-    async deleteCase(id: string): Promise<void> {
-        const { error } = await supabase
-            .from('bazi_cases')
-            .delete()
-            .eq('id', id);
-
-        if (error) {
-            console.error('Failed to delete case:', error);
-            throw new Error(error.message);
-        }
-    },
-
-    /**
-     * 按标签筛选案例
-     */
-    async getCasesByTags(tags: CaseTag[]): Promise<BaziCase[]> {
-        const { data, error } = await supabase
-            .from('bazi_cases')
-            .select('*')
-            .overlaps('tags', tags)
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('Failed to fetch cases by tags:', error);
-            throw new Error(error.message);
-        }
-
-        return data || [];
-    },
-
-    /**
-     * 搜索案例（按名称）
-     */
-    async searchCases(query: string): Promise<BaziCase[]> {
-        const { data, error } = await supabase
-            .from('bazi_cases')
-            .select('*')
-            .ilike('name', `%${query}%`)
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('Failed to search cases:', error);
-            throw new Error(error.message);
-        }
-
-        return data || [];
-    },
-
-    /**
-     * 批量更新排序顺序
-     */
-    async updateSortOrder(orderedIds: string[]): Promise<void> {
-        const updates = orderedIds.map((id, index) =>
-            supabase
-                .from('bazi_cases')
-                .update({ sort_order: index + 1 })
-                .eq('id', id)
-        );
-
-        const results = await Promise.all(updates);
-        const failed = results.find(r => r.error);
-        if (failed?.error) {
-            console.error('Failed to update sort order:', failed.error);
-            throw new Error(failed.error.message);
-        }
-    },
+  async updateSortOrder(orderedIds: string[]): Promise<void> {
+    const userId = await getPrivateUserId();
+    for (const [index, id] of orderedIds.entries()) {
+      const current = await localPrivateStore.get(userId, 'bazi_case', id);
+      if (current) await localPrivateStore.put(userId, 'bazi_case', { ...current.payload, sort_order: index + 1 }, id, index + 1);
+    }
+  },
 };
-

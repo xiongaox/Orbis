@@ -31,6 +31,7 @@ import UserMenu from './UserMenu';
 import { NavButton, DrawerNavButton, type NavItemType } from './NavButton';
 import AiIntegrationModal from '../Common/AiIntegrationModal';
 import MobileLockedChartSwitcher from './MobileLockedChartSwitcher';
+import PrivateDataBackupModal from '../Common/PrivateDataBackupModal';
 
 export type ChartType =
   | 'bazi'
@@ -72,6 +73,7 @@ export default function Navbar({
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showAiIntegrationModal, setShowAiIntegrationModal] = useState(false);
+  const [showPrivateDataBackupModal, setShowPrivateDataBackupModal] = useState(false);
 
   // 生日设置相关状态
   const [showBirthdayModal, setShowBirthdayModal] = useState(false);
@@ -269,6 +271,7 @@ export default function Navbar({
                 onShowBirthday={() => setShowBirthdayModal(true)}
                 onShowPassword={() => setShowPasswordModal(true)}
                 onShowAiIntegration={handleShowAiIntegration}
+                onShowPrivateDataBackup={() => setShowPrivateDataBackupModal(true)}
                 birthDate={displayBirthDate}
               />
             </div>
@@ -355,6 +358,11 @@ export default function Navbar({
           userId={user?.id ?? null}
         />
       )}
+
+      <PrivateDataBackupModal
+        isOpen={showPrivateDataBackupModal}
+        onClose={() => setShowPrivateDataBackupModal(false)}
+      />
     </>
   );
 }
