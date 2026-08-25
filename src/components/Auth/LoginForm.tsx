@@ -19,7 +19,7 @@
  */
 
 import { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, Loader2, KeyRound } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/useAuth';
 import { type AuthMode } from './AuthModal';
 
@@ -30,7 +30,7 @@ interface LoginFormProps {
 
 export default function LoginForm({ onSwitchMode, onClose }: LoginFormProps) {
     const { signIn } = useAuth();
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -40,18 +40,14 @@ export default function LoginForm({ onSwitchMode, onClose }: LoginFormProps) {
         e.preventDefault();
         setError(null);
 
-        if (!email || !password) {
-            setError('请填写邮箱和密码');
-            return;
-        }
-        if (password.length < 6) {
-            setError('密码长度至少6位');
+        if (!username.trim() || !password) {
+            setError('请填写用户名和密码');
             return;
         }
 
         setLoading(true);
         try {
-            const { error: signInError } = await signIn(email, password);
+            const { error: signInError } = await signIn(username, password);
             if (signInError) {
                 setError(signInError);
             } else {
@@ -67,16 +63,16 @@ export default function LoginForm({ onSwitchMode, onClose }: LoginFormProps) {
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="modal-field">
-                <label className="modal-label">邮箱</label>
+                <label className="modal-label">用户名</label>
                 <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="your@email.com"
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="请输入用户名"
                         className="modal-input with-left-icon focus-ring"
-                        autoComplete="email"
+                        autoComplete="username"
                         disabled={loading}
                     />
                 </div>
@@ -90,7 +86,7 @@ export default function LoginForm({ onSwitchMode, onClose }: LoginFormProps) {
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="至少6位字符"
+                        placeholder="请输入密码"
                         className="modal-input with-left-icon with-right-icon focus-ring"
                         autoComplete="current-password"
                         disabled={loading}
@@ -103,16 +99,6 @@ export default function LoginForm({ onSwitchMode, onClose }: LoginFormProps) {
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                 </div>
-            </div>
-
-            <div className="flex justify-end !mt-1">
-                <button
-                    type="button"
-                    onClick={() => onSwitchMode('forgot')}
-                    className="text-xs text-muted-foreground hover:text-primary focus:outline-none focus:underline"
-                >
-                    忘记密码？
-                </button>
             </div>
 
             {error && (
@@ -128,21 +114,6 @@ export default function LoginForm({ onSwitchMode, onClose }: LoginFormProps) {
             >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
                 登录
-            </button>
-
-            <div className="flex items-center gap-3 my-4">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-xs text-muted-foreground">或</span>
-                <div className="flex-1 h-px bg-border" />
-            </div>
-
-            <button
-                type="button"
-                onClick={() => onSwitchMode('otp')}
-                className="w-full py-2.5 rounded-lg border border-border text-sm text-foreground hover:bg-muted flex items-center justify-center gap-2 transition-colors focus-ring"
-            >
-                <KeyRound className="w-4 h-4" />
-                验证码登录
             </button>
 
             <div className="text-center mt-4">

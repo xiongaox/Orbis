@@ -19,7 +19,7 @@
  */
 
 import { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/useAuth';
 import { type AuthMode } from './AuthModal';
 
@@ -29,7 +29,7 @@ interface RegisterFormProps {
 
 export default function RegisterForm({ onSwitchMode }: RegisterFormProps) {
     const { signUp } = useAuth();
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -42,7 +42,7 @@ export default function RegisterForm({ onSwitchMode }: RegisterFormProps) {
         setError(null);
         setSuccess(null);
 
-        if (!email || !password || !confirmPassword) {
+        if (!username.trim() || !password || !confirmPassword) {
             setError('请填写所有必填字段');
             return;
         }
@@ -50,19 +50,14 @@ export default function RegisterForm({ onSwitchMode }: RegisterFormProps) {
             setError('两次输入的密码不一致');
             return;
         }
-        if (password.length < 6) {
-            setError('密码长度至少6位');
-            return;
-        }
-
         setLoading(true);
         try {
-            const { error: signUpError } = await signUp(email, password);
+            const { error: signUpError } = await signUp(username, password);
             if (signUpError) {
                 setError(signUpError);
             } else {
-                setSuccess('注册成功！请查收验证邮件后登录。');
-                setTimeout(() => onSwitchMode('login'), 2000);
+                setSuccess('注册成功！');
+                setTimeout(() => onSwitchMode('login'), 800);
             }
         } catch {
             setError('操作失败，请稍后重试');
@@ -74,16 +69,16 @@ export default function RegisterForm({ onSwitchMode }: RegisterFormProps) {
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="modal-field">
-                <label className="modal-label">邮箱</label>
+                <label className="modal-label">用户名</label>
                 <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="your@email.com"
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="请输入用户名"
                         className="modal-input with-left-icon focus-ring"
-                        autoComplete="email"
+                        autoComplete="username"
                         disabled={loading}
                     />
                 </div>
@@ -97,7 +92,7 @@ export default function RegisterForm({ onSwitchMode }: RegisterFormProps) {
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        placeholder="至少6位字符"
+                        placeholder="请输入密码"
                         className="modal-input with-left-icon with-right-icon focus-ring"
                         autoComplete="new-password"
                         disabled={loading}
