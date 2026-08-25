@@ -14,7 +14,6 @@
       {
         "title": "Orbis",
         "width": 1800,
-        "height": 720,
         "resizable": true,
         "fullscreen": false
       }

@@ -1,7 +1,9 @@
 import { useEffect, type ReactNode } from 'react';
 import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
 
-const WINDOW_ASPECT_RATIO = 1800 / 720;
+const WINDOW_ASPECT_RATIO = 16 / 9;
+const DEFAULT_WINDOW_WIDTH = 1800;
+const DEFAULT_WINDOW_HEIGHT = Math.round(DEFAULT_WINDOW_WIDTH / WINDOW_ASPECT_RATIO);
 
 function isTauriRuntime() {
   return typeof window !== 'undefined' && Boolean(
@@ -15,7 +17,7 @@ export default function TauriWindowAspectRatio({ children }: { children: ReactNo
 
     let disposed = false;
     let syncing = false;
-    let previous = { width: 1800, height: 720 };
+    let previous = { width: DEFAULT_WINDOW_WIDTH, height: DEFAULT_WINDOW_HEIGHT };
     let unlisten: (() => void) | undefined;
     const appWindow = getCurrentWindow();
 
