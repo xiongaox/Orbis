@@ -22,9 +22,12 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
+import TauriWindowAspectRatio from './components/Common/TauriWindowAspectRatio'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <TauriWindowAspectRatio>
+      <App />
+    </TauriWindowAspectRatio>
   </StrictMode>,
 )
