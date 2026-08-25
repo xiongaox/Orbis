@@ -43,3 +43,7 @@ Icon?
 local/
 .env
 notes/sanyuan
+
+# Tauri build outputs
+/src-tauri/target/
+/src-tauri/target-macos/
