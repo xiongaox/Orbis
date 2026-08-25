@@ -1,6 +1,6 @@
 import type { Mountain, PanType, SanYuanInput, YuanPhase } from '../lib/sanyuan';
 import { DIRECTIONS } from '../lib/sanyuan';
-import { supabase } from '../lib/supabase';
+import { getPrivateUserId, localPrivateStore } from './localPrivateStore';
 
 export const SANYUAN_CASE_TYPES = [
     { id: 'yangzhai', name: '阳宅' },
@@ -49,67 +49,32 @@ export function getSanYuanDirectionId(caseData: Pick<SanYuanCase, 'mountain' | '
 
 export const sanyuanCaseService = {
     async getCases(): Promise<SanYuanCase[]> {
-        const { data, error } = await supabase
-            .from('sanyuan_cases')
-            .select('*')
-            .order('updated_at', { ascending: false });
-
-        if (error) {
-            console.error('Failed to fetch SanYuan cases:', error);
-            throw new Error(error.message);
-        }
-
-        return data || [];
+        const userId = await getPrivateUserId();
+        const records = await localPrivateStore.list(userId, 'sanyuan_case');
+        return records.map((record) => record.payload as unknown as SanYuanCase);
     },
 
     async createCase(input: CreateSanYuanCaseInput): Promise<SanYuanCase> {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
+        const userId = await getPrivateUserId();
+        if (userId === 'anonymous') {
             throw new Error('请先登录');
         }
-
-        const { data, error } = await supabase
-            .from('sanyuan_cases')
-            .insert({
-                ...input,
-                user_id: user.id,
-            })
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Failed to create SanYuan case:', error);
-            throw new Error(error.message);
-        }
-
-        return data;
+        const now = new Date().toISOString();
+        const result = { ...input, id: crypto.randomUUID(), user_id: userId, created_at: now, updated_at: now };
+        await localPrivateStore.put(userId, 'sanyuan_case', result, result.id);
+        return result;
     },
 
     async updateCase(id: string, input: UpdateSanYuanCaseInput): Promise<SanYuanCase> {
-        const { data, error } = await supabase
-            .from('sanyuan_cases')
-            .update(input)
-            .eq('id', id)
-            .select()
-            .single();
-
-        if (error) {
-            console.error('Failed to update SanYuan case:', error);
-            throw new Error(error.message);
-        }
-
-        return data;
+        const userId = await getPrivateUserId();
+        const current = await localPrivateStore.get(userId, 'sanyuan_case', id);
+        if (!current) throw new Error('未找到三元案例');
+        const result = { ...(current.payload as unknown as SanYuanCase), ...input, updated_at: new Date().toISOString() };
+        await localPrivateStore.put(userId, 'sanyuan_case', result, id);
+        return result;
     },
 
     async deleteCase(id: string): Promise<void> {
-        const { error } = await supabase
-            .from('sanyuan_cases')
-            .delete()
-            .eq('id', id);
-
-        if (error) {
-            console.error('Failed to delete SanYuan case:', error);
-            throw new Error(error.message);
-        }
+        await localPrivateStore.remove(await getPrivateUserId(), 'sanyuan_case', id);
     },
 };

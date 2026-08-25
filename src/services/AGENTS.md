@@ -15,7 +15,7 @@
 ## CONVENTIONS
 - auth 服务沿用“返回 error 对象”模式，调用方自行分支处理。
 - case 服务沿用“日志 + throw Error”模式，调用方用 try/catch 兜底。
-- Supabase 入口优先统一使用 `src/lib/supabase.ts`，兼容离线降级。
+- 私有业务数据统一通过 `localPrivateStore` 读写；Tauri 使用 SQLite，浏览器使用 IndexedDB。
 
 ## ANTI-PATTERNS
 - 不要把 auth 与 case 的错误处理风格混用。
@@ -25,7 +25,7 @@
 ## DATA BOUNDARY NOTES
 - 新增字段先确认数据库表结构与前端类型同步。
 - 批量接口要明确空输入语义（返回空数组/0），避免调用方猜测。
-- 需要匿名/离线容错时，优先复用 `supabase.ts` 的代理行为。
+- 需要匿名/离线容错时，优先使用 `getPrivateUserId()` 并明确空数据语义。
 
 ## NOTES
 - service 层异常信息应面向上层可消费，避免只保留控制台日志而无业务语义。

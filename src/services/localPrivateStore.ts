@@ -7,7 +7,7 @@
  */
 import Database from '@tauri-apps/plugin-sql';
 
-export type PrivateRecordType = 'bazi_case' | 'qimen_case' | 'profile' | 'case_favorite' | 'case_progress';
+export type PrivateRecordType = 'bazi_case' | 'qimen_case' | 'sanyuan_case' | 'profile' | 'ai_model_service' | 'case_favorite' | 'case_progress';
 
 export interface PrivateRecord {
   id: string;
@@ -208,11 +208,6 @@ export const localPrivateStore = {
 };
 
 export async function getPrivateUserId() {
-  try {
-    const { supabase } = await import('../lib/supabase');
-    const { data: { user } } = await supabase.auth.getUser();
-    return user?.id ?? 'anonymous';
-  } catch {
-    return 'anonymous';
-  }
+  const { getLocalSession } = await import('./localAuthStore');
+  return getLocalSession()?.id ?? 'anonymous';
 }

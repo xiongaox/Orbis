@@ -47,8 +47,8 @@ npm run dev
 - `src/components/Sidebar` 案例列表与筛选
 - `src/services/caseService.ts` 本地案例存储与迁移
 - `src/utils/baziUtils.ts` 八字计算与神煞逻辑
-- `src/lib/supabaseClient.ts` 可选 Supabase 客户端
+- `src/services/localPrivateStore.ts` 本地私有数据存储（Tauri SQLite / 浏览器 IndexedDB）
 
 ## 说明
-- 当前案例数据默认存储在 `localStorage`，并包含演示种子数据。
-- Supabase 仅在配置了 `VITE_SUPABASE_URL` 与 `VITE_SUPABASE_ANON_KEY` 后启用。
+- 私有数据与登录凭证均保存在本地；Tauri 使用 SQLite，浏览器使用 IndexedDB 与本地存储。
+- WebDAV 仅作为用户主动触发的备份目标，不参与业务读写。

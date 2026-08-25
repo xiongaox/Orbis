@@ -14,12 +14,12 @@
  * - `AuthContextType`, `AuthContext`
  *
  * 依赖关系：
- * - 上游依赖：外部依赖 `react`、外部依赖 `@supabase/supabase-js`
+ * - 上游依赖：外部依赖 `react`、内部模块 `authService`
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 
 import { createContext } from 'react';
-import type { User } from '@supabase/supabase-js';
+import type { User } from '../services/authService';
 
 export interface AuthContextType {
     user: User | null;

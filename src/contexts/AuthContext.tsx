@@ -14,12 +14,12 @@
  * - `AuthProvider`
  *
  * 依赖关系：
- * - 上游依赖：外部依赖 `react`、内部模块 `authService`、外部依赖 `@supabase/supabase-js` 等 4 个模块
+ * - 上游依赖：外部依赖 `react`、内部模块 `authService`
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { useEffect, useState, useCallback, type ReactNode } from 'react';
 import { authService } from '../services/authService';
-import type { User } from '@supabase/supabase-js';
+import type { User } from '../services/authService';
 import { AuthContext } from './authContextStore';
 import type { AuthContextType } from './authContextStore';
 
