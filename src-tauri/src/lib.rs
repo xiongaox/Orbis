@@ -1,9 +1,37 @@
+use tauri::{LogicalSize, Manager};
+
+const DEFAULT_WINDOW_WIDTH: f64 = 1800.0;
+const WINDOW_ASPECT_RATIO: f64 = 16.0 / 9.0;
+const WINDOW_MARGIN: f64 = 32.0;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_http::init())
     .plugin(tauri_plugin_sql::Builder::default().build())
     .setup(|app| {
+      let window = app
+        .get_webview_window("main")
+        .expect("main window must exist");
+
+      if let Some(monitor) = window.current_monitor()? {
+        let work_area = monitor
+          .work_area()
+          .size
+          .to_logical::<f64>(monitor.scale_factor());
+        let max_width = (work_area.width - WINDOW_MARGIN).max(640.0);
+        let max_height = (work_area.height - WINDOW_MARGIN).max(360.0);
+        let mut width = DEFAULT_WINDOW_WIDTH.min(max_width);
+        let mut height = width / WINDOW_ASPECT_RATIO;
+
+        if height > max_height {
+          height = max_height;
+          width = height * WINDOW_ASPECT_RATIO;
+        }
+
+        window.set_size(LogicalSize::new(width, height))?;
+      }
+
       if cfg!(debug_assertions) {
         app.handle().plugin(
           tauri_plugin_log::Builder::default()
