@@ -14,12 +14,13 @@
  * - `default ChangePasswordModal`
  *
  * 依赖关系：
- * - 上游依赖：外部依赖 `react`、外部依赖 `lucide-react`、内部模块 `supabaseClient`
+ * - 上游依赖：外部依赖 `react`、外部依赖 `lucide-react`、内部模块 `authService`
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { useState } from 'react';
 import { Eye, EyeOff, Loader2, Key, X } from 'lucide-react';
-import { supabase } from '../../lib/supabaseClient';
+import { useAuth } from '../../contexts/useAuth';
+import { authService } from '../../services/authService';
 
 interface ChangePasswordModalProps {
     isOpen: boolean;
@@ -27,6 +28,7 @@ interface ChangePasswordModalProps {
 }
 
 export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
+    const { user } = useAuth();
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -68,9 +70,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
         setIsLoading(true);
 
         try {
-            const { error: updateError } = await supabase!.auth.updateUser({
-                password: newPassword
-            });
+            const { error: updateError } = await authService.changePassword(user?.id ?? '', currentPassword, newPassword);
 
             if (updateError) {
                 setError(updateError.message || '修改密码失败');

@@ -41,7 +41,7 @@ Orbis/
 | `useQimenState` | Hook | `src/components/Modules/Qimen/hooks/useQimenState.ts` | High | 奇门页面核心状态 |
 | `baziCaseService` | Service | `src/services/baziCaseService.ts` | Medium | 八字案例 CRUD |
 | `qimenCaseService` | Service | `src/services/qimenCaseService.ts` | Medium | 奇门案例 CRUD |
-| `supabase` | Proxy Client | `src/lib/supabase.ts` | High | 在线/离线统一入口 |
+| `localPrivateStore` | Local Store | `src/services/localPrivateStore.ts` | High | 本地私有数据统一入口 |
 
 ## SUBDIRECTORY AGENTS
 - `src/components/Modules/AGENTS.md`：业务模块 UI 边界、模块间职责。
@@ -66,7 +66,7 @@ Orbis/
 - 不要假设测试脚本存在；当前仓库无 `npm test`。
 
 ## UNIQUE STYLES
-- `src/lib/supabase.ts` 支持 `VITE_SUPABASE_ANON_KEY_PART1/2/3` 分段拼接与离线降级 Proxy。
+- `src/services/localPrivateStore.ts` 在 Tauri 使用 SQLite，在浏览器使用 IndexedDB，并按 userId 隔离数据。
 - `src/lib/csp-qimen/CONSTANTS.md` 维护常量分层与复用规则。
 - `src/data/cases` 以目录命名编码领域标签（术数流派/日主/主题）。
 

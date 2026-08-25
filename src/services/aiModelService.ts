@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { getPrivateUserId, localPrivateStore } from './localPrivateStore';
 
 export type AiProtocol =
   | 'openai-compatible'
@@ -96,100 +96,54 @@ function toService(record: AiModelServiceRecord): AiModelService {
 }
 
 async function getCurrentUserId() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('请先登录后管理 AI 服务');
-  return user.id;
+  const userId = await getPrivateUserId();
+  if (userId === 'anonymous') throw new Error('请先登录后管理 AI 服务');
+  return userId;
 }
 
 export const aiModelService = {
   async getServices(): Promise<AiModelService[]> {
-    await getCurrentUserId();
-    const { data, error } = await supabase
-      .from('ai_model_services')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Failed to fetch AI model services:', error);
-      throw new Error(error.message);
-    }
-
-    return (data as AiModelServiceRecord[] | null ?? []).map(toService);
+    const userId = await getCurrentUserId();
+    const records = await localPrivateStore.list(userId, 'ai_model_service');
+    return records.map((record) => toService(record.payload as unknown as AiModelServiceRecord));
   },
 
   async createService(input: AiModelServiceInput): Promise<AiModelService> {
     const userId = await getCurrentUserId();
-    const { data, error } = await supabase
-      .from('ai_model_services')
-      .insert({
-        user_id: userId,
-        name: input.name.trim(),
-        protocol: input.protocol,
-        base_url: normalizeBaseUrl(input.baseUrl),
-        api_key: input.apiKey.trim(),
-        models: input.models?.map((model) => model.trim()).filter(Boolean) ?? [],
-        enabled: true,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Failed to create AI model service:', error);
-      throw new Error(error.message);
-    }
-
-    return toService(data as AiModelServiceRecord);
+    const now = new Date().toISOString();
+    const record: AiModelServiceRecord = { id: crypto.randomUUID(), name: input.name.trim(), protocol: input.protocol, base_url: normalizeBaseUrl(input.baseUrl), api_key: input.apiKey.trim(), models: input.models?.map((model) => model.trim()).filter(Boolean) ?? [], enabled: true, created_at: now, updated_at: now };
+    await localPrivateStore.put(userId, 'ai_model_service', record as unknown as Record<string, unknown>, record.id);
+    return toService(record);
   },
 
   async updateService(id: string, input: AiModelServiceInput): Promise<AiModelService> {
-    const updates = {
+    const current = await localPrivateStore.get(await getCurrentUserId(), 'ai_model_service', id);
+    if (!current) throw new Error('未找到 AI 服务');
+    const previous = current.payload as unknown as AiModelServiceRecord;
+    const updates: AiModelServiceRecord = {
+      ...previous,
       name: input.name.trim(),
       protocol: input.protocol,
       base_url: normalizeBaseUrl(input.baseUrl),
       models: input.models?.map((model) => model.trim()).filter(Boolean) ?? [],
-      ...(input.apiKey.trim() ? { api_key: input.apiKey.trim() } : {}),
+      api_key: input.apiKey.trim() || previous.api_key,
+      updated_at: new Date().toISOString(),
     };
-    const { data, error } = await supabase
-      .from('ai_model_services')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Failed to update AI model service:', error);
-      throw new Error(error.message);
-    }
-
-    return toService(data as AiModelServiceRecord);
+    await localPrivateStore.put(await getCurrentUserId(), 'ai_model_service', updates as unknown as Record<string, unknown>, id);
+    return toService(updates);
   },
 
   async toggleService(id: string, enabled: boolean): Promise<AiModelService> {
-    const { data, error } = await supabase
-      .from('ai_model_services')
-      .update({ enabled })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Failed to toggle AI model service:', error);
-      throw new Error(error.message);
-    }
-
-    return toService(data as AiModelServiceRecord);
+    const userId = await getCurrentUserId();
+    const current = await localPrivateStore.get(userId, 'ai_model_service', id);
+    if (!current) throw new Error('未找到 AI 服务');
+    const record = { ...(current.payload as unknown as AiModelServiceRecord), enabled, updated_at: new Date().toISOString() };
+    await localPrivateStore.put(userId, 'ai_model_service', record as unknown as Record<string, unknown>, id);
+    return toService(record);
   },
 
   async deleteService(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('ai_model_services')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Failed to delete AI model service:', error);
-      throw new Error(error.message);
-    }
+    await localPrivateStore.remove(await getCurrentUserId(), 'ai_model_service', id);
   },
 };
 
