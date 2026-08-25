@@ -23,7 +23,7 @@ function toError(error: unknown): AuthError {
 
 export const authService = {
   async signUp(email: string, password: string): Promise<{ user: User | null; error: AuthError | null }> {
-    if (!email.trim() || password.length < 6) return { user: null, error: { message: '请输入邮箱，且密码至少 6 位' } };
+    if (!email.trim() || !password) return { user: null, error: { message: '请输入用户名和密码' } };
     try { return { user: await createLocalAccount(email, password), error: null }; } catch (error) { return { user: null, error: toError(error) }; }
   },
   async signIn(email: string, password: string): Promise<{ user: User | null; error: AuthError | null }> {

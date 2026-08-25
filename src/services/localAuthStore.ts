@@ -43,7 +43,7 @@ async function hashPassword(password: string) {
 export async function createLocalAccount(email: string, password: string) {
   const normalizedEmail = email.trim().toLowerCase();
   const accounts = read<LocalAccount[]>(ACCOUNTS_KEY, []);
-  if (accounts.some((account) => account.email === normalizedEmail)) throw new Error('该邮箱已注册');
+  if (accounts.some((account) => account.email === normalizedEmail)) throw new Error('该用户名已注册');
   const user: LocalUser = {
     id: crypto.randomUUID(),
     email: normalizedEmail,
@@ -60,7 +60,7 @@ export async function createLocalAccount(email: string, password: string) {
 export async function signInLocalAccount(email: string, password: string) {
   const normalizedEmail = email.trim().toLowerCase();
   const account = read<LocalAccount[]>(ACCOUNTS_KEY, []).find((item) => item.email === normalizedEmail);
-  if (!account || account.passwordHash !== await hashPassword(password)) throw new Error('邮箱或密码错误');
+  if (!account || account.passwordHash !== await hashPassword(password)) throw new Error('用户名或密码错误');
   const user = toPublicUser(account);
   write(SESSION_KEY, user);
   return user;
