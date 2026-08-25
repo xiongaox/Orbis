@@ -13,7 +13,7 @@
     "windows": [
       {
         "title": "Orbis",
-        "width": 1080,
+        "width": 1800,
         "height": 720,
         "resizable": true,
         "fullscreen": false
