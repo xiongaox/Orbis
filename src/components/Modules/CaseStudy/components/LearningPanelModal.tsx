@@ -58,6 +58,8 @@ export default function LearningPanelModal({
 
     // 加载状态
     const [isLoading, setIsLoading] = useState(false);
+    const [isClearing, setIsClearing] = useState(false);
+    const [isClearConfirming, setIsClearConfirming] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     // 加载数据
@@ -128,16 +130,32 @@ export default function LearningPanelModal({
 
     // 处理清空最近阅读
     const handleClearAllProgress = async () => {
-        if (!user) return;
+        if (!user || isClearing) return;
 
-        if (!window.confirm('确定要清空所有最近阅读记录吗？此操作无法撤销。')) {
+        if (!isClearConfirming) {
+            setIsClearConfirming(true);
             return;
         }
 
-        const success = await learningPanelService.clearAllProgress(user.id);
-        if (success) {
-            loadData();
+        setIsClearing(true);
+        try {
+            const success = await learningPanelService.clearAllProgress(user.id);
+            if (success) {
+                // 立即同步当前视图，避免删除成功后仍显示旧缓存列表。
+                setRecentReads([]);
+                setTotalCount(0);
+            }
+        } catch (err) {
+            console.error('清空最近阅读失败:', err);
+            setError('清空失败，请重试');
+        } finally {
+            setIsClearing(false);
+            setIsClearConfirming(false);
         }
+    };
+
+    const cancelClearProgress = () => {
+        if (!isClearing) setIsClearConfirming(false);
     };
 
     // 获取当前显示的列表数据
@@ -254,17 +272,28 @@ export default function LearningPanelModal({
                                 <div className="space-y-3">
                                     {/* 最近阅读清空按钮 */}
                                     {activeMenu === 'recent' && (
-                                        <div className="flex justify-end px-1">
+                                        <div className={`flex items-center justify-end gap-2 px-3 py-2 rounded-lg border ${isClearConfirming ? 'border-red-500/30 bg-red-500/10' : 'border-border/60 bg-muted/20'}`}>
+                                            {isClearConfirming && (
+                                                <span className="mr-auto text-xs text-red-500/90">清空后无法恢复</span>
+                                            )}
+                                            {isClearConfirming && (
+                                                <button
+                                                    type="button"
+                                                    onClick={cancelClearProgress}
+                                                    disabled={isClearing}
+                                                    className="inline-flex h-8 items-center rounded-md border border-border bg-card px-3 text-xs font-medium text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground cursor-pointer disabled:cursor-not-allowed"
+                                                >
+                                                    取消
+                                                </button>
+                                            )}
                                             <button
+                                                type="button"
                                                 onClick={handleClearAllProgress}
-                                                className="
-                                                    text-xs text-muted-foreground hover:text-red-500 
-                                                    flex items-center gap-1 transition-colors
-                                                    cursor-pointer opacity-60 hover:opacity-100
-                                                "
+                                                disabled={isClearing}
+                                                className={`inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-semibold shadow-sm transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 ${isClearConfirming ? 'bg-red-600 text-white hover:bg-red-700' : 'border border-red-500/30 bg-red-500/10 text-red-500 hover:bg-red-500/20'}`}
                                             >
                                                 <Trash2 className="w-3 h-3" />
-                                                清空最近阅读
+                                                {isClearing ? '正在清空…' : isClearConfirming ? '确认清空' : '清空最近阅读'}
                                             </button>
                                         </div>
                                     )}

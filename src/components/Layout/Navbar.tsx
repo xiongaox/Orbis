@@ -23,15 +23,14 @@ import { useAuth } from '../../contexts/useAuth';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import BaseModal from '../UI/BaseModal';
 import SideDrawer from '../UI/SideDrawer';
-import ChangePasswordModal from '../Auth/ChangePasswordModal';
-import AdvancedDatePicker from '../Common/AdvancedDatePicker';
 import { profileService } from '../../services/profileService';
-import RealtimeClock from './RealtimeClock';
 import UserMenu from './UserMenu';
 import { NavButton, DrawerNavButton, type NavItemType } from './NavButton';
 import AiIntegrationModal from '../Common/AiIntegrationModal';
 import MobileLockedChartSwitcher from './MobileLockedChartSwitcher';
 import PrivateDataBackupModal from '../Common/PrivateDataBackupModal';
+import { startWebDavAutoBackup } from '../../services/webdavBackupService';
+import ProfileCenterModal from '../Auth/ProfileCenterModal';
 
 export type ChartType =
   | 'bazi'
@@ -70,13 +69,11 @@ export default function Navbar({
   const { user } = useAuth();
   const { isPadLandscape, useDesktopLayout } = useLayoutMode();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showProfileCenter, setShowProfileCenter] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showAiIntegrationModal, setShowAiIntegrationModal] = useState(false);
   const [showPrivateDataBackupModal, setShowPrivateDataBackupModal] = useState(false);
 
-  // 生日设置相关状态
-  const [showBirthdayModal, setShowBirthdayModal] = useState(false);
   const [birthDate, setBirthDate] = useState<Date | undefined>(undefined);
 
   // Load profile when user changes
@@ -102,6 +99,8 @@ export default function Navbar({
     }
   }, [user]);
 
+  useEffect(() => startWebDavAutoBackup(), []);
+
   const displayBirthDate = user ? birthDate : undefined;
 
   const [isDark, setIsDark] = useState(() => {
@@ -116,24 +115,6 @@ export default function Navbar({
       localStorage.setItem('theme', next ? 'dark' : 'light');
       return next;
     });
-  };
-
-  const handleBirthdayConfirm = async (date: Date) => {
-    setBirthDate(date); // Optimistic update
-    setShowBirthdayModal(false);
-
-    if (user?.id) {
-      // Save to Supabase
-      await profileService.updateProfile(user.id, {
-        birth_date: date.toISOString(),
-        email: user.email, // Ensure email is synced
-      });
-
-      // Sync to local storage as backup
-      if (user.email) {
-        localStorage.setItem(`user_birthday_${user.email}`, date.toISOString());
-      }
-    }
   };
 
   const handleShowAiIntegration = () => {
@@ -161,43 +142,23 @@ export default function Navbar({
             </button>
 
             <div className="hidden md:flex items-center md:gap-4 lg:gap-8 md:absolute md:left-2 lg:left-4 md:top-1/2 md:-translate-y-1/2">
-              <button
-                type="button"
-                onClick={() => {
-                  window.location.href = '/';
-                }}
-                className="w-24 h-24 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
-                title="刷新并返回首页"
-              >
+              <div className="w-24 h-24 flex items-center justify-center">
                 <img
                   src={isDark ? "/logo/logo_dark.svg" : "/logo/logo_light.svg"}
                   alt="玄枢录"
                   className="w-full h-full object-contain"
                 />
-              </button>
+              </div>
 
-              {/* 实时时钟 - 在万年通历模块隐藏 */}
-              {activeChart !== 'wannianli' && (
-                <div className="hidden xl:flex">
-                  <RealtimeClock />
-                </div>
-              )}
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                window.location.href = '/';
-              }}
-              className="md:hidden absolute left-1/2 -translate-x-1/2 w-24 h-24 -mt-1 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
-              title="刷新并返回首页"
-            >
+            <div className="md:hidden absolute left-1/2 -translate-x-1/2 w-24 h-24 -mt-1 flex items-center justify-center">
               <img
                 src={isDark ? "/logo/logo_dark.svg" : "/logo/logo_light.svg"}
                 alt="玄枢录"
                 className="w-full h-full object-contain"
               />
-            </button>
+            </div>
 
             <div className="hidden md:flex items-center justify-center">
               {/* 完整导航菜单 */}
@@ -268,8 +229,7 @@ export default function Navbar({
               <UserMenu
                 onLoginClick={() => onLoginClick?.()}
                 onShowContact={() => setShowContactModal(true)}
-                onShowBirthday={() => setShowBirthdayModal(true)}
-                onShowPassword={() => setShowPasswordModal(true)}
+                onShowProfile={() => setShowProfileCenter(true)}
                 onShowAiIntegration={handleShowAiIntegration}
                 onShowPrivateDataBackup={() => setShowPrivateDataBackupModal(true)}
                 birthDate={displayBirthDate}
@@ -311,15 +271,6 @@ export default function Navbar({
         onChartChange={(chart) => onChartChange(chart as ChartType)}
       />
 
-      {/* Birthday Picker Modal */}
-      <AdvancedDatePicker
-        isOpen={showBirthdayModal}
-        onClose={() => setShowBirthdayModal(false)}
-        onConfirm={handleBirthdayConfirm}
-        value={displayBirthDate}
-        hideBazi={true}
-      />
-
       {/* 联系作者弹窗 */}
       <BaseModal
         isOpen={showContactModal}
@@ -346,9 +297,11 @@ export default function Navbar({
         </div>
       </BaseModal>
 
-      <ChangePasswordModal
-        isOpen={showPasswordModal}
-        onClose={() => setShowPasswordModal(false)}
+      <ProfileCenterModal
+        isOpen={showProfileCenter}
+        onClose={() => setShowProfileCenter(false)}
+        birthDate={displayBirthDate}
+        onBirthDateChange={setBirthDate}
       />
 
       {showAiIntegrationModal && (

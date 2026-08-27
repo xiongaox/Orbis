@@ -54,6 +54,7 @@ export interface CaseStudyLayoutProps {
     // 案例选择与切换
     selectedCaseId: string | null;
     handleSelectCase: (id: string) => void;
+    handleSelectRandomCase: () => void;
     selectedAuthor: string | null;
     handleSelectAuthor: (a: string) => void;
 

@@ -55,8 +55,15 @@ export const learningPanelService = {
     return paginate(records.map((record) => record.payload as unknown as CaseProgress).filter((item) => item.progress_percent >= 90).sort((a, b) => b.last_read_at.localeCompare(a.last_read_at)), page, limit);
   },
   async clearAllProgress(userId: string) {
-    const records = await localPrivateStore.list(userId, 'case_progress');
-    await Promise.all(records.map((record) => localPrivateStore.remove(userId, 'case_progress', record.id)));
+    await localPrivateStore.clear(userId, 'case_progress');
+    // 以读取结果确认删除已落盘；若底层实现存在残留，逐条补删一次。
+    const remaining = await localPrivateStore.list(userId, 'case_progress');
+    for (const record of remaining) {
+      await localPrivateStore.remove(userId, 'case_progress', record.id);
+    }
+    if ((await localPrivateStore.list(userId, 'case_progress')).length > 0) {
+      throw new Error('最近阅读记录未能完全清空');
+    }
     return true;
   },
 };

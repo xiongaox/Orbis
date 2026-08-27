@@ -18,17 +18,18 @@
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { useState } from 'react';
-import { LogIn, UserPlus } from 'lucide-react';
+import { ArrowLeft, LogIn, UserPlus } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
 import LoginForm from './LoginForm';
 import RegisterForm from './RegisterForm';
+import ForgotPasswordForm from './ForgotPasswordForm';
 
 interface AuthModalProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
-export type AuthMode = 'login' | 'register';
+export type AuthMode = 'login' | 'register' | 'forgot';
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     const [mode, setMode] = useState<AuthMode>('login');
@@ -44,12 +45,19 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         switch (mode) {
             case 'login': return '登录';
             case 'register': return '注册';
+            case 'forgot': return '找回密码';
         }
     };
 
     const getTitleIcon = () => {
         // 当有返回按钮时（forgot/otp 模式），返回按钮作为图标位置
-        // 登录/注册模式显示对应图标
+        if (mode === 'forgot') {
+            return (
+                <button type="button" onClick={() => setMode('login')} className="p-1 -ml-1 text-muted-foreground hover:text-foreground rounded-full hover:bg-muted/50 transition-colors" aria-label="返回登录">
+                    <ArrowLeft className="w-4 h-4" />
+                </button>
+            );
+        }
         switch (mode) {
             case 'login': return <LogIn className="w-5 h-5" />;
             case 'register': return <UserPlus className="w-5 h-5" />;
@@ -67,6 +75,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         >
             {mode === 'login' && <LoginForm onSwitchMode={setMode} onClose={handleClose} />}
             {mode === 'register' && <RegisterForm onSwitchMode={setMode} />}
+            {mode === 'forgot' && <ForgotPasswordForm onSwitchMode={setMode} />}
         </BaseModal>
     );
 }

@@ -18,7 +18,7 @@
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 
-import { Compass } from 'lucide-react';
+import { Compass, Dices } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
@@ -46,7 +46,7 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
         isAuthenticated, allCases, displayCases, activeCase, authorIntroContent,
         currentPage, totalPages, setCurrentPage,
         selectedCategory, setSelectedCategory, selectedDayMaster, handleSelectDayMaster,
-        searchTerm, setSearchTerm, selectedCaseId, handleSelectCase,
+        searchTerm, setSearchTerm, selectedCaseId, handleSelectCase, handleSelectRandomCase,
         selectedAuthor, handleSelectAuthor,
         activeChartIndex, setActiveChartIndex, chartCount,
         baziData, selectedDaYunIndex, setSelectedDaYunIndex,
@@ -128,6 +128,17 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
                         isFinished={currentProgress > 0 ? currentProgress >= 90 : savedProgress >= 90}
                         onRestore={restoreProgress}
                     />
+                    {activeCase && (
+                        <button
+                            type="button"
+                            onClick={handleSelectRandomCase}
+                            className="w-12 h-12 rounded-full bg-card border border-border text-foreground shadow-sm flex items-center justify-center hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                            aria-label="随机选择案例"
+                            title="随机选择案例"
+                        >
+                            <Dices className="w-5 h-5" />
+                        </button>
+                    )}
                     <LearningPanelFAB onClick={() => setIsLearningPanelOpen(true)} />
                 </div>
             )}

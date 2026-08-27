@@ -10,6 +10,11 @@ interface LocalAccount extends LocalUser {
   passwordHash: string;
 }
 
+export interface LocalAuthBackup {
+  accounts: Array<LocalUser & { passwordHash: string }>;
+  session: LocalUser | null;
+}
+
 const ACCOUNTS_KEY = 'orbis-local-accounts';
 const SESSION_KEY = 'orbis-local-session';
 const OTP_KEY = 'orbis-local-otp';
@@ -74,6 +79,35 @@ export function clearLocalSession() {
   localStorage.removeItem(SESSION_KEY);
 }
 
+/**
+ * 导出本地账号与当前会话，供 WebDAV 完整备份使用。
+ * 密码始终以既有的哈希值保存，不会在备份中出现明文密码。
+ */
+export function exportLocalAuthBackup(): LocalAuthBackup {
+  return {
+    accounts: read<LocalAccount[]>(ACCOUNTS_KEY, []).map((account) => ({ ...account })),
+    session: getLocalSession(),
+  };
+}
+
+export function restoreLocalAuthBackup(backup: LocalAuthBackup) {
+  if (!Array.isArray(backup.accounts)) throw new Error('登录数据格式不正确');
+  const accounts = backup.accounts.filter((account): account is LocalAccount => (
+    Boolean(account)
+    && typeof account.id === 'string'
+    && typeof account.email === 'string'
+    && typeof account.passwordHash === 'string'
+    && typeof account.created_at === 'string'
+  ));
+  write(ACCOUNTS_KEY, accounts);
+  if (backup.session?.id && accounts.some((account) => account.id === backup.session?.id)) {
+    write(SESSION_KEY, backup.session);
+  } else {
+    localStorage.removeItem(SESSION_KEY);
+  }
+  emitAuthChange();
+}
+
 export function subscribeLocalAuth(callback: (user: LocalUser | null) => void) {
   const listener = () => callback(getLocalSession());
   window.addEventListener('orbis-auth-change', listener);
@@ -91,6 +125,38 @@ export async function changeLocalPassword(userId: string, currentPassword: strin
   accounts[index] = { ...accounts[index], passwordHash: await hashPassword(newPassword) };
   write(ACCOUNTS_KEY, accounts);
   emitAuthChange();
+}
+
+export async function resetLocalPassword(username: string, newPassword: string) {
+  const normalizedUsername = username.trim().toLowerCase();
+  const accounts = read<LocalAccount[]>(ACCOUNTS_KEY, []);
+  const index = accounts.findIndex((account) => account.email === normalizedUsername);
+  if (index < 0) throw new Error('未找到该用户名');
+  accounts[index] = { ...accounts[index], passwordHash: await hashPassword(newPassword) };
+  write(ACCOUNTS_KEY, accounts);
+}
+
+export async function changeLocalUsername(userId: string, username: string) {
+  const normalizedUsername = username.trim().toLowerCase();
+  if (!normalizedUsername) throw new Error('请输入用户名');
+
+  const accounts = read<LocalAccount[]>(ACCOUNTS_KEY, []);
+  const index = accounts.findIndex((account) => account.id === userId);
+  if (index < 0) throw new Error('当前账号不存在');
+  if (accounts.some((account, accountIndex) => accountIndex !== index && account.email === normalizedUsername)) {
+    throw new Error('该用户名已注册');
+  }
+
+  const account = { ...accounts[index], email: normalizedUsername };
+  accounts[index] = account;
+  write(ACCOUNTS_KEY, accounts);
+
+  const session = getLocalSession();
+  if (session?.id === userId) {
+    write(SESSION_KEY, toPublicUser(account));
+  }
+  emitAuthChange();
+  return toPublicUser(account);
 }
 
 export function createLocalOtp(email: string) {

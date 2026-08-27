@@ -19,7 +19,7 @@
  */
 
 import { useState } from 'react';
-import { Mail, Loader2 } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/useAuth';
 import { type AuthMode } from './AuthModal';
 
@@ -29,7 +29,10 @@ interface ForgotPasswordFormProps {
 
 export default function ForgotPasswordForm({ onSwitchMode }: ForgotPasswordFormProps) {
     const { resetPassword } = useAuth();
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
@@ -39,18 +42,19 @@ export default function ForgotPasswordForm({ onSwitchMode }: ForgotPasswordFormP
         setError(null);
         setSuccess(null);
 
-        if (!email) {
-            setError('请填写邮箱');
+        if (!username.trim() || !newPassword || !confirmPassword) {
+            setError('请填写用户名和新密码');
             return;
         }
+        if (newPassword !== confirmPassword) { setError('两次输入的新密码不一致'); return; }
 
         setLoading(true);
         try {
-            const { error: resetError } = await resetPassword(email);
+            const { error: resetError } = await resetPassword(username, newPassword);
             if (resetError) {
                 setError(resetError);
             } else {
-                setSuccess('重置密码邮件已发送，请查收邮箱。');
+                setSuccess('密码已重置，请返回登录。');
             }
         } catch {
             setError('发送失败，请稍后重试');
@@ -62,23 +66,35 @@ export default function ForgotPasswordForm({ onSwitchMode }: ForgotPasswordFormP
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <p className="text-sm text-muted-foreground mb-4">
-                输入您的注册邮箱，我们将发送密码重置链接。
+                输入注册时使用的用户名并设置新密码。
             </p>
 
             <div className="modal-field">
-                <label className="modal-label">邮箱</label>
+                <label className="modal-label">用户名</label>
                 <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="your@email.com"
+                        type="text"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="请输入用户名"
                         className="modal-input with-left-icon focus-ring"
                         autoComplete="email"
                         disabled={loading}
                     />
                 </div>
+            </div>
+            <div className="modal-field">
+                <label className="modal-label">新密码</label>
+                <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input type={showPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="请输入新密码" className="modal-input with-left-icon with-right-icon focus-ring" autoComplete="new-password" disabled={loading} />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-label="显示或隐藏密码">{showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}</button>
+                </div>
+            </div>
+            <div className="modal-field">
+                <label className="modal-label">确认新密码</label>
+                <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="请再次输入新密码" className="modal-input focus-ring" autoComplete="new-password" disabled={loading} />
             </div>
 
             {error && (

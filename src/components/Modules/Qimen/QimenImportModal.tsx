@@ -23,9 +23,9 @@ import JsonImportModal from '../../Common/JsonImportModal';
 import {
     qimenCaseService,
     type CreateQimenCaseInput,
-    type QimenCategory,
     QIMEN_CATEGORIES,
 } from '../../../services/qimenCaseService';
+import { parseQimenImportData } from '../../../utils/qimenImportUtils';
 
 interface QimenImportModalProps {
     isOpen: boolean;
@@ -60,35 +60,7 @@ export default function QimenImportModal({ isOpen, onClose, onImported }: QimenI
             throw new Error('JSON 数据必须是数组格式');
         }
 
-        return jsonData.map((item: unknown, index: number) => {
-            const record = item as Record<string, unknown>;
-            if (!record.title) {
-                throw new Error(`第 ${index + 1} 条数据缺少标题 (title)`);
-            }
-            if (!record.test_date) {
-                throw new Error(`第 ${index + 1} 条数据缺少时间 (test_date)`);
-            }
-
-            // 验证并修正分类
-            let category: QimenCategory = 'other';
-            const inputCategory = String(record.category ?? 'other');
-            const validCategory = QIMEN_CATEGORIES.find(c => c.id === inputCategory);
-            if (!validCategory) {
-                category = 'other'; // 默认归为其他
-            } else {
-                category = validCategory.id;
-            }
-
-            return {
-                title: String(record.title),
-                test_date: String(record.test_date),
-                category: category,
-                description: record.description ? String(record.description) : undefined,
-                feedback: record.feedback ? String(record.feedback) : undefined,
-                analysis: record.analysis ? String(record.analysis) : undefined,
-                qimen_data: (record.qimen_data as Record<string, unknown> | undefined) || undefined,
-            };
-        });
+        return parseQimenImportData(jsonData);
     }, []);
 
     // 保存数据

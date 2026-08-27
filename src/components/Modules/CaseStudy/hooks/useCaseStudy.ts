@@ -261,6 +261,21 @@ export function useCaseStudy() {
         setSelectedAuthor(null);
     };
 
+    // 在当前筛选范围内随机选择一篇不同的案例，并同步目录页码。
+    const handleSelectRandomCase = () => {
+        if (filteredCases.length === 0) return;
+
+        const candidates = filteredCases.length > 1
+            ? filteredCases.filter((caseItem) => caseItem.id !== selectedCaseId)
+            : filteredCases;
+        const nextCase = candidates[Math.floor(Math.random() * candidates.length)];
+        const nextIndex = filteredCases.findIndex((caseItem) => caseItem.id === nextCase.id);
+
+        setSelectedCaseId(nextCase.id);
+        setSelectedAuthor(null);
+        setCurrentPage(Math.floor(nextIndex / ITEMS_PER_PAGE) + 1);
+    };
+
     // 选择作者时清除案例
     const handleSelectAuthor = (author: string) => {
         setSelectedAuthor(author);
@@ -295,6 +310,7 @@ export function useCaseStudy() {
         // 案例
         selectedCaseId,
         handleSelectCase,
+        handleSelectRandomCase,
 
         // 搜索
         searchTerm,

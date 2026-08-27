@@ -107,6 +107,12 @@ export default function LoginForm({ onSwitchMode, onClose }: LoginFormProps) {
                 </div>
             )}
 
+            <div className="flex justify-end !mt-1">
+                <button type="button" onClick={() => onSwitchMode('forgot')} className="text-xs text-muted-foreground hover:text-primary focus:outline-none focus:underline">
+                    忘记密码？
+                </button>
+            </div>
+
             <button
                 type="submit"
                 disabled={loading}
