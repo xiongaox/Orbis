@@ -18,25 +18,10 @@
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { useState, useMemo, useEffect } from 'react';
-import { extractBazi } from '../../../../lib/caseStudy/parsers';
 import { AUTHOR_MAP } from '../../../../lib/caseStudy/constants';
 import type { PaiPanMethod } from '../../../../lib/csp-qimen/qimenService';
 import { TIAN_GAN } from '../../../../constants/ganZhi';
-
-// 加载案例文件
-// 加载案例文件
-const rawCasesLishuanglin = import.meta.glob('../../../../data/cases/bazi/lishuanglin/**/*.md', { query: '?raw', import: 'default', eager: true });
-const rawCasesNanxuanzi = import.meta.glob('../../../../data/cases/bazi/nanxuanzi/**/*.md', { query: '?raw', import: 'default', eager: true });
-const rawCasesBuchuiniu = import.meta.glob('../../../../data/cases/qimen/buchuiniu/**/*.md', { query: '?raw', import: 'default', eager: true });
-const rawCasesZhangzhichun = import.meta.glob('../../../../data/cases/qimen/zhangzhichun/**/*.md', { query: '?raw', import: 'default', eager: true });
-
-// 加载作者介绍文件
-// 之前使用单独的 glob，但因为路径问题（太深）导致匹配失败
-// ex: ../../../../data/cases/*/*.md 只匹配两层，但实际位置在 cases/study/bazi/lishuanglin/李双林.md (4层)
-// 既然 rawCases 已经加载了所有 md 文件（包括 authors），我们可以直接从 rawCases 中查找
-
-// 合并所有案例
-const rawCases = { ...rawCasesLishuanglin, ...rawCasesNanxuanzi, ...rawCasesBuchuiniu, ...rawCasesZhangzhichun };
+import { publicCaseLibraryService } from '../../../../services/publicCaseLibraryService';
 
 import { calculateQimen, type QimenResult } from '../../../../lib/csp-qimen/qimenService';
 
@@ -50,56 +35,10 @@ export interface CaseItem {
     category: 'bazi' | 'qimen';
 }
 
-const ALL_CASES: CaseItem[] = Object.entries(rawCases)
-    .filter(([path, content]) => {
-        const c = content as string;
-        // Filter empty files
-        if (c.trim().length === 0 || !path.includes('/')) return false;
+export const ALL_CASES: CaseItem[] = [];
 
-        // Filter author profile files (e.g. "李双林.md", "不吹牛.md")
-        const pathParts = path.split('/');
-        const filename = pathParts.pop()?.replace('.md', '');
-
-        // Check if filename matches any author name
-        const isAuthorProfile = Object.values(AUTHOR_MAP).some(authorName => filename === authorName);
-
-        return !isAuthorProfile;
-    })
-    .map(([path, content]) => {
-        const strContent = content as string;
-        const pathParts = path.split('/');
-        const filename = pathParts.pop()?.replace('.md', '') || '无标题';
-        const dayMasterCategory = pathParts[pathParts.length - 1] || '未分类';
-        const authorKey = path.includes('lishuanglin') ? 'lishuanglin' :
-            path.includes('nanxuanzi') ? 'nanxuanzi' :
-                path.includes('buchuiniu') ? 'buchuiniu' :
-                    path.includes('zhangzhichun') ? 'zhangzhichun' : '';
-        const author = AUTHOR_MAP[authorKey] || '未知';
-
-        // Determine category based on author/path
-        const category = ((path.includes('buchuiniu') || path.includes('zhangzhichun')) ? 'qimen' : 'bazi') as 'bazi' | 'qimen';
-
-        let bazi = extractBazi(strContent);
-        if (category === 'qimen') {
-            const match = strContent.match(/(?:\*\*)?公元(?:\*\*)?[：:]\s*(\d{4}年\d{1,2}月\d{1,2}日\d{1,2}时)/);
-            if (match) {
-                bazi = match[1];
-            } else {
-                bazi = '未知时间';
-            }
-        }
-
-        return {
-            id: path,
-            title: filename,
-            bazi: bazi,
-            content: strContent,
-            dayMaster: dayMasterCategory,
-            author: author,
-            category: category
-        };
-    })
-    .sort((a, b) => {
+function sortCases(cases: CaseItem[]): CaseItem[] {
+    return [...cases].sort((a, b) => {
         const getTianganIndex = (str: string) => {
             for (let i = 0; i < TIAN_GAN.length; i++) {
                 if (str.includes(TIAN_GAN[i])) return i;
@@ -116,6 +55,7 @@ const ALL_CASES: CaseItem[] = Object.entries(rawCases)
 
         return a.title.localeCompare(b.title, 'zh-CN');
     });
+}
 
 const ITEMS_PER_PAGE = 12;
 
@@ -123,6 +63,7 @@ const ITEMS_PER_PAGE = 12;
 
 export function useCaseStudy() {
     // 基础状态
+    const [allCases, setAllCases] = useState<CaseItem[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<string>('bazi');
     const [selectedDayMaster, setSelectedDayMaster] = useState<string>('all');
     const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
@@ -147,21 +88,60 @@ export function useCaseStudy() {
     const [customJu, setCustomJu] = useState<number>(0);  // 0=自动计算, 正数=阳遏, 负数=阴遏
     const [chartCount, setChartCount] = useState<number>(0); // 当前案例包含的排盘数量
 
-    // 获取作者介绍内容
-    const authorIntroContent = useMemo(() => {
-        if (!selectedAuthor) return null;
+    useEffect(() => {
+        let cancelled = false;
+        void publicCaseLibraryService.getEntries().then((entries) => {
+            if (cancelled) return;
+            const cases = sortCases(entries.map((entry) => ({
+                id: entry.id,
+                title: entry.title,
+                bazi: entry.summary,
+                content: '',
+                dayMaster: entry.category,
+                author: entry.author_name || AUTHOR_MAP[entry.author_key] || '未知',
+                category: entry.domain,
+            })));
+            ALL_CASES.splice(0, ALL_CASES.length, ...cases);
+            setAllCases(cases);
+        }).catch((cause: unknown) => console.error('加载公共案例目录失败', cause));
+        return () => { cancelled = true; };
+    }, []);
 
-        // 查找路径以 "/作者名.md" 结尾的文件
-        const entry = Object.entries(rawCases).find(([path]) => {
-            return path.endsWith(`/${selectedAuthor}.md`);
+    useEffect(() => {
+        if (!selectedCaseId) return;
+        const selected = allCases.find((caseItem) => caseItem.id === selectedCaseId);
+        if (!selected || selected.content) return;
+        let cancelled = false;
+        void publicCaseLibraryService.getContent(selected.id).then((content) => {
+            if (cancelled) return;
+            setAllCases((previous) => previous.map((caseItem) => caseItem.id === selected.id ? { ...caseItem, content } : caseItem));
+            const globalCase = ALL_CASES.find((caseItem) => caseItem.id === selected.id);
+            if (globalCase) globalCase.content = content;
+        }).catch((cause: unknown) => console.error('加载案例正文失败', cause));
+        return () => { cancelled = true; };
+    }, [allCases, selectedCaseId]);
+
+    const [authorIntroContent, setAuthorIntroContent] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!selectedAuthor) {
+            setAuthorIntroContent(null);
+            return;
+        }
+        const authorKey = Object.entries(AUTHOR_MAP).find(([, name]) => name === selectedAuthor)?.[0];
+        if (!authorKey) return;
+        let cancelled = false;
+        void publicCaseLibraryService.getAuthorProfile(authorKey).then((content) => {
+            if (!cancelled) setAuthorIntroContent(content);
+        }).catch(() => {
+            if (!cancelled) setAuthorIntroContent(null);
         });
-
-        return entry ? (entry[1] as string) : null;
+        return () => { cancelled = true; };
     }, [selectedAuthor]);
 
     // 筛选案例
     const filteredCases = useMemo(() => {
-        return ALL_CASES.filter(c => {
+        return allCases.filter(c => {
             // Filter by selected category (tab)
             if (c.category !== selectedCategory) return false;
 
@@ -169,7 +149,7 @@ export function useCaseStudy() {
             const matchSearch = searchTerm === '' || c.title.includes(searchTerm) || c.content.includes(searchTerm);
             return matchDayMaster && matchSearch;
         });
-    }, [searchTerm, selectedDayMaster, selectedCategory]);
+    }, [allCases, searchTerm, selectedDayMaster, selectedCategory]);
 
     const totalPages = Math.ceil(filteredCases.length / ITEMS_PER_PAGE);
     const displayCases = filteredCases.slice(
@@ -179,8 +159,8 @@ export function useCaseStudy() {
 
     // 当前选中的案例
     const activeCase = useMemo(() => {
-        return ALL_CASES.find(c => c.id === selectedCaseId);
-    }, [selectedCaseId]);
+        return allCases.find(c => c.id === selectedCaseId);
+    }, [allCases, selectedCaseId]);
 
     // 当选中案例改变时，重置排盘索引
     useEffect(() => {
@@ -245,12 +225,12 @@ export function useCaseStudy() {
         setSearchTerm('');
         setCurrentPage(1);
         // 从静态 ALL_CASES 中查找该分类的第一篇，避免页面空白
-        const firstCase = ALL_CASES.find(c => c.category === selectedCategory);
+        const firstCase = allCases.find(c => c.category === selectedCategory);
         setSelectedCaseId(firstCase?.id ?? null);
         setQimenResult(null);
         setCustomJu(0);  // 重置自定义局数
         setActiveChartIndex(0);
-    }, [selectedCategory]);
+    }, [allCases, selectedCategory]);
 
 
 
@@ -290,7 +270,7 @@ export function useCaseStudy() {
 
     return {
         // 所有案例数据
-        allCases: ALL_CASES,
+        allCases,
         displayCases,
         filteredCases,
         activeCase,
@@ -345,5 +325,3 @@ export function useCaseStudy() {
         chartCount,
     };
 }
-
-export { ALL_CASES };
