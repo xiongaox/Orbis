@@ -1,9 +1,11 @@
 import {
   changeLocalPassword,
+  changeLocalUsername,
   clearLocalSession,
   createLocalAccount,
   createLocalOtp,
   getLocalSession,
+  resetLocalPassword,
   signInLocalAccount,
   subscribeLocalAuth,
   verifyLocalOtp,
@@ -40,10 +42,8 @@ export const authService = {
     return user ? { user } : null;
   },
   onAuthStateChange(callback: (user: User | null) => void) { return { data: { subscription: subscribeLocalAuth(callback) } }; },
-  async resetPassword(email: string): Promise<{ error: AuthError | null }> {
-    const token = createLocalOtp(email);
-    console.info(`本地验证码（仅作为凭证）：${token}`);
-    return { error: null };
+  async resetPassword(username: string, newPassword: string): Promise<{ error: AuthError | null }> {
+    try { await resetLocalPassword(username, newPassword); return { error: null }; } catch (error) { return { error: toError(error) }; }
   },
   async sendOtp(email: string): Promise<{ error: AuthError | null }> {
     const token = createLocalOtp(email);
@@ -55,5 +55,8 @@ export const authService = {
   },
   async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ error: AuthError | null }> {
     try { await changeLocalPassword(userId, currentPassword, newPassword); return { error: null }; } catch (error) { return { error: toError(error) }; }
+  },
+  async changeUsername(userId: string, username: string): Promise<{ user: User | null; error: AuthError | null }> {
+    try { return { user: await changeLocalUsername(userId, username), error: null }; } catch (error) { return { user: null, error: toError(error) }; }
   },
 };

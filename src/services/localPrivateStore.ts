@@ -7,7 +7,7 @@
  */
 import Database from '@tauri-apps/plugin-sql';
 
-export type PrivateRecordType = 'bazi_case' | 'qimen_case' | 'sanyuan_case' | 'profile' | 'ai_model_service' | 'case_favorite' | 'case_progress';
+export type PrivateRecordType = 'bazi_case' | 'qimen_case' | 'sanyuan_case' | 'profile' | 'ai_model_service' | 'case_favorite' | 'case_progress' | 'webdav_config';
 
 export interface PrivateRecord {
   id: string;
@@ -23,6 +23,7 @@ export interface PrivateDataSnapshot {
   schemaVersion: number;
   exportedAt: string;
   records: PrivateRecord[];
+  auth?: import('./localAuthStore').LocalAuthBackup;
 }
 
 const DB_NAME = 'orbis-private.db';
@@ -110,6 +111,26 @@ async function withIndexedStore<T>(mode: IDBTransactionMode, action: (store: IDB
   });
 }
 
+async function clearIndexedDbRecords(userId: string, type: PrivateRecordType) {
+  if (typeof indexedDB === 'undefined') return;
+  const db = await openIndexedDb();
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction(IDB_STORE, 'readwrite');
+    const request = transaction.objectStore(IDB_STORE).index('scope').openCursor(IDBKeyRange.only([userId, type]));
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (cursor) {
+        cursor.delete();
+        cursor.continue();
+      }
+    };
+    request.onerror = () => reject(request.error ?? new Error('清空本地数据失败'));
+    transaction.oncomplete = () => { db.close(); resolve(); };
+    transaction.onerror = () => { db.close(); reject(transaction.error ?? new Error('清空本地数据事务失败')); };
+    transaction.onabort = () => { db.close(); reject(transaction.error ?? new Error('清空本地数据事务已中止')); };
+  });
+}
+
 function fromRow(row: { id: string; user_id: string; record_type: PrivateRecordType; payload: string; created_at: string; updated_at: string; sort_order?: number }): PrivateRecord {
   return {
     id: row.id,
@@ -130,7 +151,16 @@ export const localPrivateStore = {
         'SELECT * FROM private_records WHERE user_id = $1 AND record_type = $2 ORDER BY COALESCE(sort_order, 2147483647), updated_at DESC',
         [userId, type],
       );
-      return rows.map(fromRow);
+      const sqliteRecords = rows.map(fromRow);
+      // 兼容迁移前已经写入 WebView IndexedDB 的记录，避免只读 SQLite
+      // 导致界面显示的数据与清空操作使用的存储不一致。
+      if (typeof indexedDB !== 'undefined') {
+        const indexedRecords = await withIndexedStore<PrivateRecord[]>('readonly', (store) => store.index('scope').getAll([userId, type]));
+        const merged = new Map(sqliteRecords.map((record) => [record.id, record]));
+        for (const record of indexedRecords) merged.set(record.id, record);
+        return [...merged.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      }
+      return sqliteRecords;
     }
     if (typeof indexedDB === 'undefined') {
       return [...memoryRecords.values()].filter((record) => record.userId === userId && record.type === type);
@@ -188,24 +218,51 @@ export const localPrivateStore = {
     await withIndexedStore('readwrite', (store) => store.delete(id));
   },
 
+  async clear(userId: string, type: PrivateRecordType) {
+    if (isTauriRuntime()) {
+      const db = await getTauriDatabase();
+      await db.execute('DELETE FROM private_records WHERE user_id = $1 AND record_type = $2', [userId, type]);
+      await clearIndexedDbRecords(userId, type);
+      return;
+    }
+    if (typeof indexedDB === 'undefined') {
+      for (const [id, record] of memoryRecords) {
+        if (record.userId === userId && record.type === type) memoryRecords.delete(id);
+      }
+      return;
+    }
+    await clearIndexedDbRecords(userId, type);
+  },
+
   async snapshot(): Promise<PrivateDataSnapshot> {
+    const auth = await getAuthBackup();
     if (isTauriRuntime()) {
       const db = await getTauriDatabase();
       const rows = await db.select<Array<{ id: string; user_id: string; record_type: PrivateRecordType; payload: string; created_at: string; updated_at: string; sort_order?: number }>>('SELECT * FROM private_records');
-      return { schemaVersion: SCHEMA_VERSION, exportedAt: now(), records: rows.map(fromRow) };
+      return { schemaVersion: SCHEMA_VERSION, exportedAt: now(), records: rows.map(fromRow), auth };
     }
-    if (typeof indexedDB === 'undefined') return { schemaVersion: SCHEMA_VERSION, exportedAt: now(), records: [...memoryRecords.values()] };
+    if (typeof indexedDB === 'undefined') return { schemaVersion: SCHEMA_VERSION, exportedAt: now(), records: [...memoryRecords.values()], auth };
     const db = await openIndexedDb();
     const records = await withIndexedStore<PrivateRecord[]>('readonly', (store) => store.getAll());
     db.close();
-    return { schemaVersion: SCHEMA_VERSION, exportedAt: now(), records };
+    return { schemaVersion: SCHEMA_VERSION, exportedAt: now(), records, auth };
   },
 
   async restore(snapshot: PrivateDataSnapshot) {
     if (snapshot.schemaVersion !== SCHEMA_VERSION || !Array.isArray(snapshot.records)) throw new Error('备份文件版本不受支持');
     for (const record of snapshot.records) await this.put(record.userId, record.type, record.payload, record.id, record.sortOrder);
+    if (snapshot.auth && typeof localStorage !== 'undefined') {
+      const { restoreLocalAuthBackup } = await import('./localAuthStore');
+      restoreLocalAuthBackup(snapshot.auth);
+    }
   },
 };
+
+async function getAuthBackup(): Promise<PrivateDataSnapshot['auth']> {
+  if (typeof localStorage === 'undefined') return undefined;
+  const { exportLocalAuthBackup } = await import('./localAuthStore');
+  return exportLocalAuthBackup();
+}
 
 export async function getPrivateUserId() {
   const { getLocalSession } = await import('./localAuthStore');

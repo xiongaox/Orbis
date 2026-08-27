@@ -28,6 +28,7 @@ import type { CreateQimenCaseInput, QimenCategory } from '../services/qimenCaseS
 // 用户可能使用的中文键名映射
 const FIELD_MAPPING: Record<string, keyof CreateQimenCaseInput | 'ju_text'> = {
     '公历时间': 'test_date',
+    '占测时间': 'test_date',
     '标题': 'title', // 可选
     '事情描述': 'description',
     '事件反馈': 'feedback',

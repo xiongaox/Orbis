@@ -19,7 +19,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { Bot, Compass, User, Calendar, Key, LogOut, Loader2, Cloud } from 'lucide-react';
+import { Bot, Compass, User, CircleUserRound, LogOut, Loader2, Cloud } from 'lucide-react';
 import { useAuth } from '../../contexts/useAuth';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { getUserAvatar } from '../../utils/userUtil';
@@ -27,8 +27,7 @@ import { getUserAvatar } from '../../utils/userUtil';
 interface UserMenuProps {
     onLoginClick: () => void;
     onShowContact: () => void;
-    onShowBirthday: () => void;
-    onShowPassword: () => void;
+    onShowProfile: () => void;
     onShowAiIntegration: () => void;
     onShowPrivateDataBackup: () => void;
     birthDate?: Date;
@@ -37,8 +36,7 @@ interface UserMenuProps {
 export default function UserMenu({
     onLoginClick,
     onShowContact,
-    onShowBirthday,
-    onShowPassword,
+    onShowProfile,
     onShowAiIntegration,
     onShowPrivateDataBackup,
     birthDate
@@ -122,23 +120,13 @@ export default function UserMenu({
                             <button
                                 type="button"
                                 onClick={() => {
-                                    onShowBirthday();
+                                    onShowProfile();
                                     setMenuOpen(false);
                                 }}
                                 className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
                             >
-                                <Calendar className="w-4 h-4" />
-                                设置生日
-                            </button>
-                            <button
-                                onClick={() => {
-                                    onShowPassword();
-                                    setMenuOpen(false);
-                                }}
-                                className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
-                            >
-                                <Key className="w-4 h-4" />
-                                修改密码
+                                <CircleUserRound className="w-4 h-4" />
+                                个人中心
                             </button>
                             <button
                                 type="button"
@@ -160,7 +148,7 @@ export default function UserMenu({
                                 className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
                             >
                                 <Cloud className="w-4 h-4" />
-                                私有数据备份
+                                数据备份
                             </button>
                             <button
                                 onClick={handleLogout}
@@ -230,7 +218,7 @@ export default function UserMenu({
                                 className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
                             >
                                 <Cloud className="w-4 h-4" />
-                                私有数据备份
+                                数据备份
                             </button>
                         </>
                     )}

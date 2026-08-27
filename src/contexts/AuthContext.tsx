@@ -76,8 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
     }, []);
 
-    const resetPassword = useCallback(async (email: string) => {
-        const { error } = await authService.resetPassword(email);
+    const resetPassword = useCallback(async (username: string, newPassword: string) => {
+        const { error } = await authService.resetPassword(username, newPassword);
         if (error) {
             return { error: error.message };
         }

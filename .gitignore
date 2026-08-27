@@ -31,6 +31,17 @@ api/venv/
 .AppleDouble
 .LSOverride
 Icon?
+
+# Tauri application icons (the generic macOS Icon? rule also matches these on case-insensitive filesystems)
+!src-tauri/icons/
+src-tauri/icons/*
+!src-tauri/icons/icon.icns
+!src-tauri/icons/icon.ico
+!src-tauri/icons/icon.png
+!src-tauri/icons/32x32.png
+!src-tauri/icons/64x64.png
+!src-tauri/icons/128x128.png
+!src-tauri/icons/128x128@2x.png
 ._*
 .Spotlight-V100
 .Trashes
