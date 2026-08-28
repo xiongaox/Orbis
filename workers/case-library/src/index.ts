@@ -21,7 +21,7 @@ const requestWindows = new Map<string, { count: number; resetAt: number }>();
 function json(data: unknown, status = 200, headers?: HeadersInit): Response {
     return Response.json(data, {
         status,
-        headers: { 'cache-control': 'no-store', ...headers },
+        headers: { 'cache-control': 'no-store', 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET, HEAD, OPTIONS', 'access-control-allow-headers': 'content-type, if-none-match', ...headers },
     });
 }
 
@@ -85,8 +85,8 @@ async function serveObject(key: string, request: Request, env: Env): Promise<Res
         onlyIf: { etagDoesNotMatch: request.headers.get('if-none-match')?.replaceAll('"', '') ?? '' },
     });
     if (!object) return error('not_found', '案例不存在。', 404);
-    if (!object.body) return new Response(null, { status: 304, headers: { etag: object.httpEtag } });
-    const headers = new Headers({ 'cache-control': 'public, max-age=300' });
+    if (!object.body) return new Response(null, { status: 304, headers: { etag: object.httpEtag, 'access-control-allow-origin': '*' } });
+    const headers = new Headers({ 'cache-control': 'public, max-age=300', 'access-control-allow-origin': '*' });
     object.writeHttpMetadata(headers);
     headers.set('etag', object.httpEtag);
     return new Response(object.body, { headers });
@@ -107,6 +107,14 @@ export default {
     async fetch(request: Request, env: Env): Promise<Response> {
         const url = new URL(request.url);
         if (!url.pathname.startsWith('/api/public/cases')) return env.ASSETS.fetch(request);
+        if (request.method === 'OPTIONS') return new Response(null, {
+            status: 204,
+            headers: {
+                'access-control-allow-origin': '*',
+                'access-control-allow-methods': 'GET, HEAD, OPTIONS',
+                'access-control-allow-headers': 'content-type, if-none-match',
+            },
+        });
         if (request.method !== 'GET' && request.method !== 'HEAD') return error('method_not_allowed', '仅支持只读 GET/HEAD 请求。', 405);
         if (!allowRequest(request)) return error('rate_limited', '请求过于频繁，请稍后再试。', 429);
 

@@ -14,7 +14,7 @@ interface DirectoryResponse {
 }
 
 const configuredBaseUrl = import.meta.env.VITE_PUBLIC_CASE_LIBRARY_URL?.replace(/\/$/, '');
-const caseLibraryBaseUrl = configuredBaseUrl || (import.meta.env.DEV ? '/api/public/cases' : 'https://orbis.xiongaox.workers.dev/api/public/cases');
+const caseLibraryBaseUrl = configuredBaseUrl || 'https://orbis.xiongaox.workers.dev/api/public/cases';
 
 async function request(path: string): Promise<Response> {
     const response = await fetch(caseLibraryBaseUrl + path);
