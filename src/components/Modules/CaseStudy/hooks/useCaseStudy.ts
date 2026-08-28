@@ -103,7 +103,10 @@ export function useCaseStudy() {
             })));
             ALL_CASES.splice(0, ALL_CASES.length, ...cases);
             setAllCases(cases);
-        }).catch((cause: unknown) => console.error('加载公共案例目录失败', cause));
+        }).catch((cause: unknown) => {
+            console.error('加载公共案例目录失败', cause);
+            if (!cancelled) setAllCases([]);
+        });
         return () => { cancelled = true; };
     }, []);
 

@@ -13,8 +13,11 @@ interface DirectoryResponse {
     total: number;
 }
 
+const configuredBaseUrl = import.meta.env.VITE_PUBLIC_CASE_LIBRARY_URL?.replace(/\/$/, '');
+const caseLibraryBaseUrl = configuredBaseUrl || (import.meta.env.DEV ? '/api/public/cases' : 'https://orbis.xiongaox.workers.dev/api/public/cases');
+
 async function request(path: string): Promise<Response> {
-    const response = await fetch('/api/public/cases' + path);
+    const response = await fetch(caseLibraryBaseUrl + path);
     if (!response.ok) throw new Error('公共案例库请求失败（' + response.status + '）');
     return response;
 }
