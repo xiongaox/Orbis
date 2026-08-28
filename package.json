@@ -11,6 +11,7 @@
     "cases:migrate": "wrangler d1 migrations apply orbis --remote",
     "cases:import": "tsx scripts/import-case-library.ts",
     "cases:verify": "tsx scripts/verify-case-library.ts",
+    "cases:verify:full": "tsx scripts/verify-case-library-full.ts",
     "cases:deploy": "npm run build && wrangler deploy",
     "preview": "vite preview",
     "tauri": "tauri"
