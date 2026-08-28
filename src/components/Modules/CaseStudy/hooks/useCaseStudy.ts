@@ -233,7 +233,7 @@ export function useCaseStudy() {
         setQimenResult(null);
         setCustomJu(0);  // 重置自定义局数
         setActiveChartIndex(0);
-    }, [allCases, selectedCategory]);
+    }, [allCases.length, selectedCategory]);
 
 
 
