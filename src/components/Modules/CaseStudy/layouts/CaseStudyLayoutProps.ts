@@ -37,6 +37,7 @@ export interface CaseStudyLayoutProps {
     filteredCases: CaseItem[];
     activeCase: CaseItem | null | undefined;
     authorIntroContent: string | null;
+    isCaseContentLoading: boolean;
 
     // 列表分页与选中
     currentPage: number;

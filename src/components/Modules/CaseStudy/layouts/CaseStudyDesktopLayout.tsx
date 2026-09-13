@@ -34,6 +34,7 @@ import DuanFaPage from '../DuanFaPage';
 import LearningPanelFAB from '../components/LearningPanelFAB';
 import FavoriteButton from '../components/FavoriteButton';
 import ReadingProgressButton from '../components/ReadingProgressButton';
+import ArticleContentLoading from '../components/ArticleContentLoading';
 import { type CaseStudyLayoutProps } from './CaseStudyLayoutProps';
 
 const toChineseNum = (num: number) => {
@@ -43,7 +44,7 @@ const toChineseNum = (num: number) => {
 
 export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
     const {
-        isAuthenticated, allCases, displayCases, activeCase, authorIntroContent,
+        isAuthenticated, allCases, displayCases, activeCase, authorIntroContent, isCaseContentLoading,
         currentPage, totalPages, setCurrentPage,
         selectedCategory, setSelectedCategory, selectedDayMaster, handleSelectDayMaster,
         searchTerm, setSearchTerm, selectedCaseId, handleSelectCase, handleSelectRandomCase,
@@ -85,15 +86,19 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
                                 <FavoriteButton articleId={activeCase.id} />
                             )}
                         </div>
-                        <div className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed text-[16px] lg:text-[18px]">
-                            <ReactMarkdown
-                                rehypePlugins={[rehypeRaw]}
-                                remarkPlugins={[remarkGfm, remarkBreaks]}
-                                components={caseMarkdownComponents}
-                            >
-                                {activeCase.content.replace(/^(命主生辰|性别|日主|格局|令地)[：:][^\n]*\n?/gm, '').replace(/^#\s+[^\n]+\n?/, '').replace(/^\n+/, '')}
-                            </ReactMarkdown>
-                        </div>
+                        {isCaseContentLoading ? (
+                            <ArticleContentLoading />
+                        ) : (
+                            <div className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed text-[16px] lg:text-[18px]">
+                                <ReactMarkdown
+                                    rehypePlugins={[rehypeRaw]}
+                                    remarkPlugins={[remarkGfm, remarkBreaks]}
+                                    components={caseMarkdownComponents}
+                                >
+                                    {activeCase.content.replace(/^(命主生辰|性别|日主|格局|令地)[：:][^\n]*\n?/gm, '').replace(/^#\s+[^\n]+\n?/, '').replace(/^\n+/, '')}
+                                </ReactMarkdown>
+                            </div>
+                        )}
                     </div>
                 </div>
             ) : selectedAuthor && authorIntroContent ? (
