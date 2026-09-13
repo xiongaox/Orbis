@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  getPrivateUserId: vi.fn(),
   localPrivateStore: {
     get: vi.fn(),
     put: vi.fn(),
@@ -33,12 +32,11 @@ const config = {
 describe('WebDAV 备份服务', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getPrivateUserId.mockResolvedValue('user-a');
     mocks.localPrivateStore.snapshot.mockResolvedValue({ schemaVersion: 1, exportedAt: '2026-08-26T00:00:00.000Z', records: [] });
     vi.stubGlobal('window', { setTimeout, clearTimeout, setInterval, clearInterval, addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn() });
   });
 
-  it('按当前用户隔离保存配置，并迁移旧的固定文件路径', async () => {
+  it('保存配置，并迁移旧的固定文件路径', async () => {
     mocks.localPrivateStore.get.mockResolvedValue({
       payload: { endpoint: config.endpoint, username: config.username, password: config.password, filePath: 'orbis/private-data.json', autoBackupIntervalHours: 2 },
     });
@@ -49,8 +47,8 @@ describe('WebDAV 备份服务', () => {
 
     await webDavBackupService.saveConfig(config);
 
-    expect(mocks.localPrivateStore.get).toHaveBeenCalledWith('user-a', 'webdav_config', 'user-a:webdav_config');
-    expect(mocks.localPrivateStore.put).toHaveBeenCalledWith('user-a', 'webdav_config', config, 'user-a:webdav_config');
+    expect(mocks.localPrivateStore.get).toHaveBeenCalledWith('webdav_config', 'webdav_config');
+    expect(mocks.localPrivateStore.put).toHaveBeenCalledWith('webdav_config', config, 'webdav_config');
   });
 
   it('上传前创建父目录，并生成带日期时间的独立文件', async () => {

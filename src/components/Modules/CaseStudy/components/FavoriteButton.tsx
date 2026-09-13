@@ -19,7 +19,6 @@
  */
 import { useState, useEffect } from 'react';
 import { Heart, Loader2 } from 'lucide-react';
-import { useAuth } from '../../../../contexts/useAuth';
 import { learningPanelService } from '../../../../services/learningPanelService';
 
 interface FavoriteButtonProps {
@@ -28,39 +27,34 @@ interface FavoriteButtonProps {
 }
 
 export default function FavoriteButton({ articleId, onFavoriteChange }: FavoriteButtonProps) {
-    const { user } = useAuth();
     const [isFavorited, setIsFavorited] = useState(false);
-    const [isLoading, setIsLoading] = useState(!!user);
+    const [isLoading, setIsLoading] = useState(false);
 
     // 初始化时检查收藏状态
     useEffect(() => {
-        if (!user) {
-            return;
-        }
-
         const checkFavoriteStatus = async () => {
             setIsLoading(true);
-            const favorited = await learningPanelService.isFavorited(user.id, articleId);
+            const favorited = await learningPanelService.isFavorited(articleId);
             setIsFavorited(favorited);
             setIsLoading(false);
         };
 
         checkFavoriteStatus();
-    }, [user, articleId]);
+    }, [articleId]);
 
     const handleToggleFavorite = async () => {
-        if (!user || isLoading) return;
+        if (isLoading) return;
 
         setIsLoading(true);
 
         if (isFavorited) {
-            const success = await learningPanelService.removeFavorite(user.id, articleId);
+            const success = await learningPanelService.removeFavorite(articleId);
             if (success) {
                 setIsFavorited(false);
                 onFavoriteChange?.(false);
             }
         } else {
-            const success = await learningPanelService.addFavorite(user.id, articleId);
+            const success = await learningPanelService.addFavorite(articleId);
             if (success) {
                 setIsFavorited(true);
                 onFavoriteChange?.(true);
@@ -69,9 +63,6 @@ export default function FavoriteButton({ articleId, onFavoriteChange }: Favorite
 
         setIsLoading(false);
     };
-
-    // 未登录不显示
-    if (!user) return null;
 
     return (
         <button

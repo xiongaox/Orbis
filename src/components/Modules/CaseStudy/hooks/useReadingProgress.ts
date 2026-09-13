@@ -18,7 +18,6 @@
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { useEffect, useRef, useCallback, useState } from 'react';
-import { useAuth } from '../../../../contexts/useAuth';
 import { learningPanelService } from '../../../../services/learningPanelService';
 
 interface UseReadingProgressOptions {
@@ -26,7 +25,7 @@ interface UseReadingProgressOptions {
     articleId: string | null;
     /** 滚动容器的 ref */
     scrollContainerRef: React.RefObject<HTMLElement | null>;
-    /** 是否启用（仅登录用户启用） */
+    /** 是否启用（在本地工作区启用） */
     enabled?: boolean;
 }
 
@@ -62,7 +61,6 @@ export function useReadingProgress({
     scrollContainerRef,
     enabled = true,
 }: UseReadingProgressOptions): UseReadingProgressReturn {
-    const { user } = useAuth();
 
     // 已保存的进度（用于跳转）
     const [savedProgress, setSavedProgress] = useState<number>(0);
@@ -88,7 +86,7 @@ export function useReadingProgress({
      * 注意：只保存比之前更高的进度，避免覆盖
      */
     const saveProgress = useCallback(async (percent: number, force: boolean = false) => {
-        if (!user || !articleId || isSavingRef.current) return;
+        if (!articleId || isSavingRef.current) return;
 
         // 如果还没初始化，不保存（避免覆盖数据库中的进度）
         // 除非是 force 保存（比如页面卸载时）
@@ -111,7 +109,7 @@ export function useReadingProgress({
         isSavingRef.current = true;
 
         try {
-            const success = await learningPanelService.upsertProgress(user.id, articleId, percent);
+            const success = await learningPanelService.upsertProgress(articleId, percent);
             if (success) {
                 lastSavedProgressRef.current = percent;
                 lastSaveTimeRef.current = now;
@@ -121,16 +119,16 @@ export function useReadingProgress({
         } finally {
             isSavingRef.current = false;
         }
-    }, [user, articleId]);
+    }, [articleId]);
 
     /**
      * 恢复进度
      */
     const restoreProgress = useCallback(async () => {
-        if (!user || !articleId || !scrollContainerRef.current) return;
+        if (!articleId || !scrollContainerRef.current) return;
 
         try {
-            const progress = await learningPanelService.getProgress(user.id, articleId);
+            const progress = await learningPanelService.getProgress(articleId);
 
             if (progress && progress.progress_percent > 0) {
                 const container = scrollContainerRef.current;
@@ -147,11 +145,11 @@ export function useReadingProgress({
         } catch (error) {
             console.error('恢复进度失败:', error);
         }
-    }, [user, articleId, scrollContainerRef]);
+    }, [articleId, scrollContainerRef]);
 
     // 滚动事件处理
     useEffect(() => {
-        if (!enabled || !user || !articleId || !scrollContainerRef.current) return;
+        if (!enabled || !articleId || !scrollContainerRef.current) return;
 
         const container = scrollContainerRef.current;
 
@@ -175,7 +173,7 @@ export function useReadingProgress({
             container.removeEventListener('scroll', throttledScroll);
             if (scrollTimeout) clearTimeout(scrollTimeout);
         };
-    }, [enabled, user, articleId, scrollContainerRef, saveProgress]);
+    }, [enabled, articleId, scrollContainerRef, saveProgress]);
 
     // 文章切换时初始化状态
     useEffect(() => {
@@ -183,13 +181,13 @@ export function useReadingProgress({
             // 如果之前有文章，保存最终进度
             // 使用 currentScrollPercentRef.current 而不是重新计算 DOM
             // 因为此时 DOM 可能已经更新为新文章（或为空），计算结果不准确
-            if (currentArticleIdRef.current && user && isInitializedRef.current) {
+            if (currentArticleIdRef.current && isInitializedRef.current) {
                 const percent = currentScrollPercentRef.current;
 
                 // 只保存更高的进度
                 if (percent > lastSavedProgressRef.current) {
                     const previousArticleId = currentArticleIdRef.current;
-                    learningPanelService.upsertProgress(user.id, previousArticleId, percent);
+                    learningPanelService.upsertProgress(previousArticleId, percent);
                 }
             }
 
@@ -202,9 +200,9 @@ export function useReadingProgress({
             currentScrollPercentRef.current = 0; // 重置当前滚动的 ref
 
             // 从数据库加载基准进度
-            if (user && articleId) {
+            if (articleId) {
                 setSavedProgress(0); // 先重置
-                learningPanelService.getProgress(user.id, articleId).then(progress => {
+                learningPanelService.getProgress(articleId).then(progress => {
                     if (progress) {
                         lastSavedProgressRef.current = progress.progress_percent;
                         setSavedProgress(progress.progress_percent);
@@ -217,11 +215,11 @@ export function useReadingProgress({
                 setSavedProgress(0);
             }
         }
-    }, [articleId, scrollContainerRef, user]);
+    }, [articleId, scrollContainerRef]);
 
     // 页面卸载/隐藏时保存进度
     useEffect(() => {
-        if (!enabled || !user || !articleId) return;
+        if (!enabled || !articleId) return;
 
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'hidden' && scrollContainerRef.current) {
@@ -234,7 +232,7 @@ export function useReadingProgress({
             if (scrollContainerRef.current) {
                 const percent = calculateScrollPercent(scrollContainerRef.current);
                 // 使用同步方式保存（navigator.sendBeacon）
-                // 由于 Supabase 不直接支持 sendBeacon，这里使用普通请求
+                // 本地存储不需要 sendBeacon，这里使用普通请求
                 // 在实际场景中，请求可能会被取消，但这是最佳努力
                 saveProgress(percent, true);
             }
@@ -247,7 +245,7 @@ export function useReadingProgress({
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('beforeunload', handleBeforeUnload);
         };
-    }, [enabled, user, articleId, scrollContainerRef, saveProgress]);
+    }, [enabled, articleId, scrollContainerRef, saveProgress]);
 
     return { restoreProgress, savedProgress, currentProgress };
 }

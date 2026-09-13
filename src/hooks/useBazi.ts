@@ -18,7 +18,6 @@
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from '../contexts/useAuth';
 import { baziCaseService } from '../services/baziCaseService';
 import { calculateBazi } from '../services/bazi/baziCalculator';
 import type { BaziApiResponse } from '../types/bazi';
@@ -27,7 +26,6 @@ import { BAZI_CASES_CHANGED_EVENT } from '../data/caseConstants';
 import type { BaziLockedSnapshot } from '../lib/lockedChartStorage';
 
 export function useBazi() {
-    const { isAuthenticated } = useAuth();
     const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
     const [selectedCase, setSelectedCase] = useState<Case | null>(null);
     const [baziData, setBaziData] = useState<BaziApiResponse | null>(null);
@@ -44,30 +42,26 @@ export function useBazi() {
     // 加载案例数据
     const loadCase = useCallback(async (caseId: string) => {
         try {
-            if (isAuthenticated) {
-                const remoteCase = await baziCaseService.getCaseById(caseId);
-                if (!remoteCase) {
-                    setSelectedCase(null);
-                    return null;
-                }
-                const mappedCase: Case = {
-                    id: remoteCase.id,
-                    name: remoteCase.name,
-                    gender: remoteCase.gender,
-                    birth_date: remoteCase.birth_date,
-                    created_at: remoteCase.created_at,
-                };
-                setSelectedCase(mappedCase);
-                return mappedCase;
+            const remoteCase = await baziCaseService.getCaseById(caseId);
+            if (!remoteCase) {
+                setSelectedCase(null);
+                return null;
             }
-            setSelectedCase(null);
-            return null;
+            const mappedCase: Case = {
+                id: remoteCase.id,
+                name: remoteCase.name,
+                gender: remoteCase.gender,
+                birth_date: remoteCase.birth_date,
+                created_at: remoteCase.created_at,
+            };
+            setSelectedCase(mappedCase);
+            return mappedCase;
         } catch (err) {
             console.error('加载案例失败:', err);
             setSelectedCase(null);
             return null;
         }
-    }, [isAuthenticated]);
+    }, []);
 
     // 获取八字数据（使用案例数据或当前时间）
     const loadBaziData = useCallback(async (caseData?: Case | null) => {

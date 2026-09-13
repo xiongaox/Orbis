@@ -21,7 +21,6 @@
 import { GitBranch, ArrowRightLeft, Sparkles, ChevronUp, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import classNames from 'classnames';
-import { useAuth } from '../../../contexts/useAuth';
 import { baziCaseService } from '../../../services/baziCaseService';
 import { BAZI_CASES_CHANGED_EVENT } from '../../../data/caseConstants';
 import type { Case } from '../../../types';
@@ -49,7 +48,6 @@ export default function BaziCaseInfo({
   currentYear,
   isMobileLayout = false,
 }: BaziCaseInfoProps) {
-  const { isAuthenticated } = useAuth();
   const [saving, setSaving] = useState(false);
   const [showDiagram, setShowDiagram] = useState(false);
   const [showLiuTong, setShowLiuTong] = useState(false);
@@ -80,11 +78,6 @@ export default function BaziCaseInfo({
 
   const handleSaveCurrent = async () => {
     if (!baziData || caseData) return;
-
-    if (!isAuthenticated) {
-      alert('请先登录');
-      return;
-    }
 
     const parsedDate = parseSolarDate(baziData.solarDate);
     const fallbackDate = new Date();

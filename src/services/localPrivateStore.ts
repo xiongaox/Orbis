@@ -1,9 +1,8 @@
 /**
- * 本地私有数据存储层。
+ * 单工作区本地私有数据存储层。
  *
- * Tauri 运行时使用 SQLite；浏览器开发/预览环境使用 IndexedDB，保证同一套
- * service API 可以离线工作。所有记录都按 userId 隔离，并保留 JSON payload
- * 以便后续迁移时不破坏现有 hook 契约。
+ * Tauri 使用 SQLite，浏览器使用 IndexedDB。底层保留旧 user_id 列仅用于
+ * 兼容已有数据；公开记录、业务 API 和备份格式均不再包含账号信息。
  */
 import Database from '@tauri-apps/plugin-sql';
 
@@ -11,7 +10,6 @@ export type PrivateRecordType = 'bazi_case' | 'qimen_case' | 'sanyuan_case' | 'p
 
 export interface PrivateRecord {
   id: string;
-  userId: string;
   type: PrivateRecordType;
   payload: Record<string, unknown>;
   createdAt: string;
@@ -23,13 +21,16 @@ export interface PrivateDataSnapshot {
   schemaVersion: number;
   exportedAt: string;
   records: PrivateRecord[];
-  auth?: import('./localAuthStore').LocalAuthBackup;
 }
+
+type LegacyPrivateRecord = PrivateRecord & { userId?: string; user_id?: string };
+type LegacySnapshot = { schemaVersion: number; exportedAt: string; records: LegacyPrivateRecord[]; auth?: unknown };
 
 const DB_NAME = 'orbis-private.db';
 const IDB_NAME = 'orbis-private';
 const IDB_STORE = 'records';
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
+const DEFAULT_WORKSPACE = 'default';
 
 type TauriDatabase = Awaited<ReturnType<typeof Database.load>>;
 let tauriDatabasePromise: Promise<TauriDatabase> | null = null;
@@ -46,6 +47,24 @@ function createId() {
     : `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+function sanitizePayload(payload: Record<string, unknown>) {
+  const { user_id: _userId, userId: _legacyUserId, ...cleanPayload } = payload;
+  void _userId;
+  void _legacyUserId;
+  return cleanPayload;
+}
+
+function normalizeRecord(record: LegacyPrivateRecord): PrivateRecord {
+  return {
+    id: record.id,
+    type: record.type,
+    payload: sanitizePayload(record.payload),
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    sortOrder: record.sortOrder,
+  };
+}
+
 async function getTauriDatabase() {
   if (!tauriDatabasePromise) {
     tauriDatabasePromise = Database.load(`sqlite:${DB_NAME}`).then(async (database) => {
@@ -58,7 +77,7 @@ async function getTauriDatabase() {
       await database.execute(`
         CREATE TABLE IF NOT EXISTS private_records (
           id TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL,
+          user_id TEXT NOT NULL DEFAULT '${DEFAULT_WORKSPACE}',
           record_type TEXT NOT NULL,
           payload TEXT NOT NULL,
           created_at TEXT NOT NULL,
@@ -66,6 +85,7 @@ async function getTauriDatabase() {
           sort_order INTEGER
         )
       `);
+      await database.execute(`UPDATE private_records SET user_id = '${DEFAULT_WORKSPACE}' WHERE user_id IS NULL OR user_id = ''`);
       await database.execute('CREATE INDEX IF NOT EXISTS idx_private_records_scope ON private_records(user_id, record_type, updated_at)');
       await database.execute(
         'INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES ($1, $2)',
@@ -86,10 +106,10 @@ function openIndexedDb(): Promise<IDBDatabase> {
     const request = indexedDB.open(IDB_NAME, SCHEMA_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(IDB_STORE)) {
-        const store = db.createObjectStore(IDB_STORE, { keyPath: 'id' });
-        store.createIndex('scope', ['userId', 'type'], { unique: false });
-      }
+      const store = db.objectStoreNames.contains(IDB_STORE)
+        ? request.transaction?.objectStore(IDB_STORE)
+        : db.createObjectStore(IDB_STORE, { keyPath: 'id' });
+      if (store && !store.indexNames.contains('scope')) store.createIndex('scope', ['userId', 'type'], { unique: false });
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error ?? new Error('打开本地数据库失败'));
@@ -97,6 +117,8 @@ function openIndexedDb(): Promise<IDBDatabase> {
 }
 
 const memoryRecords = new Map<string, PrivateRecord>();
+
+type StoredRecord = PrivateRecord & { userId?: string };
 
 async function withIndexedStore<T>(mode: IDBTransactionMode, action: (store: IDBObjectStore) => IDBRequest<T>) {
   if (typeof indexedDB === 'undefined') throw new Error('当前环境不支持 IndexedDB');
@@ -111,76 +133,55 @@ async function withIndexedStore<T>(mode: IDBTransactionMode, action: (store: IDB
   });
 }
 
-async function clearIndexedDbRecords(userId: string, type: PrivateRecordType) {
+async function migrateIndexedRecords() {
   if (typeof indexedDB === 'undefined') return;
-  const db = await openIndexedDb();
-  await new Promise<void>((resolve, reject) => {
-    const transaction = db.transaction(IDB_STORE, 'readwrite');
-    const request = transaction.objectStore(IDB_STORE).index('scope').openCursor(IDBKeyRange.only([userId, type]));
-    request.onsuccess = () => {
-      const cursor = request.result;
-      if (cursor) {
-        cursor.delete();
-        cursor.continue();
-      }
-    };
-    request.onerror = () => reject(request.error ?? new Error('清空本地数据失败'));
-    transaction.oncomplete = () => { db.close(); resolve(); };
-    transaction.onerror = () => { db.close(); reject(transaction.error ?? new Error('清空本地数据事务失败')); };
-    transaction.onabort = () => { db.close(); reject(transaction.error ?? new Error('清空本地数据事务已中止')); };
+  const records = await withIndexedStore<StoredRecord[]>('readonly', (store) => store.getAll());
+  const needsMigration = records.filter((record) => record.userId !== DEFAULT_WORKSPACE || 'user_id' in record.payload || 'userId' in record.payload);
+  if (!needsMigration.length) return;
+  await withIndexedStore('readwrite', (store) => {
+    for (const record of needsMigration) store.put({ ...normalizeRecord(record), userId: DEFAULT_WORKSPACE });
+    return store.getAll();
   });
 }
 
-function fromRow(row: { id: string; user_id: string; record_type: PrivateRecordType; payload: string; created_at: string; updated_at: string; sort_order?: number }): PrivateRecord {
-  return {
+function fromRow(row: { id: string; record_type: PrivateRecordType; payload: string; created_at: string; updated_at: string; sort_order?: number }): PrivateRecord {
+  return normalizeRecord({
     id: row.id,
-    userId: row.user_id,
     type: row.record_type,
     payload: JSON.parse(row.payload) as Record<string, unknown>,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     sortOrder: row.sort_order ?? undefined,
-  };
+  });
 }
 
 export const localPrivateStore = {
-  async list(userId: string, type: PrivateRecordType): Promise<PrivateRecord[]> {
+  async list(type: PrivateRecordType): Promise<PrivateRecord[]> {
     if (isTauriRuntime()) {
       const db = await getTauriDatabase();
-      const rows = await db.select<Array<{ id: string; user_id: string; record_type: PrivateRecordType; payload: string; created_at: string; updated_at: string; sort_order?: number }>>(
-        'SELECT * FROM private_records WHERE user_id = $1 AND record_type = $2 ORDER BY COALESCE(sort_order, 2147483647), updated_at DESC',
-        [userId, type],
+      const rows = await db.select<Array<{ id: string; record_type: PrivateRecordType; payload: string; created_at: string; updated_at: string; sort_order?: number }>>(
+        'SELECT id, record_type, payload, created_at, updated_at, sort_order FROM private_records WHERE record_type = $1 ORDER BY COALESCE(sort_order, 2147483647), updated_at DESC',
+        [type],
       );
-      const sqliteRecords = rows.map(fromRow);
-      // 兼容迁移前已经写入 WebView IndexedDB 的记录，避免只读 SQLite
-      // 导致界面显示的数据与清空操作使用的存储不一致。
-      if (typeof indexedDB !== 'undefined') {
-        const indexedRecords = await withIndexedStore<PrivateRecord[]>('readonly', (store) => store.index('scope').getAll([userId, type]));
-        const merged = new Map(sqliteRecords.map((record) => [record.id, record]));
-        for (const record of indexedRecords) merged.set(record.id, record);
-        return [...merged.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-      }
-      return sqliteRecords;
+      return rows.map(fromRow);
     }
-    if (typeof indexedDB === 'undefined') {
-      return [...memoryRecords.values()].filter((record) => record.userId === userId && record.type === type);
-    }
-    const records = await withIndexedStore<PrivateRecord[]>('readonly', (store) => store.index('scope').getAll([userId, type]));
-    return records.sort((a, b) => (a.sortOrder ?? Number.MAX_SAFE_INTEGER) - (b.sortOrder ?? Number.MAX_SAFE_INTEGER));
+    if (typeof indexedDB === 'undefined') return [...memoryRecords.values()].filter((record) => record.type === type);
+    await migrateIndexedRecords();
+    const records = await withIndexedStore<StoredRecord[]>('readonly', (store) => store.getAll());
+    return records.filter((record) => record.type === type).map(normalizeRecord).sort((a, b) => (a.sortOrder ?? Number.MAX_SAFE_INTEGER) - (b.sortOrder ?? Number.MAX_SAFE_INTEGER));
   },
 
-  async get(userId: string, type: PrivateRecordType, id: string): Promise<PrivateRecord | null> {
-    const records = await this.list(userId, type);
+  async get(type: PrivateRecordType, id: string): Promise<PrivateRecord | null> {
+    const records = await this.list(type);
     return records.find((record) => record.id === id) ?? null;
   },
 
-  async put(userId: string, type: PrivateRecordType, payload: Record<string, unknown>, id = String(payload.id ?? createId()), sortOrder?: number): Promise<PrivateRecord> {
-    const previous = await this.get(userId, type, id);
+  async put(type: PrivateRecordType, payload: Record<string, unknown>, id = String(payload.id ?? createId()), sortOrder?: number): Promise<PrivateRecord> {
+    const previous = await this.get(type, id);
     const record: PrivateRecord = {
       id,
-      userId,
       type,
-      payload: { ...payload, id },
+      payload: { ...sanitizePayload(payload), id },
       createdAt: previous?.createdAt ?? String(payload.created_at ?? now()),
       updatedAt: now(),
       sortOrder: sortOrder ?? (typeof payload.sort_order === 'number' ? payload.sort_order : previous?.sortOrder),
@@ -190,8 +191,8 @@ export const localPrivateStore = {
       await db.execute(
         `INSERT INTO private_records(id, user_id, record_type, payload, created_at, updated_at, sort_order)
          VALUES ($1, $2, $3, $4, $5, $6, $7)
-         ON CONFLICT(id) DO UPDATE SET payload = excluded.payload, updated_at = excluded.updated_at, sort_order = excluded.sort_order`,
-        [record.id, record.userId, record.type, JSON.stringify(record.payload), record.createdAt, record.updatedAt, record.sortOrder ?? null],
+         ON CONFLICT(id) DO UPDATE SET user_id = excluded.user_id, payload = excluded.payload, updated_at = excluded.updated_at, sort_order = excluded.sort_order`,
+        [record.id, DEFAULT_WORKSPACE, record.type, JSON.stringify(record.payload), record.createdAt, record.updatedAt, record.sortOrder ?? null],
       );
       return record;
     }
@@ -199,16 +200,14 @@ export const localPrivateStore = {
       memoryRecords.set(record.id, record);
       return record;
     }
-    await withIndexedStore('readwrite', (store) => store.put(record));
+    await withIndexedStore('readwrite', (store) => store.put({ ...record, userId: DEFAULT_WORKSPACE }));
     return record;
   },
 
-  async remove(userId: string, type: PrivateRecordType, id: string) {
-    const record = await this.get(userId, type, id);
-    if (!record) return;
+  async remove(type: PrivateRecordType, id: string) {
     if (isTauriRuntime()) {
       const db = await getTauriDatabase();
-      await db.execute('DELETE FROM private_records WHERE id = $1 AND user_id = $2 AND record_type = $3', [id, userId, type]);
+      await db.execute('DELETE FROM private_records WHERE id = $1 AND record_type = $2', [id, type]);
       return;
     }
     if (typeof indexedDB === 'undefined') {
@@ -218,53 +217,59 @@ export const localPrivateStore = {
     await withIndexedStore('readwrite', (store) => store.delete(id));
   },
 
-  async clear(userId: string, type: PrivateRecordType) {
+  async clear(type: PrivateRecordType) {
     if (isTauriRuntime()) {
       const db = await getTauriDatabase();
-      await db.execute('DELETE FROM private_records WHERE user_id = $1 AND record_type = $2', [userId, type]);
-      await clearIndexedDbRecords(userId, type);
+      await db.execute('DELETE FROM private_records WHERE record_type = $1', [type]);
       return;
     }
     if (typeof indexedDB === 'undefined') {
-      for (const [id, record] of memoryRecords) {
-        if (record.userId === userId && record.type === type) memoryRecords.delete(id);
-      }
+      for (const [id, record] of memoryRecords) if (record.type === type) memoryRecords.delete(id);
       return;
     }
-    await clearIndexedDbRecords(userId, type);
+    const records = await withIndexedStore<StoredRecord[]>('readonly', (store) => store.getAll());
+    await withIndexedStore('readwrite', (store) => {
+      for (const record of records) if (record.type === type) store.delete(record.id);
+      return store.getAll();
+    });
   },
 
   async snapshot(): Promise<PrivateDataSnapshot> {
-    const auth = await getAuthBackup();
-    if (isTauriRuntime()) {
-      const db = await getTauriDatabase();
-      const rows = await db.select<Array<{ id: string; user_id: string; record_type: PrivateRecordType; payload: string; created_at: string; updated_at: string; sort_order?: number }>>('SELECT * FROM private_records');
-      return { schemaVersion: SCHEMA_VERSION, exportedAt: now(), records: rows.map(fromRow), auth };
+    const records: PrivateRecord[] = [];
+    for (const type of ['bazi_case', 'qimen_case', 'sanyuan_case', 'profile', 'ai_model_service', 'case_favorite', 'case_progress', 'webdav_config'] as PrivateRecordType[]) {
+      records.push(...await this.list(type));
     }
-    if (typeof indexedDB === 'undefined') return { schemaVersion: SCHEMA_VERSION, exportedAt: now(), records: [...memoryRecords.values()], auth };
-    const db = await openIndexedDb();
-    const records = await withIndexedStore<PrivateRecord[]>('readonly', (store) => store.getAll());
-    db.close();
-    return { schemaVersion: SCHEMA_VERSION, exportedAt: now(), records, auth };
+    return { schemaVersion: SCHEMA_VERSION, exportedAt: now(), records };
   },
 
-  async restore(snapshot: PrivateDataSnapshot) {
-    if (snapshot.schemaVersion !== SCHEMA_VERSION || !Array.isArray(snapshot.records)) throw new Error('备份文件版本不受支持');
-    for (const record of snapshot.records) await this.put(record.userId, record.type, record.payload, record.id, record.sortOrder);
-    if (snapshot.auth && typeof localStorage !== 'undefined') {
-      const { restoreLocalAuthBackup } = await import('./localAuthStore');
-      restoreLocalAuthBackup(snapshot.auth);
+  async restore(snapshot: PrivateDataSnapshot | LegacySnapshot) {
+    if (!snapshot || !Array.isArray(snapshot.records) || ![1, SCHEMA_VERSION].includes(snapshot.schemaVersion)) throw new Error('备份文件版本不受支持');
+    const records = snapshot.records.map((record) => normalizeRecord({
+      ...record,
+      id: normalizeLegacyId(record),
+      payload: normalizeLegacyPayload(record),
+    }));
+    for (const record of records) {
+      const existing = await this.get(record.type, record.id);
+      if (!existing || existing.updatedAt <= record.updatedAt) await this.put(record.type, record.payload, record.id, record.sortOrder);
     }
   },
 };
 
-async function getAuthBackup(): Promise<PrivateDataSnapshot['auth']> {
-  if (typeof localStorage === 'undefined') return undefined;
-  const { exportLocalAuthBackup } = await import('./localAuthStore');
-  return exportLocalAuthBackup();
+function normalizeLegacyPayload(record: LegacyPrivateRecord) {
+  const payload = sanitizePayload(record.payload);
+  if (record.type === 'case_favorite' || record.type === 'case_progress') {
+    const articleId = typeof payload.article_id === 'string' ? payload.article_id : record.id.split(':').at(-1);
+    if (articleId) payload.id = articleId;
+  }
+  if (record.type === 'webdav_config') payload.id = 'webdav_config';
+  return payload;
 }
 
-export async function getPrivateUserId() {
-  const { getLocalSession } = await import('./localAuthStore');
-  return getLocalSession()?.id ?? 'anonymous';
+function normalizeLegacyId(record: LegacyPrivateRecord) {
+  if (record.type === 'webdav_config') return 'webdav_config';
+  if (record.type === 'case_favorite' || record.type === 'case_progress') {
+    return typeof record.payload.article_id === 'string' ? record.payload.article_id : record.id.split(':').at(-1) ?? record.id;
+  }
+  return record.id;
 }

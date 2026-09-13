@@ -19,7 +19,6 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import { X, Heart, Clock, ChevronLeft, ChevronRight, Loader2, AlertCircle, BookOpen, Trash2 } from 'lucide-react';
-import { useAuth } from '../../../../contexts/useAuth';
 import { learningPanelService, type CaseFavorite, type CaseProgress } from '../../../../services/learningPanelService';
 import ArticleCard from './ArticleCard';
 
@@ -45,7 +44,6 @@ export default function LearningPanelModal({
     onSelectArticle,
     getArticleInfo,
 }: LearningPanelModalProps) {
-    const { user } = useAuth();
     const [activeMenu, setActiveMenu] = useState<MenuType>('favorites');
 
     // 数据状态
@@ -64,18 +62,16 @@ export default function LearningPanelModal({
 
     // 加载数据
     const loadData = useCallback(async () => {
-        if (!user) return;
-
         setIsLoading(true);
         setError(null);
 
         try {
             if (activeMenu === 'favorites') {
-                const result = await learningPanelService.getFavorites(user.id, currentPage);
+                const result = await learningPanelService.getFavorites(currentPage);
                 setFavorites(result.data);
                 setTotalCount(result.count);
             } else if (activeMenu === 'recent') {
-                const data = await learningPanelService.getRecentReads(user.id);
+                const data = await learningPanelService.getRecentReads();
                 setRecentReads(data);
                 setTotalCount(data.length);
             }
@@ -85,7 +81,7 @@ export default function LearningPanelModal({
         } finally {
             setIsLoading(false);
         }
-    }, [user, activeMenu, currentPage]);
+    }, [activeMenu, currentPage]);
 
     // 切换菜单时重置页码
     useEffect(() => {
@@ -94,10 +90,10 @@ export default function LearningPanelModal({
 
     // 加载数据
     useEffect(() => {
-        if (isOpen && user) {
+        if (isOpen) {
             loadData();
         }
-    }, [isOpen, user, loadData]);
+    }, [isOpen, loadData]);
 
     // ESC 关闭
     useEffect(() => {
@@ -119,9 +115,7 @@ export default function LearningPanelModal({
 
     // 处理取消收藏
     const handleRemoveFavorite = async (articleId: string) => {
-        if (!user) return;
-
-        const success = await learningPanelService.removeFavorite(user.id, articleId);
+        const success = await learningPanelService.removeFavorite(articleId);
         if (success) {
             // 重新加载收藏列表
             loadData();
@@ -130,7 +124,7 @@ export default function LearningPanelModal({
 
     // 处理清空最近阅读
     const handleClearAllProgress = async () => {
-        if (!user || isClearing) return;
+        if (isClearing) return;
 
         if (!isClearConfirming) {
             setIsClearConfirming(true);
@@ -139,7 +133,7 @@ export default function LearningPanelModal({
 
         setIsClearing(true);
         try {
-            const success = await learningPanelService.clearAllProgress(user.id);
+            const success = await learningPanelService.clearAllProgress();
             if (success) {
                 // 立即同步当前视图，避免删除成功后仍显示旧缓存列表。
                 setRecentReads([]);

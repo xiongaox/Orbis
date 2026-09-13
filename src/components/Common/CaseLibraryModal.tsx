@@ -270,7 +270,7 @@ export default function CaseLibraryModal<T extends { id: string }>({
                             className="flex items-center gap-2 px-4 py-2 bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border focus-ring"
                         >
                             <LogIn className="w-4 h-4" />
-                            登录
+                            新建
                         </button>
                     )}
                 </div>

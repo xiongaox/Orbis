@@ -12,19 +12,19 @@ export interface UserProfile {
 }
 
 export const profileService = {
-  async getProfile(userId: string) {
-    const record = await localPrivateStore.get(userId, 'profile', userId);
+  async getProfile() {
+    const record = await localPrivateStore.get('profile', 'profile');
     return (record?.payload as UserProfile | undefined) ?? null;
   },
-  async updateProfile(userId: string, updates: Partial<UserProfile>) {
-    const existing = await this.getProfile(userId);
+  async updateProfile(updates: Partial<UserProfile>) {
+    const existing = await this.getProfile();
     const profile: UserProfile = {
-      ...(existing ?? { id: userId }),
+      ...(existing ?? { id: 'profile' }),
       ...updates,
-      id: userId,
+      id: 'profile',
       updated_at: new Date().toISOString(),
     };
-    await localPrivateStore.put(userId, 'profile', profile as unknown as Record<string, unknown>, userId);
+    await localPrivateStore.put('profile', profile as unknown as Record<string, unknown>, 'profile');
     return profile;
   },
 };

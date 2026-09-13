@@ -26,7 +26,6 @@ import {
 interface AiIntegrationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userId: string | null;
 }
 
 type FormState = Omit<AiModelServiceInput, 'models'> & { models: string[]; modelInput: string };
@@ -54,7 +53,7 @@ function toFormState(service?: AiModelService): FormState {
   };
 }
 
-export default function AiIntegrationModal({ isOpen, onClose, userId }: AiIntegrationModalProps) {
+export default function AiIntegrationModal({ isOpen, onClose }: AiIntegrationModalProps) {
   const [services, setServices] = useState<AiModelService[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -74,7 +73,7 @@ export default function AiIntegrationModal({ isOpen, onClose, userId }: AiIntegr
   };
 
   useEffect(() => {
-    if (!isOpen || !userId) return;
+    if (!isOpen) return;
 
     let cancelled = false;
     void aiModelService.getServices()
@@ -98,7 +97,7 @@ export default function AiIntegrationModal({ isOpen, onClose, userId }: AiIntegr
     return () => {
       cancelled = true;
     };
-  }, [isOpen, userId]);
+  }, [isOpen]);
 
   const handleAdd = () => {
     setEditingService(null);
@@ -144,7 +143,7 @@ export default function AiIntegrationModal({ isOpen, onClose, userId }: AiIntegr
           <div className="mb-5 flex items-center justify-between gap-3">
             <div>
               <p className="text-sm text-muted-foreground">在此管理用于 AI 提示词和后续功能的模型服务。</p>
-              <p className="mt-1 text-xs text-muted-foreground">服务配置将同步到当前登录账户的其他设备。</p>
+              <p className="mt-1 text-xs text-muted-foreground">服务配置保存在当前本地工作区。</p>
             </div>
             <button
               type="button"

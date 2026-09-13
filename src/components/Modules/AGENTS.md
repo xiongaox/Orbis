@@ -20,7 +20,7 @@
 
 ## ANTI-PATTERNS
 - 不要在模块 UI 里硬编码八字/奇门映射表。
-- 不要在页面组件里直接扩展 Supabase 查询链，改到 `src/services/*`。
+- 不要在页面组件里直接扩展数据读写链，改到 `src/services/*`。
 - 不要把移动端/桌面端分支写成散落 if-else；统一走 layout 组件分层。
 
 ## BOUNDARIES
