@@ -3,7 +3,6 @@ import { getSanYuanCaseInput, getSanYuanDirectionId, type SanYuanCase } from './
 
 const FIVE_YUN_UPPER_CASE: SanYuanCase = {
     id: 'case-1',
-    user_id: 'user-1',
     title: '五运上元测试',
     case_type: 'yangzhai',
     mountain: '壬',

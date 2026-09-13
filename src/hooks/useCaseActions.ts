@@ -18,7 +18,6 @@
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAuth } from '../contexts/useAuth';
 import { baziCaseService, type BaziCase, type CaseTag } from '../services/baziCaseService';
 import { BAZI_CASES_CHANGED_EVENT } from '../data/caseConstants';
 
@@ -57,7 +56,6 @@ interface UseCaseActionsReturn {
  */
 export function useCaseActions(options: UseCaseActionsOptions = {}): UseCaseActionsReturn {
     const { autoLoad = true, loadCondition = true } = options;
-    const { isAuthenticated, loading: authLoading } = useAuth();
 
     // 状态
     const [cases, setCases] = useState<BaziCase[]>([]);
@@ -70,11 +68,6 @@ export function useCaseActions(options: UseCaseActionsOptions = {}): UseCaseActi
 
     // 加载案例
     const loadCases = useCallback(async () => {
-        if (!isAuthenticated) {
-            setCases([]);
-            return;
-        }
-
         setLoading(true);
         try {
             const data = await baziCaseService.getCases();
@@ -84,19 +77,19 @@ export function useCaseActions(options: UseCaseActionsOptions = {}): UseCaseActi
         } finally {
             setLoading(false);
         }
-    }, [isAuthenticated]);
+    }, []);
 
     // 初始加载
     useEffect(() => {
-        if (autoLoad && loadCondition && !authLoading) {
+        if (autoLoad && loadCondition) {
             loadCases();
         }
-    }, [autoLoad, loadCondition, authLoading, loadCases]);
+    }, [autoLoad, loadCondition, loadCases]);
 
     // 监听案例变更事件
     useEffect(() => {
         const handleCasesChanged = () => {
-            if (isAuthenticated && loadCondition) {
+            if (loadCondition) {
                 loadCases();
             }
         };
@@ -105,14 +98,14 @@ export function useCaseActions(options: UseCaseActionsOptions = {}): UseCaseActi
         return () => {
             window.removeEventListener(BAZI_CASES_CHANGED_EVENT, handleCasesChanged);
         };
-    }, [isAuthenticated, loadCondition, loadCases]);
+    }, [loadCondition, loadCases]);
 
     // 删除案例
     const executeDelete = useCallback(async (
         selectedCaseId?: string | null,
         onSelectCase?: (id: string | null) => void
     ) => {
-        if (!isAuthenticated || !caseToDelete) return;
+        if (!caseToDelete) return;
 
         setDeletingCaseId(caseToDelete.id);
         try {
@@ -128,7 +121,7 @@ export function useCaseActions(options: UseCaseActionsOptions = {}): UseCaseActi
         } finally {
             setDeletingCaseId(null);
         }
-    }, [isAuthenticated, caseToDelete]);
+    }, [caseToDelete]);
 
     // 手动刷新
     const refreshCases = useCallback(() => {
@@ -137,8 +130,6 @@ export function useCaseActions(options: UseCaseActionsOptions = {}): UseCaseActi
 
     // 筛选后的案例
     const filteredCases = useMemo(() => {
-        if (!isAuthenticated) return [];
-
         return cases.filter(item => {
             const matchesSearch =
                 item.name.includes(search) ||
@@ -146,7 +137,7 @@ export function useCaseActions(options: UseCaseActionsOptions = {}): UseCaseActi
             const matchesTag = !selectedTag || (item.tags && item.tags.includes(selectedTag));
             return matchesSearch && matchesTag;
         });
-    }, [isAuthenticated, cases, search, selectedTag]);
+    }, [cases, search, selectedTag]);
 
     return {
         // 状态

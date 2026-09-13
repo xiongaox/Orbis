@@ -18,7 +18,6 @@
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { AuthProvider } from './contexts/AuthContext';
 import { BaziProvider } from './contexts/BaziContext';
 import { useBaziContext } from './contexts/useBaziContext';
 import Navbar from './components/Layout/Navbar';
@@ -32,7 +31,6 @@ import QimenPage from './components/Modules/Qimen/QimenPage';
 import WannianliPage from './components/Modules/Wannianli/WannianliPage';
 import SanYuanPage from './components/Modules/SanYuan/SanYuanPage';
 import CaseStudyPage from './components/Modules/CaseStudy/CaseStudyPage';
-import AuthModal from './components/Auth/AuthModal';
 import BaziCaseLibraryModal from './components/Modules/Bazi/BaziCaseLibraryModal';
 import { useInsightContent } from './hooks/useInsightContent';
 import { useGanZhiLiuYi } from './hooks/useGanZhiLiuYi';
@@ -54,7 +52,6 @@ function AppContent() {
   const [lockedCharts, setLockedCharts] = useState<ChartType[]>(readLockedCharts);
   const [lockedSnapshots, setLockedSnapshots] = useState<LockedChartSnapshots>(readLockedChartSnapshots);
   const [qimenLiveSnapshot, setQimenLiveSnapshot] = useState<QimenLockedSnapshot | null>(null);
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const [showCaseLibraryModal, setShowCaseLibraryModal] = useState(false);
   // 默认选中的经典书籍 ID
   const [activeBookId, setActiveBookId] = useState<string>(DEFAULT_BOOK_ID);
@@ -102,10 +99,6 @@ function AppContent() {
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
-
-  const handleLoginClick = () => {
-    setShowAuthModal(true);
-  };
 
   const handleQimenSnapshotChange = useCallback((snapshot: QimenLockedSnapshot) => {
     setQimenLiveSnapshot(snapshot);
@@ -191,7 +184,6 @@ function AppContent() {
               <BaziCaseList
                 selectedCaseId={bazi.selectedCaseId}
                 onSelectCase={bazi.handleSelectCase}
-                onLoginClick={handleLoginClick}
                 onOpenLibrary={() => setShowCaseLibraryModal(true)}
                 onPreviewCase={bazi.handleSetTransientCase}
               />
@@ -227,7 +219,6 @@ function AppContent() {
         onChartChange={setActiveChart}
         lockedCharts={lockedCharts}
         onToggleChartLock={handleToggleChartLock}
-        onLoginClick={handleLoginClick}
       />
 
       {/* Main Content Area */}
@@ -243,19 +234,12 @@ function AppContent() {
         ))}
       </div>
 
-      {/* 登录/注册 Modal */}
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-      />
-
       {/* 案例库弹窗 (仅在 MainLayout 模式下使用，虽在此处全局渲染但仅由 CaseList 触发) */}
       <BaziCaseLibraryModal
         isOpen={showCaseLibraryModal}
         onClose={() => setShowCaseLibraryModal(false)}
         selectedCaseId={bazi.selectedCaseId}
         onSelectCase={bazi.handleSelectCase}
-        onLoginClick={handleLoginClick}
       />
     </div>
   );
@@ -263,11 +247,9 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <BaziProvider>
-        <AppContent />
-      </BaziProvider>
-    </AuthProvider>
+    <BaziProvider>
+      <AppContent />
+    </BaziProvider>
   );
 }
 

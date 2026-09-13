@@ -6,29 +6,21 @@
 - 四柱盘面展示：天干地支、藏干、主星、星运、空亡、纳音
 - 大运/流年/流月面板联动展示
 - 神煞列表与解读面板
-- 案例列表与搜索（当前为本地存储）
+- 案例列表与搜索（单工作区本地存储）
+- 收藏、阅读进度与 AI 配置的本地保存
 - 预留多盘型入口（奇门/六爻/紫微等）
-- 可选 Supabase 配置（用于后续云端数据）
+- WebDAV 快照备份与恢复
 
 ## 技术栈
 - React 19 + TypeScript + Vite
 - Tailwind CSS
 - lunar-typescript（农历/八字计算）
-- Supabase JS（可选）
+- WebDAV（可选备份目标）
 
 ## 快速开始
 1) 安装依赖
 ```bash
 npm install
-```
-
-2) 配置环境变量（可选）
-```bash
-cp .env.example .env
-```
-Windows 可用：
-```powershell
-Copy-Item .env.example .env
 ```
 
 3) 启动开发
@@ -50,5 +42,5 @@ npm run dev
 - `src/services/localPrivateStore.ts` 本地私有数据存储（Tauri SQLite / 浏览器 IndexedDB）
 
 ## 说明
-- 私有数据与登录凭证均保存在本地；Tauri 使用 SQLite，浏览器使用 IndexedDB 与本地存储。
-- WebDAV 仅作为用户主动触发的备份目标，不参与业务读写。
+- 所有私有数据保存在单一本地工作区；Tauri 使用 SQLite，浏览器使用 IndexedDB。
+- WebDAV 仅作为备份与恢复目标，不参与业务读写。

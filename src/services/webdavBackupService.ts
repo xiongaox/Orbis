@@ -1,4 +1,4 @@
-import { getPrivateUserId, localPrivateStore, type PrivateDataSnapshot } from './localPrivateStore';
+import { localPrivateStore, type PrivateDataSnapshot } from './localPrivateStore';
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 
 export interface WebDavConfig {
@@ -34,10 +34,6 @@ const defaultConfig = (): WebDavConfig => ({
   autoBackupIntervalMinutes: DEFAULT_AUTO_BACKUP_INTERVAL_MINUTES,
 });
 
-function getConfigId(userId: string) {
-  return `${userId}:${CONFIG_TYPE}`;
-}
-
 function normalizeConfig(config?: Partial<WebDavConfig> & { filePath?: unknown; autoBackupIntervalHours?: unknown }): WebDavConfig {
   const legacyFilePath = typeof config?.filePath === 'string' ? config.filePath.trim().replace(/^\/+/, '') : '';
   const legacyDirectory = legacyFilePath.includes('/') ? legacyFilePath.slice(0, legacyFilePath.lastIndexOf('/')) : '';
@@ -59,15 +55,13 @@ function normalizeConfig(config?: Partial<WebDavConfig> & { filePath?: unknown; 
 
 export const webDavBackupService = {
   async readConfig(): Promise<WebDavConfig> {
-    const userId = await getPrivateUserId();
-    const record = await localPrivateStore.get(userId, CONFIG_TYPE, getConfigId(userId));
+    const record = await localPrivateStore.get(CONFIG_TYPE, CONFIG_TYPE);
     return normalizeConfig(record?.payload as (Partial<WebDavConfig> & { filePath?: unknown; autoBackupIntervalHours?: unknown }) | undefined);
   },
 
   async saveConfig(config: WebDavConfig) {
-    const userId = await getPrivateUserId();
     const normalized = normalizeConfig(config);
-    await localPrivateStore.put(userId, CONFIG_TYPE, normalized as unknown as Record<string, unknown>, getConfigId(userId));
+    await localPrivateStore.put(CONFIG_TYPE, normalized as unknown as Record<string, unknown>, CONFIG_TYPE);
     if (typeof window !== 'undefined') window.dispatchEvent(new Event(CONFIG_CHANGE_EVENT));
   },
 

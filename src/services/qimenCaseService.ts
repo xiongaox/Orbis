@@ -1,4 +1,4 @@
-import { getPrivateUserId, localPrivateStore } from './localPrivateStore';
+import { localPrivateStore } from './localPrivateStore';
 
 export const QIMEN_CATEGORIES = [
   { id: 'work', name: '工作事业' }, { id: 'study', name: '求学考试' },
@@ -11,7 +11,6 @@ export type QimenCategory = typeof QIMEN_CATEGORIES[number]['id'];
 
 export interface QimenCase {
   id: string;
-  user_id: string;
   title: string;
   test_date: string;
   category: QimenCategory;
@@ -23,22 +22,21 @@ export interface QimenCase {
   updated_at: string;
 }
 
-export type CreateQimenCaseInput = Omit<QimenCase, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
+export type CreateQimenCaseInput = Omit<QimenCase, 'id' | 'created_at' | 'updated_at'>;
 export type UpdateQimenCaseInput = Partial<CreateQimenCaseInput>;
 
 const toCase = (payload: Record<string, unknown>) => payload as unknown as QimenCase;
 
 export const qimenCaseService = {
   async getCases(): Promise<QimenCase[]> {
-    const records = await localPrivateStore.list(await getPrivateUserId(), 'qimen_case');
+    const records = await localPrivateStore.list('qimen_case');
     return records.map((record) => toCase(record.payload));
   },
 
   async createCase(input: CreateQimenCaseInput): Promise<QimenCase> {
-    const userId = await getPrivateUserId();
     const timestamp = new Date().toISOString();
-    const record = await localPrivateStore.put(userId, 'qimen_case', {
-      ...input, user_id: userId, created_at: timestamp, updated_at: timestamp,
+    const record = await localPrivateStore.put('qimen_case', {
+      ...input, created_at: timestamp, updated_at: timestamp,
     });
     return toCase(record.payload);
   },
@@ -49,17 +47,16 @@ export const qimenCaseService = {
   },
 
   async updateCase(id: string, input: UpdateQimenCaseInput): Promise<QimenCase> {
-    const userId = await getPrivateUserId();
-    const current = await localPrivateStore.get(userId, 'qimen_case', id);
+    const current = await localPrivateStore.get('qimen_case', id);
     if (!current) throw new Error('未找到要更新的奇门案例');
-    const record = await localPrivateStore.put(userId, 'qimen_case', {
-      ...current.payload, ...input, id, user_id: userId,
+    const record = await localPrivateStore.put('qimen_case', {
+      ...current.payload, ...input, id,
       created_at: current.payload.created_at, updated_at: new Date().toISOString(),
     }, id);
     return toCase(record.payload);
   },
 
   async deleteCase(id: string): Promise<void> {
-    await localPrivateStore.remove(await getPrivateUserId(), 'qimen_case', id);
+    await localPrivateStore.remove('qimen_case', id);
   },
 };

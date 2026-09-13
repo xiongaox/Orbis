@@ -1,31 +1,9 @@
-/**
- * UserMenu - 应用源码层
- *
- * 模块定位：
- * - 所在层级：应用源码层
- * - 主要目标：提供应用的基础布局框架
- *
- * 关键职责：
- * - 渲染 UI 视图并处理交互逻辑
- * - 处理用户输入与展示边界行为
- * - 向上层提供稳定可复用能力
- *
- * 主要导出：
- * - `default UserMenu`
- *
- * 依赖关系：
- * - 上游依赖：外部依赖 `react`、外部依赖 `lucide-react`、内部模块 `useAuth` 等 5 个模块
- * - 下游影响：由依赖方的业务逻辑或视图组装调用
- */
-
 import { useState, useEffect, useRef } from 'react';
-import { Bot, Compass, User, CircleUserRound, LogOut, Loader2, Cloud } from 'lucide-react';
-import { useAuth } from '../../contexts/useAuth';
+import { Bot, CalendarDays, Compass, User, Cloud } from 'lucide-react';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { getUserAvatar } from '../../utils/userUtil';
 
 interface UserMenuProps {
-    onLoginClick: () => void;
     onShowContact: () => void;
     onShowProfile: () => void;
     onShowAiIntegration: () => void;
@@ -33,197 +11,41 @@ interface UserMenuProps {
     birthDate?: Date;
 }
 
-export default function UserMenu({
-    onLoginClick,
-    onShowContact,
-    onShowProfile,
-    onShowAiIntegration,
-    onShowPrivateDataBackup,
-    birthDate
-}: UserMenuProps) {
-    const { user, isAuthenticated, signOut, loading } = useAuth();
+export default function UserMenu({ onShowContact, onShowProfile, onShowAiIntegration, onShowPrivateDataBackup, birthDate }: UserMenuProps) {
     const { isPadLandscape, useDesktopLayout } = useLayoutMode();
     const [menuOpen, setMenuOpen] = useState(false);
-    const [loggingOut, setLoggingOut] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
+    const avatarPath = getUserAvatar(undefined, birthDate?.getFullYear());
 
-    // 点击外部关闭菜单
     useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-                setMenuOpen(false);
-            }
-        }
-        if (menuOpen) { document.addEventListener('mousedown', handleClickOutside); }
-        return () => { document.removeEventListener('mousedown', handleClickOutside); };
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) setMenuOpen(false);
+        };
+        if (menuOpen) document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [menuOpen]);
-
-    const handleLogout = async () => {
-        setLoggingOut(true);
-        try {
-            await signOut();
-            setMenuOpen(false);
-        } finally {
-            setLoggingOut(false);
-        }
-    };
-
-    const displayName = user?.email?.split('@')[0] || '用户';
-    const avatarPath = getUserAvatar(user?.email, birthDate?.getFullYear());
 
     return (
         <div className="relative" ref={menuRef}>
             <button
                 type="button"
                 onClick={() => setMenuOpen((prev) => !prev)}
-                className={`inline-flex items-center justify-center md:justify-start gap-0 md:gap-2 w-9 h-9 md:w-auto md:h-auto p-0 md:px-3 ${useDesktopLayout ? 'lg:py-1.5' : 'md:py-2'} rounded-xl md:rounded-lg border border-border/60 md:border-transparent bg-card/55 md:bg-transparent hover:bg-secondary/50 transition-colors`}
-                disabled={loading}
+                className={`inline-flex items-center justify-center w-9 h-9 md:w-auto md:h-auto p-0 ${useDesktopLayout ? 'lg:p-2' : 'md:p-2'} rounded-xl md:rounded-lg border border-border/60 md:border-transparent bg-card/55 md:bg-transparent hover:bg-secondary/50 transition-colors`}
+                aria-label="设置与工具菜单"
+                title="设置与工具"
             >
-                {loading ? (
-                    <Loader2 className={`w-4 h-4 ${useDesktopLayout ? 'lg:w-5 lg:h-5' : ''} text-muted-foreground animate-spin`} />
-                ) : isAuthenticated ? (
-                    <img src={avatarPath} alt={displayName} className={`w-[22px] h-[22px] ${useDesktopLayout ? 'lg:w-[26px] lg:h-[26px]' : 'md:w-[22px] md:h-[22px]'} rounded-full object-cover`} />
-                ) : (
-                    <User className={`w-4 h-4 ${useDesktopLayout ? 'lg:w-5 lg:h-5' : ''} text-muted-foreground`} />
-                )}
-                <span className={`hidden md:inline ${useDesktopLayout ? 'lg:text-[15px]' : 'text-sm'} text-muted-foreground max-w-[120px] truncate`}>
-                    {loading ? '加载中...' : isAuthenticated ? displayName : '未登录'}
-                </span>
+                <img src={avatarPath} alt="头像" className={`w-[22px] h-[22px] ${useDesktopLayout ? 'lg:w-[24px] lg:h-[24px]' : 'md:w-[22px] md:h-[22px]'} rounded-full object-cover`} />
             </button>
             {menuOpen && (
                 <div className="absolute right-0 top-full mt-2 w-48 bg-card border border-border rounded-lg shadow-lg py-1 animate-fade-in z-50">
-                    {isAuthenticated ? (
-                        <>
-                            {/* GitHub 和联系作者：移动端 + Pad 端显示，桌面端隐藏 */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    window.open('https://github.com/xiongaox/Orbis', '_blank', 'noopener,noreferrer');
-                                    setMenuOpen(false);
-                                }}
-                                className={`${isPadLandscape ? '' : 'md:hidden'} w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2`}
-                            >
-                                <Compass className="w-4 h-4" />
-                                GitHub 仓库
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    onShowContact();
-                                    setMenuOpen(false);
-                                }}
-                                className={`${isPadLandscape ? '' : 'md:hidden'} w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2`}
-                            >
-                                <User className="w-4 h-4" />
-                                联系作者
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    onShowProfile();
-                                    setMenuOpen(false);
-                                }}
-                                className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
-                            >
-                                <CircleUserRound className="w-4 h-4" />
-                                个人中心
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    onShowAiIntegration();
-                                    setMenuOpen(false);
-                                }}
-                                className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
-                            >
-                                <Bot className="w-4 h-4" />
-                                AI 集成
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    onShowPrivateDataBackup();
-                                    setMenuOpen(false);
-                                }}
-                                className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
-                            >
-                                <Cloud className="w-4 h-4" />
-                                数据备份
-                            </button>
-                            <button
-                                onClick={handleLogout}
-                                disabled={loggingOut}
-                                className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 flex items-center gap-2"
-                            >
-                                {loggingOut ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <LogOut className="w-4 h-4" />
-                                )}
-                                退出登录
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    window.open('https://github.com/xiongaox/Orbis', '_blank', 'noopener,noreferrer');
-                                    setMenuOpen(false);
-                                }}
-                                className={`${isPadLandscape ? '' : 'md:hidden'} w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2`}
-                            >
-                                <Compass className="w-4 h-4" />
-                                GitHub 仓库
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    onShowContact();
-                                    setMenuOpen(false);
-                                }}
-                                className={`${isPadLandscape ? '' : 'md:hidden'} w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2`}
-                            >
-                                <User className="w-4 h-4" />
-                                联系作者
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    onLoginClick();
-                                    setMenuOpen(false);
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
-                            >
-                                <User className="w-4 h-4" />
-                                登录 / 注册
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    onShowAiIntegration();
-                                    setMenuOpen(false);
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
-                            >
-                                <Bot className="w-4 h-4" />
-                                AI 集成
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    onShowPrivateDataBackup();
-                                    setMenuOpen(false);
-                                }}
-                                className="w-full px-4 py-2 text-left text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"
-                            >
-                                <Cloud className="w-4 h-4" />
-                                数据备份
-                            </button>
-                        </>
-                    )}
+                    <button type="button" onClick={() => { window.open('https://github.com/xiongaox/Orbis', '_blank', 'noopener,noreferrer'); setMenuOpen(false); }} className={`${isPadLandscape ? '' : 'md:hidden'} w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2`}><Compass className="w-4 h-4" />GitHub 仓库</button>
+                    <button type="button" onClick={() => { onShowContact(); setMenuOpen(false); }} className={`${isPadLandscape ? '' : 'md:hidden'} w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2`}><User className="w-4 h-4" />联系作者</button>
+                    <button type="button" onClick={() => { onShowProfile(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"><CalendarDays className="w-4 h-4" />设置生日</button>
+                    <button type="button" onClick={() => { onShowAiIntegration(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"><Bot className="w-4 h-4" />AI 集成</button>
+                    <button type="button" onClick={() => { onShowPrivateDataBackup(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"><Cloud className="w-4 h-4" />数据备份</button>
                 </div>
             )}
         </div>
     );
 }
+

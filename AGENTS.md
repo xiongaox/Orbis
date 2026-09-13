@@ -5,7 +5,7 @@
 **Branch:** Dev
 
 ## OVERVIEW
-Orbis（reticle-bazi）是 React + TypeScript + Vite 前端项目，核心是八字/奇门排盘与案例阅读。数据层以本地 Markdown + 可选 Supabase 混合运行。
+Orbis（reticle-bazi）是 React + TypeScript + Vite 前端项目，核心是八字/奇门排盘与案例阅读。数据层以本地 Markdown 与单工作区私有存储运行，WebDAV 仅用于备份。
 
 ## STRUCTURE
 ```text
@@ -13,7 +13,7 @@ Orbis/
 ├── src/
 │   ├── components/Modules/   # 业务模块入口（Bazi/Qimen/CaseStudy/Wannianli）
 │   ├── lib/                  # 领域计算与算法实现
-│   ├── services/             # Supabase/案例服务与业务 IO
+│   ├── services/             # 本地存储、备份与案例业务 IO
 │   ├── hooks/                # 跨组件状态聚合与逻辑编排
 │   └── data/cases/           # 大规模 Markdown 案例语料
 ├── .agent/rules/             # 代理规则（中文输出等）
@@ -25,10 +25,10 @@ Orbis/
 | Task | Location | Notes |
 |------|----------|-------|
 | 应用启动与挂载 | `src/main.tsx` | React root 挂载 |
-| 顶层模块切换/Provider 组合 | `src/App.tsx` | Auth/Bazi provider + 主视图切换 |
+| 顶层模块切换/Provider 组合 | `src/App.tsx` | Bazi provider + 主视图切换 |
 | 八字领域算法 | `src/lib/xuan-bazi` | maps/settings/utils 三层拆分 |
 | 奇门领域算法 | `src/lib/csp-qimen` | 含 WASM 初始化与结果转换 |
-| 服务层行为 | `src/services` | auth 与 case 错误模式不同 |
+| 服务层行为 | `src/services` | 本地业务服务与 WebDAV 备份 |
 | 大型业务模块 UI | `src/components/Modules` | Bazi/Qimen/Wannianli/CaseStudy |
 | 案例静态语料 | `src/data/cases` | 以 Markdown 为主，体量大 |
 
@@ -62,11 +62,11 @@ Orbis/
 ## ANTI-PATTERNS (THIS PROJECT)
 - 不要提交 `.env`。
 - 不要在 UI 层复制算法常量或映射表，优先复用领域层导出。
-- 不要把新的案例服务错误处理写成与既有模式冲突（auth 返回 `{ error }`，case service 抛错）。
+- 案例服务直接抛出业务错误，调用方负责展示可理解的提示。
 - 不要假设测试脚本存在；当前仓库无 `npm test`。
 
 ## UNIQUE STYLES
-- `src/services/localPrivateStore.ts` 在 Tauri 使用 SQLite，在浏览器使用 IndexedDB，并按 userId 隔离数据。
+- `src/services/localPrivateStore.ts` 在 Tauri 使用 SQLite，在浏览器使用 IndexedDB，所有数据属于当前单一本地工作区。
 - `src/lib/csp-qimen/CONSTANTS.md` 维护常量分层与复用规则。
 - `src/data/cases` 以目录命名编码领域标签（术数流派/日主/主题）。
 

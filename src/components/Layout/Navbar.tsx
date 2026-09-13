@@ -19,7 +19,6 @@
  */
 import { useState, useEffect } from 'react';
 import { Calendar, Compass, Grid3X3, Sun, Moon, Menu, Star } from 'lucide-react';
-import { useAuth } from '../../contexts/useAuth';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import BaseModal from '../UI/BaseModal';
 import SideDrawer from '../UI/SideDrawer';
@@ -56,7 +55,6 @@ interface NavbarProps {
   onChartChange: (chart: ChartType) => void;
   lockedCharts: ChartType[];
   onToggleChartLock: (chart: ChartType) => void;
-  onLoginClick?: () => void;
 }
 
 export default function Navbar({
@@ -64,9 +62,7 @@ export default function Navbar({
   onChartChange,
   lockedCharts,
   onToggleChartLock,
-  onLoginClick,
 }: NavbarProps) {
-  const { user } = useAuth();
   const { isPadLandscape, useDesktopLayout } = useLayoutMode();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showProfileCenter, setShowProfileCenter] = useState(false);
@@ -76,32 +72,15 @@ export default function Navbar({
 
   const [birthDate, setBirthDate] = useState<Date | undefined>(undefined);
 
-  // Load profile when user changes
   useEffect(() => {
-    if (user?.id) {
-      profileService.getProfile(user.id).then(profile => {
-        if (profile?.birth_date) {
-          setBirthDate(new Date(profile.birth_date));
-        } else {
-          // Fallback to local storage for backward compatibility during migration
-          if (user.email) {
-            const saved = localStorage.getItem(`user_birthday_${user.email}`);
-            if (saved) {
-              setBirthDate(new Date(saved));
-            } else {
-              setBirthDate(undefined);
-            }
-          } else {
-            setBirthDate(undefined);
-          }
-        }
-      });
-    }
-  }, [user]);
+    profileService.getProfile().then((profile) => {
+      setBirthDate(profile?.birth_date ? new Date(profile.birth_date) : undefined);
+    }).catch(() => setBirthDate(undefined));
+  }, []);
 
   useEffect(() => startWebDavAutoBackup(), []);
 
-  const displayBirthDate = user ? birthDate : undefined;
+  const displayBirthDate = birthDate;
 
   const [isDark, setIsDark] = useState(() => {
     if (typeof document === 'undefined') return true;
@@ -118,11 +97,6 @@ export default function Navbar({
   };
 
   const handleShowAiIntegration = () => {
-    if (!user) {
-      onLoginClick?.();
-      return;
-    }
-
     setShowAiIntegrationModal(true);
   };
 
@@ -227,7 +201,6 @@ export default function Navbar({
 
               {/* 用户菜单 */}
               <UserMenu
-                onLoginClick={() => onLoginClick?.()}
                 onShowContact={() => setShowContactModal(true)}
                 onShowProfile={() => setShowProfileCenter(true)}
                 onShowAiIntegration={handleShowAiIntegration}
@@ -308,7 +281,6 @@ export default function Navbar({
         <AiIntegrationModal
           isOpen={true}
           onClose={() => setShowAiIntegrationModal(false)}
-          userId={user?.id ?? null}
         />
       )}
 

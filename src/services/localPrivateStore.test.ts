@@ -11,20 +11,19 @@ describe('本地私有数据备份', () => {
   });
 
   it('导出并恢复 WebDAV 配置', async () => {
-    const userId = `backup-user-${Date.now()}`;
-    await localPrivateStore.put(userId, 'webdav_config', { endpoint: 'https://dav.example.com', password: 'secret' }, `${userId}:webdav_config`);
-    await localPrivateStore.put(userId, 'bazi_case', { title: '应被导出的案例' }, `${userId}:case`);
+    await localPrivateStore.put('webdav_config', { endpoint: 'https://dav.example.com', password: 'secret' }, 'webdav_config');
+    await localPrivateStore.put('bazi_case', { title: '应被导出的案例' }, 'case');
 
     const snapshot = await localPrivateStore.snapshot();
     expect(snapshot.records.some((record) => record.type === 'webdav_config')).toBe(true);
-    expect(snapshot.records.some((record) => record.id === `${userId}:case`)).toBe(true);
+    expect(snapshot.records.some((record) => record.id === 'case')).toBe(true);
 
     await localPrivateStore.restore({
       schemaVersion: 1,
       exportedAt: '2026-08-26T00:00:00.000Z',
       records: [{
-        id: `${userId}:restored-config`,
-        userId,
+        id: 'legacy-user:restored-config',
+        userId: 'legacy-user',
         type: 'webdav_config',
         payload: { endpoint: 'https://dav.example.com', password: 'secret' },
         createdAt: '2026-08-26T00:00:00.000Z',
@@ -32,7 +31,7 @@ describe('本地私有数据备份', () => {
       }],
     });
 
-    await expect(localPrivateStore.get(userId, 'webdav_config', `${userId}:restored-config`)).resolves.toMatchObject({
+    await expect(localPrivateStore.get('webdav_config', 'webdav_config')).resolves.toMatchObject({
       payload: { endpoint: 'https://dav.example.com', password: 'secret' },
     });
   });
