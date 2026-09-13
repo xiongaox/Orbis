@@ -87,6 +87,7 @@ export function useCaseStudy() {
     const [qimenMethod, setQimenMethod] = useState<PaiPanMethod>('zhirun');
     const [customJu, setCustomJu] = useState<number>(0);  // 0=自动计算, 正数=阳遏, 负数=阴遏
     const [chartCount, setChartCount] = useState<number>(0); // 当前案例包含的排盘数量
+    const [isCaseContentLoading, setIsCaseContentLoading] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -111,16 +112,27 @@ export function useCaseStudy() {
     }, []);
 
     useEffect(() => {
-        if (!selectedCaseId) return;
+        if (!selectedCaseId) {
+            setIsCaseContentLoading(false);
+            return;
+        }
         const selected = allCases.find((caseItem) => caseItem.id === selectedCaseId);
-        if (!selected || selected.content) return;
+        if (!selected || selected.content) {
+            setIsCaseContentLoading(false);
+            return;
+        }
+        setIsCaseContentLoading(true);
         let cancelled = false;
         void publicCaseLibraryService.getContent(selected.id).then((content) => {
             if (cancelled) return;
             setAllCases((previous) => previous.map((caseItem) => caseItem.id === selected.id ? { ...caseItem, content } : caseItem));
             const globalCase = ALL_CASES.find((caseItem) => caseItem.id === selected.id);
             if (globalCase) globalCase.content = content;
-        }).catch((cause: unknown) => console.error('加载案例正文失败', cause));
+            setIsCaseContentLoading(false);
+        }).catch((cause: unknown) => {
+            console.error('加载案例正文失败', cause);
+            if (!cancelled) setIsCaseContentLoading(false);
+        });
         return () => { cancelled = true; };
     }, [allCases, selectedCaseId]);
 
@@ -278,6 +290,7 @@ export function useCaseStudy() {
         filteredCases,
         activeCase,
         authorIntroContent,
+        isCaseContentLoading,
 
         // 分页
         currentPage,

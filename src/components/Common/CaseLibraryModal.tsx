@@ -230,7 +230,7 @@ export default function CaseLibraryModal<T extends { id: string }>({
                 title={header}
                 titleIcon={<Library className="w-5 h-5" />}
                 maxWidth={isMobile ? 'max-w-sm' : 'max-w-2xl'}
-                bodyClassName={`flex flex-col ${isMobile ? 'h-[60vh] p-3' : 'h-[70vh] p-4 sm:p-6'} overflow-hidden`}
+                bodyClassName={`!flex-none flex flex-col ${isMobile ? 'h-[60vh] p-3' : 'h-[70vh] p-4 sm:p-6'} overflow-hidden`}
             >
                 {/* 搜索和操作栏 */}
                 <div className={`flex gap-2 ${isMobile ? 'mb-2' : 'mb-4'} shrink-0`}>
