@@ -22,7 +22,10 @@
     "test:admin": "src-tauri/target/debug/orbis-admin",
     "cases:reset": "rm -f \"$HOME/Library/Application Support/com.orbis.app/cases_local.sqlite\"*",
     "tauri:build": "tauri build",
-    "tauri:build:admin": "tauri build --features admin-signing"
+    "tauri:build:admin": "tauri build --features admin-signing",
+    "worktree:create": ".agents/skills/worktree/scripts/create-worktree.sh",
+    "worktree:build": ".agents/skills/worktree/scripts/build-worktree.sh",
+    "worktree:remove": ".agents/skills/worktree/scripts/remove-worktree.sh"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
