@@ -6,7 +6,7 @@
  */
 import Database from '@tauri-apps/plugin-sql';
 
-export type PrivateRecordType = 'bazi_case' | 'qimen_case' | 'sanyuan_case' | 'profile' | 'ai_model_service' | 'case_favorite' | 'case_progress' | 'webdav_config';
+export type PrivateRecordType = 'bazi_case' | 'qimen_case' | 'sanyuan_case' | 'profile' | 'ai_model_service' | 'case_favorite' | 'case_progress' | 'webdav_config' | 's3_config' | 'backup_method';
 
 export interface PrivateRecord {
   id: string;
@@ -236,7 +236,7 @@ export const localPrivateStore = {
 
   async snapshot(): Promise<PrivateDataSnapshot> {
     const records: PrivateRecord[] = [];
-    for (const type of ['bazi_case', 'qimen_case', 'sanyuan_case', 'profile', 'ai_model_service', 'case_favorite', 'case_progress', 'webdav_config'] as PrivateRecordType[]) {
+    for (const type of ['bazi_case', 'qimen_case', 'sanyuan_case', 'profile', 'ai_model_service', 'case_favorite', 'case_progress', 'webdav_config', 's3_config', 'backup_method'] as PrivateRecordType[]) {
       records.push(...await this.list(type));
     }
     return { schemaVersion: SCHEMA_VERSION, exportedAt: now(), records };
@@ -262,12 +262,12 @@ function normalizeLegacyPayload(record: LegacyPrivateRecord) {
     const articleId = typeof payload.article_id === 'string' ? payload.article_id : record.id.split(':').at(-1);
     if (articleId) payload.id = articleId;
   }
-  if (record.type === 'webdav_config') payload.id = 'webdav_config';
+  if (record.type === 'webdav_config' || record.type === 's3_config' || record.type === 'backup_method') payload.id = record.type;
   return payload;
 }
 
 function normalizeLegacyId(record: LegacyPrivateRecord) {
-  if (record.type === 'webdav_config') return 'webdav_config';
+  if (record.type === 'webdav_config' || record.type === 's3_config' || record.type === 'backup_method') return record.type;
   if (record.type === 'case_favorite' || record.type === 'case_progress') {
     return typeof record.payload.article_id === 'string' ? record.payload.article_id : record.id.split(':').at(-1) ?? record.id;
   }

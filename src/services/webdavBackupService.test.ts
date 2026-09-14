@@ -62,28 +62,28 @@ describe('WebDAV 备份服务', () => {
     const result = await webDavBackupService.backup(config);
 
     expect(result.backup).toEqual({
-      path: 'orbis/backups/private-data_2026-08-26T13_20_30_000.json',
-      filename: 'private-data_2026-08-26T13_20_30_000.json',
+      path: 'orbis/backups/orbis_20260826_132030_000.json',
+      filename: 'orbis_20260826_132030_000.json',
       createdAt: '2026-08-26T13:20:30.000Z',
       size: null,
     });
     expect(fetchMock).toHaveBeenNthCalledWith(1, 'https://dav.example.com/dav/orbis', expect.objectContaining({ method: 'MKCOL' }));
     expect(fetchMock).toHaveBeenNthCalledWith(2, 'https://dav.example.com/dav/orbis/backups', expect.objectContaining({ method: 'MKCOL' }));
-    expect(fetchMock).toHaveBeenNthCalledWith(3, 'https://dav.example.com/dav/orbis/backups/private-data_2026-08-26T13_20_30_000.json', expect.objectContaining({ method: 'PUT' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, 'https://dav.example.com/dav/orbis/backups/orbis_20260826_132030_000.json', expect.objectContaining({ method: 'PUT' }));
   });
 
-  it('列出并按时间倒序返回可恢复的备份版本', async () => {
+  it('列出并按时间倒序返回可恢复的备份版本，兼容新旧命名', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(207, `
       <d:multistatus xmlns:d="DAV:">
         <d:response><d:href>/dav/orbis/backups/</d:href></d:response>
         <d:response><d:href>/dav/orbis/backups/private-data_2026-08-25T11_00_00_000.json</d:href><d:getcontentlength>1024</d:getcontentlength></d:response>
-        <d:response><d:href>/dav/orbis/backups/private-data_2026-08-26T13_20_30_000.json</d:href><d:getcontentlength>2048</d:getcontentlength></d:response>
+        <d:response><d:href>/dav/orbis/backups/orbis_20260826_132030_000.json</d:href><d:getcontentlength>2048</d:getcontentlength></d:response>
         <d:response><d:href>/dav/orbis/backups/unrelated.json</d:href></d:response>
       </d:multistatus>
     `)));
 
     await expect(webDavBackupService.listBackups(config)).resolves.toEqual([
-      { path: 'orbis/backups/private-data_2026-08-26T13_20_30_000.json', filename: 'private-data_2026-08-26T13_20_30_000.json', createdAt: '2026-08-26T13:20:30.000', size: 2048 },
+      { path: 'orbis/backups/orbis_20260826_132030_000.json', filename: 'orbis_20260826_132030_000.json', createdAt: '2026-08-26T13:20:30.000', size: 2048 },
       { path: 'orbis/backups/private-data_2026-08-25T11_00_00_000.json', filename: 'private-data_2026-08-25T11_00_00_000.json', createdAt: '2026-08-25T11:00:00.000', size: 1024 },
     ]);
   });

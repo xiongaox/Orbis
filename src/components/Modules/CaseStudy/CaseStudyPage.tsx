@@ -26,6 +26,7 @@ import { useDuanFa } from './hooks/useDuanFa';
 import { useCaseStudyBaziData } from './hooks/useCaseStudyBaziData';
 import { DUANFA_FILES } from '../../../lib/caseStudy/duanfaData';
 
+import ActivationModal from './ActivationModal';
 import JuSelectDialog from './components/JuSelectDialog';
 import LearningPanelModal from './components/LearningPanelModal';
 import CaseStudyDesktopLayout from './layouts/CaseStudyDesktopLayout';
@@ -104,6 +105,17 @@ export default function CaseStudyPage() {
                 <CaseStudyPadLayout {...layoutProps} />
             ) : (
                 <CaseStudyMobileLayout {...layoutProps} />
+            )}
+
+                        {caseStudyState.activationState === 'locked' && (
+                <ActivationModal
+                    machineId={caseStudyState.machineId}
+                    isActivating={caseStudyState.isActivating}
+                    progress={caseStudyState.activationProgress}
+                    error={caseStudyState.activationError}
+                    onActivate={caseStudyState.activate}
+                    onActivateWithMasterPassword={caseStudyState.activateWithMasterPassword}
+                />
             )}
 
             <JuSelectDialog

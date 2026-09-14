@@ -61,3 +61,7 @@ notes/sanyuan
 
 # Cloudflare local state and generated import reports
 /.wrangler/
+
+# Author-side case pack keys and encrypted bundle outputs
+/keys/
+/dist-cases/

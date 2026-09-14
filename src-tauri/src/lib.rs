@@ -1,4 +1,7 @@
+use cases::commands::{self, CasesState};
 use tauri::{LogicalSize, Manager};
+
+mod cases;
 
 const DEFAULT_WINDOW_WIDTH: f64 = 1800.0;
 const WINDOW_ASPECT_RATIO: f64 = 16.0 / 9.0;
@@ -9,6 +12,18 @@ pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_http::init())
     .plugin(tauri_plugin_sql::Builder::default().build())
+    .manage(CasesState::default())
+    .invoke_handler(tauri::generate_handler![
+      commands::get_machine_id,
+      commands::get_cases_status,
+      commands::activate_cases,
+      commands::activate_with_master_password,
+      commands::get_case_list,
+      commands::get_case_content,
+      commands::get_author_profile,
+      commands::sign_activation_code,
+      commands::is_signing_available
+    ])
     .setup(|app| {
       let window = app
         .get_webview_window("main")

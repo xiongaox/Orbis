@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bot, CalendarDays, Compass, User, Cloud } from 'lucide-react';
+import { Bot, CalendarDays, Compass, User, Cloud, KeyRound } from 'lucide-react';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { getUserAvatar } from '../../utils/userUtil';
+import { publicCaseLibraryService } from '../../services/publicCaseLibraryService';
+import SignerModal from '../Common/SignerModal';
 
 interface UserMenuProps {
     onShowContact: () => void;
@@ -14,8 +16,20 @@ interface UserMenuProps {
 export default function UserMenu({ onShowContact, onShowProfile, onShowAiIntegration, onShowPrivateDataBackup, birthDate }: UserMenuProps) {
     const { isPadLandscape, useDesktopLayout } = useLayoutMode();
     const [menuOpen, setMenuOpen] = useState(false);
+    const [canSign, setCanSign] = useState(false);
+    const [isSignerOpen, setIsSignerOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const avatarPath = getUserAvatar(undefined, birthDate?.getFullYear());
+
+    useEffect(() => {
+        let cancelled = false;
+        void publicCaseLibraryService.isSigningAvailable().then((available) => {
+            if (!cancelled) setCanSign(available);
+        }).catch(() => {
+            if (!cancelled) setCanSign(false);
+        });
+        return () => { cancelled = true; };
+    }, []);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -43,8 +57,12 @@ export default function UserMenu({ onShowContact, onShowProfile, onShowAiIntegra
                     <button type="button" onClick={() => { onShowProfile(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"><CalendarDays className="w-4 h-4" />设置生日</button>
                     <button type="button" onClick={() => { onShowAiIntegration(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"><Bot className="w-4 h-4" />AI 集成</button>
                     <button type="button" onClick={() => { onShowPrivateDataBackup(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"><Cloud className="w-4 h-4" />数据备份</button>
+                    {canSign && (
+                        <button type="button" onClick={() => { setIsSignerOpen(true); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-secondary/50 flex items-center gap-2 border-t border-border/50"><KeyRound className="w-4 h-4" />签发激活码</button>
+                    )}
                 </div>
             )}
+            {isSignerOpen && <SignerModal isOpen={isSignerOpen} onClose={() => setIsSignerOpen(false)} />}
         </div>
     );
 }

@@ -28,7 +28,7 @@ import { NavButton, DrawerNavButton, type NavItemType } from './NavButton';
 import AiIntegrationModal from '../Common/AiIntegrationModal';
 import MobileLockedChartSwitcher from './MobileLockedChartSwitcher';
 import PrivateDataBackupModal from '../Common/PrivateDataBackupModal';
-import { startWebDavAutoBackup } from '../../services/webdavBackupService';
+import { startRemoteAutoBackup } from '../../services/remoteBackupService';
 import ProfileCenterModal from '../Auth/ProfileCenterModal';
 
 export type ChartType =
@@ -78,7 +78,7 @@ export default function Navbar({
     }).catch(() => setBirthDate(undefined));
   }, []);
 
-  useEffect(() => startWebDavAutoBackup(), []);
+  useEffect(() => startRemoteAutoBackup(), []);
 
   const displayBirthDate = birthDate;
 
