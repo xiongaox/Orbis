@@ -104,15 +104,10 @@ export default function WuxingStatusBar({
             <div className={`flex items-center ${isMobileLayout ? 'gap-1.5' : isPadLandscape ? 'gap-1.5' : 'gap-3'}`}>
                 {/* 桌面端年龄显示 */}
                 {!isMobileLayout && currentAge !== null && (
-                    <div className="text-foreground">
+                    <div className="text-foreground whitespace-nowrap">
                         <span className="text-muted-foreground">当前</span>
                         <span className="font-medium text-foreground mx-1">{currentAge}</span>
                         <span className="text-muted-foreground">岁</span>
-                        {selectedLiuNianYear && (
-                            <span className="text-muted-foreground/70 ml-1">
-                                ({selectedLiuNianYear}年)
-                            </span>
-                        )}
                     </div>
                 )}
 
