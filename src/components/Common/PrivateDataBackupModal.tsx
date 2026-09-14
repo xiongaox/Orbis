@@ -1,17 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, ChevronDown, Clock3, Cloud, HardDriveUpload, RefreshCw, Upload, X } from 'lucide-react';
-import { AUTO_BACKUP_INTERVAL_MINUTES, webDavBackupService, type WebDavConfig } from '../../services/webdavBackupService';
-import WebDavBackupManagerModal from './WebDavBackupManagerModal';
+import { webDavBackupService, type WebDavConfig } from '../../services/webdavBackupService';
+import { s3BackupService, type S3Config } from '../../services/s3BackupService';
+import { remoteBackupService, type RemoteBackupMethod } from '../../services/remoteBackupService';
+import { AUTO_BACKUP_INTERVAL_MINUTES } from '../../services/remoteBackupShared';
+import RemoteBackupManagerModal from './RemoteBackupManagerModal';
 
 interface PrivateDataBackupModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const emptyConfig: WebDavConfig = {
+const emptyWebDavConfig: WebDavConfig = {
   endpoint: '', username: '', password: '', backupDirectory: 'orbis/backups', autoBackupEnabled: false, autoBackupIntervalMinutes: 1440,
 };
+const emptyS3Config: S3Config = {
+  endpoint: '', region: 'us-east-1', bucket: '', accessKeyId: '', secretAccessKey: '', sessionToken: '', backupPrefix: 'orbis/backups', pathStyle: false, autoBackupEnabled: false, autoBackupIntervalMinutes: 1440,
+};
 const SUCCESS_MESSAGE_DURATION = 4_000;
+const METHOD_TAB_BASE = 'flex min-h-8 items-center justify-center rounded-md px-3 text-sm transition-colors focus-ring';
 
 function formatInterval(minutes: number) {
   if (minutes < 60) return `每 ${minutes} 分钟`;
@@ -19,7 +26,9 @@ function formatInterval(minutes: number) {
 }
 
 export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataBackupModalProps) {
-  const [config, setConfig] = useState<WebDavConfig>(emptyConfig);
+  const [method, setMethod] = useState<RemoteBackupMethod>('webdav');
+  const [webdavConfig, setWebDavConfig] = useState<WebDavConfig>(emptyWebDavConfig);
+  const [s3Config, setS3Config] = useState<S3Config>(emptyS3Config);
   const [configLoaded, setConfigLoaded] = useState(false);
   const [showManager, setShowManager] = useState(false);
   const [frequencyMenuOpen, setFrequencyMenuOpen] = useState(false);
@@ -50,40 +59,71 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
     setConfigLoaded(false);
     clearMessageTimer();
     setMessage('');
-    void webDavBackupService.readConfig().then((savedConfig) => {
-      if (!cancelled) {
-        setConfig(savedConfig);
+    void Promise.all([remoteBackupService.readMethod(), webDavBackupService.readConfig(), s3BackupService.readConfig()])
+      .then(([nextMethod, nextWebDavConfig, nextS3Config]) => {
+        if (cancelled) return;
+        setMethod(nextMethod);
+        setWebDavConfig(nextWebDavConfig);
+        setS3Config(nextS3Config);
         setConfigLoaded(true);
-      }
-    }).catch((error: unknown) => {
-      if (!cancelled) {
-        setMessage(error instanceof Error ? error.message : '读取已保存的 WebDAV 配置失败');
-        setConfigLoaded(true);
-      }
-    });
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setMessage(error instanceof Error ? error.message : '读取已保存的备份配置失败');
+          setConfigLoaded(true);
+        }
+      });
     return () => { cancelled = true; };
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen && configLoaded) void webDavBackupService.saveConfig(config);
-  }, [config, configLoaded, isOpen]);
+    if (isOpen && configLoaded) void webDavBackupService.saveConfig(webdavConfig);
+  }, [webdavConfig, configLoaded, isOpen]);
+
+  useEffect(() => {
+    if (isOpen && configLoaded) void s3BackupService.saveConfig(s3Config);
+  }, [s3Config, configLoaded, isOpen]);
 
   if (!isOpen) return null;
 
-  const update = <Key extends keyof WebDavConfig>(key: Key, value: WebDavConfig[Key]) => setConfig((current) => ({ ...current, [key]: value }));
+  const activeConfig = method === 's3' ? s3Config : webdavConfig;
+  const updateWebDav = <Key extends keyof WebDavConfig>(key: Key, value: WebDavConfig[Key]) => setWebDavConfig((current) => ({ ...current, [key]: value }));
+  const updateS3 = <Key extends keyof S3Config>(key: Key, value: S3Config[Key]) => setS3Config((current) => ({ ...current, [key]: value }));
+  const updateActive = <Key extends 'autoBackupEnabled' | 'autoBackupIntervalMinutes'>(key: Key, value: (WebDavConfig & S3Config)[Key]) => {
+    if (method === 's3') updateS3(key, value);
+    else updateWebDav(key, value);
+  };
+  const changeMethod = (next: RemoteBackupMethod) => {
+    if (next === method) return;
+    setMethod(next);
+    setFrequencyMenuOpen(false);
+    void remoteBackupService.saveMethod(next);
+  };
   const run = async (action: 'backup' | 'test' | 'manager') => {
     setBusy(action);
     clearMessageTimer();
     setMessage('');
     try {
-      await webDavBackupService.saveConfig(config);
-      if (action === 'backup') {
-        const result = await webDavBackupService.backup(config);
-        showSuccessMessage(`已创建备份：${result.backup.filename}`);
-      }
-      if (action === 'test') {
-        await webDavBackupService.testConnection(config);
-        showSuccessMessage('连接成功');
+      if (method === 's3') {
+        await s3BackupService.saveConfig(s3Config);
+        if (action === 'backup') {
+          const result = await s3BackupService.backup(s3Config);
+          showSuccessMessage(`已创建备份：${result.backup.filename}`);
+        }
+        if (action === 'test') {
+          await s3BackupService.testConnection(s3Config);
+          showSuccessMessage('连接成功');
+        }
+      } else {
+        await webDavBackupService.saveConfig(webdavConfig);
+        if (action === 'backup') {
+          const result = await webDavBackupService.backup(webdavConfig);
+          showSuccessMessage(`已创建备份：${result.backup.filename}`);
+        }
+        if (action === 'test') {
+          await webDavBackupService.testConnection(webdavConfig);
+          showSuccessMessage('连接成功');
+        }
       }
       if (action === 'manager') setShowManager(true);
     } catch (error) {
@@ -106,14 +146,39 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
           </div>
 
           <div className="space-y-4 px-5 py-4">
-            <div className="space-y-3">
-              <label className="block text-sm text-foreground">WebDAV 地址<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={config.endpoint} onChange={(event) => update('endpoint', event.target.value)} placeholder="https://dav.example.com" /></label>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label className="block text-sm text-foreground">用户名<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={config.username} onChange={(event) => update('username', event.target.value)} /></label>
-                <label className="block text-sm text-foreground">密码<input type="password" disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={config.password} onChange={(event) => update('password', event.target.value)} /></label>
+            <div>
+              <p className="mb-2 text-sm text-foreground">备份方式</p>
+              <div role="tablist" aria-label="备份方式" className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-muted/40 p-1">
+                <button type="button" role="tab" aria-selected={method === 'webdav'} disabled={!configLoaded} onClick={() => changeMethod('webdav')} className={`${METHOD_TAB_BASE} ${method === 'webdav' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-50`}>WebDAV</button>
+                <button type="button" role="tab" aria-selected={method === 's3'} disabled={!configLoaded} onClick={() => changeMethod('s3')} className={`${METHOD_TAB_BASE} ${method === 's3' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-50`}>S3 兼容存储</button>
               </div>
-              <label className="block text-sm text-foreground">备份文件夹<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={config.backupDirectory} onChange={(event) => update('backupDirectory', event.target.value)} placeholder="orbis/backups" /></label>
             </div>
+
+            {method === 's3' ? (
+              <div className="space-y-3">
+                <label className="block text-sm text-foreground">S3 服务地址<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.endpoint} onChange={(event) => updateS3('endpoint', event.target.value)} placeholder="https://s3.us-east-1.amazonaws.com" /></label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="block text-sm text-foreground">区域（Region）<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.region} onChange={(event) => updateS3('region', event.target.value)} placeholder="us-east-1" /></label>
+                  <label className="block text-sm text-foreground">存储桶（Bucket）<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.bucket} onChange={(event) => updateS3('bucket', event.target.value)} placeholder="orbis-backups" /></label>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="block text-sm text-foreground">Access Key ID<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.accessKeyId} onChange={(event) => updateS3('accessKeyId', event.target.value)} /></label>
+                  <label className="block text-sm text-foreground">Secret Access Key<input type="password" disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.secretAccessKey} onChange={(event) => updateS3('secretAccessKey', event.target.value)} /></label>
+                </div>
+                <label className="block text-sm text-foreground">会话 Token（可选）<input type="password" disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.sessionToken} onChange={(event) => updateS3('sessionToken', event.target.value)} placeholder="使用 STS 临时凭证时填写" /></label>
+                <label className="block text-sm text-foreground">备份前缀<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.backupPrefix} onChange={(event) => updateS3('backupPrefix', event.target.value)} placeholder="orbis/backups" /></label>
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground"><input type="checkbox" disabled={!configLoaded} checked={s3Config.pathStyle} onChange={(event) => updateS3('pathStyle', event.target.checked)} className="h-4 w-4 accent-primary" />路径风格（MinIO 等自建服务勾选）</label>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <label className="block text-sm text-foreground">WebDAV 地址<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={webdavConfig.endpoint} onChange={(event) => updateWebDav('endpoint', event.target.value)} placeholder="https://dav.example.com" /></label>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="block text-sm text-foreground">用户名<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={webdavConfig.username} onChange={(event) => updateWebDav('username', event.target.value)} /></label>
+                  <label className="block text-sm text-foreground">密码<input type="password" disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={webdavConfig.password} onChange={(event) => updateWebDav('password', event.target.value)} /></label>
+                </div>
+                <label className="block text-sm text-foreground">备份文件夹<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={webdavConfig.backupDirectory} onChange={(event) => updateWebDav('backupDirectory', event.target.value)} placeholder="orbis/backups" /></label>
+              </div>
+            )}
 
             <section className="rounded-xl border border-border bg-secondary/20 p-4" aria-labelledby="auto-backup-title">
               <div className="flex items-center justify-between gap-4">
@@ -124,21 +189,21 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
                     <p className="mt-0.5 text-xs text-muted-foreground">应用运行期间自动创建新版本</p>
                   </div>
                 </div>
-                <button type="button" role="switch" aria-checked={config.autoBackupEnabled} disabled={!configLoaded} onClick={() => update('autoBackupEnabled', !config.autoBackupEnabled)} className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors focus-ring disabled:opacity-50 ${config.autoBackupEnabled ? 'border-primary bg-primary' : 'border-border bg-muted'}`}>
-                  <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm transition-transform ${config.autoBackupEnabled ? 'translate-x-6 text-primary' : 'translate-x-1 text-muted-foreground'}`}>{config.autoBackupEnabled && <Check className="h-3.5 w-3.5" />}</span>
+                <button type="button" role="switch" aria-checked={activeConfig.autoBackupEnabled} disabled={!configLoaded} onClick={() => updateActive('autoBackupEnabled', !activeConfig.autoBackupEnabled)} className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors focus-ring disabled:opacity-50 ${activeConfig.autoBackupEnabled ? 'border-primary bg-primary' : 'border-border bg-muted'}`}>
+                  <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm transition-transform ${activeConfig.autoBackupEnabled ? 'translate-x-6 text-primary' : 'translate-x-1 text-muted-foreground'}`}>{activeConfig.autoBackupEnabled && <Check className="h-3.5 w-3.5" />}</span>
                 </button>
               </div>
-              {config.autoBackupEnabled && <div className="mt-4 border-t border-border pt-3">
+              {activeConfig.autoBackupEnabled && <div className="mt-4 border-t border-border pt-3">
                 <div className="relative">
                   <p className="mb-2 text-sm text-foreground">备份频率</p>
                   <button type="button" aria-haspopup="listbox" aria-expanded={frequencyMenuOpen} onClick={() => setFrequencyMenuOpen((open) => !open)} className="flex min-h-10 w-full items-center justify-between rounded-lg border border-border bg-background px-3 text-sm text-foreground transition-colors hover:bg-secondary/60 focus-ring">
-                    <span>{formatInterval(config.autoBackupIntervalMinutes)}</span>
+                    <span>{formatInterval(activeConfig.autoBackupIntervalMinutes)}</span>
                     <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${frequencyMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
                   {frequencyMenuOpen && <div role="listbox" aria-label="自动备份频率" className="absolute z-[80] mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-xl">
                     {AUTO_BACKUP_INTERVAL_MINUTES.map((minutes) => {
-                      const selected = config.autoBackupIntervalMinutes === minutes;
-                      return <button key={minutes} type="button" role="option" aria-selected={selected} onClick={() => { update('autoBackupIntervalMinutes', minutes); setFrequencyMenuOpen(false); }} className={`flex min-h-9 w-full items-center justify-between rounded-md px-3 text-left text-sm transition-colors ${selected ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-secondary/70'}`}><span>{formatInterval(minutes)}</span>{selected && <Check className="h-4 w-4" />}</button>;
+                      const selected = activeConfig.autoBackupIntervalMinutes === minutes;
+                      return <button key={minutes} type="button" role="option" aria-selected={selected} onClick={() => { updateActive('autoBackupIntervalMinutes', minutes); setFrequencyMenuOpen(false); }} className={`flex min-h-9 w-full items-center justify-between rounded-md px-3 text-left text-sm transition-colors ${selected ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-secondary/70'}`}><span>{formatInterval(minutes)}</span>{selected && <Check className="h-4 w-4" />}</button>;
                     })}
                   </div>}
                 </div>
@@ -154,7 +219,7 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
           </div>
         </div>
       </div>
-      <WebDavBackupManagerModal isOpen={showManager} config={config} onClose={() => setShowManager(false)} onRestored={(filename) => showSuccessMessage(`已恢复：${filename}`)} />
+      <RemoteBackupManagerModal isOpen={showManager} method={method} config={method === 's3' ? s3Config : webdavConfig} onClose={() => setShowManager(false)} onRestored={(filename) => showSuccessMessage(`已恢复：${filename}`)} />
     </>
   );
 }

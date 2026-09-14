@@ -14,6 +14,11 @@ rust-version = "1.77.2"
 name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[features]
+# 管理员版专用：在应用内直接签发激活码（需 keys/signing_blob.rs，见 cases-keygen export-signing）。
+# 普通版（GitHub Actions）不带该 feature，构建产物不含签发代码路径。
+admin-signing = []
+
 [build-dependencies]
 tauri-build = { version = "2.6.3", features = [] }
 
@@ -25,3 +30,18 @@ tauri = { version = "2.11.3", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-http = "2.5.2"
 tauri-plugin-sql = { version = "2.3.0", features = ["sqlite"] }
+
+# 案例离线加密包（docs/case-encryption-and-activation-spec.md）
+ed25519-dalek = "2"
+aes-gcm = "0.10"
+argon2 = "0.5"
+# 0.31 与 tauri-plugin-sql(sqlx 0.8) 共用 libsqlite3-sys 0.28，避免原生库重复链接
+rusqlite = { version = "0.31", features = ["bundled"] }
+sha2 = "0.10"
+hmac = "0.12"
+pbkdf2 = { version = "0.12", default-features = false }
+hex = "0.4"
+flate2 = "1"
+
+[target.'cfg(windows)'.dependencies]
+winreg = "0.55"

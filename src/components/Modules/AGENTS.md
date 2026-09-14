@@ -10,6 +10,7 @@
 | 奇门页面入口与布局 | `Qimen/QimenPage.tsx` | Desktop/Pad/Mobile 三布局分流 |
 | 奇门核心状态编排 | `Qimen/hooks/useQimenState.ts` | 计算、案例、弹窗、抽屉状态聚合 |
 | 案例阅读与筛选 | `CaseStudy/` | 分类、搜索、多排盘切换 |
+| 案例库激活弹窗 | `CaseStudy/ActivationModal.tsx` | 未激活时锁屏展示机器码与激活码输入，进度/错误反馈 |
 | 万年历页面状态 | `Wannianli/` | 日历网格、移动端详情逻辑 |
 
 ## CONVENTIONS

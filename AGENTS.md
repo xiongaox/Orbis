@@ -31,6 +31,8 @@ Orbis/
 | 服务层行为 | `src/services` | 本地业务服务与 WebDAV 备份 |
 | 大型业务模块 UI | `src/components/Modules` | Bazi/Qimen/Wannianli/CaseStudy |
 | 案例静态语料 | `src/data/cases` | 以 Markdown 为主，体量大 |
+| 案例加密包签发/打包 | `scripts/cases-keygen.ts` `scripts/pack-cases.ts` | 作者端工具：Ed25519 密钥、激活码、AES-256-GCM 加密包 |
+| 案例离线安全层 | `src-tauri/src/cases/` | 机器码、验签、内置包内存解密（build.rs 嵌入，无需云端）、一机一密落盘 |
 
 ## CODE MAP
 | Symbol | Type | Location | Refs | Role |
@@ -60,10 +62,10 @@ Orbis/
 - 涉及 UI、样式、组件视觉或设计 token 的任务，必须先阅读根目录 `DESIGN.md`；修改设计规范后运行 `design.md lint DESIGN.md`。
 
 ## ANTI-PATTERNS (THIS PROJECT)
-- 不要提交 `.env`。
+- 不要提交 `.env`、`keys/`、`dist-cases/`。
 - 不要在 UI 层复制算法常量或映射表，优先复用领域层导出。
 - 案例服务直接抛出业务错误，调用方负责展示可理解的提示。
-- 不要假设测试脚本存在；当前仓库无 `npm test`。
+- 案例正文明文只允许存在于内存；不得写入 localStorage/日志/明文文件。
 
 ## UNIQUE STYLES
 - `src/services/localPrivateStore.ts` 在 Tauri 使用 SQLite，在浏览器使用 IndexedDB，所有数据属于当前单一本地工作区。
@@ -77,9 +79,17 @@ npm run dev
 npm run build
 npm run lint
 npx tsc -b
+npm run cases:keygen -- init-keys          # 作者端：生成密钥（keys/，已 gitignore）
+npm run cases:keygen -- sign --machine <ID> # 作者端：签发激活码
+npm run cases:keygen -- set-master-password # 作者端：设置/清除管理密码（面对面激活，仅哈希入库）
+npm run cases:keygen -- export-signing      # 作者端：封印私钥供管理员版应用内签发（keys/signing_blob.rs）
+npm run tauri:build                          # 构建普通版（无私钥材料，可在 GitHub Actions 跑）
+npm run tauri:build:admin                    # 构建管理员版（--features admin-signing，仅作者本机）
+npm run cases:pack                          # 作者端：打包加密案例包 → dist-cases/cases_v1.enc（构建时嵌入客户端）
+cargo test                                  # 在 src-tauri 内运行 Rust 安全层测试
 ```
 
 ## NOTES
 - 开发端口固定 `9898`，`/api` 代理到 `http://localhost:8000`。
-- 当前未配置测试框架；验证以 lint + typecheck + build 为主。
+- 测试为 `npm test`（vitest 前端）+ `cargo test`（Rust 安全层）；验证以 lint + typecheck + build 为主。
 - 当修改子域规则时，同步更新对应子目录 `AGENTS.md`，避免只改根文档。

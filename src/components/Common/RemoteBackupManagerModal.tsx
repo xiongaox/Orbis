@@ -2,11 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Download, RefreshCw, Trash2 } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
 import ConfirmModal from './ConfirmModal';
-import { webDavBackupService, type WebDavBackup, type WebDavConfig } from '../../services/webdavBackupService';
+import { webDavBackupService, type WebDavConfig } from '../../services/webdavBackupService';
+import { s3BackupService, type S3Config } from '../../services/s3BackupService';
+import type { RemoteBackupMethod } from '../../services/remoteBackupService';
+import type { RemoteBackupMeta } from '../../services/remoteBackupShared';
 
-interface WebDavBackupManagerModalProps {
+interface RemoteBackupManagerModalProps {
   isOpen: boolean;
-  config: WebDavConfig;
+  method: RemoteBackupMethod;
+  config: WebDavConfig | S3Config;
   onClose: () => void;
   onRestored: (filename: string) => void;
 }
@@ -28,13 +32,13 @@ function formatSize(size: number | null) {
   return `${(size / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export default function WebDavBackupManagerModal({ isOpen, config, onClose, onRestored }: WebDavBackupManagerModalProps) {
-  const [backups, setBackups] = useState<WebDavBackup[]>([]);
+export default function RemoteBackupManagerModal({ isOpen, method, config, onClose, onRestored }: RemoteBackupManagerModalProps) {
+  const [backups, setBackups] = useState<RemoteBackupMeta[]>([]);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [busy, setBusy] = useState<'load' | 'restore' | 'delete' | null>(null);
   const [message, setMessage] = useState('');
-  const [pendingRestore, setPendingRestore] = useState<WebDavBackup | null>(null);
+  const [pendingRestore, setPendingRestore] = useState<RemoteBackupMeta | null>(null);
   const [pendingDeletePaths, setPendingDeletePaths] = useState<string[] | null>(null);
 
   const pageCount = Math.max(1, Math.ceil(backups.length / PAGE_SIZE));
@@ -45,7 +49,9 @@ export default function WebDavBackupManagerModal({ isOpen, config, onClose, onRe
     setBusy('load');
     setMessage('');
     try {
-      const nextBackups = await webDavBackupService.listBackups(config);
+      const nextBackups = method === 's3'
+        ? await s3BackupService.listBackups(config as S3Config)
+        : await webDavBackupService.listBackups(config as WebDavConfig);
       setBackups(nextBackups);
       setSelectedPaths((current) => new Set([...current].filter((path) => nextBackups.some((backup) => backup.path === path))));
       setPage((current) => Math.min(current, Math.max(1, Math.ceil(nextBackups.length / PAGE_SIZE))));
@@ -83,7 +89,10 @@ export default function WebDavBackupManagerModal({ isOpen, config, onClose, onRe
     setBusy('delete');
     setMessage('');
     try {
-      await Promise.all(paths.map((path) => webDavBackupService.deleteBackup(config, path)));
+      await Promise.all(paths.map(async (path) => {
+        if (method === 's3') await s3BackupService.deleteBackup(config as S3Config, path);
+        else await webDavBackupService.deleteBackup(config as WebDavConfig, path);
+      }));
       await loadBackups();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '删除备份失败');
@@ -91,11 +100,12 @@ export default function WebDavBackupManagerModal({ isOpen, config, onClose, onRe
       setBusy(null);
     }
   };
-  const restore = async (backup: WebDavBackup) => {
+  const restore = async (backup: RemoteBackupMeta) => {
     setBusy('restore');
     setMessage('');
     try {
-      await webDavBackupService.restore(config, backup.path);
+      if (method === 's3') await s3BackupService.restore(config as S3Config, backup.path);
+      else await webDavBackupService.restore(config as WebDavConfig, backup.path);
       onRestored(backup.filename);
       onClose();
     } catch (error) {

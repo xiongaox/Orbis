@@ -89,7 +89,10 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
                         {isCaseContentLoading ? (
                             <ArticleContentLoading />
                         ) : (
-                            <div className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed text-[16px] lg:text-[18px]">
+                            <div
+                                    onContextMenu={(event) => event.preventDefault()}
+                                    className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed text-[16px] lg:text-[18px]"
+                                >
                                 <ReactMarkdown
                                     rehypePlugins={[rehypeRaw]}
                                     remarkPlugins={[remarkGfm, remarkBreaks]}
@@ -107,7 +110,10 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
                         <h1 className="text-lg lg:text-2xl font-serif font-bold text-center text-primary/90 pb-3 lg:pb-4 border-b border-border/40">
                             {selectedAuthor}
                         </h1>
-                        <div className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed text-[16px] lg:text-[18px]">
+                        <div
+                                    onContextMenu={(event) => event.preventDefault()}
+                                    className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed text-[16px] lg:text-[18px]"
+                                >
                             <ReactMarkdown
                                 rehypePlugins={[rehypeRaw]}
                                 remarkPlugins={[remarkGfm, remarkBreaks]}

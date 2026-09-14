@@ -21,9 +21,11 @@ import { useState, useMemo, useEffect } from 'react';
 import { AUTHOR_MAP } from '../../../../lib/caseStudy/constants';
 import type { PaiPanMethod } from '../../../../lib/csp-qimen/qimenService';
 import { TIAN_GAN } from '../../../../constants/ganZhi';
-import { publicCaseLibraryService } from '../../../../services/publicCaseLibraryService';
+import { publicCaseLibraryService, type CasePackProgress } from '../../../../services/publicCaseLibraryService';
 
 import { calculateQimen, type QimenResult } from '../../../../lib/csp-qimen/qimenService';
+
+export type ActivationState = 'loading' | 'locked' | 'ready';
 
 export interface CaseItem {
     id: string;
@@ -89,10 +91,15 @@ export function useCaseStudy() {
     const [chartCount, setChartCount] = useState<number>(0); // 当前案例包含的排盘数量
     const [isCaseContentLoading, setIsCaseContentLoading] = useState(false);
 
-    useEffect(() => {
-        let cancelled = false;
+    // 案例库激活状态（一机一码）
+    const [activationState, setActivationState] = useState<ActivationState>('loading');
+    const [machineId, setMachineId] = useState<string>('');
+    const [isActivating, setIsActivating] = useState(false);
+    const [activationProgress, setActivationProgress] = useState<CasePackProgress | null>(null);
+    const [activationError, setActivationError] = useState<string | null>(null);
+
+    const loadEntries = () => {
         void publicCaseLibraryService.getEntries().then((entries) => {
-            if (cancelled) return;
             const cases = sortCases(entries.map((entry) => ({
                 id: entry.id,
                 title: entry.title,
@@ -105,11 +112,67 @@ export function useCaseStudy() {
             ALL_CASES.splice(0, ALL_CASES.length, ...cases);
             setAllCases(cases);
         }).catch((cause: unknown) => {
-            console.error('加载公共案例目录失败', cause);
-            if (!cancelled) setAllCases([]);
+            console.error('加载本地案例目录失败', cause);
+            setAllCases([]);
+        });
+    };
+
+    useEffect(() => {
+        let cancelled = false;
+        void publicCaseLibraryService.getStatus().then(async (status) => {
+            if (cancelled) return;
+            if (status.is_activated) {
+                setActivationState('ready');
+                loadEntries();
+                return;
+            }
+            const id = await publicCaseLibraryService.getMachineId().catch(() => '');
+            if (cancelled) return;
+            setMachineId(id);
+            setActivationState('locked');
+        }).catch((cause: unknown) => {
+            console.error('检查案例库状态失败', cause);
+            if (!cancelled) setActivationState('locked');
         });
         return () => { cancelled = true; };
     }, []);
+
+    // 激活成功后刷新案例列表（激活码 / 管理密码两种模式共用管线）
+    const runActivation = (activation: Promise<number>) => {
+        if (isActivating) return;
+        setIsActivating(true);
+        setActivationError(null);
+        setActivationProgress({ phase: 'verifying', percent: null, message: '正在校验...' });
+        let unlisten: (() => void) | null = null;
+        const cleanup = () => {
+            unlisten?.();
+            unlisten = null;
+        };
+        void publicCaseLibraryService.onProgress((progress) => {
+            setActivationProgress(progress);
+        }).then((stop) => {
+            unlisten = stop;
+            return activation;
+        }).then(() => {
+            setActivationState('ready');
+            setActivationProgress(null);
+            setIsActivating(false);
+            cleanup();
+            loadEntries();
+        }).catch((cause: unknown) => {
+            setActivationError(cause instanceof Error ? cause.message : String(cause));
+            setIsActivating(false);
+            cleanup();
+        });
+    };
+
+    const activate = (licenseCode: string) => {
+        runActivation(publicCaseLibraryService.activate(licenseCode));
+    };
+
+    const activateWithMasterPassword = (password: string) => {
+        runActivation(publicCaseLibraryService.activateWithMasterPassword(password));
+    };
 
     useEffect(() => {
         if (!selectedCaseId) {
@@ -291,6 +354,15 @@ export function useCaseStudy() {
         activeCase,
         authorIntroContent,
         isCaseContentLoading,
+
+        // 案例库激活（一机一码 / 作者管理密码）
+        activationState,
+        machineId,
+        isActivating,
+        activationProgress,
+        activationError,
+        activate,
+        activateWithMasterPassword,
 
         // 分页
         currentPage,
