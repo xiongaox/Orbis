@@ -87,6 +87,9 @@ npm run tauri:build                          # 构建普通版（无私钥材料
 npm run tauri:build:admin                    # 构建管理员版（--features admin-signing，仅作者本机）
 npm run cases:pack                          # 作者端：打包加密案例包 → dist-cases/cases_v1.enc（构建时嵌入客户端）
 cargo test                                  # 在 src-tauri 内运行 Rust 安全层测试
+npm run worktree:create                     # 创建并初始化隔离的 Orbis worktree 开发环境
+npm run worktree:build                      # 在 worktree 内执行完整自检与构建 (lint + tsc + test + build)
+npm run worktree:remove -- -p <path>        # 安全回收指定 worktree 及临时分支
 ```
 
 ## NOTES

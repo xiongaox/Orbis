@@ -63,5 +63,10 @@ notes/sanyuan
 /.wrangler/
 
 # Author-side case pack keys and encrypted bundle outputs
+/keys
 /keys/
+/dist-cases
 /dist-cases/
+
+# Git worktree metadata
+.worktree-meta.json

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Orbis Git Worktree"
+  short_description: "输入 /worktree 独立创建并管理隔离的 Orbis 开发工作树"
