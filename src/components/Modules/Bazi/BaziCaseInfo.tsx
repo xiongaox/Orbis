@@ -28,7 +28,6 @@ import type { BaziApiResponse } from '../../../types/bazi';
 import GanZhiDiagramModal from './GanZhiDiagramModal';
 import GanZhiLiuTongModal from './GanZhiLiuTongModal';
 import AiPromptModal from './AiPromptModal';
-import { useIsPadLandscape } from '../../../hooks/useIsPadLandscape';
 import { calcJiaoYunInfo } from '../../../utils/yunInfoUtils';
 
 interface BaziCaseInfoProps {
@@ -53,7 +52,6 @@ export default function BaziCaseInfo({
   const [showLiuTong, setShowLiuTong] = useState(false);
   const [showAiPrompt, setShowAiPrompt] = useState(false);
   const [mobileCollapsed, setMobileCollapsed] = useState(true);
-  const isPadLandscape = useIsPadLandscape();
 
   // 使用 API 返回的数据，如果没有则使用 case 数据
   const displayName = caseData?.name || '当前时间';
@@ -243,24 +241,19 @@ export default function BaziCaseInfo({
                   <span>阳历：{displaySolar}</span>
                 </div>
                 {baziData?.yunInfo && (
-                  <>
-                    <div className="flex items-center gap-4 text-xs text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground mt-1">
+                  <div className="text-xs text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground mt-1">
+                    <div className="flex items-center gap-4">
                       <span>
                         起运：出生后{baziData.yunInfo.startYear}年{baziData.yunInfo.startMonth}月{baziData.yunInfo.startDay}天后
                       </span>
                       <span>起运日期：{baziData.yunInfo.startSolarDate}</span>
-                      {/* 桌面端：交运与起运同行 */}
-                      {!isPadLandscape && (
-                        <span>{calcJiaoYunInfo(baziData.yunInfo.startSolarDate)}</span>
-                      )}
                     </div>
-                    {/* Pad 端：交运独立一行 */}
-                    {isPadLandscape && (
-                      <div className="text-xs text-[hsl(var(--text-tertiary-light))] dark:text-muted-foreground mt-1">
+                    {calcJiaoYunInfo(baziData.yunInfo.startSolarDate) && (
+                      <div className="mt-1">
                         {calcJiaoYunInfo(baziData.yunInfo.startSolarDate)}
                       </div>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
             </div>
