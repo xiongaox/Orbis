@@ -33,7 +33,7 @@ import {
     getDetailedSolarTerms
 } from '../../../lib/xuan-bazi/utils/baziExtendUtil';
 import { getNaYin } from '../../../lib/xuan-bazi/utils/baziJichuUtil';
-import { calculateWangShuai } from '../../../lib/xuan-bazi/utils/wangShuaiUtil';
+import { calculateYueyuanWangShuai } from '../../../lib/xuan-bazi/skills/yueyuanWangShuaiSkill';
 import PhysicsLogModal from './PhysicsLogModal';
 
 
@@ -154,13 +154,8 @@ export default function BaziBasicInfoPanel({ baziData, isMobileLayout = false }:
         const taiXi = getTaiXi(dayGanZhi);
         const solarTerms = getDetailedSolarTerms(solarDate);
 
-        // === ⚡️ 旺衰核心算法调用 ===
-        // 适配 Pillars 数据结构
-        const wangShuaiInput = pillars.map(p => ({
-            tiangan: p.tiangan,
-            dizhi: p.dizhi
-        }));
-        const wangShuaiResult = calculateWangShuai(wangShuaiInput);
+        // === ⚡️ 跃渊子平旺衰与格局引擎调用 ===
+        const wangShuaiResult = calculateYueyuanWangShuai(baziData);
 
         const dayGan = dayPillar.tiangan || '-';
         const dayGanWx = TIANGAN_WUXING[dayGan] || '';
@@ -266,9 +261,10 @@ export default function BaziBasicInfoPanel({ baziData, isMobileLayout = false }:
                 isOpen={isLogModalOpen}
                 onClose={() => setIsLogModalOpen(false)}
                 logs={info.physicsLog}
-                title="旺衰物理逻辑日志"
+                title="旺衰逻辑分析"
                 description={info.bodyStrength}
                 highlightColor="text-primary"
+                baziData={baziData}
             />
         </div>
     );

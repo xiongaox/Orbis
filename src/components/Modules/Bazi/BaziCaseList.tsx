@@ -224,10 +224,15 @@ export default function CaseList({
               const displayPillars = pillars.length === 8
                 ? [pillars[0] + pillars[1], pillars[2] + pillars[3], pillars[4] + pillars[5], pillars[6] + pillars[7]]
                 : [];
+              const d = new Date(c.birth_date);
+              const pad = (n: number) => String(n).padStart(2, '0');
+              const localBirthDateStr = isNaN(d.getTime())
+                ? c.birth_date
+                : `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
               return {
                 '姓名': c.name,
                 '性别': c.gender === 'male' ? '男' : '女',
-                '出生时间': c.birth_date.replace('T', ' ').slice(0, 16),
+                '出生时间': localBirthDateStr,
                 '天干地支': displayPillars.join(' '),
                 '标签': c.tags?.join('、') || '',
                 '备注': c.notes || '',

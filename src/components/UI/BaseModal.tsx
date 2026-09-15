@@ -111,15 +111,15 @@ export default function BaseModal({
             >
                 {/* Header */}
                 {(title || showCloseButton) && (
-                    <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
-                        <div className="flex items-center gap-2 text-lg font-semibold text-foreground flex-1" id="modal-title">
-                            {titleIcon && <span className="text-primary">{titleIcon}</span>}
-                            {title}
+                    <div className="relative p-4 border-b border-border shrink-0">
+                        <div className="flex items-center gap-2 text-lg font-semibold text-foreground w-full" id="modal-title">
+                            {titleIcon && <span className="text-primary shrink-0">{titleIcon}</span>}
+                            <div className="flex-1 min-w-0">{title}</div>
                         </div>
                         {showCloseButton && (
                             <button
                                 onClick={onClose}
-                                className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus-ring ml-auto"
+                                className="absolute top-3.5 right-4 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus-ring z-10"
                                 aria-label="Close"
                             >
                                 <X className="w-5 h-5" />
