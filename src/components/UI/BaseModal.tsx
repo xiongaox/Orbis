@@ -37,6 +37,8 @@ interface BaseModalProps {
     className?: string; // For the modal card itself
     bodyClassName?: string; // For the content wrapper
     fullScreen?: boolean; // 全屏模式（移动端适配）
+    responsiveDrawer?: boolean; // 桌面端右侧抽屉，移动端保持居中弹窗
+    drawerWidth?: string; // 桌面端抽屉宽度样式
 }
 
 export default function BaseModal({
@@ -52,6 +54,8 @@ export default function BaseModal({
     className = '',
     bodyClassName = '',
     fullScreen = false,
+    responsiveDrawer = false,
+    drawerWidth,
 }: BaseModalProps) {
     const onCloseRef = useRef(onClose);
 
@@ -91,7 +95,11 @@ export default function BaseModal({
 
     return (
         <div
-            className={`fixed inset-0 z-[100] isolate flex items-center justify-center ${fullScreen ? 'p-0' : 'p-4'} bg-black/50`}
+            className={`fixed inset-0 z-[100] isolate flex ${
+                responsiveDrawer
+                    ? 'items-center justify-center p-4 bg-black/50 md:items-stretch md:justify-end md:p-0 md:bg-black/20 dark:md:bg-black/35 transition-colors duration-200'
+                    : `items-center justify-center ${fullScreen ? 'p-0' : 'p-4'} bg-black/50`
+            }`}
             role="dialog"
             aria-modal="true"
             aria-labelledby={title ? "modal-title" : undefined}
@@ -103,8 +111,11 @@ export default function BaseModal({
         >
             <div
                 className={`
-                    relative z-10 bg-background ${fullScreen ? '' : 'border border-border rounded-xl'} shadow-2xl flex flex-col
-                    w-full ${maxWidth} ${fullScreen ? 'h-full' : 'max-h-[85vh]'} 
+                    relative z-10 bg-background shadow-2xl flex flex-col
+                    ${responsiveDrawer
+                        ? `w-full ${maxWidth} max-h-[85vh] rounded-xl border border-border ${drawerWidth || 'md:w-[500px] lg:w-[580px] xl:w-[640px] md:max-w-[85vw] lg:max-w-[50vw]'} md:h-full md:max-h-screen md:rounded-none md:border-l md:border-y-0 md:border-r-0 md:border-border md:animate-slide-in-right`
+                        : `${fullScreen ? '' : 'border border-border rounded-xl'} w-full ${maxWidth} ${fullScreen ? 'h-full' : 'max-h-[85vh]'}`
+                    }
                     ${className}
                 `}
                 onClick={(e) => e.stopPropagation()}

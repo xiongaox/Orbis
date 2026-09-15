@@ -21,12 +21,13 @@ import { useState, useEffect } from 'react';
 import { X, Copy, ExternalLink, Sparkles, Check } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { openExternalUrl } from '../../utils/browserUtil';
 
 // AI 平台配置
 const AI_PLATFORMS = [
     { id: 'deepseek', name: 'DeepSeek', url: 'https://chat.deepseek.com/', icon: <img src="/aiicon/deepseek.svg" alt="DeepSeek" className="w-5 h-5" /> },
     { id: 'chatgpt', name: 'ChatGPT', url: 'https://chat.openai.com/', icon: <img src="/aiicon/openai.svg" alt="ChatGPT" className="w-5 h-5 dark:invert" /> },
-    { id: 'gemini', name: 'Gemini(Gem)', url: 'https://gemini.google.com/gem/0e36572cbe98', icon: <img src="/aiicon/gemini.svg" alt="Gemini" className="w-5 h-5" /> },
+    { id: 'gemini', name: 'Gemini', url: 'https://gemini.google.com/app', icon: <img src="/aiicon/gemini.svg" alt="Gemini" className="w-5 h-5" /> },
     { id: 'tongyi', name: '通义千问', url: 'https://tongyi.aliyun.com/', icon: <img src="/aiicon/qwen.svg" alt="Tongyi" className="w-5 h-5" /> },
     { id: 'kimi', name: 'Kimi', url: 'https://kimi.moonshot.cn/', icon: <img src="/aiicon/kimi.svg" alt="Kimi" className="w-5 h-5 dark:invert" /> },
     { id: 'doubao', name: '豆包', url: 'https://www.doubao.com/', icon: <img src="/aiicon/doubao.svg" alt="Doubao" className="w-5 h-5" /> },
@@ -81,7 +82,7 @@ export default function BaseAiPromptModal({
     };
 
     const handleOpenAi = (url: string) => {
-        window.open(url, '_blank');
+        void openExternalUrl(url);
     };
 
     const titleText = `${moduleName}信息提示词`;

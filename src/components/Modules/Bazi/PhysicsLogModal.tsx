@@ -281,6 +281,7 @@ export default function PhysicsLogModal({
       footer={footer}
       maxWidth="max-w-2xl"
       bodyClassName="p-4"
+      responsiveDrawer
     >
       {activeTab === 'dashboard' ? (
         dashboardData ? (

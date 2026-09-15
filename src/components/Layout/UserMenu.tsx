@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Bot, CalendarDays, Compass, User, Cloud, KeyRound } from 'lucide-react';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { getUserAvatar } from '../../utils/userUtil';
+import { openExternalUrl } from '../../utils/browserUtil';
 import { publicCaseLibraryService } from '../../services/publicCaseLibraryService';
 import SignerModal from '../Common/SignerModal';
 
@@ -52,7 +53,7 @@ export default function UserMenu({ onShowContact, onShowProfile, onShowAiIntegra
             </button>
             {menuOpen && (
                 <div className="absolute right-0 top-full mt-2 w-48 bg-card border border-border rounded-lg shadow-lg py-1 animate-fade-in z-50">
-                    <button type="button" onClick={() => { window.open('https://github.com/xiongaox/Orbis', '_blank', 'noopener,noreferrer'); setMenuOpen(false); }} className={`${isPadLandscape ? '' : 'md:hidden'} w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2`}><Compass className="w-4 h-4" />GitHub 仓库</button>
+                    <button type="button" onClick={() => { void openExternalUrl('https://github.com/xiongaox/Orbis'); setMenuOpen(false); }} className={`${isPadLandscape ? '' : 'md:hidden'} w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2`}><Compass className="w-4 h-4" />GitHub 仓库</button>
                     <button type="button" onClick={() => { onShowContact(); setMenuOpen(false); }} className={`${isPadLandscape ? '' : 'md:hidden'} w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2`}><User className="w-4 h-4" />联系作者</button>
                     <button type="button" onClick={() => { onShowProfile(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"><CalendarDays className="w-4 h-4" />设置生日</button>
                     <button type="button" onClick={() => { onShowAiIntegration(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"><Bot className="w-4 h-4" />AI 集成</button>

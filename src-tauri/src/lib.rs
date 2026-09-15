@@ -7,6 +7,39 @@ const DEFAULT_WINDOW_WIDTH: f64 = 1800.0;
 const WINDOW_ASPECT_RATIO: f64 = 16.0 / 9.0;
 const WINDOW_MARGIN: f64 = 32.0;
 
+#[tauri::command]
+fn open_external_url(url: String) -> Result<(), String> {
+  if !url.starts_with("http://") && !url.starts_with("https://") {
+    return Err("仅支持打开 http/https 链接".into());
+  }
+
+  #[cfg(target_os = "macos")]
+  {
+    std::process::Command::new("open")
+      .arg(&url)
+      .spawn()
+      .map_err(|e| format!("打开链接失败: {e}"))?;
+  }
+
+  #[cfg(target_os = "windows")]
+  {
+    std::process::Command::new("cmd")
+      .args(["/c", "start", "", &url])
+      .spawn()
+      .map_err(|e| format!("打开链接失败: {e}"))?;
+  }
+
+  #[cfg(target_os = "linux")]
+  {
+    std::process::Command::new("xdg-open")
+      .arg(&url)
+      .spawn()
+      .map_err(|e| format!("打开链接失败: {e}"))?;
+  }
+
+  Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -22,7 +55,8 @@ pub fn run() {
       commands::get_case_content,
       commands::get_author_profile,
       commands::sign_activation_code,
-      commands::is_signing_available
+      commands::is_signing_available,
+      open_external_url
     ])
     .setup(|app| {
       let window = app
