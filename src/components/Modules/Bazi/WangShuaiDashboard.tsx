@@ -213,7 +213,7 @@ export default function WangShuaiDashboard({ data, rawLogs = [] }: WangShuaiDash
               <Users className="w-3.5 h-3.5 text-purple-500" />
               <span>得生得助 (干支党羽)</span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 flex-wrap justify-end">
               <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded border ${
                 fourPillars.deSheng.passed
                   ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
@@ -279,26 +279,22 @@ export default function WangShuaiDashboard({ data, rawLogs = [] }: WangShuaiDash
         </div>
 
         <div className="space-y-2 text-xs">
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/20 overflow-x-auto">
-            <span className="font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">喜用：</span>
-            <div className="flex items-center gap-2 shrink-0">
-              {godsGuide.fuyongXi.map((xi, i) => (
-                <span key={i} className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium whitespace-nowrap">
-                  {xi}
-                </span>
-              ))}
-            </div>
+          <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">喜用:</span>
+            {godsGuide.fuyongXi.map((xi, i) => (
+              <span key={i} className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium whitespace-nowrap">
+                {xi}
+              </span>
+            ))}
           </div>
 
-          <div className="flex items-center gap-2 p-2 rounded-lg bg-red-500/5 border border-red-500/20 overflow-x-auto">
-            <span className="font-semibold text-red-600 dark:text-red-400 shrink-0">忌神：</span>
-            <div className="flex items-center gap-2 shrink-0">
-              {godsGuide.fuyongJi.map((ji, i) => (
-                <span key={i} className="px-2 py-0.5 rounded-md bg-red-500/10 text-red-600 dark:text-red-400 font-medium whitespace-nowrap">
-                  {ji}
-                </span>
-              ))}
-            </div>
+          <div className="flex flex-wrap items-center gap-1.5 p-2 rounded-lg bg-red-500/5 border border-red-500/20">
+            <span className="font-semibold text-red-600 dark:text-red-400 shrink-0">忌神:</span>
+            {godsGuide.fuyongJi.map((ji, i) => (
+              <span key={i} className="px-2 py-0.5 rounded-md bg-red-500/10 text-red-600 dark:text-red-400 font-medium whitespace-nowrap">
+                {ji}
+              </span>
+            ))}
           </div>
         </div>
 

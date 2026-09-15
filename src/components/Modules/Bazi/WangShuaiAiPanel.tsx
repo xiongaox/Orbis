@@ -39,7 +39,6 @@ import {
 interface DropdownOption {
   value: string;
   label: string;
-  badge?: string;
 }
 
 interface CustomDropdownProps {
@@ -120,11 +119,6 @@ function CustomDropdown({
               >
                 <div className="flex items-center gap-1.5 truncate">
                   <span className="truncate">{opt.label}</span>
-                  {opt.badge && (
-                    <span className="text-[10px] px-1 py-0.5 rounded bg-muted text-muted-foreground shrink-0 font-mono">
-                      {opt.badge}
-                    </span>
-                  )}
                 </div>
                 {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
               </div>
@@ -247,7 +241,6 @@ export default function WangShuaiAiPanel({
     return services.map((s) => ({
       value: s.id,
       label: s.name,
-      badge: s.protocol,
     }));
   }, [services]);
 
