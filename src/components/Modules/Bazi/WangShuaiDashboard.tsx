@@ -70,7 +70,7 @@ export default function WangShuaiDashboard({ data, rawLogs = [] }: WangShuaiDash
               日主【{dayMaster}】· 生于【{yueZhi}月】
             </span>
             {pattern && (
-              <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium border border-primary/20">
+              <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-medium border border-primary/20">
                 {pattern}
               </span>
             )}
@@ -78,7 +78,7 @@ export default function WangShuaiDashboard({ data, rawLogs = [] }: WangShuaiDash
 
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">格局定调：</span>
-            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${getVerdictBadgeStyle(verdictLevel)}`}>
+            <span className={`px-2.5 py-0.5 rounded-md text-xs font-bold border ${getVerdictBadgeStyle(verdictLevel)}`}>
               {finalVerdict}
             </span>
           </div>
@@ -171,7 +171,7 @@ export default function WangShuaiDashboard({ data, rawLogs = [] }: WangShuaiDash
               <Calendar className="w-3.5 h-3.5 text-blue-500" />
               <span>得令 (月令天时)</span>
             </div>
-            <span className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border ${
+            <span className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md border ${
               fourPillars.deLing.passed
                 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
                 : 'bg-muted text-muted-foreground border-border'
@@ -192,7 +192,7 @@ export default function WangShuaiDashboard({ data, rawLogs = [] }: WangShuaiDash
               <Mountain className="w-3.5 h-3.5 text-stone-500" />
               <span>得地 (通根稳固)</span>
             </div>
-            <span className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border ${
+            <span className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md border ${
               fourPillars.deDi.passed
                 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
                 : 'bg-muted text-muted-foreground border-border'
@@ -243,7 +243,7 @@ export default function WangShuaiDashboard({ data, rawLogs = [] }: WangShuaiDash
               <span>全局克泄阻力 (局势战克)</span>
             </div>
             {data.heavyPatterns.length > 0 && (
-              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30">
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded-md bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30">
                 {data.heavyPatterns[0]}
               </span>
             )}

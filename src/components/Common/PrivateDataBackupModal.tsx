@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, ChevronDown, Clock3, Cloud, HardDriveUpload, RefreshCw, Upload, X } from 'lucide-react';
+import { Check, ChevronDown, Clock3, Cloud, HardDriveUpload, MessageSquare, RefreshCw, Upload, X } from 'lucide-react';
 import { webDavBackupService, type WebDavConfig } from '../../services/webdavBackupService';
 import { s3BackupService, type S3Config } from '../../services/s3BackupService';
 import { remoteBackupService, type RemoteBackupMethod } from '../../services/remoteBackupService';
@@ -12,10 +12,10 @@ interface PrivateDataBackupModalProps {
 }
 
 const emptyWebDavConfig: WebDavConfig = {
-  endpoint: '', username: '', password: '', backupDirectory: 'orbis/backups', autoBackupEnabled: false, autoBackupIntervalMinutes: 1440,
+  endpoint: '', username: '', password: '', backupDirectory: 'orbis/backups', autoBackupEnabled: false, autoBackupIntervalMinutes: 1440, includeChatHistory: true,
 };
 const emptyS3Config: S3Config = {
-  endpoint: '', region: 'us-east-1', bucket: '', accessKeyId: '', secretAccessKey: '', sessionToken: '', backupPrefix: 'orbis/backups', pathStyle: false, autoBackupEnabled: false, autoBackupIntervalMinutes: 1440,
+  endpoint: '', region: 'us-east-1', bucket: '', accessKeyId: '', secretAccessKey: '', sessionToken: '', backupPrefix: 'orbis/backups', pathStyle: false, autoBackupEnabled: false, autoBackupIntervalMinutes: 1440, includeChatHistory: true,
 };
 const SUCCESS_MESSAGE_DURATION = 4_000;
 const METHOD_TAB_BASE = 'flex min-h-8 items-center justify-center rounded-md px-3 text-sm transition-colors focus-ring';
@@ -89,7 +89,7 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
   const activeConfig = method === 's3' ? s3Config : webdavConfig;
   const updateWebDav = <Key extends keyof WebDavConfig>(key: Key, value: WebDavConfig[Key]) => setWebDavConfig((current) => ({ ...current, [key]: value }));
   const updateS3 = <Key extends keyof S3Config>(key: Key, value: S3Config[Key]) => setS3Config((current) => ({ ...current, [key]: value }));
-  const updateActive = <Key extends 'autoBackupEnabled' | 'autoBackupIntervalMinutes'>(key: Key, value: (WebDavConfig & S3Config)[Key]) => {
+  const updateActive = <Key extends 'autoBackupEnabled' | 'autoBackupIntervalMinutes' | 'includeChatHistory'>(key: Key, value: (WebDavConfig & S3Config)[Key]) => {
     if (method === 's3') updateS3(key, value);
     else updateWebDav(key, value);
   };
@@ -179,6 +179,40 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
                 <label className="block text-sm text-foreground">备份文件夹<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={webdavConfig.backupDirectory} onChange={(event) => updateWebDav('backupDirectory', event.target.value)} placeholder="orbis/backups" /></label>
               </div>
             )}
+
+            <section className="rounded-xl border border-border bg-secondary/20 p-4" aria-labelledby="backup-content-title">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <MessageSquare className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <h3 id="backup-content-title" className="text-sm font-medium text-foreground">备份 AI 研判对话历史</h3>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      产物为 ZIP 归档（案例与对话分包）；关闭后仅备份案例与系统设置
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={activeConfig.includeChatHistory !== false}
+                  disabled={!configLoaded}
+                  onClick={() => updateActive('includeChatHistory', !(activeConfig.includeChatHistory !== false))}
+                  className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors focus-ring disabled:opacity-50 ${
+                    activeConfig.includeChatHistory !== false ? 'border-primary bg-primary' : 'border-border bg-muted'
+                  }`}
+                >
+                  <span
+                    className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm transition-transform ${
+                      activeConfig.includeChatHistory !== false ? 'translate-x-6 text-primary' : 'translate-x-1 text-muted-foreground'
+                    }`}
+                  >
+                    {activeConfig.includeChatHistory !== false && <Check className="h-3.5 w-3.5" />}
+                  </span>
+                </button>
+              </div>
+            </section>
 
             <section className="rounded-xl border border-border bg-secondary/20 p-4" aria-labelledby="auto-backup-title">
               <div className="flex items-center justify-between gap-4">

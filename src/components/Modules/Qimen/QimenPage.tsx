@@ -53,7 +53,8 @@ export default function QimenPage({ lockedSnapshot, onSnapshotChange }: QimenPag
         isNewCaseModalOpen, editingCase, setIsNewCaseModalOpen, setEditingCase, setRefreshTrigger,
         selectedPattern, setSelectedPattern,
         isCustomJuModalOpen, setIsCustomJuModalOpen, header, setCustomJu,
-        isAiModalOpen, setIsAiModalOpen, palaces, globalPatterns, selectedPalace, paiPanMethod, lockSnapshot
+        isAiModalOpen, setIsAiModalOpen, palaces, globalPatterns, selectedPalace, paiPanMethod, lockSnapshot,
+        currentCase,
     } = qimenState;
 
     useEffect(() => {
@@ -186,6 +187,7 @@ export default function QimenPage({ lockedSnapshot, onSnapshotChange }: QimenPag
                 globalPatterns={globalPatterns}
                 selectedPalace={selectedPalace}
                 methodLabel={METHOD_LABELS[paiPanMethod]}
+                caseData={currentCase}
             />
         </div>
     );

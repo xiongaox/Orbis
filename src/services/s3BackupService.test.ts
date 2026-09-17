@@ -32,9 +32,10 @@ const config = {
   pathStyle: false,
   autoBackupEnabled: false,
   autoBackupIntervalMinutes: 1440,
+  includeChatHistory: true,
 };
 
-describe('SigV4 签名', () => {
+describe('S3 签名工具', () => {
   it('与 AWS 官方 GET Object 示例向量一致', async () => {
     const result = await signSigV4({
       method: 'GET',
@@ -71,7 +72,7 @@ describe('S3 备份服务', () => {
   it('保存配置到 s3_config 记录', async () => {
     mocks.localPrivateStore.get.mockResolvedValue(null);
 
-    await expect(s3BackupService.readConfig()).resolves.toMatchObject({ backupPrefix: 'orbis/backups', region: 'us-east-1', autoBackupIntervalMinutes: 1440 });
+    await expect(s3BackupService.readConfig()).resolves.toMatchObject({ backupPrefix: 'orbis/backups', region: 'us-east-1', autoBackupIntervalMinutes: 1440, includeChatHistory: true });
 
     await s3BackupService.saveConfig(config);
 
@@ -86,13 +87,13 @@ describe('S3 备份服务', () => {
     const result = await s3BackupService.backup(config);
 
     expect(result.backup).toEqual({
-      path: 'orbis/backups/orbis_20260826_132030_000.json',
-      filename: 'orbis_20260826_132030_000.json',
+      path: 'orbis/backups/orbis_20260826_132030_000.zip',
+      filename: 'orbis_20260826_132030_000.zip',
       createdAt: '2026-08-26T13:20:30.000Z',
       size: null,
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://examplebucket.s3.us-east-1.amazonaws.com/orbis/backups/orbis_20260826_132030_000.json',
+      'https://examplebucket.s3.us-east-1.amazonaws.com/orbis/backups/orbis_20260826_132030_000.zip',
       expect.objectContaining({
         method: 'PUT',
         headers: expect.objectContaining({

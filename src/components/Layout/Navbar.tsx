@@ -30,6 +30,7 @@ import MobileLockedChartSwitcher from './MobileLockedChartSwitcher';
 import PrivateDataBackupModal from '../Common/PrivateDataBackupModal';
 import { startRemoteAutoBackup } from '../../services/remoteBackupService';
 import ProfileCenterModal from '../Auth/ProfileCenterModal';
+import AiChatHistoryModal from '../Common/AiChatHistoryModal';
 
 export type ChartType =
   | 'bazi'
@@ -68,6 +69,7 @@ export default function Navbar({
   const [showProfileCenter, setShowProfileCenter] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showAiIntegrationModal, setShowAiIntegrationModal] = useState(false);
+  const [showAiChatHistoryModal, setShowAiChatHistoryModal] = useState(false);
   const [showPrivateDataBackupModal, setShowPrivateDataBackupModal] = useState(false);
 
   const [birthDate, setBirthDate] = useState<Date | undefined>(undefined);
@@ -204,6 +206,7 @@ export default function Navbar({
                 onShowContact={() => setShowContactModal(true)}
                 onShowProfile={() => setShowProfileCenter(true)}
                 onShowAiIntegration={handleShowAiIntegration}
+                onShowAiChatHistory={() => setShowAiChatHistoryModal(true)}
                 onShowPrivateDataBackup={() => setShowPrivateDataBackupModal(true)}
                 birthDate={displayBirthDate}
               />
@@ -288,6 +291,13 @@ export default function Navbar({
         isOpen={showPrivateDataBackupModal}
         onClose={() => setShowPrivateDataBackupModal(false)}
       />
+
+      {showAiChatHistoryModal && (
+        <AiChatHistoryModal
+          isOpen={true}
+          onClose={() => setShowAiChatHistoryModal(false)}
+        />
+      )}
     </>
   );
 }

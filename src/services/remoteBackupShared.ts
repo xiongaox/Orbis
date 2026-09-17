@@ -14,14 +14,16 @@ export interface RemoteBackupMeta {
 
 const BACKUP_PREFIX = 'orbis_';
 const LEGACY_BACKUP_PREFIX = 'private-data_';
-const BACKUP_EXTENSION = '.json';
+export const BACKUP_EXTENSION = '.zip';
+export const LEGACY_BACKUP_EXTENSION = '.json';
 
 export const AUTO_BACKUP_INTERVAL_MINUTES = [1, 5, 15, 30, 60, 120, 360, 720, 1440] as const;
 export const DEFAULT_AUTO_BACKUP_INTERVAL_MINUTES = 1440;
 export const MAX_RETRIES = 3;
 
 export function isBackupFilename(filename: string) {
-  return filename.endsWith(BACKUP_EXTENSION)
+  const hasValidExt = filename.endsWith(BACKUP_EXTENSION) || filename.endsWith(LEGACY_BACKUP_EXTENSION);
+  return hasValidExt
     && (filename.startsWith(BACKUP_PREFIX) || filename.startsWith(LEGACY_BACKUP_PREFIX));
 }
 
@@ -50,9 +52,10 @@ export function assertBackupPath(directory: string, backupPath: string) {
   return path;
 }
 
-/** 解析备份文件名中的 UTC 时间（兼容新旧命名格式），返回无 Z 后缀的 ISO 串。 */
+/** 解析备份文件名中的 UTC 时间（兼容新旧命名格式与 zip/json 扩展名），返回无 Z 后缀的 ISO 串。 */
 export function timestampFromFilename(filename: string) {
-  const base = filename.slice(0, -BACKUP_EXTENSION.length);
+  const extMatch = filename.match(/\.(zip|json)$/i);
+  const base = extMatch ? filename.slice(0, -extMatch[0].length) : filename;
   if (base.startsWith(BACKUP_PREFIX)) {
     const raw = base.slice(BACKUP_PREFIX.length);
     const compact = raw.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})_(\d{3})$/);

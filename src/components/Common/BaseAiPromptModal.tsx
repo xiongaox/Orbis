@@ -22,6 +22,7 @@ import { X, Copy, ExternalLink, Sparkles, Check } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { openExternalUrl } from '../../utils/browserUtil';
+import AiChatDrawer from './AiChatDrawer';
 
 // AI 平台配置
 const AI_PLATFORMS = [
@@ -39,6 +40,8 @@ export interface PromptOption {
     onChange: (checked: boolean) => void;
 }
 
+import type { DivinationType } from '../../services/aiChatHistoryService';
+
 export interface BaseAiPromptModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -48,6 +51,16 @@ export interface BaseAiPromptModalProps {
     setUserQuestion: (q: string) => void;
     options: PromptOption[];
     placeholder?: string;
+    sessionId?: string;
+    caseId?: string;
+    caseName?: string;
+    divinationType?: DivinationType;
+    meta?: {
+        solarDate?: string;
+        lunarDate?: string;
+        gender?: string;
+        ganZhi?: string;
+    };
 }
 
 export default function BaseAiPromptModal({
@@ -58,11 +71,22 @@ export default function BaseAiPromptModal({
     userQuestion,
     setUserQuestion,
     options,
-    placeholder = "在此输入您关心的问题... (例如：今年适合换工作吗？)"
+    placeholder = "在此输入您关心的问题... (例如：今年适合换工作吗？)",
+    sessionId,
+    caseId,
+    caseName,
+    divinationType,
+    meta,
 }: BaseAiPromptModalProps) {
     const [copied, setCopied] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    const [isChatDrawerOpen, setIsChatDrawerOpen] = useState(false);
     const { isPadLandscape } = useLayoutMode();
+
+    const handleStartCustomAi = () => {
+        setIsChatDrawerOpen(true);
+        onClose();
+    };
 
     useEffect(() => {
         const check = () => setIsMobile(window.innerWidth < 640);
@@ -88,6 +112,7 @@ export default function BaseAiPromptModal({
     const titleText = `${moduleName}信息提示词`;
 
     return (
+    <>
         <BaseModal
             isOpen={isOpen}
             onClose={onClose}
@@ -118,10 +143,10 @@ export default function BaseAiPromptModal({
                             className="w-full h-20 bg-muted/50 border border-border rounded-lg p-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus-ring resize-none transition-colors"
                         />
 
-                        {/* 扩展选项与复制按钮（多选项自适应，或者通过 grid 控制） */}
-                        <div className={`grid grid-cols-${Math.min(options.length + 1, 3)} gap-2`}>
+                        {/* 扩展选项 */}
+                        <div className="grid grid-cols-2 gap-2">
                             {options.map((opt, i) => (
-                                <label key={i} className="flex items-center gap-2 px-2 py-2.5 rounded-lg border border-border bg-muted/30 cursor-pointer text-xs">
+                                <label key={i} className="flex items-center gap-2 px-2 py-2 rounded-lg border border-border bg-muted/30 cursor-pointer text-xs">
                                     <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 ${opt.checked ? 'bg-primary border-primary' : 'border-input'}`}>
                                         {opt.checked && <Check className="w-2.5 h-2.5 text-primary-foreground" />}
                                     </div>
@@ -129,12 +154,25 @@ export default function BaseAiPromptModal({
                                     {opt.label}
                                 </label>
                             ))}
+                        </div>
+
+                        {/* 移动端操作按钮 */}
+                        <div className="flex gap-2">
                             <button
-                                onClick={handleCopy}
-                                className="py-2.5 px-3 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-lg transition-all flex items-center justify-center gap-1.5 active:scale-95 text-sm focus-ring"
+                                type="button"
+                                onClick={handleStartCustomAi}
+                                className="flex-1 py-2 px-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-xs shadow-xs transition-colors flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer"
                             >
-                                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                                {copied ? '已复制' : '复制'}
+                                <Sparkles className="w-3.5 h-3.5" />
+                                <span>自定义 AI 解析</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleCopy}
+                                className="px-3 py-2.5 rounded-xl border border-border bg-muted/50 hover:bg-muted text-foreground text-xs font-medium transition-all flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                                {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                                <span>{copied ? '已复制' : '复制'}</span>
                             </button>
                         </div>
 
@@ -211,16 +249,27 @@ export default function BaseAiPromptModal({
                                     </div>
                                 </div>
                             )}
-                            <div className="space-y-3">
+                            <div className="space-y-2">
                                 <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">操作</div>
-                                <button
-                                    onClick={handleCopy}
-                                    className="w-full py-3 px-4 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-lg hover:shadow-xl hover:shadow-primary/10 transition-all flex items-center justify-center gap-2 active:scale-95 focus-ring"
-                                >
-                                    {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                                    {copied ? '已复制提示词' : '一键复制提示词'}
-                                </button>
-                                <p className="text-xs text-muted-foreground text-center">复制后发送给 AI 即可开始对话</p>
+                                <div className="flex items-center gap-2 w-full">
+                                    <button
+                                        type="button"
+                                        onClick={handleStartCustomAi}
+                                        className="flex-[1.4] h-10 px-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-xs sm:text-sm shadow-xs transition-colors flex items-center justify-center gap-1.5 active:scale-98 focus-ring cursor-pointer"
+                                    >
+                                        <Sparkles className="w-4 h-4 shrink-0" />
+                                        <span>AI 解析</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleCopy}
+                                        className="flex-1 h-10 px-2.5 rounded-lg border border-border bg-muted/50 hover:bg-muted text-foreground font-medium text-xs sm:text-sm transition-all flex items-center justify-center gap-1.5 focus-ring cursor-pointer"
+                                    >
+                                        {copied ? <Check className="w-4 h-4 text-emerald-500 shrink-0" /> : <Copy className="w-4 h-4 text-muted-foreground shrink-0" />}
+                                        <span className="truncate">{copied ? '已复制' : '复制提示词'}</span>
+                                    </button>
+                                </div>
+                                <p className="text-[11px] text-muted-foreground text-center">直接发起多轮对话研判，或复制后发送至外部 AI</p>
                             </div>
                             <div className="space-y-3 pt-2 border-t border-border/50">
                                 <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">选择常用 AI</div>
@@ -243,5 +292,18 @@ export default function BaseAiPromptModal({
                 </div>
             )}
         </BaseModal>
+
+        <AiChatDrawer
+            isOpen={isChatDrawerOpen}
+            onClose={() => setIsChatDrawerOpen(false)}
+            moduleName={moduleName}
+            initialPrompt={promptText}
+            sessionId={sessionId}
+            caseId={caseId}
+            caseName={caseName}
+            divinationType={divinationType}
+            meta={meta}
+        />
+    </>
     );
 }

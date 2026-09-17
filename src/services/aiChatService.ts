@@ -371,4 +371,102 @@ export const aiChatService = {
     });
     return fullText;
   },
+
+  /**
+   * 根据首轮问答生成精炼中文标题（4~10个字），支持离线规则降级
+   */
+  async generateConversationTitle(options: {
+    service?: AiModelService;
+    model?: string;
+    question: string;
+    answer?: string;
+    divinationType?: string;
+  }): Promise<string> {
+    const fallbackTitle = extractSmartTitleFromQuestion(options.question, options.divinationType);
+
+    try {
+      let cleanQ = options.question.trim();
+      const matchKeyQuestion = cleanQ.match(/重点分析以下方面[：:]?\s*([\s\S]+)/);
+      if (matchKeyQuestion && matchKeyQuestion[1]) {
+        cleanQ = matchKeyQuestion[1].slice(0, 80);
+      } else if (cleanQ.includes('我让玄枢录排出了')) {
+        cleanQ = cleanQ.replace(/我让玄枢录排出了[\s\S]*?(?=请结合|重点|问题|$)/, '').trim();
+      }
+
+      if (!cleanQ) {
+        cleanQ = fallbackTitle;
+      }
+
+      const prompt = `请根据以下命理研判问答，提炼总结一个4到10个字的中文标题（例如："甲木格局与喜用分析"、"流年事业财运推演"、"婚姻情感吉凶研判"）。
+必须且仅输出标题本身，严禁输出任何标点符号、书名号、引号或多余文字。
+
+问：${cleanQ.slice(0, 100)}
+答：${(options.answer || '').slice(0, 100)}`;
+
+      const title = await this.callChat({
+        service: options.service,
+        model: options.model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        timeoutMs: 8000,
+      });
+
+      const clean = title.trim().replace(/^["'《「『【\s]+|["'》」』】\s]+$/g, '').slice(0, 14);
+      if (clean && clean.length >= 2 && !clean.includes('\n')) {
+        return clean;
+      }
+    } catch (err) {
+      console.warn('[aiChatService] 自动标题生成失败，使用规则降级标题:', err);
+    }
+
+    return fallbackTitle;
+  },
 };
+
+/**
+ * 本地智能提取标题（毫秒级离线规则）
+ */
+export function extractSmartTitleFromQuestion(question: string, divinationType?: string): string {
+  if (!question || !question.trim()) {
+    return '命理研判';
+  }
+
+  const text = question.trim();
+
+  // 1. 常见主题关键词匹配
+  if (/婚|配偶|感情|正缘|恋爱|另一半|夫星|妻星|桃花/.test(text)) {
+    return '婚姻情感研判';
+  }
+  if (/财|投资|求财|发财|破财|经商|赚钱|财运/.test(text)) {
+    return '财运投资研判';
+  }
+  if (/工作|事业|升迁|升职|跳槽|考公|考编|创业|前途/.test(text)) {
+    return '事业前程研判';
+  }
+  if (/健康|疾病|生病|疾厄|寿元|平安|手术/.test(text)) {
+    return '健康平安研判';
+  }
+  if (/大运|流年|运势|岁运|太岁|流月/.test(text)) {
+    return '大运流年推演';
+  }
+  if (/格局|用神|喜神|忌神|旺衰|旺相|日元/.test(text)) {
+    return '格局喜用分析';
+  }
+
+  // 2. 检查排盘模板
+  if (text.includes('我让玄枢录排出了')) {
+    // 检查是否有自定义追问
+    const customSuffix = text.replace(/我让玄枢录排出了[\s\S]*?(请结合.*)?$/, '').trim();
+    if (customSuffix && customSuffix.length >= 3) {
+      return customSuffix.slice(0, 10);
+    }
+
+    if (divinationType === 'qimen') return '奇门局象综合研判';
+    if (divinationType === 'sanyuan') return '三元天星命局研判';
+    return '八字格局综合研判';
+  }
+
+  // 3. 用户简短自由提问
+  const cleaned = text.replace(/^[请问帮我看看一下呢吗？?，,。\s]+/, '').slice(0, 10);
+  return cleaned ? `${cleaned}研判` : '命理综合研判';
+}
