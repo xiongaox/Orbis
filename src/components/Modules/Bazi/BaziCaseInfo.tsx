@@ -328,6 +328,7 @@ export default function BaziCaseInfo({
         data={baziData}
         selectedLiuNianYear={selectedLiuNianYear ?? null}
         selectedDaYunIndex={selectedDaYunIndex ?? null}
+        caseData={caseData}
       />
     </>
   );

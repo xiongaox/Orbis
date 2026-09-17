@@ -1,4 +1,4 @@
-import { localPrivateStore, type PrivateDataSnapshot } from './localPrivateStore';
+import { localPrivateStore } from './localPrivateStore';
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 import {
   assertBackupPath,
@@ -14,6 +14,12 @@ import {
   wait,
   type RemoteBackupMeta,
 } from './remoteBackupShared';
+import {
+  packBackupZip,
+  unpackAndRestoreBackup,
+  type BackupManifest,
+  type RestoreSummary,
+} from './backupPackageService';
 
 export interface WebDavConfig {
   endpoint: string;
@@ -22,6 +28,7 @@ export interface WebDavConfig {
   backupDirectory: string;
   autoBackupEnabled: boolean;
   autoBackupIntervalMinutes: number;
+  includeChatHistory?: boolean;
 }
 
 export type WebDavBackup = RemoteBackupMeta;
@@ -37,6 +44,7 @@ const defaultConfig = (): WebDavConfig => ({
   backupDirectory: DEFAULT_BACKUP_DIRECTORY,
   autoBackupEnabled: false,
   autoBackupIntervalMinutes: DEFAULT_AUTO_BACKUP_INTERVAL_MINUTES,
+  includeChatHistory: true,
 });
 
 function normalizeConfig(config?: Partial<WebDavConfig> & { filePath?: unknown; autoBackupIntervalHours?: unknown }): WebDavConfig {
@@ -48,6 +56,7 @@ function normalizeConfig(config?: Partial<WebDavConfig> & { filePath?: unknown; 
     backupDirectory: config?.backupDirectory?.trim().replace(/^\/+|\/+$/g, '') || legacyDirectory || DEFAULT_BACKUP_DIRECTORY,
     autoBackupEnabled: Boolean(config?.autoBackupEnabled),
     autoBackupIntervalMinutes: normalizeAutoBackupInterval(config),
+    includeChatHistory: config?.includeChatHistory !== false,
   };
 }
 
@@ -63,13 +72,22 @@ export const webDavBackupService = {
     if (typeof window !== 'undefined') window.dispatchEvent(new Event(WEBDAV_CONFIG_CHANGE_EVENT));
   },
 
-  async backup(config: WebDavConfig): Promise<{ snapshot: PrivateDataSnapshot; backup: WebDavBackup }> {
+  async backup(config: WebDavConfig): Promise<{ backup: WebDavBackup; manifest: BackupManifest }> {
     const normalized = normalizeConfig(config);
-    const snapshot = await localPrivateStore.snapshot();
+    const { data, manifest } = await packBackupZip({
+      includeChatHistory: normalized.includeChatHistory !== false,
+    });
     const backup = createBackupFile(normalized.backupDirectory);
     await ensureParentCollections(normalized);
-    await requestWithRetry(normalized, 'PUT', JSON.stringify(snapshot), buildFileUrl(normalized, backup.path));
-    return { snapshot, backup };
+    await requestWithRetry(
+      normalized,
+      'PUT',
+      data,
+      buildFileUrl(normalized, backup.path),
+      [],
+      { 'Content-Type': 'application/zip' },
+    );
+    return { backup, manifest };
   },
 
   async listBackups(config: WebDavConfig): Promise<WebDavBackup[]> {
@@ -79,13 +97,20 @@ export const webDavBackupService = {
     return parseBackupList(response.body, normalized.backupDirectory);
   },
 
-  async restore(config: WebDavConfig, backupPath: string) {
+  async restore(config: WebDavConfig, backupPath: string): Promise<RestoreSummary> {
     const normalized = normalizeConfig(config);
     const path = assertBackupPath(normalized.backupDirectory, backupPath);
-    const response = await requestWithRetry(normalized, 'GET', undefined, buildFileUrl(normalized, path));
-    const snapshot = JSON.parse(response.body) as PrivateDataSnapshot;
-    await localPrivateStore.restore(snapshot);
-    return snapshot;
+    const filename = path.split('/').at(-1) || '';
+    const response = await requestWithRetry(
+      normalized,
+      'GET',
+      undefined,
+      buildFileUrl(normalized, path),
+      [],
+      {},
+      true,
+    );
+    return await unpackAndRestoreBackup(response.binaryBody ?? response.body, filename);
   },
 
   async deleteBackup(config: WebDavConfig, backupPath: string) {
@@ -159,23 +184,36 @@ async function ensureParentCollections(config: WebDavConfig) {
 async function requestWithRetry(
   config: WebDavConfig,
   method: 'GET' | 'PUT' | 'OPTIONS' | 'MKCOL' | 'PROPFIND' | 'DELETE',
-  body?: string,
+  body?: string | Uint8Array,
   url = buildEndpointUrl(config),
   acceptedStatuses: number[] = [],
   extraHeaders: Record<string, string> = {},
+  readBinary = false,
 ) {
   let lastError: unknown = null;
   for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
     try {
       const headers: Record<string, string> = { ...extraHeaders };
       if (config.username || config.password) headers.Authorization = `Basic ${btoa(`${config.username}:${config.password}`)}`;
-      if (body !== undefined) headers['Content-Type'] = 'application/json; charset=utf-8';
+      if (body !== undefined && !headers['Content-Type']) {
+        headers['Content-Type'] = typeof body === 'string' ? 'application/json; charset=utf-8' : 'application/zip';
+      }
       const request = isTauriRuntime()
-        ? tauriFetch(url, { method, headers, body })
-        : fetchWithTimeout(url, { method, headers, body }, 15_000);
+        ? tauriFetch(url, { method, headers, body: body as BodyInit })
+        : fetchWithTimeout(url, { method, headers, body: body as BodyInit }, 15_000);
       const response = await request;
       if (!response.ok && !acceptedStatuses.includes(response.status)) throw new Error(`WebDAV ${method} 失败（HTTP ${response.status}）`);
-      return { status: response.status, body: method === 'GET' || method === 'PROPFIND' ? await response.text() : '' };
+      let textBody = '';
+      let binaryBody: Uint8Array | undefined;
+      if (method === 'GET' || method === 'PROPFIND') {
+        if (readBinary) {
+          const buffer = await response.arrayBuffer();
+          binaryBody = new Uint8Array(buffer);
+        } else {
+          textBody = await response.text();
+        }
+      }
+      return { status: response.status, body: textBody, binaryBody };
     } catch (error) {
       lastError = error;
       if (attempt < MAX_RETRIES - 1) await wait(500 * 2 ** attempt);

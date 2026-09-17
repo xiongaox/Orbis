@@ -30,6 +30,7 @@ tauri = { version = "2.11.3", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-http = "2.5.2"
 tauri-plugin-sql = { version = "2.3.0", features = ["sqlite"] }
+tauri-plugin-dialog = "2"
 
 # 案例离线加密包（docs/case-encryption-and-activation-spec.md）
 ed25519-dalek = "2"

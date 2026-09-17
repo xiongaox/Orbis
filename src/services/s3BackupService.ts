@@ -1,4 +1,4 @@
-import { localPrivateStore, type PrivateDataSnapshot } from './localPrivateStore';
+import { localPrivateStore } from './localPrivateStore';
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 import {
   assertBackupPath,
@@ -15,6 +15,12 @@ import {
   type RemoteBackupMeta,
 } from './remoteBackupShared';
 import { EMPTY_PAYLOAD_SHA256, formatAmzDate, signSigV4 } from './s3SigV4';
+import {
+  packBackupZip,
+  unpackAndRestoreBackup,
+  type BackupManifest,
+  type RestoreSummary,
+} from './backupPackageService';
 
 export interface S3Config {
   /** S3 兼容服务地址，如 https://s3.us-east-1.amazonaws.com 或 MinIO/R2/OSS 等自建地址。 */
@@ -31,6 +37,7 @@ export interface S3Config {
   pathStyle: boolean;
   autoBackupEnabled: boolean;
   autoBackupIntervalMinutes: number;
+  includeChatHistory?: boolean;
 }
 
 export type S3Backup = RemoteBackupMeta;
@@ -51,12 +58,14 @@ const defaultConfig = (): S3Config => ({
   pathStyle: false,
   autoBackupEnabled: false,
   autoBackupIntervalMinutes: DEFAULT_AUTO_BACKUP_INTERVAL_MINUTES,
+  includeChatHistory: true,
 });
 
 function normalizeConfig(config?: Partial<S3Config>): S3Config {
   return {
     ...defaultConfig(),
     ...config,
+    includeChatHistory: config?.includeChatHistory !== false,
     endpoint: config?.endpoint?.trim() ?? '',
     region: config?.region?.trim() || DEFAULT_REGION,
     bucket: config?.bucket?.trim() ?? '',
@@ -117,14 +126,17 @@ interface S3RequestOptions {
   method: 'GET' | 'PUT' | 'DELETE';
   path: string;
   query?: string;
-  body?: string;
+  body?: string | Uint8Array;
   readBody: boolean;
+  readBinary?: boolean;
+  contentType?: string;
   acceptedStatuses?: number[];
 }
 
 interface S3Response {
   status: number;
   body: string;
+  binaryBody?: Uint8Array;
 }
 
 async function s3Request(config: S3Config, options: S3RequestOptions): Promise<S3Response> {
@@ -142,7 +154,9 @@ async function s3Request(config: S3Config, options: S3RequestOptions): Promise<S
         'x-amz-date': amzDate,
       };
       if (config.sessionToken) signedHeaders['x-amz-security-token'] = config.sessionToken;
-      if (options.body !== undefined) signedHeaders['content-type'] = 'application/json; charset=utf-8';
+      if (options.body !== undefined) {
+        signedHeaders['content-type'] = options.contentType || (typeof options.body === 'string' ? 'application/json; charset=utf-8' : 'application/zip');
+      }
       const { authorization } = await signSigV4({
         method: options.method,
         canonicalUri: url.pathname,
@@ -159,13 +173,23 @@ async function s3Request(config: S3Config, options: S3RequestOptions): Promise<S
       void _host;
       requestHeaders.Authorization = authorization;
       const request = isTauriRuntime()
-        ? tauriFetch(url.toString(), { method: options.method, headers: requestHeaders, body: options.body })
-        : fetchWithTimeout(url.toString(), { method: options.method, headers: requestHeaders, body: options.body }, 15_000);
+        ? tauriFetch(url.toString(), { method: options.method, headers: requestHeaders, body: options.body as BodyInit })
+        : fetchWithTimeout(url.toString(), { method: options.method, headers: requestHeaders, body: options.body as BodyInit }, 15_000);
       const response = await request;
       if (!response.ok && !(options.acceptedStatuses ?? []).includes(response.status)) {
         throw new Error(`S3 ${options.method} 失败（HTTP ${response.status}）${await describeServerError(response)}`);
       }
-      return { status: response.status, body: options.readBody ? await response.text() : '' };
+      let textBody = '';
+      let binaryBody: Uint8Array | undefined;
+      if (options.readBody) {
+        if (options.readBinary) {
+          const buffer = await response.arrayBuffer();
+          binaryBody = new Uint8Array(buffer);
+        } else {
+          textBody = await response.text();
+        }
+      }
+      return { status: response.status, body: textBody, binaryBody };
     } catch (error) {
       lastError = error;
       if (attempt < MAX_RETRIES - 1) await wait(500 * 2 ** attempt);
@@ -188,8 +212,9 @@ async function describeServerError(response: { text: () => Promise<string> }) {
   }
 }
 
-async function sha256Hex(value: string) {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+async function sha256Hex(value: string | Uint8Array) {
+  const buffer = typeof value === 'string' ? new TextEncoder().encode(value) : value;
+  const digest = await crypto.subtle.digest('SHA-256', buffer as ArrayBufferView<ArrayBuffer>);
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
@@ -232,18 +257,21 @@ export const s3BackupService = {
     if (typeof window !== 'undefined') window.dispatchEvent(new Event(S3_CONFIG_CHANGE_EVENT));
   },
 
-  async backup(config: S3Config): Promise<{ snapshot: PrivateDataSnapshot; backup: S3Backup }> {
+  async backup(config: S3Config): Promise<{ backup: S3Backup; manifest: BackupManifest }> {
     const normalized = normalizeConfig(config);
     assertRemoteConfig(normalized);
-    const snapshot = await localPrivateStore.snapshot();
+    const { data, manifest } = await packBackupZip({
+      includeChatHistory: normalized.includeChatHistory !== false,
+    });
     const backup = createBackupFile(normalized.backupPrefix);
     await s3Request(normalized, {
       method: 'PUT',
       path: buildObjectPath(normalized, backup.path),
-      body: JSON.stringify(snapshot),
+      body: data,
+      contentType: 'application/zip',
       readBody: false,
     });
-    return { snapshot, backup };
+    return { backup, manifest };
   },
 
   async listBackups(config: S3Config): Promise<S3Backup[]> {
@@ -259,18 +287,18 @@ export const s3BackupService = {
     return parseBackupList(response.body, prefix);
   },
 
-  async restore(config: S3Config, backupPath: string) {
+  async restore(config: S3Config, backupPath: string): Promise<RestoreSummary> {
     const normalized = normalizeConfig(config);
     assertRemoteConfig(normalized);
     const path = assertBackupPath(normalized.backupPrefix, backupPath);
+    const filename = path.split('/').at(-1) || '';
     const response = await s3Request(normalized, {
       method: 'GET',
       path: buildObjectPath(normalized, path),
       readBody: true,
+      readBinary: true,
     });
-    const snapshot = JSON.parse(response.body) as PrivateDataSnapshot;
-    await localPrivateStore.restore(snapshot);
-    return snapshot;
+    return await unpackAndRestoreBackup(response.binaryBody ?? response.body, filename);
   },
 
   async deleteBackup(config: S3Config, backupPath: string) {

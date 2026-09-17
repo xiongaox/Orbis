@@ -23,6 +23,8 @@ import type { QimenPalace } from './QimenChart';
 import type { GlobalPattern } from '../../../lib/csp-qimen/patternDetector';
 import BaseAiPromptModal, { type PromptOption } from '../../Common/BaseAiPromptModal';
 
+import type { QimenCase } from '../../../services/qimenCaseService';
+
 interface QimenAiPromptModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -31,6 +33,7 @@ interface QimenAiPromptModalProps {
     globalPatterns: GlobalPattern[];
     selectedPalace?: number | null;
     methodLabel?: string;
+    caseData?: QimenCase | null;
 }
 
 // 辅助计算：根据干支计算空亡
@@ -74,7 +77,8 @@ export default function QimenAiPromptModal({
     header,
     palaces,
     globalPatterns,
-    methodLabel = '时家奇门'
+    methodLabel = '时家奇门',
+    caseData,
 }: QimenAiPromptModalProps) {
     const [includeAllPalaces, setIncludeAllPalaces] = useState(true);
     const [includeGlobalPatterns, setIncludeGlobalPatterns] = useState(true);
@@ -156,6 +160,32 @@ export default function QimenAiPromptModal({
         { label: '包含全盘宫位', checked: includeAllPalaces, onChange: setIncludeAllPalaces },
     ];
 
+    const sessionId = useMemo(() => {
+        if (caseData?.id) {
+            return `qimen_case_${caseData.id}`;
+        }
+        if (header?.solarDate) {
+            const timeKey = `${header.solarDate}_${header.time}_${header.ju}`.replace(/\s+/g, '_');
+            return `qimen_free_${timeKey}`;
+        }
+        return 'qimen_default';
+    }, [caseData, header]);
+
+    const caseName = useMemo(() => {
+        if (caseData?.title) return caseData.title;
+        if (header?.ju) return `奇门 · ${header.ju} (${header.solarDate || ''})`;
+        return '奇门排盘';
+    }, [caseData, header]);
+
+    const meta = useMemo(() => {
+        if (!header) return undefined;
+        return {
+            solarDate: header.solarDate,
+            lunarDate: header.lunarDate,
+            ganZhi: `${header.siZhu?.year || ''} ${header.siZhu?.month || ''} ${header.siZhu?.day || ''} ${header.siZhu?.hour || ''}`,
+        };
+    }, [header]);
+
     return (
         <BaseAiPromptModal
             isOpen={isOpen}
@@ -166,6 +196,11 @@ export default function QimenAiPromptModal({
             setUserQuestion={setUserQuestion}
             options={options}
             placeholder="在此输入您关心的问题... (例如：此次出行是否顺利？)"
+            sessionId={sessionId}
+            caseId={caseData?.id}
+            caseName={caseName}
+            divinationType="qimen"
+            meta={meta}
         />
     );
 }

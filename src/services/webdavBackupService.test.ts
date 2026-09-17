@@ -27,6 +27,7 @@ const config = {
   backupDirectory: 'orbis/backups',
   autoBackupEnabled: false,
   autoBackupIntervalMinutes: 1440,
+  includeChatHistory: true,
 };
 
 describe('WebDAV 备份服务', () => {
@@ -42,7 +43,7 @@ describe('WebDAV 备份服务', () => {
     });
 
     await expect(webDavBackupService.readConfig()).resolves.toMatchObject({
-      endpoint: config.endpoint, username: config.username, password: config.password, backupDirectory: 'orbis', autoBackupEnabled: false, autoBackupIntervalMinutes: 120,
+      endpoint: config.endpoint, username: config.username, password: config.password, backupDirectory: 'orbis', autoBackupEnabled: false, autoBackupIntervalMinutes: 120, includeChatHistory: true,
     });
 
     await webDavBackupService.saveConfig(config);
@@ -62,14 +63,14 @@ describe('WebDAV 备份服务', () => {
     const result = await webDavBackupService.backup(config);
 
     expect(result.backup).toEqual({
-      path: 'orbis/backups/orbis_20260826_132030_000.json',
-      filename: 'orbis_20260826_132030_000.json',
+      path: 'orbis/backups/orbis_20260826_132030_000.zip',
+      filename: 'orbis_20260826_132030_000.zip',
       createdAt: '2026-08-26T13:20:30.000Z',
       size: null,
     });
     expect(fetchMock).toHaveBeenNthCalledWith(1, 'https://dav.example.com/dav/orbis', expect.objectContaining({ method: 'MKCOL' }));
     expect(fetchMock).toHaveBeenNthCalledWith(2, 'https://dav.example.com/dav/orbis/backups', expect.objectContaining({ method: 'MKCOL' }));
-    expect(fetchMock).toHaveBeenNthCalledWith(3, 'https://dav.example.com/dav/orbis/backups/orbis_20260826_132030_000.json', expect.objectContaining({ method: 'PUT' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, 'https://dav.example.com/dav/orbis/backups/orbis_20260826_132030_000.zip', expect.objectContaining({ method: 'PUT' }));
   });
 
   it('列出并按时间倒序返回可恢复的备份版本，兼容新旧命名', async () => {

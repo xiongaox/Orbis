@@ -40,11 +40,23 @@ fn open_external_url(url: String) -> Result<(), String> {
   Ok(())
 }
 
+#[tauri::command]
+fn write_text_file(path: String, content: String) -> Result<(), String> {
+  let target = std::path::PathBuf::from(&path);
+  if let Some(parent) = target.parent() {
+    if !parent.as_os_str().is_empty() && !parent.exists() {
+      std::fs::create_dir_all(parent).map_err(|e| format!("创建目录失败: {e}"))?;
+    }
+  }
+  std::fs::write(&target, content).map_err(|e| format!("写入文件失败: {e}"))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_http::init())
     .plugin(tauri_plugin_sql::Builder::default().build())
+    .plugin(tauri_plugin_dialog::init())
     .manage(CasesState::default())
     .invoke_handler(tauri::generate_handler![
       commands::get_machine_id,
@@ -56,7 +68,8 @@ pub fn run() {
       commands::get_author_profile,
       commands::sign_activation_code,
       commands::is_signing_available,
-      open_external_url
+      open_external_url,
+      write_text_file
     ])
     .setup(|app| {
       let window = app
