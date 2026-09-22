@@ -9,13 +9,14 @@
  * - 展示当前设备识别码并支持一键复制
  * - 收集激活码（自动清理首尾空白与换行）并触发本地解锁
  * - 展示解密/导入的分阶段进度与错误反馈
+ * - 由用户显式触发（试读态的激活按钮），因此支持关闭；激活进行中不允许关闭
  *
  * 依赖关系：
  * - 上游依赖：外部依赖 `lucide-react`、`react`，内部模块 `publicCaseLibraryService`
- * - 下游影响：由 CaseStudyPage 在未激活状态下渲染
+ * - 下游影响：由 CaseStudyPage 在试读态按需渲染
  */
 
-import { Check, Copy, KeyRound, Loader2, Lock, ShieldCheck } from 'lucide-react';
+import { Check, Copy, KeyRound, Loader2, Lock, ShieldCheck, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { CasePackProgress } from '../../../services/publicCaseLibraryService';
 
@@ -26,6 +27,9 @@ interface ActivationModalProps {
     error: string | null;
     onActivate: (licenseCode: string) => void;
     onActivateWithMasterPassword: (password: string) => void;
+    onClose: () => void;
+    /** 当前环境是否可激活：离线案例库仅桌面端与移动端应用可用 */
+    canActivate: boolean;
 }
 
 function MachineIdCard({ machineId }: { machineId: string }) {
@@ -84,10 +88,19 @@ function ProgressSection({ progress }: { progress: CasePackProgress }) {
     );
 }
 
-export default function ActivationModal({ machineId, isActivating, progress, error, onActivate, onActivateWithMasterPassword }: ActivationModalProps) {
+export default function ActivationModal({ machineId, isActivating, progress, error, onActivate, onActivateWithMasterPassword, onClose, canActivate }: ActivationModalProps) {
     const [licenseCode, setLicenseCode] = useState('');
     const [masterPassword, setMasterPassword] = useState('');
     const [authorMode, setAuthorMode] = useState(false);
+
+    // 激活进行中不允许关闭，避免中断解密导入
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && !isActivating) onClose();
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isActivating, onClose]);
 
     const handleSubmit = () => {
         if (isActivating) return;
@@ -101,9 +114,16 @@ export default function ActivationModal({ machineId, isActivating, progress, err
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+            role="dialog"
+            aria-modal="true"
+            onClick={(event) => {
+                if (event.target === event.currentTarget && !isActivating) onClose();
+            }}
+        >
             <div className="bg-card w-full max-w-md rounded-xl border border-border shadow-2xl animate-in zoom-in-95 fade-in duration-200">
-                <div className="flex items-center gap-2.5 p-5 border-b border-border">
+                <div className="relative flex items-center gap-2.5 p-5 border-b border-border">
                     <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
                         <ShieldCheck className="w-5 h-5 text-primary" />
                     </div>
@@ -111,17 +131,32 @@ export default function ActivationModal({ machineId, isActivating, progress, err
                         <h2 className="text-base font-bold font-serif text-foreground leading-tight">案例库激活</h2>
                         <p className="text-xs text-muted-foreground">离线加密案例库 · 一机一码专属授权</p>
                     </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        disabled={isActivating}
+                        aria-label="关闭"
+                        className="absolute top-4 right-4 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
                 </div>
 
                 <div className="p-5 space-y-4">
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                            <Lock className="w-3 h-3" />
-                            本机设备识别码
-                        </label>
-                        <MachineIdCard machineId={machineId} />
-                        <p className="text-xs text-muted-foreground">请将此码发送给作者换取专属激活码</p>
-                    </div>
+                    {canActivate ? (
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                                <Lock className="w-3 h-3" />
+                                本机设备识别码
+                            </label>
+                            <MachineIdCard machineId={machineId} />
+                            <p className="text-xs text-muted-foreground">请将此码发送给作者换取专属激活码</p>
+                        </div>
+                    ) : (
+                        <p className="text-xs leading-relaxed text-warning bg-warning/10 border border-warning/20 rounded-md px-3 py-2">
+                            离线加密案例库仅在 Orbis 桌面端与移动端应用中激活，当前浏览器环境无法读取本机设备识别码。试读内容不受影响。
+                        </p>
+                    )}
 
                     {authorMode ? (
                         <div className="space-y-1.5">
@@ -169,7 +204,7 @@ export default function ActivationModal({ machineId, isActivating, progress, err
                         <button
                             type="button"
                             onClick={handleSubmit}
-                            disabled={isActivating || (authorMode ? !masterPassword.trim() : !licenseCode.trim())}
+                            disabled={isActivating || !canActivate || (authorMode ? !masterPassword.trim() : !licenseCode.trim())}
                             className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-4 py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Lock className="w-4 h-4" />

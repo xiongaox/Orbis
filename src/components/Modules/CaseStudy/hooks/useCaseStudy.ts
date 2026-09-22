@@ -19,6 +19,12 @@
  */
 import { useState, useMemo, useEffect } from 'react';
 import { AUTHOR_MAP } from '../../../../lib/caseStudy/constants';
+import {
+    CASE_LIBRARY_TOTAL,
+    CASE_PREVIEWS,
+    CASE_PREVIEWS_PER_GROUP,
+    CASE_TOTALS_BY_GROUP,
+} from '../../../../lib/caseStudy/casePreviews.generated';
 import type { PaiPanMethod } from '../../../../lib/csp-qimen/qimenService';
 import { TIAN_GAN } from '../../../../constants/ganZhi';
 import { publicCaseLibraryService, type CasePackProgress } from '../../../../services/publicCaseLibraryService';
@@ -35,6 +41,11 @@ export interface CaseItem {
     dayMaster: string;
     author: string;
     category: 'bazi' | 'qimen';
+    /** 试读条目：content 为截断片段，激活后由同 id 的完整正文替换 */
+    isPreview?: boolean;
+    /** 试读字数与全文约字数（仅试读条目） */
+    previewChars?: number;
+    fullChars?: number;
 }
 
 export const ALL_CASES: CaseItem[] = [];
@@ -60,6 +71,20 @@ function sortCases(cases: CaseItem[]): CaseItem[] {
 }
 
 const ITEMS_PER_PAGE = 12;
+
+/** 未激活时的试读条目：id 与加密包一致，激活后同一 id 直接切换为完整正文 */
+const PREVIEW_CASES: CaseItem[] = sortCases(CASE_PREVIEWS.map((preview) => ({
+    id: preview.id,
+    title: preview.title,
+    bazi: preview.summary,
+    content: preview.excerpt,
+    dayMaster: preview.group,
+    author: preview.authorName || AUTHOR_MAP[preview.authorKey] || '未知',
+    category: preview.domain,
+    isPreview: true,
+    previewChars: preview.excerptChars,
+    fullChars: preview.fullChars,
+})));
 
 
 
@@ -117,6 +142,13 @@ export function useCaseStudy() {
         });
     };
 
+    // 未激活（含非桌面端）时展示内置试读条目，让用户在激活前就能读到每个分类的样章
+    const loadPreviewEntries = () => {
+        const cases = PREVIEW_CASES.map((item) => ({ ...item }));
+        ALL_CASES.splice(0, ALL_CASES.length, ...cases);
+        setAllCases(cases);
+    };
+
     useEffect(() => {
         let cancelled = false;
         void publicCaseLibraryService.getStatus().then(async (status) => {
@@ -130,9 +162,12 @@ export function useCaseStudy() {
             if (cancelled) return;
             setMachineId(id);
             setActivationState('locked');
+            loadPreviewEntries();
         }).catch((cause: unknown) => {
             console.error('检查案例库状态失败', cause);
-            if (!cancelled) setActivationState('locked');
+            if (cancelled) return;
+            setActivationState('locked');
+            loadPreviewEntries();
         });
         return () => { cancelled = true; };
     }, []);
@@ -174,13 +209,16 @@ export function useCaseStudy() {
         runActivation(publicCaseLibraryService.activateWithMasterPassword(password));
     };
 
+    // 锁定态即为试读态：可浏览每个分类的试读样章，激活入口由各处显式按钮触发
+    const isPreviewMode = activationState === 'locked';
+
     useEffect(() => {
         if (!selectedCaseId) {
             setIsCaseContentLoading(false);
             return;
         }
         const selected = allCases.find((caseItem) => caseItem.id === selectedCaseId);
-        if (!selected || selected.content) {
+        if (!selected || selected.isPreview || selected.content) {
             setIsCaseContentLoading(false);
             return;
         }
@@ -249,7 +287,8 @@ export function useCaseStudy() {
     // 计算排盘数量和当前结果
     useEffect(() => {
         const loadChart = async () => {
-            if (!activeCase) {
+            // 试读片段不参与排盘：盘面在激活前不对试读条目开放
+            if (!activeCase || activeCase.isPreview) {
                 setQimenResult(null);
                 setChartCount(0);
                 return;
@@ -302,9 +341,12 @@ export function useCaseStudy() {
         setSelectedAuthor(null);
         setSearchTerm('');
         setCurrentPage(1);
-        // 从静态 ALL_CASES 中查找该分类的第一篇，避免页面空白
-        const firstCase = allCases.find(c => c.category === selectedCategory);
-        setSelectedCaseId(firstCase?.id ?? null);
+        // 保留仍在当前分类中的选中项（试读解锁为完整正文时同一 id 继续可读），否则回落到该分类第一篇
+        setSelectedCaseId((previous) => {
+            const stillVisible = previous && allCases.some((item) => item.id === previous && item.category === selectedCategory);
+            if (stillVisible) return previous;
+            return allCases.find(c => c.category === selectedCategory)?.id ?? null;
+        });
         setQimenResult(null);
         setCustomJu(0);  // 重置自定义局数
         setActiveChartIndex(0);
@@ -357,6 +399,10 @@ export function useCaseStudy() {
 
         // 案例库激活（一机一码 / 作者管理密码）
         activationState,
+        isPreviewMode,
+        libraryTotal: CASE_LIBRARY_TOTAL,
+        libraryGroupTotals: CASE_TOTALS_BY_GROUP,
+        previewsPerGroup: CASE_PREVIEWS_PER_GROUP,
         machineId,
         isActivating,
         activationProgress,

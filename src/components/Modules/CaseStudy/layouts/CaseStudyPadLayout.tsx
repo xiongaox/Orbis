@@ -31,6 +31,7 @@ import { caseMarkdownComponents, authorMarkdownComponents } from '../components/
 import CaseStudyBaziChart from '../components/CaseStudyBaziChart';
 import CaseStudyDayunPanel from '../components/CaseStudyDayunPanel';
 import CaseStudyQimenChart from '../components/CaseStudyQimenChart';
+import CasePreviewUnlock from '../components/CasePreviewUnlock';
 import DuanFaPage from '../DuanFaPage';
 import LearningPanelFAB from '../components/LearningPanelFAB';
 import FavoriteButton from '../components/FavoriteButton';
@@ -56,7 +57,8 @@ export default function CaseStudyPadLayout(props: CaseStudyLayoutProps) {
         qimenResult, qimenMethod, setQimenMethod,
         setIsJuDialogOpen, setIsLearningPanelOpen,
         contentScrollRef, savedProgress, currentProgress, restoreProgress,
-        isLeftPanelOpen, setIsLeftPanelOpen, isChartPanelOpen, setIsChartPanelOpen
+        isLeftPanelOpen, setIsLeftPanelOpen, isChartPanelOpen, setIsChartPanelOpen,
+        isPreviewMode, libraryTotal, libraryGroupTotals, previewsPerGroup, openActivation,
     } = props;
 
     if (selectedCategory === 'duanfa') {
@@ -77,6 +79,9 @@ export default function CaseStudyPadLayout(props: CaseStudyLayoutProps) {
                     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
                         <div className="flex items-center justify-center gap-3 pb-3 lg:pb-4 border-b border-border/40">
                             <h1 className="text-lg lg:text-2xl font-serif font-bold text-primary/90">{activeCase.title}</h1>
+                            {activeCase.isPreview && (
+                                <span className="shrink-0 text-[10px] leading-none px-1.5 py-1 rounded border border-primary/30 bg-primary/10 text-primary">试读</span>
+                            )}
                             {isAuthenticated && <FavoriteButton articleId={activeCase.id} />}
                         </div>
                         {isCaseContentLoading ? (
@@ -90,6 +95,14 @@ export default function CaseStudyPadLayout(props: CaseStudyLayoutProps) {
                                     {activeCase.content.replace(/^(命主生辰|性别|日主|格局|令地)[：:][^\n]*\n?/gm, '').replace(/^#\s+[^\n]+\n?/, '').replace(/^\n+/, '')}
                                 </ReactMarkdown>
                             </div>
+                        )}
+                        {activeCase.isPreview && (
+                            <CasePreviewUnlock
+                                previewChars={activeCase.previewChars}
+                                fullChars={activeCase.fullChars}
+                                libraryTotal={libraryTotal}
+                                onActivate={openActivation}
+                            />
                         )}
                     </div>
                 </div>
@@ -130,7 +143,7 @@ export default function CaseStudyPadLayout(props: CaseStudyLayoutProps) {
 
     const chartPanel = (
         <div className="h-full bg-muted/10 flex flex-col overflow-hidden">
-            {activeCase && chartCount > 1 && (
+            {activeCase && chartCount > 1 && !isPreviewMode && (
                 <div className="p-2 border-b border-border bg-muted/20 flex justify-between items-center h-[40px]">
                     <div className="flex space-x-1">
                         {Array.from({ length: chartCount }).map((_, i) => (
@@ -142,7 +155,9 @@ export default function CaseStudyPadLayout(props: CaseStudyLayoutProps) {
                 </div>
             )}
             <div className="flex-1 overflow-y-auto p-0 scrollbar-thin scrollbar-thumb-border/40 scrollbar-track-transparent flex flex-col">
-                {selectedCategory === 'bazi' && activeCase ? (
+                {isPreviewMode ? (
+                    <CasePreviewUnlock variant="panel" libraryTotal={libraryTotal} onActivate={openActivation} />
+                ) : selectedCategory === 'bazi' && activeCase ? (
                     <>
                         <div className="flex-shrink-0"><CaseStudyBaziChart data={baziData} selectedDaYunIndex={selectedDaYunIndex} selectedLiuNianYear={selectedLiuNianYear} isMobile={false} /></div>
                         <div className="flex-1 border-t border-border"><CaseStudyDayunPanel data={baziData} selectedDaYunIndex={selectedDaYunIndex} selectedLiuNianYear={selectedLiuNianYear} onSelectDaYun={setSelectedDaYunIndex} onSelectLiuNian={setSelectedLiuNianYear} isMobile={false} /></div>
@@ -179,7 +194,7 @@ export default function CaseStudyPadLayout(props: CaseStudyLayoutProps) {
 
             <SideDrawer open={isLeftPanelOpen} title="目录" side="left" onClose={() => setIsLeftPanelOpen(false)}>
                 <div className="h-full min-h-0 overflow-hidden flex flex-col">
-                    <CaseListSidebar allCases={allCases} displayCases={displayCases} selectedCategory={selectedCategory} selectedCaseId={selectedCaseId} selectedDayMaster={selectedDayMaster} searchTerm={searchTerm} currentPage={currentPage} totalPages={totalPages} onSelectCase={(id) => { handleSelectCase(id); setIsLeftPanelOpen(false); }} onSelectDayMaster={handleSelectDayMaster} onSearchChange={setSearchTerm} onPageChange={setCurrentPage} onSelectAuthor={(author) => { handleSelectAuthor(author); setIsLeftPanelOpen(false); }} variant="drawer" />
+                    <CaseListSidebar allCases={allCases} displayCases={displayCases} selectedCategory={selectedCategory} selectedCaseId={selectedCaseId} selectedDayMaster={selectedDayMaster} searchTerm={searchTerm} currentPage={currentPage} totalPages={totalPages} onSelectCase={(id) => { handleSelectCase(id); setIsLeftPanelOpen(false); }} onSelectDayMaster={handleSelectDayMaster} onSearchChange={setSearchTerm} onPageChange={setCurrentPage} onSelectAuthor={(author) => { handleSelectAuthor(author); setIsLeftPanelOpen(false); }} variant="drawer" isPreviewMode={isPreviewMode} onRequestActivate={openActivation} libraryGroupTotals={libraryGroupTotals} libraryTotal={libraryTotal} previewsPerGroup={previewsPerGroup} />
                 </div>
             </SideDrawer>
 

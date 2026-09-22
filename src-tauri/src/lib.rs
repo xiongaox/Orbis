@@ -37,6 +37,13 @@ fn open_external_url(url: String) -> Result<(), String> {
       .map_err(|e| format!("打开链接失败: {e}"))?;
   }
 
+  // 移动端没有可 fork 的桌面进程：安卓由 WebView 注入的原生桥处理（见 MainActivity.kt）。
+  // 必须显式报错——返回 Ok 会让前端的 window.open 兜底永远不执行。
+  #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+  {
+    return Err("当前平台不支持通过桌面进程打开链接".into());
+  }
+
   Ok(())
 }
 

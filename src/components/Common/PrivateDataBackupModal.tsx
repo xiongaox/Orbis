@@ -135,9 +135,20 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
 
   return (
     <>
-      <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-labelledby="private-data-title">
-        <div className="flex w-full max-w-xl flex-col rounded-xl border border-border bg-popover shadow-2xl">
-          <div className="flex items-start justify-between border-b border-border px-5 py-4">
+      <div
+        className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="private-data-title"
+        // 表单很长，手机竖屏下比视口还高：居中布局会把上下两端顶出屏幕，
+        // 关闭按钮正好在被裁掉的那截里、点不到。留白同时避开系统栏（见 MainActivity.kt）。
+        style={{
+          paddingTop: 'calc(1rem + var(--safe-area-inset-top, 0px))',
+          paddingBottom: 'calc(1rem + var(--safe-area-inset-bottom, 0px))',
+        }}
+      >
+        <div className="flex max-h-full min-h-0 w-full max-w-xl flex-col rounded-xl border border-border bg-popover shadow-2xl">
+          <div className="flex shrink-0 items-start justify-between border-b border-border px-5 py-4">
             <div className="flex items-center gap-2">
               <Cloud className="h-5 w-5 text-primary" />
               <h2 id="private-data-title" className="font-serif text-lg font-semibold text-foreground">数据备份</h2>
@@ -145,7 +156,7 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
             <button type="button" onClick={onClose} className="rounded-lg p-2 text-muted-foreground hover:bg-secondary/50" aria-label="关闭"><X className="h-4 w-4" /></button>
           </div>
 
-          <div className="space-y-4 px-5 py-4">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
             <div>
               <p className="mb-2 text-sm text-foreground">备份方式</p>
               <div role="tablist" aria-label="备份方式" className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-muted/40 p-1">
@@ -246,7 +257,7 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
 
             {message && <p className="rounded-lg bg-secondary/50 px-3 py-2 text-sm text-foreground" role="status">{message}</p>}
           </div>
-          <div className="flex flex-wrap justify-end gap-2 border-t border-border bg-secondary/10 px-5 py-3">
+          <div className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-border bg-secondary/10 px-5 py-3">
             <button type="button" onClick={() => void run('test')} disabled={busy !== null || !configLoaded} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border px-3 text-sm text-foreground hover:bg-secondary/50 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${busy === 'test' ? 'animate-spin' : ''}`} />测试连接</button>
             <button type="button" onClick={() => void run('manager')} disabled={busy !== null || !configLoaded} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border px-3 text-sm text-foreground hover:bg-secondary/50 disabled:opacity-50"><Upload className="h-4 w-4" />恢复</button>
             <button type="button" onClick={() => void run('backup')} disabled={busy !== null || !configLoaded} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-3 text-sm text-primary-foreground hover:opacity-90 disabled:opacity-50"><HardDriveUpload className="h-4 w-4" />{busy === 'backup' ? '正在备份' : '立即备份'}</button>

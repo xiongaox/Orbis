@@ -122,7 +122,7 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children
                         <button
                             type="button"
                             onClick={() => setIsSidebarOpen(true)}
-                            className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-start group focus:outline-none"
+                            className="absolute left-0 top-[40%] -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-start group focus:outline-none"
                             aria-label="打开案例"
                         >
                             {/* 可见部分：细线；触摸/点击面积来自 button 的宽度 */}
@@ -141,7 +141,7 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children
                         <button
                             type="button"
                             onClick={() => setIsRightPanelOpen(true)}
-                            className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-end group focus:outline-none"
+                            className="absolute right-0 top-[40%] -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-end group focus:outline-none"
                             aria-label="打开参考面板"
                         >
                             <span className="w-[3px] h-20 rounded-l bg-primary/35 group-hover:bg-primary/70 group-active:bg-primary/80 transition-colors shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none" />

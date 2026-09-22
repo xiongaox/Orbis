@@ -79,29 +79,29 @@ function CustomDropdown({
   const displayLabel = currentOption?.label || value || '请选择';
 
   return (
-    <div className="relative inline-block" ref={containerRef}>
+    <div className="relative w-full sm:flex-1 sm:min-w-0" ref={containerRef}>
       <button
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg border border-border/80 bg-background/90 hover:bg-muted/70 text-foreground transition-all duration-150 cursor-pointer select-none focus:outline-none focus:ring-1 focus:ring-primary ${
+        className={`w-full flex items-center gap-2 px-3 py-2 text-xs sm:text-sm rounded-xl border border-border/80 bg-background/90 hover:bg-muted/70 text-foreground transition-all duration-150 cursor-pointer select-none focus:outline-none focus:ring-1 focus:ring-primary ${
           disabled ? 'opacity-50 cursor-not-allowed' : ''
         } ${isOpen ? 'border-primary ring-1 ring-primary/40 bg-muted/50' : ''}`}
       >
         {icon}
-        <span className="text-muted-foreground">{label}:</span>
-        <span className="font-medium text-foreground max-w-[120px] sm:max-w-[160px] truncate">
+        <span className="text-muted-foreground shrink-0">{label}</span>
+        <span className="flex-1 min-w-0 text-left font-medium text-foreground truncate">
           {displayLabel}
         </span>
         <ChevronDown
-          className={`w-3 h-3 text-muted-foreground transition-transform duration-200 shrink-0 ${
+          className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${
             isOpen ? 'rotate-180' : ''
           }`}
         />
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 z-50 mt-1.5 min-w-full w-max max-w-[270px] rounded-xl border border-border/80 bg-popover/95 text-popover-foreground backdrop-blur-md p-1 shadow-xl text-xs space-y-0.5 max-h-60 overflow-y-auto">
+        <div className="absolute left-0 right-0 z-50 mt-1.5 rounded-xl border border-border/80 bg-popover/95 text-popover-foreground backdrop-blur-md p-1 shadow-xl text-xs space-y-0.5 max-h-60 overflow-y-auto">
           {options.map((opt) => {
             const isSelected = opt.value === value;
             return (
@@ -111,7 +111,7 @@ function CustomDropdown({
                   onChange(opt.value);
                   setIsOpen(false);
                 }}
-                className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-xs cursor-pointer transition-colors text-left ${
+                className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-xs cursor-pointer transition-colors text-left ${
                   isSelected
                     ? 'bg-primary/15 text-primary font-medium'
                     : 'hover:bg-muted/80 text-foreground'
@@ -137,6 +137,38 @@ function CustomDropdown({
  * 2. 拆解偶发粘连在单行的伪表格（| | 单元格拆分）
  * 3. 确保表格块与前后普通文本之间有且仅有一个标准空行
  */
+/**
+ * 防御性语言过滤：历史缓存或模型失控时，推演可能在 JSON 结论卡之后、中文正文之前
+ * 夹带整段英文推导（甚至夹带 "(坤造)" 等零星汉字）。按行统计中文字符数，
+ * 丢弃第一个「含 ≥5 个汉字」正文行之前的所有英文行（JSON 块保留，交给 normalizeMarkdown 剥离）；
+ * 新版提示词已从源头禁止英文输出，此过滤对合规输出为无操作。
+ */
+function stripEnglishLead(text: string): string {
+  if (!text) return '';
+  const lines = text.split(/\r?\n/);
+  const cjkCount = (s: string) => (s.match(/[\u4e00-\u9fff]/g) || []).length;
+  const isFence = (s: string) => s.trimStart().startsWith('```');
+
+  // 第一遍：找锚点——围栏外第一个含 ≥5 个汉字的行（JSON 块内部不算）
+  let anchor = -1;
+  let inFence = false;
+  for (let i = 0; i < lines.length; i++) {
+    if (isFence(lines[i])) { inFence = !inFence; continue; }
+    if (!inFence && cjkCount(lines[i]) >= 5) { anchor = i; break; }
+  }
+  if (anchor === -1) return text;
+
+  // 第二遍：丢弃锚点前的英文行；JSON 围栏块整块保留（供 normalizeMarkdown 剥离结论卡）
+  inFence = false;
+  const kept: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const l = lines[i];
+    if (isFence(l)) { inFence = !inFence; kept.push(l); continue; }
+    if (i >= anchor || inFence) kept.push(l);
+  }
+  return kept.join('\n');
+}
+
 function normalizeMarkdown(text: string): string {
   if (!text) return '';
 
@@ -231,6 +263,9 @@ export default function WangShuaiAiPanel({
 }: WangShuaiAiPanelProps) {
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
+  // 推演全文「专注阅读模式」开关：默认关闭、全文常驻展开（内容超高才能保证弹窗可滚动）。
+  // 开启后隐藏全文只留结论卡 + 两行摘要。点「开始/重新推演」时自动退出该模式。
+  const [reportCollapsed, setReportCollapsed] = useState(false);
 
   const currentService = useMemo(() => {
     return services.find((s) => s.id === selectedServiceId) || services[0] || null;
@@ -274,6 +309,14 @@ export default function WangShuaiAiPanel({
   // 智能提炼 AI 研判结论
   const parsedVerdict = useMemo(() => {
     return parseAiVerdict(analysisResult);
+  }, [analysisResult]);
+
+  // 专注模式摘要：过滤英文推导后取第一句完整断语（在句号处收），绝不产生"截断悬空"的假滚动暗示
+  const reportDigest = useMemo(() => {
+    const plain = normalizeMarkdown(stripEnglishLead(analysisResult)).replace(/[#>*`\-[\]]/g, '').trim();
+    if (plain.length <= 90) return plain;
+    const m = plain.match(/^[\s\S]*?[。！？]/);
+    return m && m[0].length <= 160 ? m[0] : `${plain.slice(0, 90)}……`;
   }, [analysisResult]);
 
   // 计算展示的喜用神与忌神
@@ -346,82 +389,74 @@ export default function WangShuaiAiPanel({
 
   return (
     <div className="space-y-3 text-xs sm:text-sm">
-      {/* 1. 精致型工具控制条 */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 rounded-xl border border-border/80 bg-card/70 shadow-xs">
+      {/* 1. 模型配置区：选择卡铺满双列 + 全宽主 CTA，空间从容、层级清晰 */}
+      <div className="p-3 rounded-xl border border-border/80 bg-card/70 shadow-xs space-y-2.5">
         {services.length > 0 ? (
-          <div className="flex items-center gap-2 flex-wrap">
-            <CustomDropdown
-              label="服务"
-              value={selectedServiceId}
-              options={serviceOptions}
-              onChange={onSelectServiceId}
-              disabled={isLoading}
-              icon={<Bot className="w-3.5 h-3.5 text-indigo-500 shrink-0" />}
-            />
-
-            {modelOptions.length > 0 && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <CustomDropdown
-                label="模型"
-                value={selectedModel}
-                options={modelOptions}
-                onChange={onSelectModel}
+                label="服务"
+                value={selectedServiceId}
+                options={serviceOptions}
+                onChange={onSelectServiceId}
                 disabled={isLoading}
-                icon={<Cpu className="w-3.5 h-3.5 text-primary shrink-0" />}
+                icon={<Bot className="w-4 h-4 text-indigo-500 shrink-0" />}
               />
-            )}
-          </div>
-        ) : (
-          <div className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
-            <span>尚未配置可用 AI 服务</span>
-          </div>
-        )}
 
-        <div className="flex items-center gap-2">
-          {analysisResult && (
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border border-border/60 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              title="复制推演结论"
-            >
-              {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
-              <span>{copied ? '已复制' : '复制'}</span>
-            </button>
-          )}
+              {modelOptions.length > 0 && (
+                <CustomDropdown
+                  label="模型"
+                  value={selectedModel}
+                  options={modelOptions}
+                  onChange={onSelectModel}
+                  disabled={isLoading}
+                  icon={<Cpu className="w-4 h-4 text-primary shrink-0" />}
+                />
+              )}
+            </div>
 
-          {services.length > 0 && (
-            isLoading ? (
+            {isLoading ? (
               <button
                 type="button"
-                onClick={onStopAnalysis}
-                className="flex items-center gap-1.5 px-3 py-1 bg-destructive/15 text-destructive border border-destructive/30 rounded-lg text-xs font-medium hover:bg-destructive/25 transition-colors shadow-xs cursor-pointer"
+                onClick={() => {
+                  setReportCollapsed(false);
+                  onStopAnalysis?.();
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-destructive/15 text-destructive border border-destructive/30 rounded-xl text-sm font-medium hover:bg-destructive/25 transition-colors shadow-xs cursor-pointer"
                 title="停止当前推演"
               >
-                <Square className="w-3 h-3 fill-current" />
+                <Square className="w-3.5 h-3.5 fill-current" />
                 <span>停止推演</span>
               </button>
             ) : (
               <button
                 type="button"
-                onClick={() => onRunAnalysis(Boolean(analysisResult))}
-                className="flex items-center gap-1.5 px-3 py-1 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:bg-primary/90 transition-colors shadow-xs cursor-pointer"
+                onClick={() => {
+                  setReportCollapsed(false);
+                  onRunAnalysis(Boolean(analysisResult));
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition-colors shadow-xs cursor-pointer active:scale-[0.99]"
               >
                 {analysisResult ? (
                   <>
-                    <RefreshCw className="w-3 h-3" />
+                    <RefreshCw className="w-4 h-4" />
                     <span>重新推演</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <Sparkles className="w-4 h-4" />
                     <span>开始推演</span>
                   </>
                 )}
               </button>
-            )
-          )}
-        </div>
+            )}
+          </>
+        ) : (
+          <div className="text-xs text-muted-foreground flex items-center gap-1.5 py-1">
+            <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+            <span>尚未配置可用 AI 服务</span>
+          </div>
+        )}
       </div>
 
       {/* 2. 异常提示 */}
@@ -506,7 +541,7 @@ export default function WangShuaiAiPanel({
             <div className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1">
               <span>研判核心断语</span>
             </div>
-            <p className="text-xs sm:text-sm text-foreground/90 leading-relaxed font-normal tracking-wide">
+            <p className="text-[13px] sm:text-sm text-foreground/90 leading-[1.8] font-normal tracking-wide">
               {parsedVerdict.reason}
             </p>
           </div>
@@ -571,43 +606,77 @@ export default function WangShuaiAiPanel({
         </div>
       )}
 
-      {/* 5. 推演正文 Markdown 渲染 (增强表格与排版) */}
+      {/* 5. 推演正文 Markdown 渲染 (全文常驻保证弹窗可滚；「专注模式」可隐藏全文只看结论) */}
       {analysisResult ? (
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs text-muted-foreground px-1 pt-1">
-            <span className="flex items-center gap-1.5 font-medium text-foreground">
+          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground px-1 pt-1">
+            <button
+              type="button"
+              onClick={() => setReportCollapsed((v) => !v)}
+              className="flex items-center gap-1.5 font-medium text-foreground hover:text-primary transition-colors cursor-pointer select-none"
+              title={reportCollapsed ? '展开完整推演过程' : '进入专注模式，只看结论'}
+            >
               <BookOpen className="w-3.5 h-3.5 text-primary" />
-              <span>条件变量深度推导演绎</span>
-            </span>
-            <span className="text-[11px] text-muted-foreground font-mono">
-              全息学术论证
-            </span>
+              <span>{reportCollapsed ? '专注模式 (仅结论)' : '条件变量深度推导演绎'}</span>
+              <span className="text-[11px] font-normal text-muted-foreground">
+                ({analysisResult.length}字)
+              </span>
+              {reportCollapsed
+                ? <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                : <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />}
+            </button>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="flex items-center gap-1 px-2 py-1 rounded-md border border-border/60 hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0"
+              title="复制推演结论"
+            >
+              {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+              <span>{copied ? '已复制' : '复制'}</span>
+            </button>
           </div>
 
+          {reportCollapsed ? (
+            /* 专注模式：只放完整内容（结论卡 + 完整首句 + 明确的展开按钮），不做文本截断，
+               避免"看似还有内容却滚不动"的矛盾——此视图本就矮于弹窗视口，没有可滚余量 */
+            <div className="rounded-xl border border-border/60 bg-muted/20 p-3.5 space-y-2.5">
+              <p className="text-[13px] text-foreground/85 leading-[1.8]">
+                {reportDigest}
+              </p>
+              <button
+                type="button"
+                onClick={() => setReportCollapsed(false)}
+                className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg border border-primary/30 bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors cursor-pointer"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>展开完整推演 ({analysisResult.length}字)</span>
+              </button>
+            </div>
+          ) : (
           <div className="p-4 rounded-xl border border-border/80 bg-card/60 leading-relaxed space-y-2">
             <ReactMarkdown
               remarkPlugins={[remarkGfm, remarkBreaks]}
               components={{
                 h1: ({ ...props }) => (
-                  <h1 className="text-sm sm:text-base font-bold text-foreground border-b border-border/60 pb-1.5 mt-3 mb-2 flex items-center gap-1.5" {...props} />
+                  <h1 className="text-base sm:text-lg font-bold text-foreground border-b border-border/60 pb-1.5 mt-3 mb-2 flex items-center gap-1.5" {...props} />
                 ),
                 h2: ({ ...props }) => (
-                  <h2 className="text-xs sm:text-sm font-bold text-primary mt-3 mb-1.5 flex items-center gap-1.5" {...props} />
+                  <h2 className="text-sm sm:text-base font-bold text-primary mt-3.5 mb-2 flex items-center gap-1.5" {...props} />
                 ),
                 h3: ({ ...props }) => (
-                  <h3 className="text-xs font-semibold text-foreground mt-2.5 mb-1 flex items-center gap-1" {...props} />
+                  <h3 className="text-[13px] sm:text-sm font-semibold text-foreground mt-3 mb-1.5 flex items-center gap-1" {...props} />
                 ),
-                p: ({ ...props }) => <p className="text-muted-foreground text-xs leading-relaxed my-1.5" {...props} />,
-                ul: ({ ...props }) => <ul className="list-disc pl-4 space-y-1 my-1.5 text-muted-foreground text-xs" {...props} />,
-                li: ({ ...props }) => <li className="leading-relaxed" {...props} />,
+                p: ({ ...props }) => <p className="text-foreground/85 text-[13px] sm:text-sm leading-[1.8] my-2" {...props} />,
+                ul: ({ ...props }) => <ul className="list-disc pl-5 space-y-1.5 my-2 text-foreground/85 text-[13px] sm:text-sm" {...props} />,
+                li: ({ ...props }) => <li className="leading-[1.8] marker:text-primary/60" {...props} />,
                 strong: ({ ...props }) => <strong className="font-semibold text-foreground" {...props} />,
                 blockquote: ({ ...props }) => (
-                  <blockquote className="border-l-2 border-primary/70 bg-primary/5 pl-3 py-1.5 rounded-r-md my-2 text-xs text-muted-foreground italic leading-relaxed" {...props} />
+                  <blockquote className="border-l-2 border-primary/70 bg-primary/5 pl-3 py-1.5 rounded-r-md my-2.5 text-[13px] sm:text-sm text-muted-foreground italic leading-[1.8]" {...props} />
                 ),
                 // 美化表格
                 table: ({ ...props }) => (
                   <div className="my-3 overflow-x-auto rounded-lg border border-border/80 shadow-xs">
-                    <table className="w-full border-collapse text-xs text-left" {...props} />
+                    <table className="w-full border-collapse text-[13px] sm:text-sm text-left" {...props} />
                   </div>
                 ),
                 thead: ({ ...props }) => (
@@ -617,14 +686,14 @@ export default function WangShuaiAiPanel({
                   <th className="px-3 py-2 font-semibold text-foreground border-r border-border/40 last:border-r-0 whitespace-nowrap bg-muted/50" {...props} />
                 ),
                 td: ({ ...props }) => (
-                  <td className="px-3 py-2 text-muted-foreground border-t border-border/40 border-r border-border/40 last:border-r-0 leading-normal" {...props} />
+                  <td className="px-3 py-2 text-foreground/85 border-t border-border/40 border-r border-border/40 last:border-r-0 leading-[1.7]" {...props} />
                 ),
                 tr: ({ ...props }) => (
                   <tr className="hover:bg-muted/40 even:bg-muted/15 transition-colors" {...props} />
                 ),
               }}
             >
-              {normalizeMarkdown(analysisResult)}
+              {normalizeMarkdown(stripEnglishLead(analysisResult))}
             </ReactMarkdown>
 
             {isLoading && (
@@ -634,6 +703,7 @@ export default function WangShuaiAiPanel({
               </div>
             )}
           </div>
+          )}
         </div>
       ) : (
         !isLoading && services.length > 0 && !error && (
@@ -644,7 +714,7 @@ export default function WangShuaiAiPanel({
             <div className="space-y-1">
               <div className="text-xs font-medium text-foreground">子平学术级深度命理推演</div>
               <p className="text-[11px] text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                基于《渊海子平》《滴天髓》真传条件变量体系，对原局四柱干支、通根纯度与合局克泄进行全息拆解。请确认上方服务与模型配置，点击右上角【开始推演】。
+                基于《渊海子平》《滴天髓》真传条件变量体系，对原局四柱干支、通根纯度与合局克泄进行全息拆解。请确认上方服务与模型配置，点击【开始推演】；生成后默认只展示结论，可随时展开细读完整推演。
               </p>
             </div>
           </div>

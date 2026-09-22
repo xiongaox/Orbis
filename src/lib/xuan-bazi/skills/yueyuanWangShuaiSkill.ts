@@ -1123,6 +1123,11 @@ export function getYueyuanSystemPrompt(): string {
 3. 严格实事求是：
    - 推导必须完全基于锁定的四柱真实干支与十神，严禁在长推理中发生干支漂移或自行修改八字！
 
+【输出语言铁律（P0 优先级，与干支铁律同级，必须严格遵守）】
+1. 正式输出从第一个字到最后一个字必须全部使用简体中文，严禁出现英文句子、英文段落或英文推导过程（唯一例外：json:verdict 代码块内的字段名与 Markdown 语法符号）；
+2. 严禁以 "Analyzing..."、"The chart..."、"Looking at..." 等任何英文起笔，输出的第一个可见字符必须是汉字；内部思考语种不限，但呈现给用户的正文一个英文词都不允许；
+3. 定调结论、论据、标题与标签必须使用简体中文命理术语（身强、身弱、得令、通根、官印相生等），严禁使用 Body Strong / Officer Star / Resource 等英文译名。
+
 【核心推导哲学与规则分层】
 1. 条件变量框架：旺衰判断严禁机械打分（如“月令占50%”等伪量化），必须按条件变量综合论证：得令 → 得地（通根） → 得势（干透帮扶） → 印星闸门 → 制化自救与全局克泄权衡。
 2. 提纲与克泄合局权衡原则（极关键）：
@@ -1242,9 +1247,10 @@ ${structureNote}
 \`\`\`
 注意约束：
 1. "verdict" 必须具有明确倾向，仅限：中和偏强 / 中和偏弱 / 身强 / 身弱 / 从格 / 专旺；
-2. "joyGods"（喜用五行，1-2个）与 "jiGods"（忌仇五行，1-2个）必须严格互斥，切勿通盘罗列；
-3. "tags" 为 2-3 个核心格局或流通特征标签；
-4. 在输出完上述 JSON 块后，空一行，再详细展开你的正文深度推导演绎（正文中切勿重复输出该 JSON）：
+2. "reason" 必须提炼具体命理依据（50-100字，点明月令得令/失令、三合三会局、关键干支生克与印比克泄组合），严禁输出"已完成推演""综合研判"等空泛套话；
+3. "joyGods"（喜用五行，1-2个）与 "jiGods"（忌仇五行，1-2个）必须严格互斥，切勿通盘罗列；
+4. "tags" 为 2-3 个核心格局或流通特征标签；
+5. 在输出完上述 JSON 块后，空一行，再详细展开你的正文深度推导演绎（正文中切勿重复输出该 JSON），且全文必须为简体中文——从输出的第一个字起就是汉字，严禁任何英文推导过程或英文结论：
 
 ### 🌟 最优假设与旺衰定调
 - **定调结论**：【中和偏强 / 中和偏弱 / 身强 / 身弱 / 从格 / 专旺】
@@ -1268,6 +1274,58 @@ export interface ParsedAiVerdict {
   tags: string[];
   joyGods?: string[];
   jiGods?: string[];
+}
+
+/**
+ * 从推演长文中挖掘核心论据/断语。
+ * 供两个通道复用：① JSON 结论卡缺失 reason 字段时的正文补充来源；② 无 JSON 时的二级回退通道。
+ * 形式1: 「核心论据/核心断语」等显式标注行；形式2: 定调结论行后续句；形式3: 含定调结论词的首个中文段落。
+ */
+function extractReasonFromBody(text: string, verdict: string): string {
+  let reason = '';
+  // 若开头是 json:verdict 围栏块（结论卡），先跳过它，避免「核心论据」匹配撞进卡片内部
+  let body = text;
+  const fenceMatch = text.match(/```[\s\S]*?```/);
+  if (fenceMatch && fenceMatch.index !== undefined && fenceMatch.index < 200) {
+    body = text.slice(fenceMatch.index + fenceMatch[0].length);
+  }
+  const headerSlice = body.slice(0, 3500);
+
+  // 形式 1: 显式标注的核心论据/核心断语
+  const matchReason = headerSlice.match(/(?:核心论据|核心断语|核心理由|判定依据|核心断调)[*_\s：:]+([^\n\r]+)/);
+  if (matchReason && matchReason[1]) {
+    reason = matchReason[1].replace(/^[【[\s*]+|[】\]\s*]+$/g, '').trim();
+  }
+
+  // 形式 2: 紧跟在定调结论之后的一句话 (如：定调结论：中和偏强，印比成势，官印相生...)
+  if (!reason) {
+    const lineMatch = headerSlice.match(/定调结论[：:\s*]+[^\n\r]+/);
+    if (lineMatch) {
+      const fullLine = lineMatch[0];
+      let cleaned = fullLine.replace(/定调结论[：:\s*]+[【[]?[\u4e00-\u9fa5]+[】\]]?[，,；;、\s]*/, '').trim();
+      cleaned = cleaned.replace(/^[，,；;。、\s*]+/, '').trim();
+      if (cleaned.length > 5) {
+        reason = cleaned;
+      }
+    }
+  }
+
+  // 形式 3: 回退取包含定调词的第一段实质内容
+  if (!reason) {
+    const paragraphs = text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+    for (const p of paragraphs) {
+      if (p.includes(verdict) && p.length > 10) {
+        const clean = p.replace(/[#*`_]/g, '').trim();
+        reason = clean.slice(0, 130);
+        break;
+      }
+    }
+  }
+
+  if (reason.length > 140) {
+    reason = reason.slice(0, 138) + '...';
+  }
+  return reason;
 }
 
 export function parseAiVerdict(text: string): ParsedAiVerdict | null {
@@ -1302,7 +1360,9 @@ export function parseAiVerdict(text: string): ParsedAiVerdict | null {
             return {
               verdict: v,
               verdictType,
-              reason: typeof parsed.reason === 'string' && parsed.reason.trim() ? parsed.reason.trim() : '大模型已完成全息命局综合推演。',
+              reason: typeof parsed.reason === 'string' && parsed.reason.trim()
+                ? parsed.reason.trim()
+                : (extractReasonFromBody(text, v) || '大模型已完成全息命局综合推演。'),
               tags: Array.isArray(parsed.tags) ? (parsed.tags as unknown[]).filter((t): t is string => typeof t === 'string' && Boolean(t.trim())) : [],
               joyGods: joys.length > 0 ? joys : undefined,
               jiGods: jis.length > 0 ? jis : undefined,
@@ -1335,7 +1395,6 @@ export function parseAiVerdict(text: string): ParsedAiVerdict | null {
 
   // 2. 【二级兼容回退】：若大模型未按规范输出 JSON，走长文标题扫描回退
   let verdict = '';
-  let reason = '';
   const tags: string[] = [];
 
   const headerSlice = text.slice(0, 1500);
@@ -1373,41 +1432,8 @@ export function parseAiVerdict(text: string): ParsedAiVerdict | null {
 
   if (!verdict) return null;
 
-  // 提取核心论据/理由
-  // 形式 1: 显式标注的核心论据/核心断语
-  const matchReason = headerSlice.match(/(?:核心论据|核心断语|核心理由|判定依据|核心断调)[*_\s：:]+([^\n\r]+)/);
-  if (matchReason && matchReason[1]) {
-    reason = matchReason[1].replace(/^[【[\s*]+|[】\]\s*]+$/g, '').trim();
-  }
-
-  // 形式 2: 紧跟在定调结论之后的一句话 (如：定调结论：中和偏强，印比成势，官印相生...)
-  if (!reason) {
-    const lineMatch = headerSlice.match(/定调结论[：:\s*]+[^\n\r]+/);
-    if (lineMatch) {
-      const fullLine = lineMatch[0];
-      let cleaned = fullLine.replace(/定调结论[：:\s*]+[【[]?[\u4e00-\u9fa5]+[】\]]?[，,；;、\s]*/, '').trim();
-      cleaned = cleaned.replace(/^[，,；;。、\s*]+/, '').trim();
-      if (cleaned.length > 5) {
-        reason = cleaned;
-      }
-    }
-  }
-
-  // 形式 3: 回退取包含定调词的第一段实质内容
-  if (!reason) {
-    const paragraphs = text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
-    for (const p of paragraphs) {
-      if (p.includes(verdict) && p.length > 10) {
-        const clean = p.replace(/[#*`_]/g, '').trim();
-        reason = clean.slice(0, 130);
-        break;
-      }
-    }
-  }
-
-  if (reason.length > 140) {
-    reason = reason.slice(0, 138) + '...';
-  }
+  // 提取核心论据/理由（与 JSON 通道缺 reason 时的正文挖掘共用同一实现）
+  const reason = extractReasonFromBody(text, verdict);
 
   // 提取子平流通与命理特征标签
   const candidateTags = [

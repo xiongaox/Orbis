@@ -21,6 +21,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { useAuth } from '../../../contexts/useAuth';
 import { useCaseStudy, ALL_CASES } from './hooks/useCaseStudy';
+import { isActivationSupported } from '../../../services/publicCaseLibraryService';
 import { useReadingProgress } from './hooks/useReadingProgress';
 import { useDuanFa } from './hooks/useDuanFa';
 import { useCaseStudyBaziData } from './hooks/useCaseStudyBaziData';
@@ -42,12 +43,16 @@ export default function CaseStudyPage() {
     // Core state hooks
     const caseStudyState = useCaseStudy();
     const duanFa = useDuanFa();
-    const baziData = useCaseStudyBaziData(caseStudyState.activeCase, caseStudyState.activeChartIndex);
+    // 试读片段不参与排盘：盘面在激活前不对试读条目开放
+    const baziData = useCaseStudyBaziData(caseStudyState.isPreviewMode ? null : caseStudyState.activeCase, caseStudyState.activeChartIndex);
 
     const [isJuDialogOpen, setIsJuDialogOpen] = useState(false);
     const [isLearningPanelOpen, setIsLearningPanelOpen] = useState(false);
+    const [isActivationModalOpen, setIsActivationModalOpen] = useState(false);
     const [isLeftPanelOpen, setIsLeftPanelOpen] = useState(false);
     const [isChartPanelOpen, setIsChartPanelOpen] = useState(false);
+
+    const openActivation = useCallback(() => setIsActivationModalOpen(true), []);
 
     // Reading progress refs
     const contentScrollRef = useRef<HTMLDivElement>(null);
@@ -55,7 +60,7 @@ export default function CaseStudyPage() {
 
     // Sync progress tracking
     const progressProps = useReadingProgress({
-        articleId: caseStudyState.activeCase?.id || null,
+        articleId: caseStudyState.isPreviewMode ? null : caseStudyState.activeCase?.id || null,
         scrollContainerRef: contentScrollRef,
         enabled: isAuthenticated,
     });
@@ -83,6 +88,7 @@ export default function CaseStudyPage() {
     const layoutProps: CaseStudyLayoutProps = {
         useDesktopLayout, isPadLandscape, isMobile, isAuthenticated,
         ...caseStudyState,
+        openActivation,
         baziData,
         duanFa,
         isLeftPanelOpen, setIsLeftPanelOpen,
@@ -107,7 +113,7 @@ export default function CaseStudyPage() {
                 <CaseStudyMobileLayout {...layoutProps} />
             )}
 
-                        {caseStudyState.activationState === 'locked' && (
+            {isActivationModalOpen && caseStudyState.activationState === 'locked' && (
                 <ActivationModal
                     machineId={caseStudyState.machineId}
                     isActivating={caseStudyState.isActivating}
@@ -115,6 +121,8 @@ export default function CaseStudyPage() {
                     error={caseStudyState.activationError}
                     onActivate={caseStudyState.activate}
                     onActivateWithMasterPassword={caseStudyState.activateWithMasterPassword}
+                    onClose={() => setIsActivationModalOpen(false)}
+                    canActivate={isActivationSupported()}
                 />
             )}
 

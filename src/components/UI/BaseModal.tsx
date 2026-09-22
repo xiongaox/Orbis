@@ -118,6 +118,16 @@ export default function BaseModal({
                     }
                     ${className}
                 `}
+                // 全屏弹层铺满屏幕，需自行避开系统栏；背景仍延伸到状态栏下方，
+                // 只把内容顶下来。非全屏弹层居中且留有 p-4，无需处理。
+                style={
+                    fullScreen
+                        ? {
+                            paddingTop: 'var(--safe-area-inset-top, 0px)',
+                            paddingBottom: 'var(--safe-area-inset-bottom, 0px)',
+                        }
+                        : undefined
+                }
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -140,7 +150,7 @@ export default function BaseModal({
                 )}
 
                 {/* Body */}
-                <div className={`overflow-y-auto flex-1 ${bodyClassName || 'p-6'}`}>
+                <div className={`overflow-y-auto flex-1 min-h-0 overscroll-contain ${bodyClassName || 'p-6'}`}>
                     {children}
                 </div>
 

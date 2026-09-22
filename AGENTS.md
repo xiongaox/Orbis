@@ -86,6 +86,8 @@ npm run cases:keygen -- export-signing      # 作者端：封印私钥供管理�
 npm run tauri:build                          # 构建普通版（无私钥材料，可在 GitHub Actions 跑）
 npm run tauri:build:admin                    # 构建管理员版（--features admin-signing，仅作者本机）
 npm run cases:pack                          # 作者端：打包加密案例包 → dist-cases/cases_v1.enc（构建时嵌入客户端）
+npm run cases:previews                      # 作者端：生成每分类 2 篇试读样章 → src/lib/caseStudy/casePreviews.generated.ts
+npm run android:icons                       # 安卓端：重生成自适应图标前景（tauri icon 会把图案铺满画布，跑过它之后必须重跑）
 cargo test                                  # 在 src-tauri 内运行 Rust 安全层测试
 npm run worktree:create                     # 创建并初始化隔离的 Orbis worktree 开发环境
 npm run worktree:build                      # 在 worktree 内执行完整自检与构建 (lint + tsc + test + build)

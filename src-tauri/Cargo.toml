@@ -15,6 +15,12 @@ name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [features]
+# 生产构建专用：嵌入前端资源走自定义协议，产物可完全离线运行。
+# 绝不能进 default——Tauri 以 `dev = !custom_protocol` 判定运行模式，
+# debug 构建若带上它，运行时会去加载内嵌资源而非 devUrl，热更新随即失效。
+# `tauri build` / `tauri android build` 会自动追加，手工 cargo 构建需显式传入。
+custom-protocol = ["tauri/custom-protocol"]
+
 # 管理员版专用：在应用内直接签发激活码（需 keys/signing_blob.rs，见 cases-keygen export-signing）。
 # 普通版（GitHub Actions）不带该 feature，构建产物不含签发代码路径。
 admin-signing = []

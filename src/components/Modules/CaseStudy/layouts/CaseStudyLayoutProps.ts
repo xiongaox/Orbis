@@ -39,6 +39,14 @@ export interface CaseStudyLayoutProps {
     authorIntroContent: string | null;
     isCaseContentLoading: boolean;
 
+    // 案例库试读态（未激活）
+    isPreviewMode: boolean;
+    libraryTotal: number;
+    libraryGroupTotals: Record<string, number>;
+    previewsPerGroup: number;
+    /** 打开激活弹窗（试读态的显式激活入口） */
+    openActivation: () => void;
+
     // 列表分页与选中
     currentPage: number;
     totalPages: number;
