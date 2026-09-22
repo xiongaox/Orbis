@@ -246,8 +246,8 @@ export default function PhysicsLogModal({
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          <Compass className="w-3.5 h-3.5 text-primary" />
-          <span>格局与旺衰看板 (本地秒开)</span>
+          <Compass className="w-3.5 h-3.5 text-primary shrink-0" />
+          <span>格局与旺衰看板</span>
         </button>
         <button
           type="button"
@@ -258,8 +258,8 @@ export default function PhysicsLogModal({
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          <Bot className="w-3.5 h-3.5 text-indigo-500" />
-          <span>AI 深度推演 (子平学术)</span>
+          <Bot className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+          <span>AI 深度推演</span>
         </button>
       </div>
     </div>

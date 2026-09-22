@@ -213,7 +213,16 @@ function AppContent() {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-background flex flex-col">
+    // 系统栏安全区：--safe-area-inset-* 由 Android 端原生注入（见 MainActivity.kt），
+    // 桌面端与浏览器端未定义，退化为 0。根节点自带 bg-background，而背景会填满
+    // padding 区域，所以状态栏那条仍是应用底色（随主题），交互内容则被顶到系统栏下方。
+    <div
+      className="h-screen w-screen overflow-hidden bg-background flex flex-col"
+      style={{
+        paddingTop: 'var(--safe-area-inset-top, 0px)',
+        paddingBottom: 'var(--safe-area-inset-bottom, 0px)',
+      }}
+    >
       <Navbar
         activeChart={activeChart}
         onChartChange={setActiveChart}

@@ -189,6 +189,12 @@ export default function LearningPanelModal({
                     flex flex-col overflow-hidden
                     animate-in fade-in lg:zoom-in-95 duration-200
                 "
+                // 移动端全屏贴顶贴底，需自行避开系统栏（见 MainActivity.kt 注入的
+                // --safe-area-inset-*）；桌面端该变量未定义、退化为 0，居中布局不受影响。
+                style={{
+                    paddingTop: 'var(--safe-area-inset-top, 0px)',
+                    paddingBottom: 'var(--safe-area-inset-bottom, 0px)',
+                }}
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* 头部 */}

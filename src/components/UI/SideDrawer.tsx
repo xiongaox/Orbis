@@ -83,6 +83,13 @@ export default function SideDrawer({
         aria-modal="true"
         aria-label={title ?? '抽屉'}
         className={`absolute top-0 ${panelPosClass} ${panelBorderClass} ${panelSizeClass} border-border h-full bg-card shadow-2xl flex flex-col`}
+        // 抽屉贴顶贴底，而浮层定位在视口上、拿不到根节点的安全区留白，
+        // 头部会被安卓状态栏盖住（见 MainActivity.kt 的 --safe-area-inset-*）。
+        // 面板自带 bg-card，背景仍铺满系统栏区域，只有内容被顶下来。
+        style={{
+          paddingTop: 'var(--safe-area-inset-top, 0px)',
+          paddingBottom: 'var(--safe-area-inset-bottom, 0px)',
+        }}
       >
         {!hideHeader && title && (
           <div className="h-12 px-4 border-b border-border flex items-center justify-between">

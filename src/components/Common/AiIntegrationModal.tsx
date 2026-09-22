@@ -11,9 +11,12 @@ import {
   Plus,
   Server,
   Trash2,
+  X,
   XCircle,
 } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
+import ConfirmModal from './ConfirmModal';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 import {
   aiModelService,
   AI_PROTOCOLS,
@@ -53,12 +56,26 @@ function toFormState(service?: AiModelService): FormState {
   };
 }
 
+function protocolLabel(service: AiModelService): string {
+  return AI_PROTOCOLS.find((item) => item.value === service.protocol)?.label ?? service.protocol;
+}
+
+/** 移动端卡片宽度有限，协议标签去掉括号内的路径说明 */
+function protocolShortLabel(service: AiModelService): string {
+  return protocolLabel(service).replace(/\s*\(.*\)$/, '');
+}
+
 export default function AiIntegrationModal({ isOpen, onClose }: AiIntegrationModalProps) {
+  // 端判定：移动端（含 Pad 竖屏）使用全屏视图，桌面端保持居中弹窗
+  const isMobile = !useMediaQuery('(min-width: 768px)');
+
   const [services, setServices] = useState<AiModelService[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [editingService, setEditingService] = useState<AiModelService | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<AiModelService | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadServices = async () => {
     setLoading(true);
@@ -118,17 +135,234 @@ export default function AiIntegrationModal({ isOpen, onClose }: AiIntegrationMod
     }
   };
 
-  const handleDelete = async (service: AiModelService) => {
-    if (!window.confirm(`确认删除“${service.name}”吗？`)) return;
+  const handleConfirmDelete = async () => {
+    if (!pendingDelete) return;
 
+    setDeleting(true);
     try {
-      await aiModelService.deleteService(service.id);
-      setServices((current) => current.filter((item) => item.id !== service.id));
+      await aiModelService.deleteService(pendingDelete.id);
+      setServices((current) => current.filter((item) => item.id !== pendingDelete.id));
+      setPendingDelete(null);
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : '删除服务失败');
+    } finally {
+      setDeleting(false);
     }
   };
 
+  const emptyState = (
+    <div className="flex min-h-40 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-4 py-8 text-center">
+      <Server className="mb-3 h-7 w-7 text-muted-foreground" />
+      <p className="text-sm text-muted-foreground">暂未添加模型服务。</p>
+      <button
+        type="button"
+        onClick={handleAdd}
+        className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 focus-ring"
+      >
+        <CirclePlus className="h-4 w-4" />
+        添加模型服务
+      </button>
+    </div>
+  );
+
+  const loadingState = (
+    <div className="flex min-h-40 items-center justify-center text-sm text-muted-foreground">
+      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      正在加载模型服务
+    </div>
+  );
+
+  const errorBanner = loadError && (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/50 bg-destructive/40 p-3 text-sm text-destructive-foreground">
+      <span>{loadError}</span>
+      <button type="button" onClick={() => void loadServices()} className="shrink-0 font-medium underline focus-ring">
+        重试
+      </button>
+    </div>
+  );
+
+  const deleteConfirm = (
+    <ConfirmModal
+      isOpen={pendingDelete !== null}
+      onClose={() => { if (!deleting) setPendingDelete(null); }}
+      onConfirm={() => void handleConfirmDelete()}
+      title="确认删除服务"
+      description={pendingDelete ? `确认删除“${pendingDelete.name}”吗？该服务的连接配置与密钥将一并移除，且无法恢复。` : undefined}
+      confirmText={deleting ? '删除中…' : '确认删除'}
+      loading={deleting}
+      variant="destructive"
+    />
+  );
+
+  const formModal = showForm && (
+    <AiServiceFormModal
+      isOpen={showForm}
+      isMobile={isMobile}
+      service={editingService}
+      onClose={() => setShowForm(false)}
+      onSaved={() => {
+        setShowForm(false);
+        void loadServices();
+      }}
+    />
+  );
+
+  // ============================================================
+  // 移动端：全屏视图，卡片改为「信息区 + 底部操作栏」纵向结构
+  // ============================================================
+  if (isMobile) {
+    return (
+      <>
+        <BaseModal
+          isOpen={isOpen}
+          onClose={onClose}
+          title={null}
+          showCloseButton={false}
+          maxWidth="max-w-full"
+          fullScreen
+          className="p-0"
+          bodyClassName="p-0 overflow-hidden flex flex-col min-h-0"
+        >
+          <div className="flex h-full min-h-0 w-full flex-col bg-background text-foreground">
+            {/* 顶部标题栏：标题左对齐；「添加」与左侧图标等高，关闭按钮保留大触控目标 */}
+            <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Bot className="h-[18px] w-[18px]" />
+              </div>
+              <h2 className="min-w-0 flex-1 truncate text-[18px] font-bold text-foreground">AI 集成</h2>
+              <button
+                type="button"
+                onClick={handleAdd}
+                className="flex h-9 items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 text-[15px] font-medium text-primary transition-colors active:bg-primary/20 focus-ring"
+              >
+                <Plus className="h-4 w-4" />
+                添加
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors active:bg-muted focus-ring"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* 内容区 */}
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3.5 py-4">
+              <div className="space-y-3">
+                <p className="text-[13px] leading-relaxed text-muted-foreground">
+                  在此管理用于 AI 提示词和后续功能的模型服务，配置保存在当前本地工作区。
+                </p>
+                {errorBanner}
+              </div>
+
+              {loading ? loadingState : services.length === 0 ? emptyState : (
+                <ul className="space-y-3">
+                  {services.map((service) => (
+                    <li key={service.id} className="overflow-hidden rounded-xl border border-border bg-card">
+                      {/* 服务标识区 */}
+                      <div className="flex items-start gap-3 px-4 pt-4">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <Bot className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="truncate text-[17px] font-semibold text-foreground">{service.name}</h3>
+                          <p className="mt-0.5 truncate text-[13px] text-muted-foreground">
+                            {protocolShortLabel(service)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* 连接信息：URL 与模型全宽展示，不再被右侧按钮挤压 */}
+                      <div className="space-y-3 px-4 py-3">
+                        <div>
+                          <div className="text-[12px] text-muted-foreground">Base URL</div>
+                          <p className="mt-0.5 break-all font-mono text-[13px] leading-relaxed text-foreground/90">
+                            {service.baseUrl}
+                          </p>
+                        </div>
+                        <div>
+                          <div className="text-[12px] text-muted-foreground">模型</div>
+                          {service.models.length > 0 ? (
+                            <div className="mt-1.5 flex flex-wrap gap-1.5">
+                              {service.models.map((model) => (
+                                <span
+                                  key={model}
+                                  className="rounded-md border border-border/60 bg-muted/50 px-2 py-1 font-mono text-[12px] text-foreground/90"
+                                >
+                                  {model}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="mt-0.5 text-[13px] text-muted-foreground">尚未添加模型</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* 底部操作栏：44px 触控目标，操作在左、状态开关在右 */}
+                      <div className="flex items-center justify-between gap-2 border-t border-border/60 bg-muted/20 px-2 py-1">
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(service)}
+                            className="flex h-11 items-center gap-1.5 rounded-lg px-3 text-[14px] font-medium text-muted-foreground transition-colors active:bg-muted/60 focus-ring"
+                            aria-label={`编辑 ${service.name}`}
+                          >
+                            <Pencil className="h-4 w-4" />
+                            编辑
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPendingDelete(service)}
+                            className="flex h-11 items-center gap-1.5 rounded-lg px-3 text-[14px] font-medium text-destructive transition-colors active:bg-destructive/10 focus-ring"
+                            aria-label={`删除 ${service.name}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            删除
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => void handleToggle(service)}
+                          className="flex h-11 items-center gap-2.5 rounded-lg px-2.5 transition-colors active:bg-muted/60 focus-ring"
+                          aria-label={service.enabled ? `停用 ${service.name}` : `启用 ${service.name}`}
+                        >
+                          <span className={`text-[14px] font-medium ${service.enabled ? 'text-success-primary' : 'text-muted-foreground'}`}>
+                            {service.enabled ? '已启用' : '已停用'}
+                          </span>
+                          <span
+                            className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border transition-colors ${
+                              service.enabled ? 'border-success-primary bg-success-primary' : 'border-border bg-muted'
+                            }`}
+                          >
+                            <span
+                              className={`absolute left-[3px] top-[3px] h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                                service.enabled ? 'translate-x-5' : 'translate-x-0'
+                              }`}
+                            />
+                          </span>
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </BaseModal>
+
+        {deleteConfirm}
+        {formModal}
+      </>
+    );
+  }
+
+  // ============================================================
+  // 桌面端：保持原有居中弹窗与卡片布局
+  // ============================================================
   return (
     <>
       <BaseModal
@@ -155,34 +389,9 @@ export default function AiIntegrationModal({ isOpen, onClose }: AiIntegrationMod
             </button>
           </div>
 
-          {loadError && (
-            <div className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-destructive/50 bg-destructive/40 p-3 text-sm text-destructive-foreground">
-              <span>{loadError}</span>
-              <button type="button" onClick={() => void loadServices()} className="shrink-0 font-medium underline focus-ring">
-                重试
-              </button>
-            </div>
-          )}
+          {loadError && <div className="mb-4">{errorBanner}</div>}
 
-          {loading ? (
-            <div className="flex min-h-40 items-center justify-center text-sm text-muted-foreground">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              正在加载模型服务
-            </div>
-          ) : services.length === 0 ? (
-            <div className="flex min-h-40 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/20 px-4 text-center">
-              <Server className="mb-3 h-7 w-7 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">暂未添加模型服务。</p>
-              <button
-                type="button"
-                onClick={handleAdd}
-                className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 focus-ring"
-              >
-                <CirclePlus className="h-4 w-4" />
-                添加模型服务
-              </button>
-            </div>
-          ) : (
+          {loading ? loadingState : services.length === 0 ? emptyState : (
             <ul className="space-y-3">
               {services.map((service) => (
                 <li key={service.id} className="rounded-lg border border-border bg-card p-4">
@@ -194,7 +403,7 @@ export default function AiIntegrationModal({ isOpen, onClose }: AiIntegrationMod
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-medium text-foreground">{service.name}</h3>
                         <span className="rounded-md bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
-                          {AI_PROTOCOLS.find((item) => item.value === service.protocol)?.label ?? service.protocol}
+                          {protocolLabel(service)}
                         </span>
                         <span className={service.enabled ? 'text-xs text-success-primary' : 'text-xs text-muted-foreground'}>
                           {service.enabled ? '已启用' : '已停用'}
@@ -224,7 +433,7 @@ export default function AiIntegrationModal({ isOpen, onClose }: AiIntegrationMod
                       </button>
                       <button
                         type="button"
-                        onClick={() => void handleDelete(service)}
+                        onClick={() => setPendingDelete(service)}
                         className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-destructive hover:text-destructive-foreground focus-ring"
                         aria-label={`删除 ${service.name}`}
                       >
@@ -239,29 +448,21 @@ export default function AiIntegrationModal({ isOpen, onClose }: AiIntegrationMod
         </div>
       </BaseModal>
 
-      {showForm && (
-        <AiServiceFormModal
-          isOpen={showForm}
-          service={editingService}
-          onClose={() => setShowForm(false)}
-          onSaved={() => {
-            setShowForm(false);
-            void loadServices();
-          }}
-        />
-      )}
+      {deleteConfirm}
+      {formModal}
     </>
   );
 }
 
 interface AiServiceFormModalProps {
   isOpen: boolean;
+  isMobile: boolean;
   service: AiModelService | null;
   onClose: () => void;
   onSaved: () => void;
 }
 
-function AiServiceFormModal({ isOpen, service, onClose, onSaved }: AiServiceFormModalProps) {
+function AiServiceFormModal({ isOpen, isMobile, service, onClose, onSaved }: AiServiceFormModalProps) {
   const [form, setForm] = useState<FormState>(() => toFormState(service ?? undefined));
   const [status, setStatus] = useState<Status>(null);
   const [testing, setTesting] = useState(false);
@@ -355,16 +556,162 @@ function AiServiceFormModal({ isOpen, service, onClose, onSaved }: AiServiceForm
     }
   };
 
-  const footer = (
-    <div className="flex w-full items-center justify-between gap-3">
-      <div className="min-w-0">
-        {status && (
-          <div className={`flex items-center gap-2 text-sm ${status.kind === 'success' ? 'text-success-primary' : 'text-destructive-foreground'}`}>
-            {status.kind === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <XCircle className="h-4 w-4 shrink-0" />}
-            <span className="truncate">{status.message}</span>
+  const statusLine = status && (
+    <div className={`flex items-center gap-2 text-sm ${status.kind === 'success' ? 'text-success-primary' : 'text-destructive-foreground'}`}>
+      {status.kind === 'success' ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : <XCircle className="h-4 w-4 shrink-0" />}
+      <span className="truncate">{status.message}</span>
+    </div>
+  );
+
+  const formFields = (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        {service ? `修改“${service.name}”的连接配置。留空 API Key 将保留现有凭据。` : '连接一个兼容 OpenAI 接口的模型服务。'}
+      </p>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="服务名称">
+          <input value={form.name} onChange={(event) => updateForm('name', event.target.value)} placeholder="例如 DeepSeek" className="modal-input h-[46px] focus-ring" />
+        </Field>
+        <Field label="API 协议">
+          <ProtocolSelect value={form.protocol} onChange={handleProtocolChange} />
+        </Field>
+      </div>
+
+      <Field label="Base URL">
+        <input value={form.baseUrl} onChange={(event) => updateForm('baseUrl', event.target.value)} placeholder="https://api.example.com/v1" className="modal-input font-mono focus-ring" />
+      </Field>
+
+      <Field label={protocol?.requiresApiKey ? 'API Key' : 'API Key（可选）'}>
+        <input type="password" value={form.apiKey} onChange={(event) => updateForm('apiKey', event.target.value)} placeholder={service ? '已保存；输入新密钥可替换' : protocol?.requiresApiKey ? '请输入 API Key' : '此协议无需 API Key'} autoComplete="new-password" className="modal-input focus-ring" />
+      </Field>
+
+      <Field
+        label={(
+          <div className="flex items-center justify-between gap-3">
+            <span>模型 ID</span>
+            <button type="button" onClick={addManualModel} className="text-xs font-medium text-primary hover:text-primary/80 focus-ring">
+              手动添加
+            </button>
           </div>
         )}
-      </div>
+      >
+        <div className="flex gap-2">
+          <input
+            value={form.modelInput}
+            onChange={(event) => updateForm('modelInput', event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                addManualModel();
+              }
+            }}
+            placeholder="输入模型 ID，或从服务中加载"
+            className="modal-input h-[46px] min-w-0 flex-1 font-mono focus-ring"
+          />
+          <button
+            type="button"
+            onClick={() => void handleConnection(true)}
+            disabled={testing}
+            className="inline-flex h-[46px] shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60 focus-ring"
+          >
+            {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            加载模型
+          </button>
+        </div>
+        {form.models.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {form.models.map((model) => (
+              <span key={model} className="inline-flex items-center gap-1 rounded-md bg-primary/10 py-1 pl-2 pr-1 font-mono text-xs text-primary">
+                {model}
+                <button type="button" onClick={() => updateForm('models', form.models.filter((item) => item !== model))} className="rounded p-0.5 hover:bg-primary/15 focus-ring" aria-label={`移除 ${model}`}>
+                  <XCircle className="h-3.5 w-3.5" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+      </Field>
+    </div>
+  );
+
+  // 移动端：全屏表单，操作按钮沉底常驻，状态提示独立一行
+  if (isMobile) {
+    return (
+      <>
+        <BaseModal
+          isOpen={isOpen}
+          onClose={onClose}
+          title={null}
+          showCloseButton={false}
+          maxWidth="max-w-full"
+          fullScreen
+          className="p-0"
+          bodyClassName="p-0 overflow-hidden flex flex-col min-h-0"
+        >
+          <div className="flex h-full min-h-0 w-full flex-col bg-background text-foreground">
+            <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2.5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Server className="h-[18px] w-[18px]" />
+              </div>
+              <h2 className="min-w-0 flex-1 truncate text-[18px] font-bold text-foreground">
+                {service ? '编辑连接' : '添加模型服务'}
+              </h2>
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors active:bg-muted focus-ring"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-4">
+              {formFields}
+              {status && <div className="mt-4">{statusLine}</div>}
+            </div>
+
+            {/* 底部操作栏：保存与测试连接同等可达 */}
+            <div className="flex shrink-0 items-center gap-2 border-t border-border bg-muted/10 px-3.5 py-3">
+              <button
+                type="button"
+                onClick={() => void handleConnection(false)}
+                disabled={testing}
+                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-border text-[15px] font-medium text-foreground transition-colors active:bg-muted disabled:cursor-not-allowed disabled:opacity-60 focus-ring"
+              >
+                {testing && <Loader2 className="h-4 w-4 animate-spin" />}
+                测试连接
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleSave()}
+                className="flex h-11 flex-1 items-center justify-center rounded-lg bg-primary text-[15px] font-medium text-primary-foreground transition-colors active:bg-primary/90 focus-ring"
+              >
+                保存
+              </button>
+            </div>
+          </div>
+        </BaseModal>
+
+        <ModelPickerModal
+          isOpen={showModelPicker}
+          models={discoveredModels}
+          selectedModels={selectedModels}
+          onToggle={(model) => setSelectedModels((current) => current.includes(model) ? current.filter((item) => item !== model) : [...current, model])}
+          onClose={() => setShowModelPicker(false)}
+          onConfirm={() => {
+            updateForm('models', Array.from(new Set([...form.models, ...selectedModels])));
+            setShowModelPicker(false);
+          }}
+        />
+      </>
+    );
+  }
+
+  const footer = (
+    <div className="flex w-full items-center justify-between gap-3">
+      <div className="min-w-0">{statusLine}</div>
       <div className="flex shrink-0 items-center gap-2">
         <button type="button" onClick={onClose} className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary focus-ring">
           取消
@@ -396,75 +743,7 @@ function AiServiceFormModal({ isOpen, service, onClose, onSaved }: AiServiceForm
         bodyClassName="p-5 sm:p-6"
         footer={footer}
       >
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            {service ? `修改“${service.name}”的连接配置。留空 API Key 将保留现有凭据。` : '连接一个兼容 OpenAI 接口的模型服务。'}
-          </p>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="服务名称">
-              <input value={form.name} onChange={(event) => updateForm('name', event.target.value)} placeholder="例如 DeepSeek" className="modal-input h-[46px] focus-ring" />
-            </Field>
-            <Field label="API 协议">
-              <ProtocolSelect value={form.protocol} onChange={handleProtocolChange} />
-            </Field>
-          </div>
-
-          <Field label="Base URL">
-            <input value={form.baseUrl} onChange={(event) => updateForm('baseUrl', event.target.value)} placeholder="https://api.example.com/v1" className="modal-input font-mono focus-ring" />
-          </Field>
-
-          <Field label={protocol?.requiresApiKey ? 'API Key' : 'API Key（可选）'}>
-            <input type="password" value={form.apiKey} onChange={(event) => updateForm('apiKey', event.target.value)} placeholder={service ? '已保存；输入新密钥可替换' : protocol?.requiresApiKey ? '请输入 API Key' : '此协议无需 API Key'} autoComplete="new-password" className="modal-input focus-ring" />
-          </Field>
-
-          <Field
-            label={(
-              <div className="flex items-center justify-between gap-3">
-                <span>模型 ID</span>
-                <button type="button" onClick={addManualModel} className="text-xs font-medium text-primary hover:text-primary/80 focus-ring">
-                  手动添加
-                </button>
-              </div>
-            )}
-          >
-            <div className="flex gap-2">
-              <input
-                value={form.modelInput}
-                onChange={(event) => updateForm('modelInput', event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    addManualModel();
-                  }
-                }}
-                placeholder="输入模型 ID，或从服务中加载"
-                className="modal-input h-[46px] min-w-0 flex-1 font-mono focus-ring"
-              />
-              <button
-                type="button"
-                onClick={() => void handleConnection(true)}
-                disabled={testing}
-                className="inline-flex h-[46px] shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60 focus-ring"
-              >
-                {testing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                加载模型
-              </button>
-            </div>
-            {form.models.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {form.models.map((model) => (
-                  <span key={model} className="inline-flex items-center gap-1 rounded-md bg-primary/10 py-1 pl-2 pr-1 font-mono text-xs text-primary">
-                    {model}
-                    <button type="button" onClick={() => updateForm('models', form.models.filter((item) => item !== model))} className="rounded p-0.5 hover:bg-primary/15 focus-ring" aria-label={`移除 ${model}`}>
-                      <XCircle className="h-3.5 w-3.5" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </Field>
-        </div>
+        {formFields}
       </BaseModal>
 
       <ModelPickerModal

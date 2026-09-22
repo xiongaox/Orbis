@@ -30,6 +30,7 @@ import { caseMarkdownComponents, authorMarkdownComponents } from '../components/
 import CaseStudyBaziChart from '../components/CaseStudyBaziChart';
 import CaseStudyDayunPanel from '../components/CaseStudyDayunPanel';
 import CaseStudyQimenChart from '../components/CaseStudyQimenChart';
+import CasePreviewUnlock from '../components/CasePreviewUnlock';
 import DuanFaPage from '../DuanFaPage';
 import LearningPanelFAB from '../components/LearningPanelFAB';
 import FavoriteButton from '../components/FavoriteButton';
@@ -55,6 +56,7 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
         qimenResult, qimenMethod, setQimenMethod,
         setIsJuDialogOpen, setIsLearningPanelOpen,
         contentScrollRef, savedProgress, currentProgress, restoreProgress,
+        isPreviewMode, libraryTotal, libraryGroupTotals, previewsPerGroup, openActivation,
     } = props;
 
     // 断法模块使用独立布局（仅桌面和 Pad）
@@ -82,6 +84,11 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
                             <h1 className="text-lg lg:text-2xl font-serif font-bold text-primary/90">
                                 {activeCase.title}
                             </h1>
+                            {activeCase.isPreview && (
+                                <span className="shrink-0 text-[10px] leading-none px-1.5 py-1 rounded border border-primary/30 bg-primary/10 text-primary">
+                                    试读
+                                </span>
+                            )}
                             {isAuthenticated && (
                                 <FavoriteButton articleId={activeCase.id} />
                             )}
@@ -101,6 +108,14 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
                                     {activeCase.content.replace(/^(命主生辰|性别|日主|格局|令地)[：:][^\n]*\n?/gm, '').replace(/^#\s+[^\n]+\n?/, '').replace(/^\n+/, '')}
                                 </ReactMarkdown>
                             </div>
+                        )}
+                        {activeCase.isPreview && (
+                            <CasePreviewUnlock
+                                previewChars={activeCase.previewChars}
+                                fullChars={activeCase.fullChars}
+                                libraryTotal={libraryTotal}
+                                onActivate={openActivation}
+                            />
                         )}
                     </div>
                 </div>
@@ -158,7 +173,7 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
 
     const chartPanel = (
         <div className="h-full bg-muted/10 flex flex-col overflow-hidden">
-            {(activeCase && chartCount > 1) ? (
+            {(activeCase && chartCount > 1 && !isPreviewMode) ? (
                 <div className="p-2 border-b border-border bg-muted/20 flex justify-between items-center h-[40px]">
                     <span className="text-xs font-medium text-muted-foreground">排盘信息</span>
                     <div className="flex space-x-1">
@@ -180,7 +195,9 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
             )}
 
             <div className="flex-1 overflow-y-auto p-0 scrollbar-thin scrollbar-thumb-border/40 scrollbar-track-transparent flex flex-col">
-                {selectedCategory === 'bazi' && activeCase ? (
+                {isPreviewMode ? (
+                    <CasePreviewUnlock variant="panel" libraryTotal={libraryTotal} onActivate={openActivation} />
+                ) : selectedCategory === 'bazi' && activeCase ? (
                     <>
                         <div className="flex-shrink-0">
                             <CaseStudyBaziChart data={baziData} selectedDaYunIndex={selectedDaYunIndex} selectedLiuNianYear={selectedLiuNianYear} isMobile={false} />
@@ -228,6 +245,8 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
                 searchTerm={searchTerm} currentPage={currentPage} totalPages={totalPages}
                 onSelectCase={handleSelectCase} onSelectDayMaster={handleSelectDayMaster}
                 onSearchChange={setSearchTerm} onPageChange={setCurrentPage} onSelectAuthor={handleSelectAuthor}
+                isPreviewMode={isPreviewMode} onRequestActivate={openActivation}
+                libraryGroupTotals={libraryGroupTotals} libraryTotal={libraryTotal} previewsPerGroup={previewsPerGroup}
             />
             <div className="w-[55%] h-full flex flex-col overflow-hidden">
                 {contentColumn}

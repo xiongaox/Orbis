@@ -28,6 +28,13 @@ async function invokeDesktop<T>(command: string, args?: Record<string, unknown>)
     return invoke<T>(command, args);
 }
 
+/** 当前环境是否具备激活能力：浏览器环境读不到机器码，也没有本地解密与落盘通道。 */
+export function isActivationSupported(): boolean {
+    return typeof window !== 'undefined' && Boolean(
+        (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__,
+    );
+}
+
 export const publicCaseLibraryService = {
     async getStatus(): Promise<CasesStatus> {
         return invokeDesktop<CasesStatus>('get_cases_status');

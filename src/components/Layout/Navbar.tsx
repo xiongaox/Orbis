@@ -20,6 +20,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Compass, Grid3X3, Sun, Moon, Menu, Star } from 'lucide-react';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { openExternalUrl } from '../../utils/browserUtil';
 import BaseModal from '../UI/BaseModal';
 import SideDrawer from '../UI/SideDrawer';
 import { profileService } from '../../services/profileService';
@@ -164,6 +165,12 @@ export default function Navbar({
                   href="https://github.com/xiongaox/Orbis"
                   target="_blank"
                   rel="noopener noreferrer"
+                  // 客户端 WebView 里 target=_blank 不会开系统浏览器，交给原生能力处理；
+                  // href 保留，便于浏览器环境与右键“复制链接”
+                  onClick={(event) => {
+                    event.preventDefault();
+                    void openExternalUrl('https://github.com/xiongaox/Orbis');
+                  }}
                   className={`hidden md:inline-flex ${useDesktopLayout ? 'lg:p-2' : 'p-2'} rounded-lg hover:bg-secondary/50 transition-colors`}
                   title="GitHub 仓库"
                 >
@@ -256,15 +263,12 @@ export default function Navbar({
       >
         <div className="flex flex-col items-center justify-center p-4 gap-4">
           <div className="w-full max-w-[280px] rounded-lg overflow-hidden flex items-center justify-center">
-            {import.meta.env.VITE_AUTHOR_QR_URL ? (
-              <img
-                src={import.meta.env.VITE_AUTHOR_QR_URL}
-                alt="微信二维码"
-                className="w-full h-auto object-contain"
-              />
-            ) : (
-              <span className="text-sm text-muted-foreground">未配置二维码</span>
-            )}
+            {/* 内嵌本地图片：客户端网络白名单会拦掉第三方图床域名 */}
+            <img
+              src="/author-qr.png"
+              alt="微信二维码"
+              className="w-full h-auto object-contain"
+            />
           </div>
           <p className="text-sm text-muted-foreground text-center">
             扫码添加作者微信<br />

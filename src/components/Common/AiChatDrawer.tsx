@@ -587,6 +587,13 @@ export default function AiChatDrawer({
         <div
           className="w-full sm:w-[520px] md:w-[580px] lg:w-[640px] max-w-[96vw] h-full bg-background border-l border-border shadow-2xl flex flex-col animate-slide-in-right z-10"
           onClick={(e) => e.stopPropagation()}
+          // 抽屉贴顶贴底，而浮层定位在视口上、拿不到根节点的安全区留白，头部会被安卓
+          // 系统栏盖住（见 MainActivity.kt 注入的 --safe-area-inset-*）。面板自带背景色，
+          // 系统栏区域仍铺满，只有内容被顶下来。
+          style={{
+            paddingTop: 'var(--safe-area-inset-top, 0px)',
+            paddingBottom: 'var(--safe-area-inset-bottom, 0px)',
+          }}
         >
           {/* Header */}
           <div className="p-3 sm:p-4 border-b border-border shrink-0 bg-card/95 backdrop-blur-md space-y-2.5 relative z-30">
@@ -869,7 +876,7 @@ export default function AiChatDrawer({
                   </div>
 
                   <div
-                    className={`relative group max-w-[92%] rounded-2xl p-3.5 text-xs sm:text-sm leading-relaxed ${
+                    className={`relative group max-w-[92%] rounded-2xl p-3.5 text-base leading-[1.75] ${
                       isUser
                         ? 'bg-card border border-border/80 text-foreground rounded-tr-xs shadow-xs space-y-2'
                         : msg.error
@@ -909,7 +916,7 @@ export default function AiChatDrawer({
                     )}
 
                     {/* 正文内容：用户提问与 AI 回答均全面支持 Markdown 渲染 */}
-                    <div className="prose dark:prose-invert prose-xs max-w-none break-words leading-relaxed space-y-2">
+                    <div className="max-w-none break-words font-reading">
                       <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={drawerMarkdownComponents}>
                         {msg.content}
                       </ReactMarkdown>
@@ -944,7 +951,7 @@ export default function AiChatDrawer({
                   <span className="text-primary font-medium">思考与推演中...</span>
                 </div>
 
-                <div className="relative max-w-[92%] rounded-2xl rounded-tl-xs p-3.5 text-xs sm:text-sm leading-relaxed bg-card border border-border/80 text-foreground shadow-xs space-y-2.5">
+                <div className="relative max-w-[92%] rounded-2xl rounded-tl-xs p-3.5 text-base leading-[1.75] bg-card border border-border/80 text-foreground shadow-xs space-y-2.5">
                   {/* 流式思维链展示 */}
                   {streamingReasoning && (
                     <div className="rounded-xl border border-border/60 bg-muted/30 overflow-hidden text-xs">
@@ -962,7 +969,7 @@ export default function AiChatDrawer({
 
                   {/* 流式正文 */}
                   {streamingText ? (
-                    <div className="prose dark:prose-invert prose-xs max-w-none break-words leading-relaxed space-y-2">
+                    <div className="max-w-none break-words font-reading">
                       <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={drawerMarkdownComponents}>
                         {streamingText}
                       </ReactMarkdown>

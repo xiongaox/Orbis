@@ -80,6 +80,7 @@
 新建文件：
 1. `scripts/cases-keygen.ts`：密钥对生成与用户激活码签发工具。
 2. `scripts/pack-cases.ts`：案例语料离线打包与 AES-256 加密工具。
+3. `scripts/build-case-previews.ts`：试读样章生成工具（未激活状态下的公开样本）。
 
 #### 1. 签名与激活码生成 (`scripts/cases-keygen.ts`)
 ```typescript
@@ -112,6 +113,16 @@
 * **处理流**：
   `JSON 序列化` -> `Gzip 压缩` -> `AES-256-GCM 加密(附带 Auth Tag 和 IV)` -> 输出单个文件 `dist-cases/cases_v1.enc`。
 * **分发**：将 `cases_v1.enc` 上传至阿里云 OSS Bucket，设置公共读权限。
+
+#### 3. 试读样章生成 (`scripts/build-case-previews.ts`)
+* **目的**：未激活用户也能读到每个分类的样章，先看质量再决定激活，激活入口由用户显式触发。
+* **输出**：`src/lib/caseStudy/casePreviews.generated.ts`（随前端产物打包，`npm run cases:previews` 重新生成）。
+* **规则**：
+  - 按 `域/分类` 分组（八字 11 个日主/格局分类、奇门 15 个占事分类），每组挑 2 篇（作者轮转，尽量覆盖不同作者）；
+  - 正文按段落截取到约 1200 字，且不超过全文 40%，段落/句读边界截断；标题与 `命主生辰/日主` 等元数据行保留原貌；
+  - 试读条目 id 与加密包内的案例 id 完全一致，激活后同一 id 直接由完整正文接管；
+  - 断法专栏本就在应用内以明文提供，不参与挑篇；可在 `scripts/case-preview-picks.json` 中指定篇目或把某分类置为 `[]` 关闭试读。
+* **安全边界**：该文件是**刻意公开**的试读明文，只包含截断片段；完整正文仍只存在于加密包内，应用运行时不得把解密正文写入任何明文文件或存储。
 
 ---
 
@@ -206,14 +217,17 @@ export const publicCaseLibraryService = {
 };
 ```
 
-#### 2. 案例学习页面激活遮罩弹窗 (`src/components/Modules/CaseStudy/ActivationModal.tsx`)
-* 当 `getStatus().isActivated === false` 时触发。
-* **视觉设计**：
-  - 符合项目整体设计规范（Tailwind + CSS 变量 token，支持暗色主题，磨砂玻璃半透明质感）；
+#### 2. 试读态与激活弹窗 (`src/components/Modules/CaseStudy/`)
+* **试读态**：`getStatus().is_activated === false`（含非桌面端）时不再弹遮罩，而是加载内置试读样章，用户可直接浏览分类与样章正文。
+  - 列表：`CaseListSidebar` 顶部展示试读说明与“激活解锁全文”按钮，样章条目带“试读”标识；分类下拉与底部说明展示全库真实篇数（如“当前筛选共 36 篇 · 可试读 2 篇”）。
+  - 正文：样章末尾渲染 `CasePreviewUnlock` 解锁卡片，说明可读字数与全库规模；排盘区域同样提示排盘需激活后查看。
+  - 试读片段不参与排盘计算、不计入阅读进度，作者生平（`get_author_profile`）在试读态不可展开。
+* **激活弹窗** (`ActivationModal.tsx`)：由试读态中的激活按钮按需打开，未激活时不再强制遮挡页面。
+  - **视觉设计**：符合项目整体设计规范（Tailwind + CSS 变量 token，支持暗色主题）；
   - **展示当前设备识别码**，附带“一键复制”按钮与提示“请将此码发送给作者换取激活码”；
   - **激活码输入框**，支持格式化粘贴（自动去除首尾空格与换行）；
-  - 点击“激活并下载”后，进入 Loading 态（展示下载进度百分比及导入提示：“正在安全部署本地案例库...”）；
-  - 激活成功后自动刷新案例列表，无缝进入案例学习主界面。
+  - 点击“激活并解锁本地案例库”后进入 Loading 态（展示解密/导入阶段进度）；激活进行中不可关闭弹窗；
+  - 激活成功后自动刷新案例列表，当前阅读的试读条目以同一 id 无缝切换为完整正文。
 
 #### 3. 生产发布环境防窥配置
 在 `src-tauri/tauri.conf.json` 中配置：
@@ -238,6 +252,7 @@ export const publicCaseLibraryService = {
 | 阶段 | 交付物 | 验收标准 |
 | :--- | :--- | :--- |
 | **步骤 1** | 打包与签名脚本（`scripts/pack-cases.ts` 和 `keygen.ts`） | 1. 能正确遍历 748 篇案例打出 `< 3MB` 的 `.enc` 文件；<br>2. 能根据任意测试 Machine ID 生成有效签名。 |
+| **步骤 1b** | 试读样章（`scripts/build-case-previews.ts` → `casePreviews.generated.ts`） | 1. 每个八字/奇门分类均有 2 篇试读，且试读片段不超过全文 40%；<br>2. 试读 id 与加密包 id 一致。 |
 | **步骤 2** | Rust 后端实现（`src-tauri`） | 1. 机器码生成算法在 macOS / Windows 跨平台唯一且稳定；<br>2. 注入错误激活码时抛出拒绝异常；<br>3. 注入正确激活码时从 OSS 拉包、解包并加密灌库成功。 |
 | **步骤 3** | 前端服务与 UI 对接 | 1. 首次打开 CaseStudy 页面弹出激活弹窗；<br>2. 激活完成后，阅读案例不再向 Cloudflare 发送任何请求；<br>3. 断网环境下案例列表、正文、作者生平、八字奇门排盘 100% 正常运行。 |
 | **步骤 4** | 安全性实测 | 1. 打开本地 `.sqlite` 文件，确认 `encrypted_content` 字段为纯二进制乱码，无任何明文泄露；<br>2. 将数据库拷贝至第二台测试机，确认第二台机器无法解密，提示未激活或校验失败。 |

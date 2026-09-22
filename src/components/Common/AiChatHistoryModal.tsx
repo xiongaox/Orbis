@@ -15,6 +15,7 @@ import {
   Download,
   Brain,
   ChevronRight,
+  ChevronLeft,
   ChevronDown,
   Copy,
   Check,
@@ -31,6 +32,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import BaseModal from '../UI/BaseModal';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { drawerMarkdownComponents } from './markdownComponents';
 import {
   aiChatHistoryService,
@@ -46,12 +48,63 @@ const DIVINATION_TYPE_ICONS: Record<string, typeof Compass> = {
   sanyuan: Star,
 };
 
+// 移动端列表卡片空间有限，使用「八字 / 奇门 / 三元」简称
+const DIVINATION_TYPE_SHORT_NAMES: Record<string, string> = {
+  bazi: '八字',
+  qimen: '奇门',
+  sanyuan: '三元',
+};
+
+/**
+ * 列表预览文本需清除 Markdown 标记
+ * 会话内容为 AI 生成的 Markdown，直接截断会出现 `#`、`**` 等原始符号
+ */
+function stripMarkdownForPreview(text: string, maxLength = 90): string {
+  if (!text) return '';
+
+  const plain = text
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+    .replace(/^\s{0,3}>\s?/gm, '')
+    .replace(/^\s{0,3}(?:[-*+]|\d+\.)\s+/gm, '')
+    .replace(/\*\*\*([^*]+)\*\*\*/g, '$1')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/~~([^~]+)~~/g, '$1')
+    .replace(/^[-*_]{3,}\s*$/gm, ' ')
+    .replace(/[|#]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return plain.length > maxLength ? `${plain.slice(0, maxLength)}…` : plain;
+}
+
+/**
+ * 会话标题解析
+ * 存量数据可能直接把案例名当作标题，案例名为命主姓名，不可作为会话标题展示
+ */
+function resolveSessionTitle(s: AiChatSession): string {
+  if (s.title && s.title !== s.caseName) return s.title;
+
+  const firstUserMsg = s.messages.find((m) => m.role === 'user');
+  return firstUserMsg
+    ? extractSmartTitleFromQuestion(firstUserMsg.content, s.divinationType)
+    : '命理综合研判';
+}
+
 interface AiChatHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
 export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryModalProps) {
+  // 端判定：移动端（含 Pad 竖屏）使用全屏两级视图，桌面端保持原有三栏布局
+  const isMobile = !useMediaQuery('(min-width: 768px)');
+
   const sessions = useSyncExternalStore(
     aiChatHistoryService.subscribe,
     aiChatHistoryService.getAllSessions,
@@ -59,6 +112,8 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
   );
 
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  // 移动端视图层级：列表页 / 详情页
+  const [mobileView, setMobileView] = useState<'list' | 'detail'>('list');
   const [activeTypeTab, setActiveTypeTab] = useState<string>('all'); // 'all' | 'bazi' | 'qimen' | ...
   const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState('');
@@ -83,6 +138,19 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
     });
     return counts;
   }, [sessions]);
+
+  // 移动端顶部横向分类项（含「全部」）
+  const typeNavItems = useMemo(
+    () => [
+      { id: 'all', shortName: '全部', count: sessionCountsByType.all || 0 },
+      ...SUPPORTED_DIVINATION_TYPES.map((t) => ({
+        id: t.id as string,
+        shortName: DIVINATION_TYPE_SHORT_NAMES[t.id] || t.name,
+        count: sessionCountsByType[t.id] || 0,
+      })),
+    ],
+    [sessionCountsByType]
+  );
 
   // 过滤后的会话
   const filteredSessions = useMemo(() => {
@@ -272,13 +340,7 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
     });
 
     // 严禁使用命主姓名作为会话条目标题
-    let displayTitle = s.title;
-    if (!displayTitle || displayTitle === s.caseName) {
-      const firstUserMsg = s.messages.find((m) => m.role === 'user');
-      displayTitle = firstUserMsg
-        ? extractSmartTitleFromQuestion(firstUserMsg.content, s.divinationType)
-        : '命理综合研判';
-    }
+    const displayTitle = resolveSessionTitle(s);
 
     return (
       <div
@@ -312,10 +374,441 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
     );
   };
 
+  // 关闭弹窗时重置移动端视图层级，避免下次打开仍停留在详情页
+  // 由 BaseModal 统一回调（关闭按钮 / 遮罩 / Esc 均走此处）
+  const handleClose = () => {
+    setMobileView('list');
+    onClose();
+  };
+
+  // 会话操作按钮组：桌面详情栏与移动端详情页共用
+  const renderSessionActions = (session: AiChatSession) => (
+    <div className="flex items-center gap-1.5 shrink-0 pr-0.5">
+      {/* 收藏按钮 */}
+      <button
+        type="button"
+        onClick={() => handleToggleFavorite(session.id)}
+        title={session.isFavorite ? '取消收藏' : '加入收藏'}
+        className={`p-1.5 rounded-lg border transition-colors cursor-pointer shrink-0 ${
+          session.isFavorite
+            ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40'
+            : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'
+        }`}
+      >
+        <Star className={`w-4 h-4 ${session.isFavorite ? 'fill-current' : ''}`} />
+      </button>
+
+      {/* 导出 Markdown 按钮 */}
+      <button
+        type="button"
+        onClick={handleExportMarkdown}
+        disabled={exportState === 'busy'}
+        title="导出为 Markdown 文件"
+        className={`p-1.5 rounded-lg border transition-colors cursor-pointer flex items-center gap-1 text-xs shrink-0 ${
+          exportState === 'error'
+            ? 'border-destructive/40 text-destructive'
+            : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'
+        }`}
+      >
+        {exportState === 'done' ? (
+          <Check className="w-4 h-4 text-emerald-500" />
+        ) : (
+          <Download className="w-4 h-4" />
+        )}
+        <span className="hidden sm:inline">
+          {exportState === 'busy'
+            ? '导出中…'
+            : exportState === 'done'
+              ? '已导出'
+              : exportState === 'error'
+                ? '导出失败'
+                : '导出 MD'}
+        </span>
+      </button>
+
+      {/* 删除单条会话按钮 */}
+      <div className="relative shrink-0" ref={deleteSessionRef}>
+        <button
+          type="button"
+          onClick={() => setShowDeleteSessionConfirm((prev) => !prev)}
+          title="删除此会话记录"
+          className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer flex items-center justify-center shrink-0"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+
+        {showDeleteSessionConfirm && (
+          <div className="absolute right-0 top-full mt-2 z-50 w-52 p-3 rounded-xl border border-border bg-popover text-popover-foreground shadow-xl text-xs space-y-2 animate-in fade-in zoom-in-95 duration-150">
+            <div className="font-semibold flex items-center gap-1.5 text-foreground">
+              <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
+              <span>删除此会话？</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              删除后将无法恢复该案例的本次对话记录。
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/40">
+              <button
+                type="button"
+                onClick={() => setShowDeleteSessionConfirm(false)}
+                className="px-2 py-1 rounded text-xs text-muted-foreground hover:bg-muted cursor-pointer"
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteCurrentSession}
+                className="px-2.5 py-1 rounded text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium cursor-pointer"
+              >
+                删除
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // 消息流：桌面与移动端共用，仅外层容器间距不同
+  const renderMessageStream = (session: AiChatSession, containerClassName: string) => (
+    <div className={containerClassName}>
+      {session.messages.map((msg, idx) => {
+        const isUser = msg.role === 'user';
+        const isCopied = copiedMsgId === msg.id;
+
+        return (
+          <div
+            key={msg.id || idx}
+            className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} space-y-1`}
+          >
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground px-1">
+              <span>{isUser ? '我' : `${session.divinationTypeName} AI 研判`}</span>
+              <span>·</span>
+              <span>
+                {new Date(msg.timestamp).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
+            </div>
+
+            <div
+              className={`relative group max-w-[92%] rounded-xl p-3.5 text-base leading-[1.75] ${
+                isUser
+                  ? 'bg-card border border-border text-foreground rounded-tr-xs shadow-xs space-y-2'
+                  : 'bg-card border border-border text-foreground rounded-tl-xs shadow-xs space-y-2'
+              }`}
+            >
+              {/* 复制按钮 */}
+              <button
+                type="button"
+                onClick={() => handleCopyText(msg.id, msg.content)}
+                className="absolute right-2 top-2 p-1 rounded-md bg-background/80 hover:bg-muted text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                title="复制内容"
+              >
+                {isCopied ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </button>
+
+              {/* 思考过程折叠 */}
+              {!isUser && msg.reasoning && (
+                <div className="rounded-lg border border-border/60 bg-muted/30 overflow-hidden mb-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedReasonings((prev) => ({
+                        ...prev,
+                        [msg.id]: !prev[msg.id],
+                      }))
+                    }
+                    className="w-full px-2.5 py-1.5 text-xs text-muted-foreground flex items-center justify-between hover:bg-muted/50 transition-colors"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Brain className="w-3.5 h-3.5 text-primary" />
+                      思考推导过程
+                    </span>
+                    <ChevronDown
+                      className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                        expandedReasonings[msg.id] ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+                  {expandedReasonings[msg.id] && (
+                    <div className="p-2.5 text-xs text-muted-foreground/90 font-mono bg-background/40 border-t border-border/40 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+                      {msg.reasoning}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 消息正文：用户提问与 AI 回复均全面支持 Markdown 渲染 */}
+              <div className="max-w-none break-words font-reading">
+                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={drawerMarkdownComponents}>
+                  {msg.content}
+                </ReactMarkdown>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  // 移动端会话卡片：扁平列表，标题与摘要优先，案例名降为附属信息
+  const renderMobileSessionCard = (s: AiChatSession) => {
+    const lastMsg = s.messages[s.messages.length - 1];
+    const timeDisplay = new Date(s.updatedAt).toLocaleDateString([], {
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const preview = stripMarkdownForPreview(lastMsg?.content || '', 62);
+    const typeLabel = DIVINATION_TYPE_SHORT_NAMES[s.divinationType] || s.divinationTypeName;
+
+    return (
+      <button
+        key={s.id}
+        type="button"
+        onClick={() => {
+          setSelectedSessionId(s.id);
+          setMobileView('detail');
+        }}
+        className="w-full text-left rounded-xl border border-border bg-card px-3.5 py-3 transition-colors active:bg-muted/60 hover:bg-muted/40 cursor-pointer"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              {s.isFavorite && (
+                <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500 shrink-0" />
+              )}
+              <span className="text-[15px] font-semibold text-foreground truncate">
+                {resolveSessionTitle(s)}
+              </span>
+            </div>
+
+            <p className="mt-1 text-[13px] leading-snug text-muted-foreground line-clamp-2">
+              {preview || '暂无问答'}
+            </p>
+
+            <div className="mt-1.5 text-[12px] text-muted-foreground/80 truncate">
+              {typeLabel}
+              {s.caseName ? ` · ${s.caseName}` : ''}
+            </div>
+          </div>
+
+          <div className="shrink-0 text-right text-[12px] text-muted-foreground">
+            <div className="font-mono">{timeDisplay}</div>
+            <div className="mt-0.5 opacity-80">{s.messages.length} 轮</div>
+          </div>
+        </div>
+      </button>
+    );
+  };
+
+  // 移动端：全屏两级视图（列表页 ⇄ 详情页），不使用桌面三栏结构
+  if (isMobile) {
+    const showDetail = mobileView === 'detail' && !!currentSession;
+
+    return (
+      <BaseModal
+        isOpen={isOpen}
+        onClose={handleClose}
+        title="AI 研判对话历史"
+        maxWidth="max-w-full"
+        fullScreen
+        className="p-0"
+        bodyClassName="p-0 overflow-hidden flex flex-col min-h-0"
+      >
+        <div className="flex flex-col h-full w-full min-w-0 min-h-0 bg-background text-foreground">
+          {showDetail && currentSession ? (
+            <>
+              {/* 详情页头部：返回 + 命盘信息 + 操作 */}
+              <div className="shrink-0 px-3.5 py-3 border-b border-border bg-card/50">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setMobileView('list')}
+                    className="p-1 -ml-1 rounded-md text-muted-foreground active:bg-muted transition-colors cursor-pointer shrink-0"
+                    aria-label="返回列表"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+
+                  <div className="min-w-0 flex-1 flex items-center gap-2">
+                    <span className="text-[15px] font-semibold text-foreground truncate">
+                      {currentSession.caseName}
+                    </span>
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 shrink-0">
+                      {DIVINATION_TYPE_SHORT_NAMES[currentSession.divinationType] ||
+                        currentSession.divinationTypeName}
+                    </span>
+                  </div>
+
+                  {renderSessionActions(currentSession)}
+                </div>
+
+                <div className="text-[12px] text-muted-foreground flex items-center gap-x-3 gap-y-1 mt-1.5 pl-6 flex-wrap">
+                  <span className="flex items-center gap-1 shrink-0">
+                    <Clock className="w-3 h-3" />
+                    {new Date(currentSession.updatedAt).toLocaleString()}
+                  </span>
+                  {currentSession.meta?.solarDate && (
+                    <span className="flex items-center gap-1 shrink-0">
+                      <Calendar className="w-3 h-3" />
+                      {currentSession.meta.solarDate}
+                    </span>
+                  )}
+                  {currentSession.meta?.ganZhi && (
+                    <span className="truncate">干支：{currentSession.meta.ganZhi}</span>
+                  )}
+                </div>
+              </div>
+
+              {renderMessageStream(currentSession, 'flex-1 overflow-y-auto px-3.5 py-4 space-y-4')}
+            </>
+          ) : (
+            <>
+              {/* 列表页：顶部横向术数分类胶囊 */}
+              <div className="shrink-0 border-b border-border/60 bg-card/40">
+                <div className="flex items-center gap-2 px-3 py-2.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {typeNavItems.map((t) => {
+                    const isActive = activeTypeTab === t.id;
+                    const Icon = DIVINATION_TYPE_ICONS[t.id] || Compass;
+
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setActiveTypeTab(t.id)}
+                        className={`shrink-0 px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 border transition-colors cursor-pointer ${
+                          isActive
+                            ? 'bg-primary text-primary-foreground border-primary font-semibold'
+                            : 'bg-card border-border text-muted-foreground active:bg-muted/60'
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5 shrink-0" />
+                        <span>{t.shortName}</span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                            isActive
+                              ? 'bg-primary-foreground/20 text-primary-foreground'
+                              : 'bg-muted text-muted-foreground'
+                          }`}
+                        >
+                          {t.count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 搜索与收藏筛选 */}
+              <div className="shrink-0 px-3 py-2.5 border-b border-border/60 bg-muted/15 flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    placeholder="搜索案例、干支、问题..."
+                    className="w-full pl-8 pr-7 py-2 text-xs rounded-md bg-background border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/70"
+                  />
+                  {searchKeyword && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchKeyword('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-foreground cursor-pointer"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setOnlyFavorites((prev) => !prev)}
+                  title={onlyFavorites ? '展示全部会话' : '仅看已收藏会话'}
+                  className={`p-2 rounded-md border text-xs flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
+                    onlyFavorites
+                      ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40'
+                      : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                  }`}
+                >
+                  <Star className={`w-3.5 h-3.5 ${onlyFavorites ? 'fill-current' : ''}`} />
+                </button>
+              </div>
+
+              {/* 会话列表：移动端不做树形分组，直接按更新时间平铺 */}
+              <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+                {filteredSessions.length === 0 ? (
+                  <div className="py-16 flex flex-col items-center justify-center text-center text-muted-foreground space-y-2">
+                    <Layers className="w-8 h-8 opacity-30" />
+                    <div className="text-xs">暂无符合条件的对话历史</div>
+                  </div>
+                ) : (
+                  filteredSessions.map(renderMobileSessionCard)
+                )}
+              </div>
+
+              {/* 底部操作条 */}
+              <div className="shrink-0 px-3.5 py-3 border-t border-border bg-card/60 flex items-center justify-between text-xs text-muted-foreground">
+                <span>当前筛选 {filteredSessions.length} 条</span>
+
+                {filteredSessions.length > 0 && (
+                  <div className="relative" ref={clearAllRef}>
+                    <button
+                      type="button"
+                      onClick={() => setShowClearAllConfirm((prev) => !prev)}
+                      className="px-2 py-1 rounded text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>全部清空</span>
+                    </button>
+
+                    {showClearAllConfirm && (
+                      <div className="absolute right-0 bottom-full mb-2 z-50 w-56 p-3 rounded-xl border border-border bg-popover text-popover-foreground shadow-xl text-xs space-y-2 animate-in fade-in zoom-in-95 duration-150">
+                        <div className="font-semibold flex items-center gap-1.5 text-foreground">
+                          <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
+                          <span>确认全部清空？</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          将彻底删除{activeTypeTab === 'all' ? '所有术数' : '当前分类'}下的 AI
+                          对话记录，不可恢复。
+                        </p>
+                        <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/40">
+                          <button
+                            type="button"
+                            onClick={() => setShowClearAllConfirm(false)}
+                            className="px-2 py-1 rounded text-xs text-muted-foreground hover:bg-muted cursor-pointer"
+                          >
+                            取消
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleClearAll}
+                            className="px-2.5 py-1 rounded text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium cursor-pointer"
+                          >
+                            确认清空
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </BaseModal>
+    );
+  }
+
   return (
     <BaseModal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       title="AI 研判对话历史"
       maxWidth="max-w-6xl"
       bodyClassName="p-0 overflow-hidden flex flex-col min-h-0"
@@ -625,178 +1118,11 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
                 </div>
 
                 {/* 顶部操作按钮 */}
-                <div className="flex items-center gap-1.5 shrink-0 pr-0.5">
-                  {/* 收藏按钮 */}
-                  <button
-                    type="button"
-                    onClick={() => handleToggleFavorite(currentSession.id)}
-                    title={currentSession.isFavorite ? '取消收藏' : '加入收藏'}
-                    className={`p-1.5 rounded-lg border transition-colors cursor-pointer shrink-0 ${
-                      currentSession.isFavorite
-                        ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40'
-                        : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'
-                    }`}
-                  >
-                    <Star
-                      className={`w-4 h-4 ${currentSession.isFavorite ? 'fill-current' : ''}`}
-                    />
-                  </button>
-
-                  {/* 导出 Markdown 按钮 */}
-                  <button
-                    type="button"
-                    onClick={handleExportMarkdown}
-                    disabled={exportState === 'busy'}
-                    title="导出为 Markdown 文件"
-                    className={`p-1.5 rounded-lg border transition-colors cursor-pointer flex items-center gap-1 text-xs shrink-0 ${
-                      exportState === 'error'
-                        ? 'border-destructive/40 text-destructive'
-                        : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'
-                    }`}
-                  >
-                    {exportState === 'done' ? (
-                      <Check className="w-4 h-4 text-emerald-500" />
-                    ) : (
-                      <Download className="w-4 h-4" />
-                    )}
-                    <span className="hidden sm:inline">
-                      {exportState === 'busy'
-                        ? '导出中…'
-                        : exportState === 'done'
-                          ? '已导出'
-                          : exportState === 'error'
-                            ? '导出失败'
-                            : '导出 MD'}
-                    </span>
-                  </button>
-
-                  {/* 删除单条会话按钮 */}
-                  <div className="relative shrink-0" ref={deleteSessionRef}>
-                    <button
-                      type="button"
-                      onClick={() => setShowDeleteSessionConfirm((prev) => !prev)}
-                      title="删除此会话记录"
-                      className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors cursor-pointer flex items-center justify-center shrink-0"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-
-                    {showDeleteSessionConfirm && (
-                      <div className="absolute right-0 top-full mt-2 z-50 w-52 p-3 rounded-xl border border-border bg-popover text-popover-foreground shadow-xl text-xs space-y-2 animate-in fade-in zoom-in-95 duration-150">
-                        <div className="font-semibold flex items-center gap-1.5 text-foreground">
-                          <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
-                          <span>删除此会话？</span>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          删除后将无法恢复该案例的本次对话记录。
-                        </p>
-                        <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/40">
-                          <button
-                            type="button"
-                            onClick={() => setShowDeleteSessionConfirm(false)}
-                            className="px-2 py-1 rounded text-xs text-muted-foreground hover:bg-muted cursor-pointer"
-                          >
-                            取消
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleDeleteCurrentSession}
-                            className="px-2.5 py-1 rounded text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium cursor-pointer"
-                          >
-                            删除
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                {renderSessionActions(currentSession)}
               </div>
 
               {/* 消息历史滚动流 */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
-                {currentSession.messages.map((msg, idx) => {
-                  const isUser = msg.role === 'user';
-                  const isCopied = copiedMsgId === msg.id;
-
-                  return (
-                    <div
-                      key={msg.id || idx}
-                      className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} space-y-1`}
-                    >
-                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground px-1">
-                        <span>{isUser ? '我' : `${currentSession.divinationTypeName} AI 研判`}</span>
-                        <span>·</span>
-                        <span>
-                          {new Date(msg.timestamp).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                      </div>
-
-                      <div
-                        className={`relative group max-w-[92%] rounded-xl p-3.5 text-xs sm:text-sm leading-relaxed ${
-                          isUser
-                            ? 'bg-card border border-border text-foreground rounded-tr-xs shadow-xs space-y-2'
-                            : 'bg-card border border-border text-foreground rounded-tl-xs shadow-xs space-y-2'
-                        }`}
-                      >
-                        {/* 复制按钮 */}
-                        <button
-                          type="button"
-                          onClick={() => handleCopyText(msg.id, msg.content)}
-                          className="absolute right-2 top-2 p-1 rounded-md bg-background/80 hover:bg-muted text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                          title="复制内容"
-                        >
-                          {isCopied ? (
-                            <Check className="w-3.5 h-3.5 text-emerald-500" />
-                          ) : (
-                            <Copy className="w-3.5 h-3.5" />
-                          )}
-                        </button>
-
-                        {/* 思考过程折叠 */}
-                        {!isUser && msg.reasoning && (
-                          <div className="rounded-lg border border-border/60 bg-muted/30 overflow-hidden mb-2">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setExpandedReasonings((prev) => ({
-                                  ...prev,
-                                  [msg.id]: !prev[msg.id],
-                                }))
-                              }
-                              className="w-full px-2.5 py-1.5 text-xs text-muted-foreground flex items-center justify-between hover:bg-muted/50 transition-colors"
-                            >
-                              <span className="flex items-center gap-1.5">
-                                <Brain className="w-3.5 h-3.5 text-primary" />
-                                思考推导过程
-                              </span>
-                              <ChevronDown
-                                className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                                  expandedReasonings[msg.id] ? 'rotate-180' : ''
-                                }`}
-                              />
-                            </button>
-                            {expandedReasonings[msg.id] && (
-                              <div className="p-2.5 text-xs text-muted-foreground/90 font-mono bg-background/40 border-t border-border/40 whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
-                                {msg.reasoning}
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* 消息正文：用户提问与 AI 回复均全面支持 Markdown 渲染 */}
-                        <div className="prose prose-sm dark:prose-invert max-w-none text-xs sm:text-sm font-reading leading-relaxed break-words space-y-2">
-                          <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={drawerMarkdownComponents}>
-                            {msg.content}
-                          </ReactMarkdown>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              {renderMessageStream(currentSession, 'flex-1 overflow-y-auto p-4 sm:p-6 space-y-4')}
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-muted-foreground space-y-3">
