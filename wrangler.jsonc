@@ -1,5 +1,7 @@
 {
-    "name": "orbis",
+    // 本分支（tauri 本地化线）不发布 Cloudflare，正式站只有 main 分支会部署（见 scripts/deploy.mjs）。
+    // 这里保留 orbis-verify 作为兜底：即使有人绕过脚本裸敲 `npx wrangler deploy`，也打不到正式站 orbis。
+    "name": "orbis-verify",
     "main": "workers/case-library/src/index.ts",
     "compatibility_date": "2026-08-27",
     "d1_databases": [
