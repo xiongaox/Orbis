@@ -12,8 +12,14 @@
   "app": {
     "windows": [
       {
-        "title": "",
+        "label": "main",
+        "title": "Orbis",
         "width": 1800,
+        "height": 1000,
+        "minWidth": 960,
+        "minHeight": 640,
+        "center": true,
+        "preventOverflow": true,
         "resizable": true,
         "fullscreen": false,
         "devtools": false

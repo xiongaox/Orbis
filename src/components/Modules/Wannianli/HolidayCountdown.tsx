@@ -185,7 +185,7 @@ export default function HolidayCountdown({
             <div className="px-6 py-5 flex items-center justify-between">
                 <h3 className="text-md font-bold text-muted-foreground/100 tracking-[0.2em] uppercase flex items-center gap-2">
                     <span className="w-1 h-3 bg-primary rounded-full"></span>
-                    节日倒计时
+                    倒计时
                 </h3>
 
                 {/* Filter Toggle */}
