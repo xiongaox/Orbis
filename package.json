@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "deploy": "node scripts/deploy.mjs",
     "lint": "eslint .",
     "test": "vitest run",
     "preview": "vite preview"
