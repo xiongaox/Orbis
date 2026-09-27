@@ -1,11 +1,11 @@
 use cases::commands::{self, CasesState};
-use tauri::{LogicalSize, Manager};
 
 mod cases;
 
-const DEFAULT_WINDOW_WIDTH: f64 = 1800.0;
-const WINDOW_ASPECT_RATIO: f64 = 16.0 / 9.0;
-const WINDOW_MARGIN: f64 = 32.0;
+/// 窗口尺寸的唯一来源是 `tauri.conf.json`：
+/// 那里声明 1800×1000 并于首次创建时居中（`center: true`）。
+/// 不在 setup 阶段再次调用 set_size，否则会在窗口创建后二次改尺寸，
+/// 导致窗口在错误位置重新布局。
 
 #[tauri::command]
 fn open_external_url(url: String) -> Result<(), String> {
@@ -79,28 +79,6 @@ pub fn run() {
       write_text_file
     ])
     .setup(|app| {
-      let window = app
-        .get_webview_window("main")
-        .expect("main window must exist");
-
-      if let Some(monitor) = window.current_monitor()? {
-        let work_area = monitor
-          .work_area()
-          .size
-          .to_logical::<f64>(monitor.scale_factor());
-        let max_width = (work_area.width - WINDOW_MARGIN).max(640.0);
-        let max_height = (work_area.height - WINDOW_MARGIN).max(360.0);
-        let mut width = DEFAULT_WINDOW_WIDTH.min(max_width);
-        let mut height = width / WINDOW_ASPECT_RATIO;
-
-        if height > max_height {
-          height = max_height;
-          width = height * WINDOW_ASPECT_RATIO;
-        }
-
-        window.set_size(LogicalSize::new(width, height))?;
-      }
-
       if cfg!(debug_assertions) {
         app.handle().plugin(
           tauri_plugin_log::Builder::default()
