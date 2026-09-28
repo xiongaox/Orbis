@@ -24,7 +24,7 @@ import BaziChart from './BaziChart';
 import DayunLiunianPanel from './DayunLiunianPanel';
 import WuxingStatusBar from './WuxingStatusBar';
 import BaziBasicInfoPanel from './BaziBasicInfoPanel';
-import { getRealtimeClockData } from '../../../utils/lunarUtil';
+import { getRealtimeClockData, getCurrentBaziYear } from '../../../utils/lunarUtil';
 import { useBaziContext } from '../../../contexts/useBaziContext';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 
@@ -52,22 +52,9 @@ export default function BaziPage() {
     // 隐藏详情面板开关
     const [hideDetails, setHideDetails] = useState(isMobileLayout);
 
-    // 计算当前的八字年份（以立春为界）
-    const now = new Date();
-    // Solar.fromDate(now).getLunar().getYear() 返回的是农历年，通常符合八字年（除了立春和春节之间的空档）
-    // 为了更精确，应该判断立春。但 lunar-typescript 的 getYear() 通常是指春节界限。
-    // 如果要准确的八字年（立春界限），可以用 getYearInGanZhi() 拿到干支，然后反推？
-    // 或者简单法：如果月<2，则减1。但 lunar.getYear() 在春节前已经是上一年的数字了。
-    // 然而立春通常在春节前。
-    // 比如 2026 Feb 4 立春，2026 Feb 17 春节。
-    // Feb 10: 八字 Bing Wu (2026). Lunar 2025.
-    // So lunar.getYear() is 2025. Result: 2025. Correct? NO. Bing Wu is 2026.
-    // So we need Solar Year adjusted by LiChun.
-    // 简单的办法：如果月份是0 (Jan)，减1。如果是1 (Feb)，日 < 4，减1。
-    // 之前我们在 onGoToCurrentYear 里用了复杂的逻辑。
-    // 这里为了 UI 默认高亮，我们可以用简单逻辑：now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()。
-    // 这样最稳健，且类型为 number。
-    const simpleCurrentBaziYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+    // 当前八字年（以立春为界）：用于列表高亮与"当前流年"跳转，
+    // 统一走 lunarUtil 的 getCurrentBaziYear，避免自行用月份猜测导致立春前后错位。
+    const simpleCurrentBaziYear = getCurrentBaziYear().solarYear;
 
     return (
         <>
@@ -80,8 +67,12 @@ export default function BaziPage() {
                 isMobileLayout={isMobileLayout}
             />
             <div className={classNames(
-                'flex-1 min-h-0 min-w-0 grid grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] overflow-y-auto lg:overflow-hidden',
-                isMobileLayout ? 'gap-2 px-2 pb-2' : 'gap-4 px-4 lg:px-6 pb-4 lg:pb-6'
+                // 列宽以神煞四字（48px）+ 内边距（8px，px-1 py-1）为准，56px 即可不换行。
+                // 按 7 列（胎命身+四柱）上限取 5fr:7fr：排盘表约 467px（7 列 58px、6 列 67px），
+                // 右侧保留约 653px，与原始 2fr:3fr 的右栏宽度一致，信息不被截断。
+                'flex-1 min-h-0 min-w-0 grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] overflow-y-auto lg:overflow-hidden',
+                // 内容区内边距对齐奇门遁甲的紧凑规格（8px），把宽度让给排盘内容
+                'gap-2 px-2 pb-2'
             )}>
                 <BaziChart
                     data={baziData}
@@ -93,7 +84,7 @@ export default function BaziPage() {
                     isMobileLayout={isMobileLayout}
                     hideDetails={hideDetails}
                 />
-                <div className={classNames('flex flex-col min-h-0 lg:overflow-y-auto', isMobileLayout ? 'gap-2' : 'gap-4')}>
+                <div className={classNames('flex flex-col min-h-0 lg:overflow-y-auto', 'gap-2')}>
                     {/* 五行旺衰信息条 */}
                     <div className="flex-shrink-0">
                         <WuxingStatusBar
@@ -107,32 +98,39 @@ export default function BaziPage() {
                             isMobileLayout={isMobileLayout}
                             isPadLandscape={isPadLandscape}
                             onGoToCurrentYear={() => {
-                                // 使用 lunarUtil 封装获取当前干支年（以立春为界）
+                                // 当前八字年（以立春为界）：年份取当前公历年折算后的年号，
+                                // 干支取实时年柱。注意干支只能定位六十甲子中的一位，
+                                // 丙午对应 1906/1966/2026 三个年份，绝不能按干支反查流年表，
+                                // 否则长寿命例会跳到几十年前的同一个干支年。
                                 const now = new Date();
                                 const clockData = getRealtimeClockData(now);
-                                const currentGanZhi = clockData.eightChar.yearGan + clockData.eightChar.yearZhi;
+                                const { solarYear: baziYear, ganZhi: currentGanZhi } = getCurrentBaziYear(now);
+                                let targetYear = baziYear;
 
-                                // 默认年份：如果是1月，必然是上一年（因为立春在2月）；如果是其他月份，默认为当年
-                                // 这样即使干支匹配失败，也能得到正确的大致年份
-                                let targetYear = now.getFullYear();
-                                if (now.getMonth() === 0) {
-                                    targetYear = targetYear - 1;
-                                }
-
-                                // 在流年列表中查找匹配该干支的年份 (精确匹配)
+                                // 仅当该年号存在且干支自洽时直接使用；否则按干支就近匹配兜底
                                 if (baziData?.liuNian) {
-                                    const targetLiuNian = baziData.liuNian.find(ln => ln.ganZhi === currentGanZhi);
-                                    if (targetLiuNian) {
-                                        targetYear = targetLiuNian.year;
+                                    const exactMatch = baziData.liuNian.find(ln => ln.year === baziYear);
+                                    if (exactMatch) {
+                                        targetYear = exactMatch.year;
+                                    } else {
+                                        // 兜底：命例流年表未覆盖当前年（如起运前的年份），
+                                        // 取干支相同且与当前年号最接近的一项
+                                        const sameGanZhi = baziData.liuNian.filter(ln => ln.ganZhi === currentGanZhi);
+                                        if (sameGanZhi.length > 0) {
+                                            targetYear = sameGanZhi.reduce((closest, item) =>
+                                                Math.abs(item.year - baziYear) < Math.abs(closest.year - baziYear) ? item : closest
+                                            ).year;
+                                        }
                                     }
                                 }
 
                                 setSelectedLiuNianYear(targetYear);
 
-                                // 同时跳转到对应的大运
+                                // 同步跳转到目标年份所属的大运分页，避免当前流年落在未展示的大运页里
                                 if (baziData?.daYun) {
-                                    const targetDaYun = baziData.daYun.find(dy => targetYear >= dy.startYear && targetYear <= dy.endYear);
-                                    if (targetDaYun) {
+                                    const targetDaYunIndex = baziData.daYun.findIndex(dy => targetYear >= dy.startYear && targetYear <= dy.endYear);
+                                    if (targetDaYunIndex >= 0) {
+                                        const targetDaYun = baziData.daYun[targetDaYunIndex];
                                         setSelectedDaYunIndex(targetDaYun.index);
                                     } else {
                                         setSelectedDaYunIndex(null);

@@ -19,7 +19,6 @@
  */
 import type { PillarData } from '../../../../types/bazi';
 import { getElementColor } from '../../../../lib/xuan-bazi/maps/baziStyleMap';
-import { useIsPadLandscape } from '../../../../hooks/useIsPadLandscape';
 
 // ============ 四柱详情卡片 ============
 
@@ -40,8 +39,6 @@ export function DetailedPillarCard({
     isMobileLayout = false,
     hideDetails = false,
 }: DetailedPillarCardProps) {
-    const isPadLandscape = useIsPadLandscape();
-    const pxClass = isMobileLayout ? 'px-1' : isPadLandscape ? 'px-1' : 'px-2';
     return (
         <div className={`h-full flex flex-col ${isDayMaster ? 'bg-primary/5' : ''}`}>
             <div className="h-8 flex items-center justify-center border-b border-border bg-secondary/30">
@@ -66,9 +63,9 @@ export function DetailedPillarCard({
                     {pillar.dizhi}
                 </span>
             </div>
-            <div className={`${isMobileLayout ? 'h-[72px]' : 'h-[90px]'} py-2 ${pxClass} ${!(isMobileLayout && hideDetails) ? 'border-b border-border' : ''} flex flex-col justify-start gap-1`}>
+            <div className={`${isMobileLayout ? 'h-[72px]' : 'h-[90px]'} py-2 px-1 ${!(isMobileLayout && hideDetails) ? 'border-b border-border' : ''} flex flex-col justify-start gap-1`}>
                 {pillar.zanggan.map((item, index) => (
-                    <div key={`${item.gan}-${index}`} className={`flex items-center justify-center ${isMobileLayout ? 'gap-0 text-xs' : 'gap-1 text-sm'}`}>
+                    <div key={`${item.gan}-${index}`} className={`flex items-center justify-center whitespace-nowrap ${isMobileLayout ? 'gap-0 text-xs' : 'gap-1 text-sm'}`}>
                         <span className="font-medium" style={{ color: getElementColor(item.gan) }}>
                             {item.gan}
                         </span>
@@ -90,9 +87,10 @@ export function DetailedPillarCard({
                     <div className="h-10 flex items-center justify-center border-b border-border">
                         <span className="text-sm text-muted-foreground">{pillar.naYin}</span>
                     </div>
-                    <div className={`flex-1 ${isMobileLayout ? 'py-2 px-0.5' : isPadLandscape ? 'py-2 px-1' : 'p-2'} flex flex-col items-center justify-start gap-2 min-h-[100px]`}>
+                    <div className={`flex-1 ${isMobileLayout ? 'py-1 px-0.5 gap-1' : 'px-1 py-1 gap-2'} flex flex-col items-center justify-start min-h-[100px]`}>
                         {shensha.map((s, i) => (
-                            <span key={i} className={`${isMobileLayout ? 'text-[11px]' : 'text-xs'} text-foreground text-center`}>{s}</span>
+                            // 移动端窄列：四字神煞固定折成两字两行（限制为两字宽度，避免出现 3+1 断行）
+                            <span key={i} className={`${isMobileLayout ? 'text-[11px] max-w-[26px]' : 'text-xs'} text-foreground text-center`}>{s}</span>
                         ))}
                     </div>
                 </>
@@ -134,10 +132,8 @@ export function YunPillar({
     isMobileLayout = false,
     hideDetails = false,
 }: YunPillarProps) {
-    const isPadLandscape = useIsPadLandscape();
-    const pxClass = isMobileLayout ? 'px-1' : isPadLandscape ? 'px-1' : 'px-2';
     return (
-        <div className={`flex-1 border-r border-border last:border-r-0 flex flex-col ${isAccent ? 'bg-accent/5' : ''}`}>
+        <div className={`flex-1 ${isMobileLayout ? 'min-w-[44px]' : 'min-w-[56px]'} border-r border-border last:border-r-0 flex flex-col ${isAccent ? 'bg-accent/5' : ''}`}>
             <div className="h-8 flex items-center justify-center border-b border-border bg-secondary/30">
                 <span className={`text-xs ${isAccent ? 'text-foreground/70 font-medium' : 'text-muted-foreground'}`}>{label}</span>
             </div>
@@ -160,9 +156,9 @@ export function YunPillar({
                     {dizhi}
                 </span>
             </div>
-            <div className={`${isMobileLayout ? 'h-[72px]' : 'h-[90px]'} py-2 ${pxClass} ${!(isMobileLayout && hideDetails) ? 'border-b border-border' : ''} flex flex-col justify-start gap-1`}>
+            <div className={`${isMobileLayout ? 'h-[72px]' : 'h-[90px]'} py-2 px-1 ${!(isMobileLayout && hideDetails) ? 'border-b border-border' : ''} flex flex-col justify-start gap-1`}>
                 {zanggan.map((item, index) => (
-                    <div key={`${item.gan}-${index}`} className={`flex items-center justify-center ${isMobileLayout ? 'gap-0 text-xs' : 'gap-1 text-sm'}`}>
+                    <div key={`${item.gan}-${index}`} className={`flex items-center justify-center whitespace-nowrap ${isMobileLayout ? 'gap-0 text-xs' : 'gap-1 text-sm'}`}>
                         <span className="font-medium" style={{ color: getElementColor(item.gan) }}>
                             {item.gan}
                         </span>
@@ -184,9 +180,10 @@ export function YunPillar({
                     <div className="h-10 flex items-center justify-center border-b border-border">
                         <span className="text-sm text-muted-foreground">{nayin}</span>
                     </div>
-                    <div className={`flex-1 ${isMobileLayout ? 'py-2 px-0.5' : isPadLandscape ? 'py-2 px-1' : 'p-2'} flex flex-col items-center justify-start gap-2 min-h-[100px]`}>
+                    <div className={`flex-1 ${isMobileLayout ? 'py-1 px-0.5 gap-1' : 'px-1 py-1 gap-2'} flex flex-col items-center justify-start min-h-[100px]`}>
                         {shensha.map((s, i) => (
-                            <span key={i} className={`${isMobileLayout ? 'text-[11px]' : 'text-xs'} text-foreground text-center`}>{s}</span>
+                            // 移动端窄列：四字神煞固定折成两字两行（限制为两字宽度，避免出现 3+1 断行）
+                            <span key={i} className={`${isMobileLayout ? 'text-[11px] max-w-[26px]' : 'text-xs'} text-foreground text-center`}>{s}</span>
                         ))}
                     </div>
                 </>

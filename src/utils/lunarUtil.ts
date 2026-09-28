@@ -11,7 +11,7 @@
  * - 向上层提供稳定可复用能力
  *
  * 主要导出：
- * - `EightCharResult`, `LunarDateInfo`, `RealtimeClockData`, `getEightCharFromDate`, `getEightCharFromYmd`, `getBaziPillarsFromDateString`, `getRealtimeClockData`, `getLunarToSolarDate`, `getSolarToLunarInfo`, `getLunarMonthDays`, `getAgeFromBirth`
+ * - `EightCharResult`, `LunarDateInfo`, `RealtimeClockData`, `getEightCharFromDate`, `getEightCharFromYmd`, `getBaziPillarsFromDateString`, `getRealtimeClockData`, `getBaziYearGanZhi`, `getCurrentBaziYear`, `getLunarToSolarDate`, `getSolarToLunarInfo`, `getLunarMonthDays`, `getAgeFromBirth`
  *
  * 依赖关系：
  * - 上游依赖：外部依赖 `lunar-typescript`
@@ -216,6 +216,60 @@ export function getRealtimeClockData(date: Date): RealtimeClockData {
             hour: eightChar.getTimeGan() + eightChar.getTimeZhi(),
         },
     };
+}
+
+/**
+ * 获取某个公历年所对应的八字年干支（以立春为界）。
+ *
+ * 取该年 6 月 15 日（必定晚于立春、且不跨到下一年立春）求年干支，
+ * 因此不受"农历新年"与"立春"错位的影响，比取 1 月日期更稳健。
+ *
+ * @param solarYear 公历年
+ * @returns 年干支（如 '丙午'）；计算失败时返回空字符串
+ */
+export function getBaziYearGanZhi(solarYear: number): string {
+    try {
+        return Solar.fromYmd(solarYear, 6, 15).getLunar().getYearInGanZhi();
+    } catch (e) {
+        console.error('八字年干支计算错误:', e);
+        return '';
+    }
+}
+
+/**
+ * 获取当前时刻所属的八字年（以立春为界）及其干支。
+ *
+ * 干支只能定位到"六十甲子中的某一位"，存在多个候选公历年（如丙午对应
+ * 1906/1966/2026）。真正的年份必须用「当前公历年按立春折算后的年号」来确定。
+ *
+ * @param date 参照时刻，默认当前时间
+ * @returns solarYear 八字年对应的公历年号、ganZhi 该年的年干支
+ */
+export function getCurrentBaziYear(date: Date = new Date()): { solarYear: number; ganZhi: string } {
+    const clockData = getRealtimeClockData(date);
+    const ganZhi = clockData.eightChar.yearGan + clockData.eightChar.yearZhi;
+
+    // 八字年以立春换年：1 月必然还属上一年；2 月需按立春的日/时判断。
+    // 立春最早出现在 2 月 3 日、最晚 2 月 5 日，这里取保守的 2 月 4 日界限，
+    // 用于"当前公历年 → 八字年号"的降级估算。
+    let solarYear = date.getFullYear();
+    const month = date.getMonth(); // 0-based
+    if (month === 0 || (month === 1 && date.getDate() < 4)) {
+        solarYear -= 1;
+    }
+
+    // 若该估算年号的干支与实时干支不一致（立春边界日内可能发生），
+    // 用相邻年份自校验一次，确保年号与干支自洽。
+    if (ganZhi && getBaziYearGanZhi(solarYear) !== ganZhi) {
+        const prevGanZhi = getBaziYearGanZhi(solarYear - 1);
+        if (prevGanZhi === ganZhi) {
+            solarYear -= 1;
+        } else if (getBaziYearGanZhi(solarYear + 1) === ganZhi) {
+            solarYear += 1;
+        }
+    }
+
+    return { solarYear, ganZhi };
 }
 
 /**

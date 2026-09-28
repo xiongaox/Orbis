@@ -47,14 +47,15 @@ export default function GanZhiLiuYiPanel({
     const renderItems = (items?: GanZhiLiuYiResult[]) => {
         if (!items || items.length === 0) return null;
         return (
-            <div className="flex flex-wrap gap-x-2 gap-y-1">
+            <div className="flex flex-wrap gap-1.5">
                 {items.map((item, index) => (
                     <span
                         key={index}
-                        className={`${item.isDynamic ? 'font-bold text-primary/80' : 'text-muted-foreground'}`}
+                        className={`px-1.5 py-0.5 text-xs rounded-md border ${item.isDynamic
+                            ? 'font-medium text-primary border-primary/30 bg-primary/10'
+                            : 'text-muted-foreground border-border/60'}`}
                     >
                         {item.description}
-                        {index < items.length - 1 && <span className="text-border ml-2 font-normal">|</span>}
                     </span>
                 ))}
             </div>
