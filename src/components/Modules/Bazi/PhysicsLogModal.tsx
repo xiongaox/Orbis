@@ -12,6 +12,7 @@
  */
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { Sparkles, Compass, Bot } from 'lucide-react';
 import BaseModal from '../../UI/BaseModal';
 import type { BaziApiResponse } from '../../../types/bazi';
@@ -226,16 +227,20 @@ export default function PhysicsLogModal({
 
   if (!isOpen) return null;
 
-  const header = (
+  // title 用函数形式接收 BaseModal 的关闭按钮，并把它摆进「标题行」内部：
+  // 本头部是两行结构（标题行 + 全宽 Tab 条），若让按钮做 BaseModal 那一行的
+  // flex 兄弟，它会被 items-center 居中到整个两行块上，从而掉到 Tab 行（实测偏低 24px）。
+  const header = (closeButton: ReactNode) => (
     <div className="flex flex-col gap-2.5 w-full">
-      <div className="flex items-center justify-between pr-9">
-        <span className="flex items-center gap-2 text-base font-semibold">
-          <Sparkles className="w-5 h-5 text-primary" />
+      <div className="flex items-center">
+        <span className="flex flex-1 min-w-0 items-center gap-2 text-base font-semibold">
+          <Sparkles className="w-5 h-5 text-primary shrink-0" />
           {title}
         </span>
+        {closeButton}
       </div>
 
-      {/* 极简精致 Segmented Control Tab，全宽对齐取消按钮 */}
+      {/* 极简精致 Segmented Control Tab，全宽铺满头部 */}
       <div className="flex items-center p-1 bg-muted/60 rounded-xl border border-border/50 w-full">
         <button
           type="button"

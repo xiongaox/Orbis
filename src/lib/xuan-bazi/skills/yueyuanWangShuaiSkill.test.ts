@@ -121,8 +121,10 @@ describe('calculateWangShuaiDashboard 逻辑自洽性验证', () => {
     expect(fullResult.joyGods).toEqual(expect.arrayContaining(['金', '水']));
     expect(fullResult.luckyDirections).toEqual(expect.arrayContaining(['西方', '北方']));
     expect(fullResult.physicsLog.length).toBe(9);
-    expect(fullResult.physicsLog[0]).toContain('【1. 提纲月令】');
-    expect(fullResult.physicsLog[6]).toContain('【7. 月令定格】');
+    // 序号由渲染层按下标输出，日志正文只保留【步骤标题】
+    expect(fullResult.physicsLog[0]).toContain('【提纲月令】');
+    expect(fullResult.physicsLog[6]).toContain('【月令定格】');
+    expect(fullResult.physicsLog.some((line) => /【\d+\./.test(line))).toBe(false);
   });
 
   it('《子平真诠》月令定格规则验证', () => {

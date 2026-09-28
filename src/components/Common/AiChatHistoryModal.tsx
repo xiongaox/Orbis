@@ -25,6 +25,7 @@ import {
   Layers,
   Calendar,
   Compass,
+  MessageSquare,
   Grid3X3,
   X,
 } from 'lucide-react';
@@ -614,7 +615,8 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
       <BaseModal
         isOpen={isOpen}
         onClose={handleClose}
-        title="AI 研判对话历史"
+        title="对话历史"
+        titleIcon={<MessageSquare className="w-5 h-5" />}
         maxWidth="max-w-full"
         fullScreen
         className="p-0"
@@ -809,7 +811,8 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
     <BaseModal
       isOpen={isOpen}
       onClose={handleClose}
-      title="AI 研判对话历史"
+      title="对话历史"
+      titleIcon={<MessageSquare className="w-5 h-5" />}
       maxWidth="max-w-6xl"
       bodyClassName="p-0 overflow-hidden flex flex-col min-h-0"
     >

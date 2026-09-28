@@ -27,7 +27,14 @@ let previousBodyOverflow = '';
 interface BaseModalProps {
     isOpen: boolean;
     onClose: () => void;
-    title?: React.ReactNode;
+    /**
+     * 标题内容。
+     * - 传 ReactNode：由 BaseModal 统一摆放标题与关闭按钮（单行头部）。
+     * - 传函数：调用方自行摆放（多行自定义头部场景），函数收到关闭按钮节点，
+     *   需把它放进「标题行」内部，例如 `{(close) => <div><div>标题{close}</div><Tabs/></div>}`。
+     *   这样 × 才会与标题行垂直居中，而不是被居中到整个多行块上。
+     */
+    title?: React.ReactNode | ((closeButton: React.ReactNode) => React.ReactNode);
     titleIcon?: React.ReactNode;
     children: React.ReactNode;
     footer?: React.ReactNode;
@@ -93,6 +100,26 @@ export default function BaseModal({
 
     if (!isOpen) return null;
 
+    // 关闭按钮：图标 20px，靠 p-1.5 撑到 32px 热区；
+    // -my-1.5 抵消纵向 padding，使按钮盒高等于 20px，父级 items-center 即让
+    // 图标中心精确落在同行的文字中心；-mr-1.5 抵消横向 padding，
+    // 使按钮右边缘贴齐头部 p-4 的 16px 内边距。
+    const closeButton = showCloseButton ? (
+        <button
+            type="button"
+            onClick={onClose}
+            className="-my-1.5 -mr-1.5 p-1.5 shrink-0 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 active:bg-muted/70 transition-colors focus-ring"
+            aria-label="Close"
+        >
+            <X className="w-5 h-5" />
+        </button>
+    ) : null;
+
+    const isTitleRenderFn = typeof title === 'function';
+    const renderedTitle = isTitleRenderFn
+        ? (title as (close: React.ReactNode) => React.ReactNode)(closeButton)
+        : title;
+
     return (
         <div
             className={`fixed inset-0 z-[100] isolate flex ${
@@ -130,22 +157,20 @@ export default function BaseModal({
                 }
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Header */}
+                {/* Header
+                    ⚠️ 关闭按钮不能作为本行的 flex 兄弟节点：title 常被调用方塞进「多行自定义头部」
+                    （如 PhysicsLogModal 的「标题行 + 全宽 Tab 条」），此时本行 items-center 是按
+                    整个多行节点居中，× 会掉到第二行（实测偏低 24px）。
+                    因此多行头部由调用方用 title 函数形式把按钮放进「标题行」内部；
+                    这里的兄弟位按钮只服务于「title 是普通节点」的单行兜底。
+                    （已用 Chrome 实测：多行场景 24px 偏差 → 0.00px，右边缘贴齐 16px。） */}
                 {(title || showCloseButton) && (
-                    <div className="relative p-4 border-b border-border shrink-0">
+                    <div className="p-4 border-b border-border shrink-0">
                         <div className="flex items-center gap-2 text-lg font-semibold text-foreground w-full" id="modal-title">
                             {titleIcon && <span className="text-primary shrink-0">{titleIcon}</span>}
-                            <div className="flex-1 min-w-0">{title}</div>
+                            <div className="flex-1 min-w-0">{renderedTitle}</div>
+                            {showCloseButton && !isTitleRenderFn && closeButton}
                         </div>
-                        {showCloseButton && (
-                            <button
-                                onClick={onClose}
-                                className="absolute top-1/2 -translate-y-1/2 right-4 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus-ring z-10"
-                                aria-label="Close"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-                        )}
                     </div>
                 )}
 
