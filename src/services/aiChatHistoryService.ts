@@ -62,7 +62,7 @@ function notifyListeners() {
 }
 
 import { extractSmartTitleFromQuestion } from './aiChatService';
-import { isTauri, invoke } from '@tauri-apps/api/core';
+import { exportTextFile } from '../utils/fileExportUtil';
 
 let cachedSessions: AiChatSession[] | null = null;
 
@@ -409,21 +409,6 @@ export const aiChatHistoryService = {
    * @returns 'saved' 已保存到所选路径 | 'cancelled' 用户取消 | 'downloaded' 已触发浏览器下载
    */
   async exportMarkdownFile(filename: string, content: string): Promise<'saved' | 'cancelled' | 'downloaded'> {
-    const safeName = filename.replace(/[\\/:*?"<>|]/g, '_');
-    const finalName = safeName.endsWith('.md') ? safeName : `${safeName}.md`;
-
-    if (typeof window !== 'undefined' && isTauri()) {
-      const { save } = await import('@tauri-apps/plugin-dialog');
-      const path = await save({
-        defaultPath: finalName,
-        filters: [{ name: 'Markdown', extensions: ['md'] }],
-      });
-      if (!path) return 'cancelled';
-      await invoke('write_text_file', { path, content });
-      return 'saved';
-    }
-
-    this.downloadMarkdown(finalName, content);
-    return 'downloaded';
+    return exportTextFile({ filename, content, extension: 'md', typeLabel: 'Markdown' });
   },
 };

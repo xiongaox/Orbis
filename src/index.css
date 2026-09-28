@@ -191,8 +191,11 @@ body {
 }
 
 @layer utilities {
+  /* 兜底 ring-offset-color 必须显式设为页面底色：全局只对 .focus-ring 上了
+     ring-offset-background，而下方 button 等元素直接 @apply focus-ring，
+     未带 offset 色 → offset 落到 Tailwind 默认白色，键盘聚焦时会出现一圈白边。 */
   .focus-ring {
-    @apply focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none;
+    @apply focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none;
   }
 }
 

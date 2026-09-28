@@ -350,8 +350,11 @@ export default function WangShuaiDashboard({ data, rawLogs = [] }: WangShuaiDash
               <div className="mt-2 p-2.5 rounded-lg bg-muted/40 border border-border space-y-1.5 max-h-48 overflow-y-auto text-xs font-mono">
                 {logsToShow.map((log, idx) => (
                   <div key={idx} className="leading-relaxed text-muted-foreground flex items-start gap-1.5">
-                    <span className="select-none text-primary/60 font-semibold">{idx + 1}.</span>
-                    <span>{log}</span>
+                    {/* 序号统一在【】外输出（正文只保留【步骤标题】），悬挂缩进对齐折行 */}
+                    <span className="select-none text-primary/60 font-semibold tabular-nums min-w-[1.1em] text-right">
+                      {idx + 1}.
+                    </span>
+                    <span className="flex-1 min-w-0">{log}</span>
                   </div>
                 ))}
               </div>

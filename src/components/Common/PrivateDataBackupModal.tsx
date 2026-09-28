@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, ChevronDown, Clock3, Cloud, HardDriveUpload, MessageSquare, RefreshCw, Upload, X } from 'lucide-react';
+import { Check, ChevronDown, Clock3, Cloud, FileDown, FileUp, HardDriveUpload, MessageSquare, RefreshCw, Upload, X } from 'lucide-react';
 import { webDavBackupService, type WebDavConfig } from '../../services/webdavBackupService';
 import { s3BackupService, type S3Config } from '../../services/s3BackupService';
 import { remoteBackupService, type RemoteBackupMethod } from '../../services/remoteBackupService';
 import { AUTO_BACKUP_INTERVAL_MINUTES } from '../../services/remoteBackupShared';
+import { exportTextFile } from '../../utils/fileExportUtil';
 import RemoteBackupManagerModal from './RemoteBackupManagerModal';
 
 interface PrivateDataBackupModalProps {
@@ -19,6 +20,11 @@ const emptyS3Config: S3Config = {
 };
 const SUCCESS_MESSAGE_DURATION = 4_000;
 const METHOD_TAB_BASE = 'flex min-h-8 items-center justify-center rounded-md px-3 text-sm transition-colors focus-ring';
+// 底部次级操作按钮（导出/导入/测试/恢复）共用样式，移动端与桌面端两套布局复用同一份。
+// 高度取 h-9(36px)：它是「视觉高度」，DESIGN.md 的 40/44px 是「触控目标」下限——
+// 网格布局下按钮横向已铺满、单元格本身足够宽，36px 高度仍远超最小可点面积，
+// 无需为凑数字把底栏撑到占满弹窗两成高度。「备份」是主操作，单独写样式。
+const ACTION_BUTTON_BASE = 'inline-flex h-9 items-center gap-2 rounded-lg border border-border px-3 text-sm text-foreground transition-colors hover:bg-secondary/50 disabled:opacity-50 focus-ring';
 
 function formatInterval(minutes: number) {
   if (minutes < 60) return `每 ${minutes} 分钟`;
@@ -35,6 +41,7 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
   const [busy, setBusy] = useState<'backup' | 'test' | 'manager' | null>(null);
   const [message, setMessage] = useState('');
   const messageTimerRef = useRef<number | undefined>(undefined);
+  const configFileInputRef = useRef<HTMLInputElement>(null);
 
   const clearMessageTimer = () => {
     if (messageTimerRef.current !== undefined) {
@@ -99,6 +106,82 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
     setFrequencyMenuOpen(false);
     void remoteBackupService.saveMethod(next);
   };
+  /**
+   * 导出当前备份配置为 JSON，便于在多台设备间复用，无需每次手填。
+   *
+   * 注意：S3 的 secretAccessKey / WebDAV 的 password 属于明文凭证，
+   * 这里按「用户主动导出、自担保管责任」处理，但在文件与提示中明确标注，
+   * 避免用户误以为该文件可安全分享。
+   */
+  const exportConfig = async () => {
+    clearMessageTimer();
+    setMessage('');
+    try {
+      const payload = {
+        _format: 'orbis-backup-config',
+        _version: 1,
+        _warning: '本文件包含明文访问凭证，请妥善保管，勿分享或提交至代码仓库。',
+        exportedAt: new Date().toISOString(),
+        method,
+        webdav: webdavConfig,
+        s3: s3Config,
+      };
+      const stamp = new Date().toISOString().slice(0, 10);
+      const outcome = await exportTextFile({
+        filename: `orbis-backup-config-${stamp}`,
+        content: JSON.stringify(payload, null, 2),
+        extension: 'json',
+        typeLabel: 'JSON',
+      });
+      if (outcome === 'saved') showSuccessMessage('备份配置已导出（含明文凭证，请妥善保管）');
+      else if (outcome === 'downloaded') showSuccessMessage('备份配置已下载（含明文凭证，请妥善保管）');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '导出配置失败');
+    }
+  };
+
+  /**
+   * 从 JSON 导入备份配置。仅接受本应用导出的格式，逐字段校验后再落库，
+   * 避免把任意 JSON 直接灌进配置对象导致后续备份行为异常。
+   */
+  const importConfig = async (file: File) => {
+    clearMessageTimer();
+    setMessage('');
+    try {
+      const parsed = JSON.parse(await file.text()) as Record<string, unknown>;
+      if (parsed?._format !== 'orbis-backup-config') {
+        throw new Error('文件格式不符：请选择由本应用「导出配置」生成的文件');
+      }
+
+      const pick = <T extends object>(raw: unknown, base: T): T => {
+        if (!raw || typeof raw !== 'object') return base;
+        // 只采纳已知键，且类型需与默认值一致，防止脏字段污染配置
+        const patched: Record<string, unknown> = { ...(base as Record<string, unknown>) };
+        for (const [key, fallback] of Object.entries(base)) {
+          const value = (raw as Record<string, unknown>)[key];
+          if (value !== undefined && typeof value === typeof fallback) patched[key] = value;
+        }
+        return patched as T;
+      };
+
+      const nextWebDav = pick(parsed.webdav, emptyWebDavConfig);
+      const nextS3 = pick(parsed.s3, emptyS3Config);
+      const nextMethod: RemoteBackupMethod = parsed.method === 's3' ? 's3' : 'webdav';
+
+      setWebDavConfig(nextWebDav);
+      setS3Config(nextS3);
+      setMethod(nextMethod);
+      await Promise.all([
+        webDavBackupService.saveConfig(nextWebDav),
+        s3BackupService.saveConfig(nextS3),
+        remoteBackupService.saveMethod(nextMethod),
+      ]);
+      showSuccessMessage('备份配置已导入并保存');
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '导入配置失败：文件无法解析');
+    }
+  };
+
   const run = async (action: 'backup' | 'test' | 'manager') => {
     setBusy(action);
     clearMessageTimer();
@@ -257,10 +340,45 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
 
             {message && <p className="rounded-lg bg-secondary/50 px-3 py-2 text-sm text-foreground" role="status">{message}</p>}
           </div>
-          <div className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-border bg-secondary/10 px-5 py-3">
-            <button type="button" onClick={() => void run('test')} disabled={busy !== null || !configLoaded} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border px-3 text-sm text-foreground hover:bg-secondary/50 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${busy === 'test' ? 'animate-spin' : ''}`} />测试连接</button>
-            <button type="button" onClick={() => void run('manager')} disabled={busy !== null || !configLoaded} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border px-3 text-sm text-foreground hover:bg-secondary/50 disabled:opacity-50"><Upload className="h-4 w-4" />恢复</button>
-            <button type="button" onClick={() => void run('backup')} disabled={busy !== null || !configLoaded} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-3 text-sm text-primary-foreground hover:opacity-90 disabled:opacity-50"><HardDriveUpload className="h-4 w-4" />{busy === 'backup' ? '正在备份' : '立即备份'}</button>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border bg-secondary/10 px-3 py-2.5 sm:px-5 sm:py-3">
+            {/* 导入用的隐藏 file input 必须独立于两套布局之外：
+                桌面端与移动端都会触发它，挂在任一分支里都会在另一端失效。 */}
+            <input
+              ref={configFileInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                // 先清空 value，否则连续选择同一个文件不会再次触发 change
+                event.target.value = '';
+                if (file) void importConfig(file);
+              }}
+            />
+            {/* 移动端：五个按钮挤在一行会折成「3+2」阶梯状，视觉上分裂。
+                改为「一行四个次级操作 + 一行主操作」共两行。
+                高度统一取 h-9(36px)：同一操作区内按钮不等高会显得参差，
+                层级差异改由底色（bg-primary）与文字色体现，而不是靠高度。
+                底栏总高约 2×36 + 间距 + 内边距 ≈ 100px，不再占满弹窗两成空间。 */}
+            <div className="w-full sm:hidden">
+              <div className="grid grid-cols-4 gap-1.5">
+                <button type="button" onClick={() => void exportConfig()} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} justify-center px-0`}><FileDown className="h-4 w-4" />导出</button>
+                <button type="button" onClick={() => configFileInputRef.current?.click()} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} justify-center px-0`}><FileUp className="h-4 w-4" />导入</button>
+                <button type="button" onClick={() => void run('test')} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} justify-center px-0`}><RefreshCw className={`h-4 w-4 ${busy === 'test' ? 'animate-spin' : ''}`} />测试</button>
+                <button type="button" onClick={() => void run('manager')} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} justify-center px-0`}><Upload className="h-4 w-4" />恢复</button>
+              </div>
+              <button type="button" onClick={() => void run('backup')} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} mt-1.5 w-full justify-center border-transparent bg-primary text-primary-foreground hover:bg-primary hover:opacity-90`}><HardDriveUpload className="h-4 w-4" />{busy === 'backup' ? '备份中' : '备份'}</button>
+            </div>
+
+            {/* 桌面端：导入/导出属于「本地文件互转」，与右侧远端动作不同类，
+                用 mr-auto 推到最左并留出间距。 */}
+            <div className="mr-auto hidden flex-wrap items-center gap-2 sm:flex">
+              <button type="button" onClick={() => void exportConfig()} disabled={busy !== null || !configLoaded} className={ACTION_BUTTON_BASE}><FileDown className="h-4 w-4" />导出</button>
+              <button type="button" onClick={() => configFileInputRef.current?.click()} disabled={busy !== null || !configLoaded} className={ACTION_BUTTON_BASE}><FileUp className="h-4 w-4" />导入</button>
+            </div>
+            <button type="button" onClick={() => void run('test')} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} hidden sm:inline-flex`}><RefreshCw className={`h-4 w-4 ${busy === 'test' ? 'animate-spin' : ''}`} />测试</button>
+            <button type="button" onClick={() => void run('manager')} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} hidden sm:inline-flex`}><Upload className="h-4 w-4" />恢复</button>
+            <button type="button" onClick={() => void run('backup')} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} hidden border-transparent bg-primary text-primary-foreground hover:bg-primary hover:opacity-90 sm:inline-flex`}><HardDriveUpload className="h-4 w-4" />{busy === 'backup' ? '备份中' : '备份'}</button>
           </div>
         </div>
       </div>
