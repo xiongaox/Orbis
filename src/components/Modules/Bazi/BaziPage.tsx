@@ -41,6 +41,7 @@ export default function BaziPage() {
         setSelectedDaYunIndex,
         setSelectedLiuNianYear,
         setSelectedLiuYueIndex,
+        handleShiftShiChen,
     } = useBaziContext();
 
     // 布局检测：仅用于移动端条件分支
@@ -83,6 +84,7 @@ export default function BaziPage() {
                     showTaiMingShen={showTaiMingShen}
                     isMobileLayout={isMobileLayout}
                     hideDetails={hideDetails}
+                    onShiftHour={handleShiftShiChen}
                 />
                 <div className={classNames('flex flex-col min-h-0 lg:overflow-y-auto', 'gap-2')}>
                     {/* 五行旺衰信息条 */}

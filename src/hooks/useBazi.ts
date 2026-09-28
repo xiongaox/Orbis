@@ -36,6 +36,8 @@ export function useBazi() {
     const [selectedDaYunIndex, setSelectedDaYunIndex] = useState<number | null>(null);
     const [selectedLiuNianYear, setSelectedLiuNianYear] = useState<number | null>(null);
     const [selectedLiuYueIndex, setSelectedLiuYueIndex] = useState<number | null>(null);
+    // 时柱切换的时辰偏移量：±1 为一个时辰（2 小时），基于命例出生时间或当前时间整体平移重排
+    const [shiChenOffset, setShiChenOffset] = useState(0);
     const [isTransient, setIsTransient] = useState(false);
     const restoringLockedSnapshotRef = useRef(false);
 
@@ -63,8 +65,8 @@ export function useBazi() {
         }
     }, []);
 
-    // 获取八字数据（使用案例数据或当前时间）
-    const loadBaziData = useCallback(async (caseData?: Case | null) => {
+    // 获取八字数据（使用案例数据或当前时间，可叠加时辰偏移）
+    const loadBaziData = useCallback(async (caseData?: Case | null, offsetShiChen = 0) => {
         setLoading(true);
         setError(null);
 
@@ -74,6 +76,9 @@ export function useBazi() {
             if (caseData?.birth_date) {
                 // 使用案例数据
                 const date = new Date(caseData.birth_date);
+                if (offsetShiChen !== 0) {
+                    date.setHours(date.getHours() + offsetShiChen * 2);
+                }
                 params = {
                     year: date.getFullYear(),
                     month: date.getMonth() + 1,
@@ -85,12 +90,15 @@ export function useBazi() {
             } else {
                 // 没有案例时，使用当前时间排盘
                 const now = new Date();
+                const date = offsetShiChen !== 0
+                    ? new Date(now.getTime() + offsetShiChen * 2 * 60 * 60 * 1000)
+                    : now;
                 params = {
-                    year: now.getFullYear(),
-                    month: now.getMonth() + 1,
-                    day: now.getDate(),
-                    hour: now.getHours(),
-                    minute: now.getMinutes(),
+                    year: date.getFullYear(),
+                    month: date.getMonth() + 1,
+                    day: date.getDate(),
+                    hour: date.getHours(),
+                    minute: date.getMinutes(),
                     gender: 'male' as const,  // 默认男性
                 };
             }
@@ -149,16 +157,26 @@ export function useBazi() {
 
     // 处理案例选择
     const handleSelectCase = (caseId: string | null) => {
+        setShiChenOffset(0);
         setIsTransient(false);
         setSelectedCaseId(caseId);
     };
 
     const handleSetTransientCase = useCallback((caseData: Case) => {
+        setShiChenOffset(0);
         setIsTransient(true);
         setSelectedCaseId('temp');
         setSelectedCase(caseData);
         loadBaziData(caseData);
     }, [loadBaziData]);
+
+    // 时柱切换：以上一个/下一个时辰重排全盘
+    // 直接基于当前命例源重算，不改案例选择状态，避免触发案例重新加载
+    const handleShiftShiChen = useCallback((delta: 1 | -1) => {
+        const next = shiChenOffset + delta;
+        setShiChenOffset(next);
+        loadBaziData(selectedCase, next);
+    }, [shiChenOffset, selectedCase, loadBaziData]);
 
     const getLockedSnapshot = useCallback((): BaziLockedSnapshot => ({
         version: 1,
@@ -178,6 +196,7 @@ export function useBazi() {
 
     const restoreLockedSnapshot = useCallback(async (snapshot: BaziLockedSnapshot) => {
         restoringLockedSnapshotRef.current = true;
+        setShiChenOffset(0);
         setSelectedDaYunIndex(snapshot.selectedDaYunIndex);
         setSelectedLiuNianYear(snapshot.selectedLiuNianYear);
         setSelectedLiuYueIndex(snapshot.selectedLiuYueIndex);
@@ -207,12 +226,14 @@ export function useBazi() {
         selectedDaYunIndex,
         selectedLiuNianYear,
         selectedLiuYueIndex,
+        shiChenOffset,
         // 操作
         setSelectedDaYunIndex,
         setSelectedLiuNianYear,
         setSelectedLiuYueIndex,
         handleSelectCase,
         handleSetTransientCase,
+        handleShiftShiChen,
         getLockedSnapshot,
         restoreLockedSnapshot,
         initializeBazi,

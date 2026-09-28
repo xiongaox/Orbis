@@ -37,6 +37,7 @@ export interface BaziContextValue {
     setSelectedLiuYueIndex: (index: number | null) => void;
     handleSelectCase: (caseId: string | null) => void;
     handleSetTransientCase: (caseData: Case) => void;
+    handleShiftShiChen: (delta: 1 | -1) => void;
     getLockedSnapshot: () => BaziLockedSnapshot;
     restoreLockedSnapshot: (snapshot: BaziLockedSnapshot) => Promise<void>;
     initializeBazi: () => void;

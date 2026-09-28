@@ -39,6 +39,8 @@ interface BaziChartProps {
   showTaiMingShen?: boolean;
   isMobileLayout?: boolean;
   hideDetails?: boolean;
+  // 时柱切换上一/下一时辰（未提供时表头不显示切换按钮）
+  onShiftHour?: (delta: 1 | -1) => void;
 }
 
 export default function BaziChart({
@@ -50,6 +52,7 @@ export default function BaziChart({
   showTaiMingShen = false,
   isMobileLayout = false,
   hideDetails = false,
+  onShiftHour,
 }: BaziChartProps) {
   const [isDiagramOpen, setIsDiagramOpen] = useState(false);
   const isPadLandscape = useIsPadLandscape();
@@ -203,7 +206,7 @@ export default function BaziChart({
             ).map(s => s.name) : [];
             return (
               <div key={pillar.label} className={`flex-1 ${isMobileLayout ? 'min-w-[44px]' : 'min-w-[56px]'} border-r border-border last:border-r-0`}>
-                <DetailedPillarCard pillar={pillar} isDayMaster={index === 2} shensha={shenshaList} genderLabel={index === 2 ? genderLabel : undefined} isMobileLayout={isMobileLayout} hideDetails={hideDetails} />
+                <DetailedPillarCard pillar={pillar} isDayMaster={index === 2} shensha={shenshaList} genderLabel={index === 2 ? genderLabel : undefined} isMobileLayout={isMobileLayout} hideDetails={hideDetails} onShiftHour={index === 3 ? onShiftHour : undefined} />
               </div>
             );
           })}
