@@ -18,8 +18,9 @@
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 
-import React, { useLayoutEffect, useRef } from 'react';
+import React, { useLayoutEffect, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import { pushBackHandler, popBackHandler } from '../../utils/androidBackButton';
 
 let openModalCount = 0;
 let previousBodyOverflow = '';
@@ -70,33 +71,41 @@ export default function BaseModal({
         onCloseRef.current = onClose;
     }, [onClose]);
 
-    // Handle Escape key
-    useLayoutEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && isOpen) {
-                onCloseRef.current();
-            }
-        };
+  // Handle Escape key
+  useLayoutEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onCloseRef.current();
+      }
+    };
 
-        if (isOpen) {
-            document.addEventListener('keydown', handleKeyDown);
-            if (openModalCount === 0) {
-                previousBodyOverflow = document.body.style.overflow;
-            }
-            openModalCount += 1;
-            document.body.style.overflow = 'hidden';
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      if (openModalCount === 0) {
+        previousBodyOverflow = document.body.style.overflow;
+      }
+      openModalCount += 1;
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      if (isOpen) {
+        openModalCount = Math.max(0, openModalCount - 1);
+        if (openModalCount === 0) {
+          document.body.style.overflow = previousBodyOverflow;
         }
+      }
+    };
+  }, [isOpen]);
 
-        return () => {
-            document.removeEventListener('keydown', handleKeyDown);
-            if (isOpen) {
-                openModalCount = Math.max(0, openModalCount - 1);
-                if (openModalCount === 0) {
-                    document.body.style.overflow = previousBodyOverflow;
-                }
-            }
-        };
-    }, [isOpen]);
+  // 安卓返回手势/返回键：把 onClose 压入返回栈，侧滑关闭最上层浮层（桌面端为 no-op）
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = () => onCloseRef.current();
+    pushBackHandler(handler);
+    return () => popBackHandler(handler);
+  }, [isOpen]);
 
     if (!isOpen) return null;
 

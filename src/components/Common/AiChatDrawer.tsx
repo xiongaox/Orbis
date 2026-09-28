@@ -14,6 +14,7 @@
  */
 
 import { useState, useMemo, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
+import { pushBackHandler, popBackHandler } from '../../utils/androidBackButton';
 import {
   Sparkles,
   Bot,
@@ -171,6 +172,14 @@ export default function AiChatDrawer({
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+
+  // 安卓返回手势/返回键：侧滑关闭对话抽屉（桌面端为 no-op）
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = () => onClose();
+    pushBackHandler(handler);
+    return () => popBackHandler(handler);
+  }, [isOpen, onClose]);
 
   // 区分会话 ID 与元信息
   const effectiveDivinationType: DivinationType = divinationType || (moduleName.includes('奇门') ? 'qimen' : 'bazi');

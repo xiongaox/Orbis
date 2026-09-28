@@ -21,6 +21,7 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { pushBackHandler, popBackHandler } from '../../utils/androidBackButton';
 
 interface SideDrawerProps {
   open: boolean;
@@ -48,6 +49,14 @@ export default function SideDrawer({
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
+  // 安卓返回手势/返回键：侧滑关闭抽屉（桌面端为 no-op）
+  useEffect(() => {
+    if (!open) return;
+    const handler = () => onClose();
+    pushBackHandler(handler);
+    return () => popBackHandler(handler);
   }, [open, onClose]);
 
   if (!open) return null;
