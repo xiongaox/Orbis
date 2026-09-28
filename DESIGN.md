@@ -136,7 +136,7 @@ components:
     backgroundColor: "{colors.lunar-badge-background}"
     textColor: "{colors.lunar-badge-foreground}"
     typography: "{typography.reading}"
-    rounded: "{rounded.sm}"
+    rounded: "{rounded.lg}"
     padding: "{spacing.xs} {spacing.sm}"
   input:
     backgroundColor: "{colors.surface-light}"

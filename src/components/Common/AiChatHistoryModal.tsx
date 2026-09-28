@@ -496,8 +496,8 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
             <div
               className={`relative group max-w-[92%] rounded-xl p-3.5 text-base leading-[1.75] ${
                 isUser
-                  ? 'bg-card border border-border text-foreground rounded-tr-xs shadow-xs space-y-2'
-                  : 'bg-card border border-border text-foreground rounded-tl-xs shadow-xs space-y-2'
+                  ? 'bg-card border border-border text-foreground rounded-tr shadow-xs space-y-2'
+                  : 'bg-card border border-border text-foreground rounded-tl shadow-xs space-y-2'
               }`}
             >
               {/* 复制按钮 */}

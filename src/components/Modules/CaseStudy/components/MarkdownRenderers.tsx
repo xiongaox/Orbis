@@ -36,7 +36,7 @@ export const duanfaHeadingStyles = {
     h3: {
         wrapper: 'not-prose mt-4 mb-2 lg:mt-6 lg:mb-3',
         row: 'flex items-center gap-1.5 lg:gap-2',
-        marker: 'h-2.5 w-2.5 lg:h-3 lg:w-3 bg-primary/80 rotate-45 rounded-[1px]',
+        marker: 'h-2.5 w-2.5 lg:h-3 lg:w-3 bg-primary/80 rotate-45',
         title: 'text-base lg:text-xl font-semibold text-foreground/90',
     },
 } as const;

@@ -70,10 +70,10 @@ export default function ImportCaseModal({ isOpen, onClose, onImported }: ImportC
         const isMale = item.gender === 'male';
         return (
             <div className="group relative p-3 rounded-lg border border-border bg-muted/40 hover:bg-muted hover:border-primary/50 transition-all duration-200">
-                {/* Header: Name + Index */}
-                <div className="flex justify-between items-center mb-1.5">
-                    <span className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors truncate max-w-[120px]">{item.name}</span>
-                    <span className="text-xs text-muted-foreground font-mono">#{index + 1}</span>
+                {/* Header: Name + Index（标题占满剩余宽度，移动端单列卡片可显示更多字符） */}
+                <div className="flex justify-between items-center mb-1.5 gap-2">
+                    <span className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors truncate flex-1 min-w-0">{item.name}</span>
+                    <span className="text-xs text-muted-foreground font-mono shrink-0">#{index + 1}</span>
                 </div>
 
                 {/* Date */}

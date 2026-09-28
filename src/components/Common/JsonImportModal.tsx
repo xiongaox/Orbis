@@ -536,7 +536,7 @@ export default function JsonImportModal<T>({
                                         onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
                                         onClick={() => fileInputRef.current?.click()}
                                     >
-                                        <div className={`w-16 h-16 mb-4 rounded-2xl bg-muted border border-border flex items-center justify-center transition-transform duration-500 ${dragOver ? 'scale-110 shadow-lg' : 'group-hover:scale-105'}`}>
+                                        <div className={`w-16 h-16 mb-4 rounded-xl bg-muted border border-border flex items-center justify-center transition-transform duration-500 ${dragOver ? 'scale-110 shadow-lg' : 'group-hover:scale-105'}`}>
                                             <Upload className={`w-7 h-7 ${dragOver ? 'text-primary' : 'text-muted-foreground'}`} />
                                         </div>
                                         <div className="text-center space-y-1.5">

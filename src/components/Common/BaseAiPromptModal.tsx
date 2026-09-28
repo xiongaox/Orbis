@@ -141,7 +141,7 @@ export default function BaseAiPromptModal({
                                 className="flex items-center gap-2.5 p-3 rounded-xl border border-border/60 bg-muted/30 cursor-pointer active:border-primary/40 transition-colors"
                                 onClick={() => setPromptExpanded(v => !v)}
                             >
-                                <span className="w-10 h-10 rounded-[10px] bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                                <span className="w-10 h-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center shrink-0">
                                     <FileText className="w-[18px] h-[18px]" />
                                 </span>
                                 <div className="flex-1 min-w-0">
@@ -159,7 +159,7 @@ export default function BaseAiPromptModal({
                                 <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform shrink-0 ${promptExpanded ? 'rotate-180' : ''}`} />
                             </div>
                             <div className={`overflow-hidden transition-all duration-200 ${promptExpanded ? 'max-h-[45vh] mt-2' : 'max-h-0'}`}>
-                                <div className="rounded-[10px] border border-border/60 bg-muted/30 px-3 py-2.5 font-serif text-[13px] leading-relaxed text-foreground/90 whitespace-pre-wrap overflow-y-auto max-h-[45vh]">{promptText}</div>
+                                <div className="rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5 font-serif text-[13px] leading-relaxed text-foreground/90 whitespace-pre-wrap overflow-y-auto max-h-[45vh]">{promptText}</div>
                             </div>
                         </div>
 
@@ -188,11 +188,9 @@ export default function BaseAiPromptModal({
                                             className={`flex w-full items-center gap-3 px-3.5 py-3 text-left text-sm cursor-pointer transition-colors hover:bg-muted/60 focus-ring ${i > 0 ? 'border-t border-border/40' : ''}`}
                                         >
                                             <span className="flex-1 text-foreground/90">{opt.label}</span>
-                                            {/* 开关样式与 PrivateDataBackupModal 的设置开关保持一致：金色轨道 + 深色旋钮带 ✓ */}
+                                            {/* 开关样式与 PrivateDataBackupModal 的设置开关保持一致：金色轨道 + 深色旋钮 */}
                                             <span className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors ${opt.checked ? 'border-primary bg-primary' : 'border-border bg-muted'}`}>
-                                                <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm transition-transform ${opt.checked ? 'translate-x-6 text-primary' : 'translate-x-1 text-muted-foreground'}`}>
-                                                    {opt.checked && <Check className="h-3.5 w-3.5" />}
-                                                </span>
+                                                <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm transition-transform ${opt.checked ? 'translate-x-6' : 'translate-x-1'}`} />
                                             </span>
                                         </button>
                                     ))}

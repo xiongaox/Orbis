@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Download, RefreshCw, Trash2 } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Download, RefreshCw, Trash2 } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
 import SubPage from '../UI/SubPage';
 import ConfirmModal from './ConfirmModal';
+import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { webDavBackupService, type WebDavConfig } from '../../services/webdavBackupService';
 import { s3BackupService, type S3Config } from '../../services/s3BackupService';
@@ -39,7 +41,7 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [busy, setBusy] = useState<'load' | 'restore' | 'delete' | null>(null);
-  const [message, setMessage] = useState('');
+  const { toast, showToast } = useToast();
   const [pendingRestore, setPendingRestore] = useState<RemoteBackupMeta | null>(null);
   const [pendingDeletePaths, setPendingDeletePaths] = useState<string[] | null>(null);
 
@@ -49,7 +51,6 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
 
   const loadBackups = async () => {
     setBusy('load');
-    setMessage('');
     try {
       const nextBackups = method === 's3'
         ? await s3BackupService.listBackups(config as S3Config)
@@ -58,7 +59,7 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
       setSelectedPaths((current) => new Set([...current].filter((path) => nextBackups.some((backup) => backup.path === path))));
       setPage((current) => Math.min(current, Math.max(1, Math.ceil(nextBackups.length / PAGE_SIZE))));
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : '读取备份列表失败');
+      showToast(error instanceof Error ? error.message : '读取备份列表失败', 'error');
     } finally {
       setBusy(null);
     }
@@ -89,7 +90,6 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
   const deleteBackups = async (paths: string[]) => {
     if (paths.length === 0) return;
     setBusy('delete');
-    setMessage('');
     try {
       await Promise.all(paths.map(async (path) => {
         if (method === 's3') await s3BackupService.deleteBackup(config as S3Config, path);
@@ -97,21 +97,20 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
       }));
       await loadBackups();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : '删除备份失败');
+      showToast(error instanceof Error ? error.message : '删除备份失败', 'error');
     } finally {
       setBusy(null);
     }
   };
   const restore = async (backup: RemoteBackupMeta) => {
     setBusy('restore');
-    setMessage('');
     try {
       if (method === 's3') await s3BackupService.restore(config as S3Config, backup.path);
       else await webDavBackupService.restore(config as WebDavConfig, backup.path);
       onRestored(backup.filename);
       onClose();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : '恢复备份失败');
+      showToast(error instanceof Error ? error.message : '恢复备份失败', 'error');
     } finally {
       setBusy(null);
     }
@@ -135,16 +134,26 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
   // 正文：移动端 SubPage 与桌面端 BaseModal 共用
   const bodyContent = (
     <>
+      <Toast toast={toast} />
       <div className="px-5 pt-5 text-base leading-6 text-muted-foreground">选择需要保留、恢复或删除的远端备份版本。列表固定分页显示，不会影响备份设置弹窗大小。</div>
-      {message && <p className="mx-5 mt-3 rounded-lg bg-secondary/50 px-3 py-2.5 text-base text-foreground" role="status">{message}</p>}
       <div className="m-5 overflow-hidden rounded-xl border border-border">
         <div className={`hidden ${TABLE_GRID} items-center border-b border-border bg-secondary/30 px-3 py-3.5 text-left text-sm font-medium text-muted-foreground md:grid`}>
-          <input type="checkbox" checked={allVisibleSelected} onChange={toggleVisibleSelection} aria-label="选择当前页全部备份" className="h-4 w-4 accent-primary" />
+          <label className="flex h-4 w-4 cursor-pointer items-center justify-center">
+            <input type="checkbox" checked={allVisibleSelected} onChange={toggleVisibleSelection} aria-label="选择当前页全部备份" className="peer sr-only" />
+            <span className={`flex h-4 w-4 items-center justify-center rounded border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 ${allVisibleSelected ? 'bg-primary border-primary' : 'border-muted-foreground/50 bg-background hover:border-primary/50'}`}>
+              {allVisibleSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+            </span>
+          </label>
           <span className="text-left">文件名</span><span className="text-left">修改时间</span><span className="text-left">文件大小</span><span className="text-left">操作</span>
         </div>
         {busy === 'load' ? <p className="px-4 py-12 text-center text-base text-muted-foreground">正在读取备份文件…</p> : visibleBackups.length === 0 ? <p className="px-4 py-12 text-center text-base text-muted-foreground">当前文件夹还没有备份版本。</p> : visibleBackups.map((backup) => (
           <div key={backup.path} className={`grid ${TABLE_GRID} border-b border-border/70 px-3 py-3.5 text-left last:border-b-0 md:items-center`}>
-            <input type="checkbox" checked={selectedPaths.has(backup.path)} onChange={() => toggleSelection(backup.path)} aria-label={`选择 ${backup.filename}`} className="h-4 w-4 accent-primary" />
+            <label className="flex h-4 w-4 cursor-pointer items-center justify-center">
+              <input type="checkbox" checked={selectedPaths.has(backup.path)} onChange={() => toggleSelection(backup.path)} aria-label={`选择 ${backup.filename}`} className="peer sr-only" />
+              <span className={`flex h-4 w-4 items-center justify-center rounded border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 ${selectedPaths.has(backup.path) ? 'bg-primary border-primary' : 'border-muted-foreground/50 bg-background hover:border-primary/50'}`}>
+                {selectedPaths.has(backup.path) && <Check className="h-3 w-3 text-primary-foreground" />}
+              </span>
+            </label>
             <span className="truncate text-left font-mono text-sm text-foreground" title={backup.filename}>{backup.filename}</span>
             <span className="text-left text-sm text-muted-foreground">{formatDate(backup.createdAt)}</span>
             <span className="text-left text-sm text-muted-foreground">{formatSize(backup.size)}</span>
