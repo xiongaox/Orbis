@@ -14,14 +14,15 @@
       {
         "label": "main",
         "title": "Orbis",
-        "width": 1800,
-        "height": 1000,
-        "minWidth": 960,
-        "minHeight": 640,
+        "width": 1680,
+        "height": 1050,
+        "minWidth": 390,
+        "minHeight": 810,
         "center": true,
         "preventOverflow": true,
         "resizable": true,
         "fullscreen": false,
+        "maximized": true,
         "devtools": false
       }
     ],

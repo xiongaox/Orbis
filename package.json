@@ -20,6 +20,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "android:icons": "python scripts/build-android-icons.py",
+    "tauri:dev": "tauri dev",
     "tauri:dev:admin": "tauri dev --features admin-signing",
     "test:normal": "src-tauri/target/debug/orbis-normal",
     "test:admin": "src-tauri/target/debug/orbis-admin",
