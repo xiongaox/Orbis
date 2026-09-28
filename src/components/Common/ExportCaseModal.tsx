@@ -29,6 +29,20 @@ interface ExportOption {
     name: string;
 }
 
+/**
+ * 生成导出文件名用的时间戳：YYYY-MM-DD_HHmmss（本地时间）。
+ *
+ * 刻意不用 toISOString()：那是 UTC，UTC+8 的用户在 08:00 之前导出会拿到前一天的日期，
+ * 与手机「下载」目录里的显示时间对不上。秒级精度用于避免同日多次导出重名。
+ */
+function formatExportStamp(date: Date): string {
+    const pad = (n: number, len = 2) => String(n).padStart(len, '0');
+    return (
+        `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+        `_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
+    );
+}
+
 interface ExportCaseModalProps<T extends object> {
     isOpen: boolean;
     onClose: () => void;
@@ -118,9 +132,15 @@ export default function ExportCaseModal<T extends object>({
             });
 
             const json = JSON.stringify(exportData, null, 2);
-            const exportName = `${filename}_${new Date().toISOString().slice(0, 10)}.json`;
+            // 精确到秒的本地时间戳：同一天多次导出不再同名。
+            // 此前只到日期，安卓 MediaStore 遇重名会自动加 " (1)" 后缀，而回执显示的仍是原名，
+            // 用户会误以为第二次没导出成功。
+            // 同时这里只生成一次 baseName 并复用给回执，避免两次 new Date() 跨秒导致名字对不上。
+            const exportStamp = formatExportStamp(new Date());
+            const baseName = `${filename}_${exportStamp}`;
+            const exportName = `${baseName}.json`;
             const outcome = await exportTextFile({
-                filename: `${filename}_${new Date().toISOString().slice(0, 10)}`,
+                filename: baseName,
                 content: json,
                 extension: 'json',
                 typeLabel: 'JSON',
@@ -138,22 +158,41 @@ export default function ExportCaseModal<T extends object>({
         }
     };
 
-    // 关闭时重置选中状态
+    // 关闭时重置选中状态与导出回执（回执必须清空，否则下次打开仍是终态）
     const handleClose = () => {
         setSelectedIds(new Set());
+        setExportResult(null);
+        setExportError(null);
         onClose();
     };
 
-    // Footer：导出成功后切换为「完成」单按钮，明确收尾动作
+    // 再次导出：清掉上一次的成功回执，回到可继续导出的状态
+    const handleExportAgain = () => {
+        setExportResult(null);
+        setExportError(null);
+    };
+
+    // Footer：导出成功回执不再吞掉「导出」按钮。
+    // 此前 exportResult 一旦写入就把底部整体替换为单个「完成」，导致导出入口消失、
+    // 用户无法二次导出（只能关页面重开）。回执只是提示，导出入口必须常驻。
     const footerContent = exportResult ? (
-        <button
-            type="button"
-            onClick={handleClose}
-            className="px-5 py-2 rounded-lg text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 shadow-sm focus-ring"
-        >
-            <Check className="w-4 h-4" />
-            完成
-        </button>
+        <>
+            <button
+                type="button"
+                onClick={handleClose}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-border hover:bg-muted text-foreground"
+            >
+                完成
+            </button>
+            <button
+                type="button"
+                onClick={handleExportAgain}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 shadow-sm focus-ring"
+            >
+                <Download className="w-4 h-4" />
+                继续导出
+            </button>
+        </>
     ) : (
         <>
             <button

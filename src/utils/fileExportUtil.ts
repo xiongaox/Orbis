@@ -61,16 +61,19 @@ export async function exportTextFile({
         const host = window as unknown as {
           __orbisExportResult?: (id: string, ok: boolean, detail: string) => void;
         };
+        // 单槽回调：原生只认最后写入的那个。若上一次次请求超时后其「幽灵回调」才回来，
+        // 会被这里的 id 校验挡掉，不会误判成当前请求的结果。
         const timer = window.setTimeout(() => {
-          host.__orbisExportResult = undefined;
+          if (host.__orbisExportResult === handler) host.__orbisExportResult = undefined;
           reject(new Error('导出超时，请重试'));
         }, 20000);
-        host.__orbisExportResult = (id, ok, detail) => {
+        const handler = (id: string, ok: boolean, detail: string) => {
           if (id !== requestId) return;
           window.clearTimeout(timer);
-          host.__orbisExportResult = undefined;
+          if (host.__orbisExportResult === handler) host.__orbisExportResult = undefined;
           if (ok) resolve(); else reject(new Error(detail || '导出失败'));
         };
+        host.__orbisExportResult = handler;
         bridge.exportToDownloads(requestId, finalName, content, mime);
       });
       return 'saved';

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 B · 输入优先（Raycast/ChatGPT 风）</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+.scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+/* 提示词收成一条极简横条 */
+.prompt-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--radius);
+  font-size: 13px;
+}
+.prompt-bar .doc-ico {
+  width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+  background: var(--primary-soft); color: var(--primary);
+  display: flex; align-items: center; justify-content: center;
+}
+.prompt-bar .meta { flex: 1; min-width: 0; }
+.prompt-bar .meta .t { font-size: 13px; font-weight: 600; }
+.prompt-bar .meta .s { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.prompt-body {
+  max-height: 0; overflow: hidden; transition: max-height .25s ease;
+  background: var(--surface); border: 1px solid var(--border-soft); border-radius: var(--radius);
+  margin-top: -6px;
+}
+.prompt-body.open { max-height: 45vh; border-top: none; border-radius: 0 0 var(--radius) var(--radius); }
+.prompt-body .pt {
+  padding: 4px 12px 12px;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 13px; line-height: 1.75; color: rgba(228,224,216,.88);
+  white-space: pre-wrap; overflow-y: auto; max-height: 45vh;
+}
+/* 主输入区：屏幕主角 */
+.q-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  transition: border-color .2s;
+}
+.q-card:focus-within { border-color: var(--primary-border); box-shadow: 0 0 0 3px rgba(203,174,136,.08); }
+.q-textarea {
+  width: 100%; min-height: 110px; resize: none;
+  background: transparent; border: none; outline: none;
+  padding: 14px; color: var(--text); font-size: 15px; font-family: inherit; line-height: 1.6;
+}
+.q-textarea::placeholder { color: #6a6b6e; }
+/* 选项：圆角矩形 tag */
+.tag-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; font-size: 12.5px; color: var(--muted);
+  cursor: pointer; transition: all .15s; user-select: none;
+}
+.tag .box {
+  width: 15px; height: 15px; border-radius: 4px; flex-shrink: 0;
+  border: 1.5px solid #55565a;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: transparent; transition: all .15s;
+}
+.tag.on { background: var(--primary-soft); border-color: var(--primary-border); color: var(--primary); font-weight: 500; }
+.tag.on .box { background: var(--primary); border-color: var(--primary); color: var(--primary-fg); }
+.spacer { flex: 1; }
+.footer { flex-shrink: 0; border-top: 1px solid var(--border-soft); background: #131415; padding: 12px 16px 16px; }
+.plat-strip { display: flex; gap: 8px; margin-top: 10px; overflow-x: auto; padding-bottom: 2px; }
+.plat-strip::-webkit-scrollbar { display: none; }
+.mini-tile {
+  flex-shrink: 0; width: 64px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  padding: 8px 0 7px;
+  background: var(--surface); border: 1px solid var(--border-soft); border-radius: 9px;
+  color: var(--text); font-size: 10.5px; cursor: pointer;
+}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="statusbar"><span>6:29</span><span class="sb-icons"><span class="sb-dot on"></span><span class="sb-dot on"></span><span class="sb-dot"></span></span></div>
+  <div class="modal-full">
+    <div class="mhead">✨ 八字信息提示词 <span class="count">925 字</span><button class="x">✕</button></div>
+    <div class="scroll">
+      <div class="prompt-bar">
+        <span class="doc-ico">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        </span>
+        <div class="meta"><div class="t">命盘提示词</div><div class="s">925 字 · 已折叠</div></div>
+        <button class="icon-btn" id="copyB">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
+        <button class="icon-btn" id="expB">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      </div>
+      <div class="prompt-body" id="pbB"><div class="pt">请根据正统子平命理学与跃洲学术体系，对以下命盘进行全息深度推导分析：
+
+================================
+【排盘真值绝对锁定区（系统法定锚定，所有分析必须严格以此为准）】
+================================
+
+一、真实天干透出（严格仅此 4 字，绝对无其他天干透出）：
+1. 年干：【丙】（十神：伤官）
+2. 月干：【丁】（十神：食神）
+3. 日干：【乙】（日主自身）
+4. 时干：【乙】（十神：比肩）
+
+【铁律】：严禁将地支藏干当作天干透出！</div></div>
+
+      <div class="q-card"><textarea class="q-textarea" placeholder="在此输入您关心的问题...（例如：今年适合换工作吗？）"></textarea></div>
+
+      <div class="tag-row" id="tagsB">
+        <span class="tag on"><span class="box">✓</span>妻财子禄寿推演</span>
+        <span class="tag"><span class="box">✓</span>包含大运排盘</span>
+        <span class="tag"><span class="box">✓</span>包含流年排盘</span>
+      </div>
+      <div class="spacer"></div>
+    </div>
+    <div class="footer">
+      <button class="primary-btn">✨ AI 解析</button>
+      <div class="hint">应用内多轮对话 · 或复制后粘贴到常用 AI</div>
+      <div class="plat-strip">
+        <button class="mini-tile"><span class="plat-ico" style="background:#4d6bfe">D</span>DeepSeek</button>
+        <button class="mini-tile"><span class="plat-ico" style="background:#10a37f">G</span>ChatGPT</button>
+        <button class="mini-tile"><span class="plat-ico" style="background:linear-gradient(135deg,#4285f4,#9b72cb)">G</span>Gemini</button>
+        <button class="mini-tile"><span class="plat-ico" style="background:#615ced">通</span>通义千问</button>
+        <button class="mini-tile"><span class="plat-ico" style="background:#1a1a1a;border:1px solid #3a3b3e">K</span>Kimi</button>
+        <button class="mini-tile"><span class="plat-ico" style="background:#3b82f6">豆</span>豆包</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const pb = document.getElementById('pbB'), exp = document.getElementById('expB');
+exp.addEventListener('click', () => {
+  const open = pb.classList.toggle('open');
+  exp.style.transform = open ? 'rotate(180deg)' : '';
+  pb.querySelector('.s') /* noop */;
+  document.querySelector('.prompt-bar .meta .s').textContent = open ? '925 字 · 已展开' : '925 字 · 已折叠';
+});
+document.getElementById('copyB').addEventListener('click', function () {
+  this.classList.add('copied');
+  setTimeout(() => this.classList.remove('copied'), 1800);
+});
+document.getElementById('tagsB').addEventListener('click', e => {
+  const tag = e.target.closest('.tag'); if (!tag) return;
+  tag.classList.toggle('on');
+});
+</script>
+</body>
+</html>

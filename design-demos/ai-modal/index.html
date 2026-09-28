@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 弹窗改版 · 三稿对比</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0b0c; color: #e4e0d8;
+  font-family: -apple-system, "PingFang SC", "Noto Sans SC", sans-serif;
+  padding: 28px 20px 60px;
+}
+h1 { font-size: 20px; margin-bottom: 6px; }
+.sub { font-size: 13px; color: #898989; margin-bottom: 28px; line-height: 1.7; }
+.row { display: flex; gap: 28px; overflow-x: auto; padding-bottom: 12px; align-items: flex-start; }
+.col { flex-shrink: 0; width: 404px; }
+.col h2 { font-size: 15px; margin-bottom: 4px; }
+.col .ref { font-size: 12px; color: #cbae88; margin-bottom: 4px; }
+.col p { font-size: 12px; color: #898989; line-height: 1.7; margin-bottom: 12px; min-height: 60px; }
+.col a { color: #cbae88; font-size: 12px; }
+iframe {
+  width: 404px; height: 858px;
+  border: 1px solid #333; border-radius: 30px; background: #101112;
+}
+</style>
+</head>
+<body>
+<h1>AI 提示词弹窗 · 移动端改版三稿</h1>
+<p class="sub">选项均为圆角矩形（无胶囊）。点按各稿内的展开/复制/选项可交互预览。选定后我再落地到 BaseAiPromptModal 组件。</p>
+<div class="row">
+  <div class="col">
+    <h2>方案 A · 分组卡片</h2>
+    <div class="ref">借鉴：iOS 设置 / 系统分享面板</div>
+    <p>最稳妥的方案。每个信息块是一张圆角卡片，上方配小节标签；分析选项做成 iOS 风格开关行，三行纵排、扫读成本最低；底部操作区固定（主按钮 + 平台宫格），不随内容滚动。</p>
+    <a href="plan-a.html" target="_blank">单独打开 ↗</a>
+    <iframe src="plan-a.html"></iframe>
+  </div>
+  <div class="col">
+    <h2>方案 B · 输入优先</h2>
+    <div class="ref">借鉴：Raycast AI / ChatGPT 移动端发送面板</div>
+    <p>最紧凑的方案。提示词压成一条附件横条（默认完全折叠），问题输入框成为屏幕主角；底部固定操作栏：主按钮 + 横滑平台条。适合"我大概知道提示词写什么，直接问问题"的高频路径。</p>
+    <a href="plan-b.html" target="_blank">单独打开 ↗</a>
+    <iframe src="plan-b.html"></iframe>
+  </div>
+  <div class="col">
+    <h2>方案 C · 附件卡（定稿 ✅）</h2>
+    <div class="ref">借鉴：Poe / Claude 移动端附件卡 + 方案 A 开关行</div>
+    <p>定稿：提示词做成"附件卡"隐喻（图标瓦片 + 字数 + 点按展开预览），分析模块采用方案 A 的单列开关行，CTA 加高强调。已按此稿落地到组件。</p>
+    <a href="plan-c.html" target="_blank">单独打开 ↗</a>
+    <iframe src="plan-c.html"></iframe>
+  </div>
+</div>
+</body>
+</html>

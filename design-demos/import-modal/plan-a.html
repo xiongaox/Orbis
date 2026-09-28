@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 A · 紧凑引导卡</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+/* 方案 A：一张紧凑上传卡 + 两个并排次级动作，去掉整屏大虚线框 */
+.upload-card {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px;
+  padding: 46px 20px;
+  background: var(--surface);
+  border: 1.5px dashed #34353a;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.upload-card:active { border-color: var(--primary-border); background: var(--surface-2); }
+.up-ico {
+  width: 54px; height: 54px; border-radius: 15px;
+  background: #232426; border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted);
+}
+.up-t { font-size: 15px; font-weight: 600; }
+.up-d { font-size: 12px; color: var(--muted); }
+.dual { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.cap { font-size: 11px; color: var(--muted); text-align: center; margin-top: 12px; line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="statusbar"><span>12:10</span><span class="sb-icons"><span class="sb-dot on"></span><span class="sb-dot on"></span><span class="sb-dot"></span></span></div>
+
+  <div class="page">
+    <div class="phead">
+      <button class="back" onclick="backNav()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      导入八字案例
+    </div>
+
+    <!-- 步骤条 -->
+    <div class="stepper" id="stepper">
+      <div class="st" data-s="0"><div class="dot">1</div><span class="lbl">上传文件</span></div>
+      <div class="ln"></div>
+      <div class="st" data-s="1"><div class="dot">2</div><span class="lbl">预览数据</span></div>
+      <div class="ln"></div>
+      <div class="st" data-s="2"><div class="dot">3</div><span class="lbl">完成导入</span></div>
+    </div>
+
+    <!-- 步骤 1：上传 -->
+    <div class="scroll" id="st-upload">
+      <div class="sec-label">选择数据文件</div>
+      <div class="upload-card" onclick="pickFile()">
+        <div class="up-ico">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+        </div>
+        <div class="up-t">点击选择 JSON 文件</div>
+        <div class="up-d">支持 .json 格式 · 可批量导入</div>
+      </div>
+
+      <div class="dual">
+        <button class="sec-btn" onclick="useSample()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          使用示例数据
+        </button>
+        <button class="sec-btn" onclick="saveTemplate()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+          保存模板文件
+        </button>
+      </div>
+      <p class="cap">没有数据？模板包含 姓名 / 性别 / 出生时间 / 标签 / 备注<br>点击「保存模板文件」将写入系统「下载」目录</p>
+    </div>
+
+    <!-- 步骤 2：预览 -->
+    <div class="scroll" id="st-preview" hidden>
+      <div class="pv-head"><h3>预览数据</h3><span class="pv-chip" id="pvCount"></span></div>
+      <div class="pv-panel" id="pvList"></div>
+    </div>
+    <div class="fbar" id="fb-preview" hidden>
+      <button class="ghost" onclick="go('upload')">重新上传</button>
+      <button class="primary-btn" onclick="doImport()">确认导入</button>
+    </div>
+
+    <!-- 步骤 3：处理中 -->
+    <div class="center-step" id="st-importing" hidden>
+      <div class="spin"></div>
+      <h2 style="margin-top:22px">正在导入...</h2>
+    </div>
+
+    <!-- 步骤 4：结果 -->
+    <div class="center-step" id="st-result" hidden>
+      <div class="ok-ico">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+      <h2>导入成功</h2>
+      <p class="desc">成功导入 <b id="okCount">8</b> 条数据</p>
+      <button class="primary-btn" onclick="go('upload')">完成</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span class="tick">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>
+  </span><span id="toastMsg"></span></div>
+</div>
+
+<script>
+/* ---- 模拟数据 ---- */
+const MOCK = [
+  { name: '阿曾二女儿', date: '2026-01-13 12:00', gender: 'f', tags: ['朋友'] },
+  { name: '羊刃格3',    date: '1995-04-02 20:00', gender: 'f', tags: ['案例'] },
+  { name: '羊刃格2',    date: '1996-12-31 08:00', gender: 'f', tags: ['案例'] },
+  { name: '羊刃格1',    date: '1982-05-14 04:00', gender: 'm', tags: ['案例'] },
+  { name: '建禄格4',    date: '1995-06-04 14:00', gender: 'm', tags: ['案例'] },
+  { name: '建禄格3',    date: '1988-11-27 06:30', gender: 'f', tags: ['客户'] },
+  { name: '正官格1',    date: '1990-05-20 10:30', gender: 'm', tags: ['客户'] },
+  { name: '偏印格2',    date: '2001-03-08 22:15', gender: 'f', tags: ['案例', '复盘'] },
+];
+
+let cur = 'upload';
+
+function go(step) {
+  cur = step;
+  ['upload', 'preview', 'importing', 'result'].forEach(s => {
+    document.getElementById('st-' + s).hidden = (s !== step);
+  });
+  document.getElementById('fb-preview').hidden = (step !== 'preview');
+  const idx = { upload: 0, preview: 1, importing: 2, result: 2 }[step];
+  document.querySelectorAll('#stepper .st').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+    el.classList.toggle('done', i < idx);
+    el.querySelector('.dot').innerHTML = (i < idx)
+      ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>'
+      : (i + 1);
+  });
+  document.querySelector('.scroll')?.scrollTo(0, 0);
+}
+
+function backNav() {
+  if (cur === 'preview') go('upload');
+  else toast('演示：此处返回案例列表');
+}
+
+function pickFile() { renderPreview(MOCK); }
+
+function useSample() { renderPreview(MOCK); }
+
+function renderPreview(list) {
+  document.getElementById('pvCount').textContent = list.length + ' 条记录';
+  document.getElementById('pvList').innerHTML = list.map((c, i) => `
+    <div class="case-card" style="animation-delay:${i * 30}ms">
+      <div class="cc-top"><span class="cc-name">${c.name}</span><span class="cc-idx mono">#${i + 1}</span></div>
+      <div class="cc-date mono">${c.date}</div>
+      <div class="cc-foot">
+        <span class="cc-gender ${c.gender}">${c.gender === 'm' ? '男命' : '女命'}</span>
+        <span class="cc-tags">${c.tags.map(t => `<span class="cc-tag">${t}</span>`).join('')}</span>
+      </div>
+    </div>`).join('');
+  go('preview');
+}
+
+function doImport() {
+  go('importing');
+  setTimeout(() => {
+    document.getElementById('okCount').textContent = MOCK.length;
+    go('result');
+  }, 900);
+}
+
+/* 模拟 exportTextFile 的安卓路径：OrbisNative 桥 → MediaStore 写入系统「下载」目录 */
+function saveTemplate() {
+  toast('已保存到「下载」目录 · import_template.json');
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>

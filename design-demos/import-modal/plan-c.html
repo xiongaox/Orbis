@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 C · 空态聚焦 + 模板抽屉</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+/* 方案 C：上传步骤整屏化为空态引导；模板收进底部抽屉，步骤条压成三段进度线 */
+.empty-wrap {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 0 40px 8vh;
+  text-align: center;
+}
+.empty-ico {
+  width: 72px; height: 72px; border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--primary);
+  margin-bottom: 22px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.25);
+}
+.empty-wrap h2 {
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 21px; font-weight: 700; letter-spacing: .02em;
+  margin-bottom: 8px;
+}
+.empty-wrap .sub { font-size: 12.5px; color: var(--muted); line-height: 1.7; margin-bottom: 30px; }
+.empty-wrap .primary-btn { width: 100%; height: 48px; border-radius: 12px; }
+.empty-wrap .sec-btn { width: 100%; margin-top: 10px; height: 46px; border-radius: 12px; }
+.empty-link {
+  margin-top: 22px;
+  border: none; background: transparent;
+  color: var(--muted); font-size: 12.5px;
+  cursor: pointer; font-family: inherit;
+  display: flex; align-items: center; gap: 5px;
+  padding: 8px 10px;
+}
+.empty-link:active { color: var(--text); }
+
+/* 底部抽屉 */
+.mask {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.55);
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s;
+  z-index: 40;
+}
+.mask.show { opacity: 1; pointer-events: auto; }
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: #1b1c1e;
+  border-radius: 16px 16px 0 0;
+  border-top: 1px solid var(--border);
+  transform: translateY(102%);
+  transition: transform .32s cubic-bezier(.32, .72, .28, 1);
+  z-index: 45;
+  max-height: 80%;
+  display: flex; flex-direction: column;
+}
+.sheet.show { transform: none; }
+.grab { width: 36px; height: 4px; border-radius: 2px; background: #3a3b3e; margin: 10px auto 0; flex-shrink: 0; }
+.sheet-h {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 18px 6px;
+  font-size: 15px; font-weight: 700;
+  flex-shrink: 0;
+}
+.sheet-h .x {
+  width: 30px; height: 30px; border: none; background: transparent;
+  color: var(--muted); font-size: 18px; cursor: pointer; border-radius: 8px;
+}
+.sheet-body { padding: 4px 18px 16px; overflow-y: auto; }
+.ftable-wrap {
+  background: var(--panel); border: 1px solid var(--border-soft);
+  border-radius: 10px; padding: 2px 4px; margin-top: 6px;
+}
+.sheet-note { font-size: 11px; color: var(--muted); line-height: 1.7; margin-top: 12px; }
+.sheet-acts { display: flex; gap: 10px; padding: 0 18px 20px; flex-shrink: 0; }
+.sheet-acts .sec-btn { flex: 1; height: 44px; }
+.sheet-acts .primary-btn { flex: 1.4; height: 44px; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="statusbar"><span>12:10</span><span class="sb-icons"><span class="sb-dot on"></span><span class="sb-dot on"></span><span class="sb-dot"></span></span></div>
+
+  <div class="page">
+    <div class="phead">
+      <button class="back" onclick="backNav()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      导入八字案例
+    </div>
+
+    <!-- 压缩步骤条：三段进度线 -->
+    <div class="seg-steps" id="seg">
+      <div class="seg"><div class="bar"></div><span class="sl">上传</span></div>
+      <div class="seg"><div class="bar"></div><span class="sl">预览</span></div>
+      <div class="seg"><div class="bar"></div><span class="sl">完成</span></div>
+    </div>
+
+    <!-- 步骤 1：空态引导 -->
+    <div class="empty-wrap" id="st-upload">
+      <div class="empty-ico">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 3 3 3-3"/><path d="M12 12v6"/></svg>
+      </div>
+      <h2>导入排盘数据</h2>
+      <p class="sub">选择一个 JSON 文件，批量导入八字案例<br>导入前会先预览确认</p>
+      <button class="primary-btn" onclick="pickFile()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        选择 JSON 文件
+      </button>
+      <button class="sec-btn" onclick="pasteParse()">粘贴数据</button>
+      <button class="empty-link" onclick="openSheet()">
+        查看模板格式
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+    </div>
+
+    <!-- 步骤 2：预览 -->
+    <div class="scroll" id="st-preview" hidden>
+      <div class="pv-head"><h3>预览数据</h3><span class="pv-chip" id="pvCount"></span></div>
+      <div class="pv-panel" id="pvList"></div>
+    </div>
+    <div class="fbar" id="fb-preview" hidden>
+      <button class="ghost" onclick="go('upload')">重新上传</button>
+      <button class="primary-btn" onclick="doImport()">确认导入</button>
+    </div>
+
+    <!-- 步骤 3：处理中 -->
+    <div class="center-step" id="st-importing" hidden>
+      <div class="spin"></div>
+      <h2 style="margin-top:22px">正在导入...</h2>
+    </div>
+
+    <!-- 步骤 4：结果 -->
+    <div class="center-step" id="st-result" hidden>
+      <div class="ok-ico">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+      <h2>导入成功</h2>
+      <p class="desc">成功导入 <b id="okCount">8</b> 条数据</p>
+      <button class="primary-btn" onclick="go('upload')">完成</button>
+    </div>
+  </div>
+
+  <!-- 模板格式抽屉 -->
+  <div class="mask" id="mask" onclick="closeSheet()"></div>
+  <div class="sheet" id="sheet">
+    <div class="grab"></div>
+    <div class="sheet-h">模板格式 <button class="x" onclick="closeSheet()">✕</button></div>
+    <div class="sheet-body">
+      <div class="ftable-wrap">
+        <table class="ftable">
+          <tr><th>字段</th><th>填写</th><th>示例</th></tr>
+          <tr><td>姓名</td><td><span class="req">必填</span></td><td class="mono">张三</td></tr>
+          <tr><td>性别</td><td><span class="req">必填</span></td><td>男 / 女</td></tr>
+          <tr><td>出生时间</td><td><span class="req">必填</span></td><td class="mono">1990-05-20 10:30</td></tr>
+          <tr><td>标签</td><td>选填</td><td>客户</td></tr>
+          <tr><td>备注</td><td>选填</td><td>事业咨询案例</td></tr>
+        </table>
+      </div>
+      <p class="sheet-note">文件为 JSON 数组，每个对象对应一条案例；「保存模板文件」会把标准模板写入系统「下载」目录，可直接修改后重新导入。</p>
+    </div>
+    <div class="sheet-acts">
+      <button class="sec-btn" onclick="copyTemplate()">复制模板</button>
+      <button class="primary-btn" onclick="saveTemplate()">保存模板文件</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span class="tick">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>
+  </span><span id="toastMsg"></span></div>
+</div>
+
+<script>
+const MOCK = [
+  { name: '阿曾二女儿', date: '2026-01-13 12:00', gender: 'f', tags: ['朋友'] },
+  { name: '羊刃格3',    date: '1995-04-02 20:00', gender: 'f', tags: ['案例'] },
+  { name: '羊刃格2',    date: '1996-12-31 08:00', gender: 'f', tags: ['案例'] },
+  { name: '羊刃格1',    date: '1982-05-14 04:00', gender: 'm', tags: ['案例'] },
+  { name: '建禄格4',    date: '1995-06-04 14:00', gender: 'm', tags: ['案例'] },
+  { name: '建禄格3',    date: '1988-11-27 06:30', gender: 'f', tags: ['客户'] },
+  { name: '正官格1',    date: '1990-05-20 10:30', gender: 'm', tags: ['客户'] },
+  { name: '偏印格2',    date: '2001-03-08 22:15', gender: 'f', tags: ['案例', '复盘'] },
+];
+
+let cur = 'upload';
+
+function go(step) {
+  cur = step;
+  ['upload', 'preview', 'importing', 'result'].forEach(s => {
+    document.getElementById('st-' + s).hidden = (s !== step);
+  });
+  document.getElementById('fb-preview').hidden = (step !== 'preview');
+  const idx = { upload: 0, preview: 1, importing: 2, result: 2 }[step];
+  document.querySelectorAll('#seg .seg').forEach((el, i) => {
+    el.classList.toggle('active', i === idx);
+    el.classList.toggle('done', i < idx);
+  });
+  document.querySelector('.scroll')?.scrollTo(0, 0);
+}
+
+function backNav() {
+  if (cur === 'preview') go('upload');
+  else toast('演示：此处返回案例列表');
+}
+
+function pickFile() { renderPreview(MOCK); }
+function pasteParse() { renderPreview(MOCK); }
+
+function renderPreview(list) {
+  document.getElementById('pvCount').textContent = list.length + ' 条记录';
+  document.getElementById('pvList').innerHTML = list.map((c, i) => `
+    <div class="case-card" style="animation-delay:${i * 30}ms">
+      <div class="cc-top"><span class="cc-name">${c.name}</span><span class="cc-idx mono">#${i + 1}</span></div>
+      <div class="cc-date mono">${c.date}</div>
+      <div class="cc-foot">
+        <span class="cc-gender ${c.gender}">${c.gender === 'm' ? '男命' : '女命'}</span>
+        <span class="cc-tags">${c.tags.map(t => `<span class="cc-tag">${t}</span>`).join('')}</span>
+      </div>
+    </div>`).join('');
+  go('preview');
+}
+
+function doImport() {
+  go('importing');
+  setTimeout(() => {
+    document.getElementById('okCount').textContent = MOCK.length;
+    go('result');
+  }, 900);
+}
+
+function openSheet() {
+  document.getElementById('mask').classList.add('show');
+  document.getElementById('sheet').classList.add('show');
+}
+function closeSheet() {
+  document.getElementById('mask').classList.remove('show');
+  document.getElementById('sheet').classList.remove('show');
+}
+
+/* 模拟 exportTextFile 的安卓路径：OrbisNative 桥 → MediaStore 写入系统「下载」目录 */
+function saveTemplate() {
+  closeSheet();
+  toast('已保存到「下载」目录 · import_template.json');
+}
+function copyTemplate() {
+  toast('模板已复制到剪贴板');
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>
