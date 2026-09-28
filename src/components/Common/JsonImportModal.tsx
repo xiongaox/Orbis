@@ -14,15 +14,16 @@
  * - `default JsonImportModal`, `JsonImportModalProps`
  *
  * 依赖关系：
- * - 上游依赖：外部依赖 `react`、外部依赖 `lucide-react`、内部模块 `BaseModal` 等 4 个模块
+ * - 上游依赖：外部依赖 `react`、外部依赖 `lucide-react`、内部模块 `BaseModal`、内部模块 `fileExportUtil` 等 5 个模块
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 
-import { useRef, useState, useCallback } from 'react';
-import { Upload, FileJson, Check, AlertCircle, LayoutTemplate, X } from 'lucide-react';
+import { useRef, useState, useCallback, useMemo } from 'react';
+import { Upload, FileJson, Check, AlertCircle, LayoutTemplate, X, ClipboardPaste, Download, ChevronRight, Table2, Trash2 } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
 import SubPage from '../UI/SubPage';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { exportTextFile } from '../../utils/fileExportUtil';
 
 export interface JsonImportModalProps<T> {
     isOpen: boolean;
@@ -55,6 +56,112 @@ export interface JsonImportModalProps<T> {
 
 type ImportStep = 'upload' | 'preview' | 'importing' | 'result';
 
+// 移动端分区列表行（方案 B）：图标瓦片 + 主副文案 + 指示箭头，open 传入时箭头随展开旋转
+function ActionRow({ icon, title, sub, onClick, open, hero = false, disabled = false }: {
+    icon: React.ReactNode;
+    title: string;
+    sub: string;
+    onClick: () => void;
+    open?: boolean;
+    hero?: boolean;
+    disabled?: boolean;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            disabled={disabled}
+            className={`w-full flex items-center gap-3 px-4 text-left transition-colors focus-ring disabled:opacity-50 disabled:pointer-events-none ${hero ? 'py-4' : 'py-3.5'} ${!disabled ? 'hover:bg-muted/40 active:bg-muted/60' : ''}`}
+        >
+            <div className={`
+                flex items-center justify-center flex-shrink-0
+                ${hero
+                    ? 'w-11 h-11 rounded-xl bg-primary/10 border border-primary/20 text-primary'
+                    : 'w-9 h-9 rounded-lg bg-muted/60 border border-border text-muted-foreground'}
+            `}>
+                {icon}
+            </div>
+            <div className="flex-1 min-w-0">
+                <div className={`font-semibold text-foreground ${hero ? 'text-[15px]' : 'text-sm'}`}>{title}</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{sub}</div>
+            </div>
+            <ChevronRight className={`w-4 h-4 text-muted-foreground/50 flex-shrink-0 transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
+        </button>
+    );
+}
+
+// 预览卡片左滑删除容器：跟手左移露出右侧红色删除区（垃圾桶居中），超过阈值松手即删除。
+// 仅监听触摸事件，桌面端鼠标路径不受影响；横竖轴锁定避免与列表纵向滚动打架。
+function SwipeToDelete({ children, onDelete }: { children: React.ReactNode; onDelete: () => void }) {
+    const SWIPE_THRESHOLD = 96;
+    const SWIPE_MAX = 160;
+    const [dx, setDx] = useState(0);
+    const [dragging, setDragging] = useState(false);
+    const [removing, setRemoving] = useState(false);
+    const startX = useRef(0);
+    const startY = useRef(0);
+    const axisLocked = useRef(false);
+    const active = useRef(false);
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        if (removing) return;
+        active.current = true;
+        axisLocked.current = false;
+        startX.current = e.touches[0].clientX;
+        startY.current = e.touches[0].clientY;
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (!active.current || removing) return;
+        const mx = e.touches[0].clientX - startX.current;
+        const my = e.touches[0].clientY - startY.current;
+        if (!axisLocked.current) {
+            if (Math.abs(mx) < 8 && Math.abs(my) < 8) return;
+            axisLocked.current = Math.abs(mx) > Math.abs(my);
+            if (!axisLocked.current) {
+                active.current = false;
+                return;
+            }
+            setDragging(true);
+        }
+        setDx(Math.min(0, Math.max(mx, -SWIPE_MAX)));
+    };
+
+    const handleTouchEnd = () => {
+        if (!active.current) return;
+        active.current = false;
+        setDragging(false);
+        if (-dx >= SWIPE_THRESHOLD) {
+            setRemoving(true);
+            setDx(-400);
+            window.setTimeout(onDelete, 220);
+        } else {
+            setDx(0);
+        }
+    };
+
+    return (
+        <div className="relative" style={{ touchAction: 'pan-y' }}>
+            <div
+                className="absolute inset-y-0 right-0 w-24 flex items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 pointer-events-none"
+                style={{ opacity: Math.min(-dx / SWIPE_THRESHOLD, 1) }}
+            >
+                <Trash2 className="w-5 h-5" />
+            </div>
+            <div
+                className={`relative ${removing ? 'opacity-0' : ''} ${dragging ? '' : 'transition-[transform,opacity] duration-200'}`}
+                style={{ transform: `translateX(${dx}px)` }}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onTouchCancel={handleTouchEnd}
+            >
+                {children}
+            </div>
+        </div>
+    );
+}
+
 export default function JsonImportModal<T>({
     isOpen,
     title,
@@ -74,6 +181,24 @@ export default function JsonImportModal<T>({
     const [dragOver, setDragOver] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const isMobile = !useMediaQuery('(min-width: 768px)');
+    // 移动端分区列表（方案 B）的折叠与辅助状态
+    const [pasteOpen, setPasteOpen] = useState(false);
+    const [pasteText, setPasteText] = useState('');
+    const [fieldsOpen, setFieldsOpen] = useState(false);
+    const [templateBusy, setTemplateBusy] = useState(false);
+    const [templateSaved, setTemplateSaved] = useState<string | null>(null);
+
+    // 字段说明表数据：从模板首项的键值对推导，八字/奇门各自展示自己的键名与示例
+    const templateFields = useMemo(() => {
+        const first = Array.isArray(templateData)
+            ? (templateData as unknown[]).find(item => item && typeof item === 'object')
+            : null;
+        if (!first) return [];
+        return Object.entries(first as Record<string, unknown>).map(([key, value]) => ({
+            key,
+            example: typeof value === 'string' ? value : JSON.stringify(value),
+        }));
+    }, [templateData]);
 
     const resetState = useCallback(() => {
         setStep('upload');
@@ -81,6 +206,10 @@ export default function JsonImportModal<T>({
         setImportResult(null);
         setError(null);
         setDragOver(false);
+        setPasteOpen(false);
+        setPasteText('');
+        setFieldsOpen(false);
+        setTemplateSaved(null);
     }, []);
 
     const handleClose = () => {
@@ -88,20 +217,15 @@ export default function JsonImportModal<T>({
         onClose();
     };
 
-    const handleFileSelect = useCallback(async (file: File) => {
-        if (!file.name.endsWith('.json')) {
-            setError('仅支持 JSON 格式文件 (.json)');
-            return;
-        }
-
+    // 解析并进入预览：文件选择与粘贴解析共用（粘贴路径没有 .json 扩展名校验）
+    const parseAndPreview = useCallback((text: string) => {
         setError(null);
         try {
-            const text = await file.text();
             let jsonData;
             try {
                 jsonData = JSON.parse(text);
             } catch {
-                throw new Error('JSON 文件解析失败');
+                throw new Error('JSON 解析失败，请检查内容格式');
             }
 
             const data = onParse(jsonData);
@@ -117,6 +241,17 @@ export default function JsonImportModal<T>({
         }
     }, [onParse]);
 
+    const handleFileSelect = useCallback(async (file: File) => {
+        if (!file.name.endsWith('.json')) {
+            setError('仅支持 JSON 格式文件 (.json)');
+            return;
+        }
+
+        setError(null);
+        const text = await file.text();
+        parseAndPreview(text);
+    }, [parseAndPreview]);
+
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         setDragOver(false);
@@ -125,6 +260,14 @@ export default function JsonImportModal<T>({
             handleFileSelect(file);
         }
     }, [handleFileSelect]);
+
+    // 预览列表左滑删除单条：按对象引用过滤（而非索引），避免多条同时滑动时索引漂移误删；
+    // 全部删完则回到上传步骤
+    const removeParsedItem = (target: T) => {
+        const next = parsedData.filter(p => p !== target);
+        setParsedData(next);
+        if (next.length === 0) resetState();
+    };
 
     const handleImport = async () => {
         if (parsedData.length === 0) return;
@@ -150,16 +293,31 @@ export default function JsonImportModal<T>({
         handleClose();
     };
 
-    const downloadTemplate = () => {
-        const blob = new Blob([JSON.stringify(templateData, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'import_template.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+    // 下载标准模板：统一走跨端导出工具（安卓 WebView 不支持 <a download> 的 blob 下载，
+    // 必须经 OrbisNative 桥写入系统「下载」目录；桌面弹原生保存框；浏览器回退 Blob）
+    const handleDownloadTemplate = async () => {
+        if (templateBusy) return;
+        setError(null);
+        setTemplateSaved(null);
+        setTemplateBusy(true);
+        try {
+            const outcome = await exportTextFile({
+                filename: 'import_template',
+                content: JSON.stringify(templateData, null, 2),
+                extension: 'json',
+                typeLabel: 'JSON',
+            });
+            if (outcome === 'cancelled') return;
+            setTemplateSaved(
+                outcome === 'downloaded'
+                    ? '已触发浏览器下载 · import_template.json'
+                    : '模板已保存 · import_template.json'
+            );
+        } catch (err) {
+            setError(err instanceof Error ? err.message : '模板下载失败，请重试');
+        } finally {
+            setTemplateBusy(false);
+        }
     };
 
     // Steps configuration for timeline
@@ -170,37 +328,6 @@ export default function JsonImportModal<T>({
     ];
 
     const currentStepIndex = steps.findIndex(s => s.id === (step === 'importing' ? 'result' : step));
-
-    // 水平步骤条：移动端放 SubPage 正文顶部（标题由页头提供，关闭走返回手势/返回键）
-    const stepperBar = (
-        <div className="flex items-center gap-1">
-            {steps.map((s, idx) => {
-                const isActive = idx === currentStepIndex;
-                const isCompleted = idx < currentStepIndex;
-                return (
-                    <div key={s.id} className="flex items-center gap-1 flex-1">
-                        <div className={`
-                            w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border transition-all flex-shrink-0
-                            ${isActive
-                                ? 'bg-primary border-primary text-primary-foreground'
-                                : isCompleted
-                                    ? 'bg-muted border-primary/20 text-muted-foreground'
-                                    : 'bg-muted/50 border-border text-muted-foreground/50'
-                            }
-                        `}>
-                            {isCompleted ? <Check className="w-3 h-3" /> : idx + 1}
-                        </div>
-                        <span className={`text-sm font-medium truncate ${isActive ? 'text-foreground' : 'text-muted-foreground/60'}`}>
-                            {s.label}
-                        </span>
-                        {idx !== steps.length - 1 && (
-                            <div className={`flex-1 h-px mx-1 ${isCompleted ? 'bg-primary/30' : 'bg-border'}`} />
-                        )}
-                    </div>
-                );
-            })}
-        </div>
-    );
 
     // 桌面端左侧栏：竖排步骤 + 模板下载（原样保留）
     const desktopSidebar = (
@@ -251,8 +378,9 @@ export default function JsonImportModal<T>({
             {/* Bottom Action: Download Template */}
             <div className="mt-auto relative z-10">
                 <button
-                    onClick={downloadTemplate}
-                    className="w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/40 hover:bg-muted border border-transparent hover:border-border transition-all text-left group focus-ring"
+                    onClick={handleDownloadTemplate}
+                    disabled={templateBusy}
+                    className="w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/40 hover:bg-muted border border-transparent hover:border-border transition-all text-left group focus-ring disabled:opacity-50 disabled:pointer-events-none"
                 >
                     <div className="p-1.5 rounded-lg bg-background text-muted-foreground group-hover:text-foreground transition-colors border border-border">
                         <LayoutTemplate className="w-3.5 h-3.5" />
@@ -262,6 +390,9 @@ export default function JsonImportModal<T>({
                         <div className="text-xs font-medium text-foreground group-hover:text-primary transition-colors">下载标准模版</div>
                     </div>
                 </button>
+                {templateSaved && (
+                    <div className="mt-2 px-1 text-[11px] leading-relaxed text-green-500" role="status">{templateSaved}</div>
+                )}
             </div>
         </div>
     );
@@ -283,48 +414,144 @@ export default function JsonImportModal<T>({
 
                 <div className={`flex-1 ${isMobile ? 'p-4' : 'p-6'} flex flex-col justify-center h-full overflow-hidden`}>
 
-                    {/* Step 1: Upload Dropzone */}
+                    {/* 文件输入提升到工作区根部：移动端列表行与桌面端拖拽框共用 */}
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".json,application/json"
+                        className="hidden"
+                        onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileSelect(file);
+                            e.target.value = '';
+                        }}
+                    />
+
+                    {/* Step 1: Upload（移动端 = 分区列表；桌面端 = 拖拽虚线框） */}
                     {step === 'upload' && (
                         <div className="h-full flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
-                            <h3 className="text-xl font-semibold text-foreground mb-4">上传文件</h3>
-                            <div
-                                className={`
-                                    flex-1 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all duration-300 cursor-pointer relative overflow-hidden group
-                                    ${dragOver
-                                        ? 'border-primary bg-primary/5'
-                                        : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                                    }
-                                `}
-                                onDrop={handleDrop}
-                                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                                onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
-                                onClick={() => fileInputRef.current?.click()}
-                            >
-                                <div className={`w-16 h-16 mb-4 rounded-2xl bg-muted border border-border flex items-center justify-center transition-transform duration-500 ${dragOver ? 'scale-110 shadow-lg' : 'group-hover:scale-105'}`}>
-                                    <Upload className={`w-7 h-7 ${dragOver ? 'text-primary' : 'text-muted-foreground'}`} />
-                                </div>
-                                <div className="text-center space-y-1.5">
-                                    <p className="text-base font-medium text-foreground">点击上传或将文件拖到这里</p>
-                                    <p className="text-xs text-muted-foreground">支持 .json 格式文件</p>
-                                </div>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept=".json,application/json"
-                                    className="hidden"
-                                    onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) handleFileSelect(file);
-                                        e.target.value = '';
-                                    }}
-                                />
-                            </div>
+                            {!isMobile && <h3 className="text-xl font-semibold text-foreground mb-4">上传文件</h3>}
+                            {isMobile ? (
+                                <div className="flex-1 min-h-0 overflow-y-auto pb-2 pt-1">
+                                    <div className="rounded-xl border border-border bg-card overflow-hidden">
+                                        <ActionRow
+                                            hero
+                                            icon={<FileJson className="w-5 h-5" />}
+                                            title="选择 JSON 文件"
+                                            sub="从本机文件中选取 · 支持批量导入"
+                                            onClick={() => fileInputRef.current?.click()}
+                                        />
+                                    </div>
 
-                            {error && (
-                                <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-red-400 animate-in slide-in-from-bottom-2">
-                                    <AlertCircle className="w-4 h-4" />
-                                    <span className="text-xs font-medium">{error}</span>
+                                    <div className="my-3 h-px bg-border" />
+                                    <div className="rounded-xl border border-border bg-card divide-y divide-border/60 overflow-hidden">
+                                        <div>
+                                            <ActionRow
+                                                icon={<ClipboardPaste className="w-[17px] h-[17px]" />}
+                                                title="粘贴 JSON 数据"
+                                                sub="从聊天 / 笔记复制后直接粘贴解析"
+                                                open={pasteOpen}
+                                                onClick={() => setPasteOpen(v => !v)}
+                                            />
+                                            {pasteOpen && (
+                                                <div className="px-4 pt-3 pb-4">
+                                                    <textarea
+                                                        value={pasteText}
+                                                        onChange={(e) => setPasteText(e.target.value)}
+                                                        placeholder="粘贴 JSON 数组内容（格式可参考标准模板）"
+                                                        autoFocus
+                                                        className="w-full min-h-[96px] resize-none rounded-lg border border-border bg-background p-3 text-xs font-mono text-foreground placeholder:text-muted-foreground/60 outline-none focus-ring"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => parseAndPreview(pasteText)}
+                                                        disabled={!pasteText.trim()}
+                                                        className="mt-2.5 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-xs font-semibold transition-all active:scale-[0.98] focus-ring disabled:opacity-40 disabled:pointer-events-none"
+                                                    >
+                                                        解析并预览
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <ActionRow
+                                                icon={<Download className="w-[17px] h-[17px]" />}
+                                                title="保存标准模板"
+                                                sub="保存到本机 · import_template.json"
+                                                onClick={handleDownloadTemplate}
+                                                disabled={templateBusy}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <ActionRow
+                                                icon={<Table2 className="w-[17px] h-[17px]" />}
+                                                title="查看字段说明"
+                                                sub={`${templateFields.length} 个字段 · 含示例值`}
+                                                open={fieldsOpen}
+                                                onClick={() => setFieldsOpen(v => !v)}
+                                            />
+                                            {fieldsOpen && templateFields.length > 0 && (
+                                                <div className="px-4 pt-3 pb-4">
+                                                    <div className="rounded-lg border border-border/60 divide-y divide-border/50 overflow-hidden">
+                                                        {templateFields.map(f => (
+                                                            <div key={f.key} className="flex items-center gap-3 px-3.5 py-2.5">
+                                                                <span className="w-16 shrink-0 text-xs font-medium text-foreground">{f.key}</span>
+                                                                <span className="flex-1 min-w-0 truncate text-right font-mono text-[11px] text-muted-foreground">{f.example}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {templateSaved && (
+                                        <div className="mt-3 p-3 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center gap-2 text-green-500 animate-in slide-in-from-bottom-2" role="status">
+                                            <Check className="w-4 h-4 flex-shrink-0" />
+                                            <span className="text-xs font-medium">{templateSaved}</span>
+                                        </div>
+                                    )}
+
+                                    {error && (
+                                        <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-red-400 animate-in slide-in-from-bottom-2">
+                                            <AlertCircle className="w-4 h-4" />
+                                            <span className="text-xs font-medium">{error}</span>
+                                        </div>
+                                    )}
                                 </div>
+                            ) : (
+                                <>
+                                    <div
+                                        className={`
+                                            flex-1 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all duration-300 cursor-pointer relative overflow-hidden group
+                                            ${dragOver
+                                                ? 'border-primary bg-primary/5'
+                                                : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                                            }
+                                        `}
+                                        onDrop={handleDrop}
+                                        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                                        onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
+                                        onClick={() => fileInputRef.current?.click()}
+                                    >
+                                        <div className={`w-16 h-16 mb-4 rounded-2xl bg-muted border border-border flex items-center justify-center transition-transform duration-500 ${dragOver ? 'scale-110 shadow-lg' : 'group-hover:scale-105'}`}>
+                                            <Upload className={`w-7 h-7 ${dragOver ? 'text-primary' : 'text-muted-foreground'}`} />
+                                        </div>
+                                        <div className="text-center space-y-1.5">
+                                            <p className="text-base font-medium text-foreground">点击上传或将文件拖到这里</p>
+                                            <p className="text-xs text-muted-foreground">支持 .json 格式文件</p>
+                                        </div>
+                                    </div>
+
+                                    {error && (
+                                        <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-red-400 animate-in slide-in-from-bottom-2">
+                                            <AlertCircle className="w-4 h-4" />
+                                            <span className="text-xs font-medium">{error}</span>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </div>
                     )}
@@ -348,7 +575,9 @@ export default function JsonImportModal<T>({
                                         <div className={`grid ${isMobile ? 'grid-cols-1' : gridClassName} gap-3 auto-rows-min`}>
                                             {parsedData.map((item, i) => (
                                                 <div key={i} className="animate-in fade-in zoom-in-95 fill-mode-both" style={{ animationDelay: `${i * 30}ms` }}>
-                                                    {renderCard(item, i)}
+                                                    <SwipeToDelete onDelete={() => removeParsedItem(item)}>
+                                                        {renderCard(item, i)}
+                                                    </SwipeToDelete>
                                                 </div>
                                             ))}
                                         </div>
@@ -382,19 +611,19 @@ export default function JsonImportModal<T>({
                                 </div>
                             </div>
 
-                            <div className="mt-4 flex justify-between items-center flex-shrink-0">
+                            <div className={`flex items-center gap-2 flex-shrink-0 ${isMobile ? 'mt-3 pt-3 border-t border-border' : 'mt-4 justify-between'}`}>
                                 {/* Re-upload Button */}
                                 <button
                                     onClick={resetState}
-                                    className="text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-1 focus-ring"
+                                    className={`text-muted-foreground hover:text-foreground transition-colors focus-ring ${isMobile ? 'px-3 py-2.5 text-sm' : 'text-sm px-2 py-1'}`}
                                 >
-                                    取消并重新上传
+                                    重新上传
                                 </button>
 
                                 {/* Import Button */}
                                 <button
                                     onClick={handleImport}
-                                    className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-semibold rounded-lg transition-all shadow-sm active:scale-95 focus-ring"
+                                    className={`bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-semibold rounded-lg transition-all focus-ring ${isMobile ? 'flex-1 h-11 active:scale-[0.98]' : 'px-4 py-2 shadow-sm active:scale-95'}`}
                                 >
                                     确认导入
                                 </button>
@@ -432,24 +661,6 @@ export default function JsonImportModal<T>({
                         </div>
                     )}
                 </div>
-
-                {/* 移动端：底部下载模版按钮（上传和预览步骤时显示） */}
-                {isMobile && (step === 'upload' || step === 'preview') && (
-                    <div className="flex-shrink-0 px-4 pb-4">
-                        <button
-                            onClick={downloadTemplate}
-                            className="w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/40 hover:bg-muted border border-transparent hover:border-border transition-all text-left group focus-ring"
-                        >
-                            <div className="p-1.5 rounded-lg bg-background text-muted-foreground group-hover:text-foreground transition-colors border border-border">
-                                <LayoutTemplate className="w-3.5 h-3.5" />
-                            </div>
-                            <div>
-                                <div className="text-xs text-muted-foreground">还没有数据?</div>
-                                <div className="text-xs font-medium text-foreground group-hover:text-primary transition-colors">下载标准模版</div>
-                            </div>
-                        </button>
-                    </div>
-                )}
         </div>
     );
 
@@ -462,9 +673,6 @@ export default function JsonImportModal<T>({
                 title={title}
                 bodyClassName="overflow-hidden flex flex-col"
             >
-                <div className="bg-muted/30 border-b border-border px-4 py-4 shrink-0">
-                    {stepperBar}
-                </div>
                 {workspace}
             </SubPage>
         );
