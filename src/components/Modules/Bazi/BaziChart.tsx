@@ -65,6 +65,10 @@ export default function BaziChart({
   // 是否显示大运/流年列
   const showDaYunLiuNian = selectedDaYunIndex !== null || selectedLiuNianYear !== null;
 
+  // 时辰切换按钮只在纯四柱模式下显示：胎命身/大运流年列一旦出现，列宽被大幅压缩
+  // （移动端还会横向溢出），表头再放左右箭头只会挤压"时柱"标签，因此主动隐藏。
+  const showHourShift = !showTaiMingShen && !showDaYunLiuNian;
+
   // 确定当前显示的大运和流年
   const activeDaYunIndex = selectedDaYunIndex ?? daYun?.find(dy =>
     currentYear >= dy.startYear && currentYear <= dy.endYear
@@ -206,7 +210,7 @@ export default function BaziChart({
             ).map(s => s.name) : [];
             return (
               <div key={pillar.label} className={`flex-1 ${isMobileLayout ? 'min-w-[44px]' : 'min-w-[56px]'} border-r border-border last:border-r-0`}>
-                <DetailedPillarCard pillar={pillar} isDayMaster={index === 2} shensha={shenshaList} genderLabel={index === 2 ? genderLabel : undefined} isMobileLayout={isMobileLayout} hideDetails={hideDetails} onShiftHour={index === 3 ? onShiftHour : undefined} />
+                <DetailedPillarCard pillar={pillar} isDayMaster={index === 2} shensha={shenshaList} genderLabel={index === 2 ? genderLabel : undefined} isMobileLayout={isMobileLayout} hideDetails={hideDetails} onShiftHour={index === 3 && showHourShift ? onShiftHour : undefined} />
               </div>
             );
           })}
