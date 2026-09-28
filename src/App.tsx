@@ -155,6 +155,21 @@ function AppContent() {
     activeBookId,
   });
 
+  // 万年历"去排盘"：以面板当前选中日期起盘（男命临时盘，不入案例库）；
+  // 八字处于锁定盘时保持锁定状态不动，仅切换过去。
+  const handleWannianliGoPaiPan = (date: Date) => {
+    if (!baziIsLocked) {
+      bazi.handleSetTransientCase({
+        id: 'wannianli-paipan',
+        name: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`,
+        gender: 'male',
+        birth_date: date.toISOString(),
+        created_at: new Date().toISOString(),
+      });
+    }
+    setActiveChart('bazi');
+  };
+
   // 渲染主内容区域
   const mountedCharts = useMemo(
     () => Array.from(new Set([...lockedCharts, activeChart])),
@@ -174,7 +189,7 @@ function AppContent() {
       case 'xiaoliuren':
         return <CaseStudyPage />;
       case 'wannianli':
-        return <WannianliPage />;
+        return <WannianliPage onGoPaiPan={handleWannianliGoPaiPan} />;
       case 'sanyuan':
         return <SanYuanPage />;
       case 'bazi':

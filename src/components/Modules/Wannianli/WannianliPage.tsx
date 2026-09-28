@@ -22,7 +22,9 @@ import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
 import WannianliLayout from './layouts/WannianliLayout';
 import { useWannianliState } from './hooks/useWannianliState';
 
-export default function WannianliPage() {
+import type { WannianliLayoutProps } from './layouts/WannianliLayoutProps';
+
+export default function WannianliPage({ onGoPaiPan }: { onGoPaiPan?: WannianliLayoutProps['onGoPaiPan'] }) {
     const wannianliState = useWannianliState();
 
     return (
@@ -30,6 +32,7 @@ export default function WannianliPage() {
             <WannianliLayout
                 {...wannianliState}
                 setIsDatePickerOpen={wannianliState.setIsDatePickerOpen}
+                onGoPaiPan={onGoPaiPan}
             />
             {/* 日期选择弹窗 - 复用组件在最顶层 */}
             <AdvancedDatePicker

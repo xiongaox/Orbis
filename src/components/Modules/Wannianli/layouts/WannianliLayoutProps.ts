@@ -44,4 +44,7 @@ export interface WannianliLayoutProps {
 
     // 已计算的网格数据
     calendarData: CalendarDay[];
+
+    // 跳转四柱八字，以面板当前选中日期起盘（未提供时隐藏入口）
+    onGoPaiPan?: (date: Date) => void;
 }
