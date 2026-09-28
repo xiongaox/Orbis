@@ -29,6 +29,8 @@ interface DetailedPillarCardProps {
     genderLabel?: string;
     isMobileLayout?: boolean;
     hideDetails?: boolean;
+    // 时柱专属：切换上一/下一时辰（-1 上一时辰，+1 下一时辰）
+    onShiftHour?: (delta: 1 | -1) => void;
 }
 
 export function DetailedPillarCard({
@@ -38,11 +40,34 @@ export function DetailedPillarCard({
     genderLabel = '日主',
     isMobileLayout = false,
     hideDetails = false,
+    onShiftHour,
 }: DetailedPillarCardProps) {
     return (
         <div className={`h-full flex flex-col ${isDayMaster ? 'bg-primary/5' : ''}`}>
-            <div className="h-8 flex items-center justify-center border-b border-border bg-secondary/30">
-                <span className="text-xs text-muted-foreground">{pillar.label}</span>
+            <div className="h-8 flex items-center justify-center border-b border-border bg-secondary/30 gap-0.5">
+                {onShiftHour && (
+                    <button
+                        type="button"
+                        onClick={() => onShiftHour(-1)}
+                        title="上一时辰"
+                        aria-label="上一时辰"
+                        className="w-4 h-4 shrink-0 flex items-center justify-center rounded text-[10px] leading-none text-muted-foreground hover:bg-primary/20 hover:text-primary transition-colors focus:outline-none focus-ring"
+                    >
+                        ◀
+                    </button>
+                )}
+                <span className="text-xs text-muted-foreground shrink-0">{pillar.label}</span>
+                {onShiftHour && (
+                    <button
+                        type="button"
+                        onClick={() => onShiftHour(1)}
+                        title="下一时辰"
+                        aria-label="下一时辰"
+                        className="w-4 h-4 shrink-0 flex items-center justify-center rounded text-[10px] leading-none text-muted-foreground hover:bg-primary/20 hover:text-primary transition-colors focus:outline-none focus-ring"
+                    >
+                        ▶
+                    </button>
+                )}
             </div>
             <div className="h-10 flex items-center justify-center border-b border-border">
                 <span className="text-sm text-foreground">{pillar.tianganShiShen || genderLabel}</span>
