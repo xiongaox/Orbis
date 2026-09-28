@@ -15,6 +15,8 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { Sparkles, Compass, Bot } from 'lucide-react';
 import BaseModal from '../../UI/BaseModal';
+import SubPage from '../../UI/SubPage';
+import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import type { BaziApiResponse } from '../../../types/bazi';
 import { aiChatService } from '../../../services/aiChatService';
 import type { AiModelService } from '../../../services/aiModelService';
@@ -225,7 +227,91 @@ export default function PhysicsLogModal({
     }
   }, [baziData, currentService, selectedModel, cacheKey]);
 
+  // 移动端检测：必须在 isOpen 早退之前调用，保证 hooks 顺序稳定
+  const { isMobile } = useLayoutMode();
+
   if (!isOpen) return null;
+
+  // Tab 条：桌面端嵌在弹窗头部两行结构里；移动端放 SubPage 正文顶部
+  const tabBar = (
+    <div className="flex items-center p-1 bg-muted/60 rounded-xl border border-border/50 w-full">
+      <button
+        type="button"
+        onClick={() => setActiveTab('dashboard')}
+        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-lg transition-all ${
+          activeTab === 'dashboard'
+            ? 'bg-background text-foreground shadow-xs font-semibold'
+            : 'text-muted-foreground hover:text-foreground'
+        }`}
+      >
+        <Compass className="w-3.5 h-3.5 text-primary shrink-0" />
+        <span>格局与旺衰看板</span>
+      </button>
+      <button
+        type="button"
+        onClick={() => setActiveTab('ai')}
+        className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-lg transition-all ${
+          activeTab === 'ai'
+            ? 'bg-background text-foreground shadow-xs font-semibold'
+            : 'text-muted-foreground hover:text-foreground'
+        }`}
+      >
+        <Bot className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+        <span>AI 深度推演</span>
+      </button>
+    </div>
+  );
+
+  // Tab 内容：移动端 SubPage 与桌面端 BaseModal 共用
+  const tabContent = activeTab === 'dashboard' ? (
+    dashboardData ? (
+      <WangShuaiDashboard data={dashboardData} rawLogs={logs} />
+    ) : (
+      <div className="text-center py-10 text-muted-foreground text-xs">
+        未能解析当前排盘数据
+      </div>
+    )
+  ) : (
+    <WangShuaiAiPanel
+      services={services}
+      selectedServiceId={selectedServiceId}
+      onSelectServiceId={setSelectedServiceId}
+      selectedModel={selectedModel}
+      onSelectModel={setSelectedModel}
+      isLoading={isLoadingAi}
+      onRunAnalysis={handleRunAiAnalysis}
+      onStopAnalysis={handleStopAiAnalysis}
+      analysisResult={aiAnalysisResult}
+      reasoningContent={aiReasoningContent}
+      error={aiError}
+      baziData={baziData}
+    />
+  );
+
+  const footer = (
+    <div className="w-full text-xs text-muted-foreground text-center">
+      {activeTab === 'dashboard'
+        ? '基于正统子平条件变量与能量天平算法 · 确定性裁决'
+        : '基于跃渊子平八字分析体系 · 深度学术推导演绎'}
+    </div>
+  );
+
+  // 移动端：统一二级页面壳（返回手势 + 统一页头）；此前 responsiveDrawer 在移动端
+  // 仍是居中小弹窗，旺衰分析内容多，整页更合适。
+  if (isMobile) {
+    return (
+      <SubPage
+        isOpen={isOpen}
+        onClose={handleClose}
+        title={title}
+        bodyClassName="p-4"
+        footer={footer}
+      >
+        <div className="mb-4">{tabBar}</div>
+        {tabContent}
+      </SubPage>
+    );
+  }
 
   // title 用函数形式接收 BaseModal 的关闭按钮，并把它摆进「标题行」内部：
   // 本头部是两行结构（标题行 + 全宽 Tab 条），若让按钮做 BaseModal 那一行的
@@ -241,40 +327,7 @@ export default function PhysicsLogModal({
       </div>
 
       {/* 极简精致 Segmented Control Tab，全宽铺满头部 */}
-      <div className="flex items-center p-1 bg-muted/60 rounded-xl border border-border/50 w-full">
-        <button
-          type="button"
-          onClick={() => setActiveTab('dashboard')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-lg transition-all ${
-            activeTab === 'dashboard'
-              ? 'bg-background text-foreground shadow-xs font-semibold'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Compass className="w-3.5 h-3.5 text-primary shrink-0" />
-          <span>格局与旺衰看板</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('ai')}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-lg transition-all ${
-            activeTab === 'ai'
-              ? 'bg-background text-foreground shadow-xs font-semibold'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          <Bot className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-          <span>AI 深度推演</span>
-        </button>
-      </div>
-    </div>
-  );
-
-  const footer = (
-    <div className="w-full text-xs text-muted-foreground text-center">
-      {activeTab === 'dashboard'
-        ? '基于正统子平条件变量与能量天平算法 · 确定性裁决'
-        : '基于跃渊子平八字分析体系 · 深度学术推导演绎'}
+      {tabBar}
     </div>
   );
 
@@ -288,30 +341,7 @@ export default function PhysicsLogModal({
       bodyClassName="p-4"
       responsiveDrawer
     >
-      {activeTab === 'dashboard' ? (
-        dashboardData ? (
-          <WangShuaiDashboard data={dashboardData} rawLogs={logs} />
-        ) : (
-          <div className="text-center py-10 text-muted-foreground text-xs">
-            未能解析当前排盘数据
-          </div>
-        )
-      ) : (
-        <WangShuaiAiPanel
-          services={services}
-          selectedServiceId={selectedServiceId}
-          onSelectServiceId={setSelectedServiceId}
-          selectedModel={selectedModel}
-          onSelectModel={setSelectedModel}
-          isLoading={isLoadingAi}
-          onRunAnalysis={handleRunAiAnalysis}
-          onStopAnalysis={handleStopAiAnalysis}
-          analysisResult={aiAnalysisResult}
-          reasoningContent={aiReasoningContent}
-          error={aiError}
-          baziData={baziData}
-        />
-      )}
+      {tabContent}
     </BaseModal>
   );
 }

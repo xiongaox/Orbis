@@ -33,6 +33,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import BaseModal from '../UI/BaseModal';
+import SubPage from '../UI/SubPage';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { drawerMarkdownComponents } from './markdownComponents';
 import {
@@ -607,20 +608,17 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
     );
   };
 
-  // 移动端：全屏两级视图（列表页 ⇄ 详情页），不使用桌面三栏结构
+  // 移动端：全屏两级视图（列表页 ⇄ 详情页），不使用桌面三栏结构。
+  // 壳走 SubPage（统一页头 + 返回手势）；详情页内部的返回键是页内二级导航，保留原位。
   if (isMobile) {
     const showDetail = mobileView === 'detail' && !!currentSession;
 
     return (
-      <BaseModal
+      <SubPage
         isOpen={isOpen}
         onClose={handleClose}
         title="对话历史"
-        titleIcon={<MessageSquare className="w-5 h-5" />}
-        maxWidth="max-w-full"
-        fullScreen
-        className="p-0"
-        bodyClassName="p-0 overflow-hidden flex flex-col min-h-0"
+        bodyClassName="overflow-hidden flex flex-col"
       >
         <div className="flex flex-col h-full w-full min-w-0 min-h-0 bg-background text-foreground">
           {showDetail && currentSession ? (
@@ -803,7 +801,7 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
             </>
           )}
         </div>
-      </BaseModal>
+      </SubPage>
     );
   }
 

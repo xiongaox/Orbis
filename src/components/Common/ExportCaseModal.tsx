@@ -18,9 +18,11 @@
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { useState, useMemo } from 'react';
-import { Download, Check, X } from 'lucide-react';
+import { Download, Check } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
+import SubPage from '../UI/SubPage';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
+import { exportTextFile, type ExportOutcome } from '../../utils/fileExportUtil';
 
 interface ExportOption {
     id: string;
@@ -52,6 +54,10 @@ export default function ExportCaseModal<T extends object>({
 }: ExportCaseModalProps<T>) {
     // 选中的标签/分类 ID
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    // 导出进行中 / 导出结果回执（安卓端走原生桥落盘，成功与失败都需要可见反馈）
+    const [exporting, setExporting] = useState(false);
+    const [exportError, setExportError] = useState<string | null>(null);
+    const [exportResult, setExportResult] = useState<{ name: string; count: number; outcome: ExportOutcome } | null>(null);
     const isMobile = !useMediaQuery('(min-width: 768px)');
 
     // 根据筛选条件过滤案例
@@ -95,32 +101,41 @@ export default function ExportCaseModal<T extends object>({
         }
     };
 
-    // 执行导出
-    const handleExport = () => {
-        // 使用自定义格式转换，或默认清理敏感字段
-        const exportData = filteredCases.map((c) => {
-            if (formatCase) {
-                return formatCase(c);
-            }
-            // 默认：清理敏感字段（如 user_id）
-            const rest = { ...(c as T & { user_id?: string }) };
-            delete rest.user_id;
-            return rest;
-        });
+    // 执行导出：统一走跨端导出工具（安卓 = 原生桥写系统下载目录，桌面 = 原生保存对话框，浏览器 = 下载）
+    const handleExport = async () => {
+        setExportError(null);
+        setExporting(true);
+        try {
+            // 使用自定义格式转换，或默认清理敏感字段
+            const exportData = filteredCases.map((c) => {
+                if (formatCase) {
+                    return formatCase(c);
+                }
+                // 默认：清理敏感字段（如 user_id）
+                const rest = { ...(c as T & { user_id?: string }) };
+                delete rest.user_id;
+                return rest;
+            });
 
-        const json = JSON.stringify(exportData, null, 2);
-        const blob = new Blob([json], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
+            const json = JSON.stringify(exportData, null, 2);
+            const exportName = `${filename}_${new Date().toISOString().slice(0, 10)}.json`;
+            const outcome = await exportTextFile({
+                filename: `${filename}_${new Date().toISOString().slice(0, 10)}`,
+                content: json,
+                extension: 'json',
+                typeLabel: 'JSON',
+            });
 
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${filename}_${new Date().toISOString().slice(0, 10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+            // 用户取消：保持页面，便于再次导出
+            if (outcome === 'cancelled') return;
 
-        onClose();
+            // 成功：留在页面上给出明确回执（此前直接关页，用户无从判断是否成功）
+            setExportResult({ name: exportName, count: exportData.length, outcome });
+        } catch (error) {
+            setExportError(error instanceof Error ? error.message : '导出失败，请重试');
+        } finally {
+            setExporting(false);
+        }
     };
 
     // 关闭时重置选中状态
@@ -129,8 +144,17 @@ export default function ExportCaseModal<T extends object>({
         onClose();
     };
 
-    // Footer
-    const footerContent = (
+    // Footer：导出成功后切换为「完成」单按钮，明确收尾动作
+    const footerContent = exportResult ? (
+        <button
+            type="button"
+            onClick={handleClose}
+            className="px-5 py-2 rounded-lg text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 shadow-sm focus-ring"
+        >
+            <Check className="w-4 h-4" />
+            完成
+        </button>
+    ) : (
         <>
             <button
                 type="button"
@@ -142,49 +166,18 @@ export default function ExportCaseModal<T extends object>({
             <button
                 type="button"
                 onClick={handleExport}
-                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 shadow-sm"
+                disabled={exporting}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed focus-ring"
             >
                 <Download className="w-4 h-4" />
-                导出 ({filteredCases.length})
+                {exporting ? '导出中…' : `导出 (${filteredCases.length})`}
             </button>
         </>
     );
 
-    return (
-        <BaseModal
-            isOpen={isOpen}
-            onClose={handleClose}
-            title={isMobile ? null : title}
-            titleIcon={isMobile ? undefined : <Download className="w-5 h-5" />}
-            footer={isMobile ? undefined : footerContent}
-            maxWidth={isMobile ? 'max-w-full' : 'max-w-md'}
-            fullScreen={isMobile}
-            showCloseButton={!isMobile}
-            className={isMobile ? 'p-0' : ''}
-            bodyClassName={isMobile ? 'p-0 flex flex-col h-full overflow-hidden' : ''}
-        >
-            {/* 移动端：自定义顶部标题栏 */}
-            {isMobile && (
-                <div className="bg-muted/30 border-b border-border px-4 py-4 flex-shrink-0">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-lg bg-card border border-border flex items-center justify-center shadow-sm">
-                                <Download className="w-4 h-4 text-primary" />
-                            </div>
-                            <h2 className="text-lg font-bold text-foreground">{title}</h2>
-                        </div>
-                        <button
-                            onClick={handleClose}
-                            className="p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-all"
-                            aria-label="Close"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            <div className={`${isMobile ? 'flex-1 overflow-y-auto px-4 py-4' : ''} space-y-4`}>
+    // 正文：移动端 SubPage 与桌面端 BaseModal 共用
+    const bodyContent = (
+        <div className="space-y-4">
                 {/* 头部控制栏 */}
                 <div className="flex items-center justify-between">
                     <p className="text-sm text-muted-foreground">
@@ -250,14 +243,58 @@ export default function ExportCaseModal<T extends object>({
                         将导出 <span className="font-semibold text-primary">{filteredCases.length}</span> 个案例
                     </div>
                 </div>
-            </div>
 
-            {/* 移动端：底部固定操作栏 */}
-            {isMobile && (
-                <div className="flex-shrink-0 border-t border-border px-4 py-4 flex justify-end gap-3 bg-background">
-                    {footerContent}
-                </div>
-            )}
+                {/* 导出成功回执：明确告知产物文件名与去向，避免"点完没反应"的误判 */}
+                {exportResult && (
+                    <div className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-3" role="status">
+                        <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                            <Check className="w-4 h-4 shrink-0" />
+                            导出成功
+                        </div>
+                        <p className="mt-1.5 text-xs leading-relaxed text-foreground/80">
+                            已导出 {exportResult.count} 个案例
+                            {exportResult.outcome === 'downloaded'
+                                ? '，文件已开始下载。'
+                                : exportResult.outcome === 'saved'
+                                    ? '，已保存到系统「下载」目录。'
+                                    : '。'}
+                        </p>
+                        <p className="mt-1 break-all font-mono text-[11px] text-muted-foreground">{exportResult.name}</p>
+                    </div>
+                )}
+
+                {/* 导出失败提示（安卓原生桥写入失败等） */}
+                {exportError && (
+                    <p className="rounded-lg bg-destructive/10 border border-destructive/30 px-3 py-2 text-sm text-destructive" role="alert">{exportError}</p>
+                )}
+    </div>
+    );
+
+    // 移动端：统一二级页面壳（返回手势 + 统一页头）；桌面端：保留居中弹窗
+    if (isMobile) {
+        return (
+            <SubPage
+                isOpen={isOpen}
+                onClose={handleClose}
+                title={title}
+                bodyClassName="p-4"
+                footer={<div className="flex justify-end gap-3">{footerContent}</div>}
+            >
+                {bodyContent}
+            </SubPage>
+        );
+    }
+
+    return (
+        <BaseModal
+            isOpen={isOpen}
+            onClose={handleClose}
+            title={title}
+            titleIcon={<Download className="w-5 h-5" />}
+            footer={footerContent}
+            maxWidth="max-w-md"
+        >
+            {bodyContent}
         </BaseModal>
     );
 }

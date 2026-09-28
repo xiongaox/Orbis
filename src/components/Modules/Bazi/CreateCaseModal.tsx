@@ -24,6 +24,8 @@ import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
 import { baziCaseService, type CaseTag, type CreateCaseInput, type BaziCase } from '../../../services/baziCaseService';
 import { calculateBazi } from '../../../services/bazi/caseHelper';
 import BaseModal from '../../UI/BaseModal';
+import SubPage from '../../UI/SubPage';
+import { useLayoutMode } from '../../../hooks/useLayoutMode';
 
 interface CreateCaseModalProps {
     isOpen: boolean;
@@ -41,6 +43,9 @@ export default function CreateCaseModal({ isOpen, onClose, onCreated, onPreview 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+
+    // 移动端检测：与全应用统一走 useLayoutMode
+    const { isMobile } = useLayoutMode();
 
     // Reset when opening
     if (!isOpen && (name || birthDate)) {
@@ -174,16 +179,9 @@ export default function CreateCaseModal({ isOpen, onClose, onCreated, onPreview 
         </div>
     );
 
-    return (
-        <BaseModal
-            isOpen={isOpen}
-            onClose={handleClose}
-            title="新建案例"
-            titleIcon={<Plus className="w-5 h-5" />}
-            footer={footer}
-            maxWidth="max-w-[480px]"
-        >
-            <form id="create-case-form" onSubmit={handleSave}>
+    // 表单正文：移动端 SubPage 与桌面端 BaseModal 共用
+    const formContent = (
+        <form id="create-case-form" onSubmit={handleSave}>
                 {/* 姓名 */}
                 <div className="modal-field">
                     <label className="modal-label" htmlFor="case-name">案例名称 (可选，默认自动生成)</label>
@@ -289,7 +287,34 @@ export default function CreateCaseModal({ isOpen, onClose, onCreated, onPreview 
                         {error}
                     </div>
                 )}
-            </form>
+        </form>
+    );
+
+    // 移动端：统一二级页面壳（返回手势 + 统一页头）；桌面端：保留居中弹窗
+    if (isMobile) {
+        return (
+            <SubPage
+                isOpen={isOpen}
+                onClose={handleClose}
+                title="新建案例"
+                bodyClassName="p-4"
+                footer={footer}
+            >
+                {formContent}
+            </SubPage>
+        );
+    }
+
+    return (
+        <BaseModal
+            isOpen={isOpen}
+            onClose={handleClose}
+            title="新建案例"
+            titleIcon={<Plus className="w-5 h-5" />}
+            footer={footer}
+            maxWidth="max-w-[480px]"
+        >
+            {formContent}
         </BaseModal>
     );
 }

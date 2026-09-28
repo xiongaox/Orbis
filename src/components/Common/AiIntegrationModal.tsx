@@ -11,10 +11,10 @@ import {
   Plus,
   Server,
   Trash2,
-  X,
   XCircle,
 } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
+import SubPage from '../UI/SubPage';
 import ConfirmModal from './ConfirmModal';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import {
@@ -213,41 +213,24 @@ export default function AiIntegrationModal({ isOpen, onClose }: AiIntegrationMod
   if (isMobile) {
     return (
       <>
-        <BaseModal
+        {/* 移动端壳：统一二级页面 SubPage（返回手势 + 统一页头），自绘头部移除 */}
+        <SubPage
           isOpen={isOpen}
           onClose={onClose}
-          title={null}
-          showCloseButton={false}
-          maxWidth="max-w-full"
-          fullScreen
-          className="p-0"
-          bodyClassName="p-0 overflow-hidden flex flex-col min-h-0"
+          title="AI 集成"
+          actions={
+            <button
+              type="button"
+              onClick={handleAdd}
+              className="flex h-9 items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 text-[14px] font-medium text-primary transition-colors active:bg-primary/20 focus-ring"
+            >
+              <Plus className="h-4 w-4" />
+              添加
+            </button>
+          }
+          bodyClassName="overflow-hidden flex flex-col"
         >
           <div className="flex h-full min-h-0 w-full flex-col bg-background text-foreground">
-            {/* 顶部标题栏：标题左对齐；「添加」与左侧图标等高，关闭按钮保留大触控目标 */}
-            <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2.5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Bot className="h-[18px] w-[18px]" />
-              </div>
-              <h2 className="min-w-0 flex-1 truncate text-[18px] font-bold text-foreground">AI 集成</h2>
-              <button
-                type="button"
-                onClick={handleAdd}
-                className="flex h-9 items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 text-[15px] font-medium text-primary transition-colors active:bg-primary/20 focus-ring"
-              >
-                <Plus className="h-4 w-4" />
-                添加
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors active:bg-muted focus-ring"
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
             {/* 内容区 */}
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3.5 py-4">
               <div className="space-y-3">
@@ -352,7 +335,7 @@ export default function AiIntegrationModal({ isOpen, onClose }: AiIntegrationMod
               )}
             </div>
           </div>
-        </BaseModal>
+        </SubPage>
 
         {deleteConfirm}
         {formModal}
@@ -635,38 +618,17 @@ function AiServiceFormModal({ isOpen, isMobile, service, onClose, onSaved }: AiS
     </div>
   );
 
-  // 移动端：全屏表单，操作按钮沉底常驻，状态提示独立一行
+  // 移动端：全屏表单（SubPage 统一页头），操作按钮沉底常驻，状态提示独立一行
   if (isMobile) {
     return (
       <>
-        <BaseModal
+        <SubPage
           isOpen={isOpen}
           onClose={onClose}
-          title={null}
-          showCloseButton={false}
-          maxWidth="max-w-full"
-          fullScreen
-          className="p-0"
-          bodyClassName="p-0 overflow-hidden flex flex-col min-h-0"
+          title={service ? '编辑连接' : '添加模型服务'}
+          bodyClassName="overflow-hidden flex flex-col"
         >
           <div className="flex h-full min-h-0 w-full flex-col bg-background text-foreground">
-            <div className="flex shrink-0 items-center gap-2 border-b border-border px-3 py-2.5">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Server className="h-[18px] w-[18px]" />
-              </div>
-              <h2 className="min-w-0 flex-1 truncate text-[18px] font-bold text-foreground">
-                {service ? '编辑连接' : '添加模型服务'}
-              </h2>
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground transition-colors active:bg-muted focus-ring"
-                aria-label="Close"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
             <div className="min-h-0 flex-1 overflow-y-auto px-3.5 py-4">
               {formFields}
               {status && <div className="mt-4">{statusLine}</div>}
@@ -692,7 +654,7 @@ function AiServiceFormModal({ isOpen, isMobile, service, onClose, onSaved }: AiS
               </button>
             </div>
           </div>
-        </BaseModal>
+        </SubPage>
 
         <ModelPickerModal
           isOpen={showModelPicker}

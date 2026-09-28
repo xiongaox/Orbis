@@ -21,6 +21,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { ChevronsLeft, ChevronsRight, ChevronsUp, ChevronsDown, ArrowRightLeft } from 'lucide-react';
 import BaseModal from '../../UI/BaseModal';
+import SubPage from '../../UI/SubPage';
+import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { getElementColor } from '../../../lib/xuan-bazi/maps/baziStyleMap';
 import { getShiShen } from '../../../lib/xuan-bazi/utils';
 import {
@@ -81,14 +83,8 @@ export default function GanZhiLiuTongModal({
         }
     }, [isOpen, baziData, setSelectedNode]);
 
-    // 移动端检测
-    const [isMobile, setIsMobile] = useState(false);
-    useEffect(() => {
-        const check = () => setIsMobile(window.innerWidth < 768);
-        check();
-        window.addEventListener('resize', check);
-        return () => window.removeEventListener('resize', check);
-    }, []);
+    // 移动端检测：与全应用统一走 useLayoutMode（768px 断点）
+    const { isMobile } = useLayoutMode();
 
     // 移动端捏合缩放 - callback ref 确保 DOM 变化时重新绑定
     const [scale, setScale] = useState(1);
@@ -294,53 +290,50 @@ export default function GanZhiLiuTongModal({
     };
 
     // Header Content
+    // 页头右侧操作区：移动端进 SubPage 页头 actions，桌面端与关闭按钮同组
+    const headerActions = (
+        <>
+            <button
+                onClick={() => setShowLiuNian(!showLiuNian)}
+                className={`px-3 py-1 text-sm rounded-md border transition-colors ${showLiuNian
+                    ? 'bg-primary/20 text-primary border-primary/50'
+                    : 'bg-secondary/50 text-muted-foreground border-border hover:bg-secondary'
+                    }`}
+            >
+                流年
+            </button>
+            <button
+                onClick={() => setShowDaYun(!showDaYun)}
+                className={`px-3 py-1 text-sm rounded-md border transition-colors ${showDaYun
+                    ? 'bg-primary/20 text-primary border-primary/50'
+                    : 'bg-secondary/50 text-muted-foreground border-border hover:bg-secondary'
+                    }`}
+            >
+                大运
+            </button>
+        </>
+    );
+
     // 关闭按钮经 title 函数形式并入右侧按钮组：此前靠 pr-9 预留 × 的占位，
     // 会在大运按钮与关闭按钮之间留出约 44px 空档，头部看起来断成两块。
     const header = (close: ReactNode) => (
         <div className="flex items-center justify-between w-full">
             <span className="text-lg font-medium text-foreground">干支流通</span>
             <div className="flex items-center gap-2">
-                <button
-                    onClick={() => setShowLiuNian(!showLiuNian)}
-                    className={`px-3 py-1 text-sm rounded-md border transition-colors ${showLiuNian
-                        ? 'bg-primary/20 text-primary border-primary/50'
-                        : 'bg-secondary/50 text-muted-foreground border-border hover:bg-secondary'
-                        }`}
-                >
-                    流年
-                </button>
-                <button
-                    onClick={() => setShowDaYun(!showDaYun)}
-                    className={`px-3 py-1 text-sm rounded-md border transition-colors ${showDaYun
-                        ? 'bg-primary/20 text-primary border-primary/50'
-                        : 'bg-secondary/50 text-muted-foreground border-border hover:bg-secondary'
-                        }`}
-                >
-                    大运
-                </button>
+                {headerActions}
                 {close}
             </div>
         </div>
     );
 
-    return (
-        <BaseModal
-            isOpen={isOpen}
-            onClose={onClose}
-            title={header}
-            titleIcon={<ArrowRightLeft className="w-5 h-5" />}
-            maxWidth={isMobile ? 'max-w-none' : 'max-w-[720px]'}
-            // 移动端全屏走 BaseModal 的 fullScreen：由它统一避让安卓状态栏/导航条
-            // （--safe-area-inset-*），与 GanZhiDiagramModal 同步改造。
-            fullScreen={isMobile}
-            bodyClassName={`p-0 overflow-hidden flex flex-col bg-dot-pattern ${isMobile ? '' : 'min-h-[500px]'}`}
+    // 图表正文：移动端 SubPage 与桌面端 BaseModal 共用同一份内容
+    const chartContent = (
+        <div
+            ref={containerRef}
+            className="flex-1 overflow-auto p-8 flex flex-col items-center justify-center"
+            onDoubleClick={onDoubleClick}
+            style={{ touchAction: 'pan-x pan-y' }}
         >
-            <div
-                ref={containerRef}
-                className="flex-1 overflow-auto p-8 flex flex-col items-center justify-center"
-                onDoubleClick={onDoubleClick}
-                style={{ touchAction: 'pan-x pan-y' }}
-            >
                 {chartData && (
                     <div
                         className="flex flex-col gap-2"
@@ -470,7 +463,34 @@ export default function GanZhiLiuTongModal({
                 <div className="text-xs text-muted-foreground/60 mt-4 text-center">
                     💡 点击任意柱位可高亮其相关关系，再次点击取消
                 </div>
-            </div>
+        </div>
+    );
+
+    // 移动端：统一二级页面壳（返回手势 + 统一页头）；桌面端：保留居中弹窗
+    if (isMobile) {
+        return (
+            <SubPage
+                isOpen={isOpen}
+                onClose={onClose}
+                title="干支流通"
+                actions={headerActions}
+                bodyClassName="overflow-hidden bg-dot-pattern flex flex-col"
+            >
+                {chartContent}
+            </SubPage>
+        );
+    }
+
+    return (
+        <BaseModal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={header}
+            titleIcon={<ArrowRightLeft className="w-5 h-5" />}
+            maxWidth="max-w-[720px]"
+            bodyClassName="p-0 overflow-hidden flex flex-col bg-dot-pattern min-h-[500px]"
+        >
+            {chartContent}
         </BaseModal>
     );
 }

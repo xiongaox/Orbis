@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Download, RefreshCw, Trash2 } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
+import SubPage from '../UI/SubPage';
 import ConfirmModal from './ConfirmModal';
+import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { webDavBackupService, type WebDavConfig } from '../../services/webdavBackupService';
 import { s3BackupService, type S3Config } from '../../services/s3BackupService';
 import type { RemoteBackupMethod } from '../../services/remoteBackupService';
@@ -127,18 +129,12 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
     setPendingDeletePaths(null);
   };
 
-  return (
-    <BaseModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="备份文件管理"
-      maxWidth="max-w-4xl"
-      bodyClassName="p-0"
-      footer={<>
-        <button type="button" onClick={() => void loadBackups()} disabled={busy !== null} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border px-3 text-sm text-foreground hover:bg-secondary/50 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${busy === 'load' ? 'animate-spin' : ''}`} />刷新</button>
-        <button type="button" onClick={() => setPendingDeletePaths([...selectedPaths])} disabled={busy !== null || selectedPaths.size === 0} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-destructive px-3 text-sm text-destructive-foreground hover:opacity-90 disabled:opacity-50"><Trash2 className="h-4 w-4" />删除所选（{selectedPaths.size}）</button>
-      </>}
-    >
+  // 移动端检测（该组件无 isOpen 早退，hooks 顺序天然稳定）
+  const { isMobile } = useLayoutMode();
+
+  // 正文：移动端 SubPage 与桌面端 BaseModal 共用
+  const bodyContent = (
+    <>
       <div className="px-5 pt-5 text-base leading-6 text-muted-foreground">选择需要保留、恢复或删除的远端备份版本。列表固定分页显示，不会影响备份设置弹窗大小。</div>
       {message && <p className="mx-5 mt-3 rounded-lg bg-secondary/50 px-3 py-2.5 text-base text-foreground" role="status">{message}</p>}
       <div className="m-5 overflow-hidden rounded-xl border border-border">
@@ -164,6 +160,59 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
         <button type="button" disabled={page <= 1} onClick={() => setPage((current) => current - 1)} className="rounded-md p-1.5 hover:bg-secondary disabled:opacity-40" aria-label="上一页"><ChevronLeft className="h-4 w-4" /></button>
         <button type="button" disabled={page >= pageCount} onClick={() => setPage((current) => current + 1)} className="rounded-md p-1.5 hover:bg-secondary disabled:opacity-40" aria-label="下一页"><ChevronRight className="h-4 w-4" /></button>
       </div>
+    </>
+  );
+
+  const footerNode = (
+    <>
+      <button type="button" onClick={() => void loadBackups()} disabled={busy !== null} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border px-3 text-sm text-foreground hover:bg-secondary/50 disabled:opacity-50"><RefreshCw className={`h-4 w-4 ${busy === 'load' ? 'animate-spin' : ''}`} />刷新</button>
+      <button type="button" onClick={() => setPendingDeletePaths([...selectedPaths])} disabled={busy !== null || selectedPaths.size === 0} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-destructive px-3 text-sm text-destructive-foreground hover:opacity-90 disabled:opacity-50"><Trash2 className="h-4 w-4" />删除所选（{selectedPaths.size}）</button>
+    </>
+  );
+
+  // 移动端：统一二级页面壳（返回手势 + 统一页头）
+  if (isMobile) {
+    return (
+      <SubPage
+        isOpen={isOpen}
+        onClose={onClose}
+        title="备份文件管理"
+        footer={<div className="flex items-center justify-end gap-3">{footerNode}</div>}
+      >
+        {bodyContent}
+        <ConfirmModal
+          isOpen={pendingRestore !== null}
+          onClose={() => { if (busy !== 'restore') setPendingRestore(null); }}
+          onConfirm={() => { void confirmRestore(); }}
+          title="确认恢复备份"
+          description={pendingRestore ? <>将恢复备份“{pendingRestore.filename}”。当前本地数据可能被补充或更新。</> : undefined}
+          confirmText={busy === 'restore' ? '恢复中…' : '确认恢复'}
+          loading={busy === 'restore'}
+        />
+        <ConfirmModal
+          isOpen={pendingDeletePaths !== null}
+          onClose={() => { if (busy !== 'delete') setPendingDeletePaths(null); }}
+          onConfirm={() => { void confirmDelete(); }}
+          title="确认删除备份"
+          description={pendingDeletePaths ? `确认删除 ${pendingDeletePaths.length} 个备份版本吗？此操作无法撤销。` : undefined}
+          confirmText={busy === 'delete' ? '删除中…' : '确认删除'}
+          loading={busy === 'delete'}
+          variant="destructive"
+        />
+      </SubPage>
+    );
+  }
+
+  return (
+    <BaseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="备份文件管理"
+      maxWidth="max-w-4xl"
+      bodyClassName="p-0"
+      footer={footerNode}
+    >
+      {bodyContent}
       <ConfirmModal
         isOpen={pendingRestore !== null}
         onClose={() => { if (busy !== 'restore') setPendingRestore(null); }}

@@ -28,6 +28,8 @@ import TagSelector from '../../Common/TagSelector';
 import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
 
 import BaseModal from '../../UI/BaseModal';
+import SubPage from '../../UI/SubPage';
+import { useLayoutMode } from '../../../hooks/useLayoutMode';
 
 interface EditCaseModalProps {
     isOpen: boolean;
@@ -48,6 +50,9 @@ export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: Ed
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+
+    // 移动端检测：与全应用统一走 useLayoutMode
+    const { isMobile } = useLayoutMode();
 
     useEffect(() => {
         if (caseData) {
@@ -112,16 +117,9 @@ export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: Ed
         </div>
     );
 
-    return (
-        <BaseModal
-            isOpen={isOpen}
-            onClose={onClose}
-            title="编辑案例"
-            titleIcon={<Pencil className="w-5 h-5" />}
-            footer={footer}
-            maxWidth="max-w-[480px]"
-        >
-            <form id="edit-case-form" onSubmit={handleSubmit}>
+    // 表单正文：移动端 SubPage 与桌面端 BaseModal 共用
+    const formContent = (
+        <form id="edit-case-form" onSubmit={handleSubmit}>
                 {/* 姓名 */}
                 <div className="modal-field">
                     <label className="modal-label">案例名称</label>
@@ -234,7 +232,34 @@ export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: Ed
                         {error}
                     </div>
                 )}
-            </form>
+        </form>
+    );
+
+    // 移动端：统一二级页面壳（返回手势 + 统一页头）；桌面端：保留居中弹窗
+    if (isMobile) {
+        return (
+            <SubPage
+                isOpen={isOpen}
+                onClose={onClose}
+                title="编辑案例"
+                bodyClassName="p-4"
+                footer={footer}
+            >
+                {formContent}
+            </SubPage>
+        );
+    }
+
+    return (
+        <BaseModal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="编辑案例"
+            titleIcon={<Pencil className="w-5 h-5" />}
+            footer={footer}
+            maxWidth="max-w-[480px]"
+        >
+            {formContent}
         </BaseModal>
     );
 }
