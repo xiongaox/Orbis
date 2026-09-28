@@ -110,26 +110,30 @@ pub fn run() {
         #[cfg(debug_assertions)]
         window.open_devtools();
 
-        let win = window.clone();
-        std::thread::spawn(move || {
-          // 等待窗口完成首帧布局；过早调用会被 wry 忽略。
-          std::thread::sleep(std::time::Duration::from_millis(400));
-          let target = win.clone();
-          if let Err(e) = win.run_on_main_thread(move || {
-            if let Err(e) = target.maximize() {
-              log::warn!("启动最大化失败: {e}");
-              return;
+        // maximize/is_maximized 在 Tauri 中是 desktop-only API；移动端窗口天然全屏，无需干预。
+        #[cfg(desktop)]
+        {
+          let win = window.clone();
+          std::thread::spawn(move || {
+            // 等待窗口完成首帧布局；过早调用会被 wry 忽略。
+            std::thread::sleep(std::time::Duration::from_millis(400));
+            let target = win.clone();
+            if let Err(e) = win.run_on_main_thread(move || {
+              if let Err(e) = target.maximize() {
+                log::warn!("启动最大化失败: {e}");
+                return;
+              }
+              match target.is_maximized() {
+                Ok(true) => log::info!("启动已铺满工作区"),
+                // 部分 macOS 环境下 maximize() 返回 Ok 但窗口未真正进入最大化态。
+                Ok(false) => log::warn!("maximize() 未生效，窗口保留在最小尺寸"),
+                Err(e) => log::warn!("读取最大化状态失败: {e}"),
+              }
+            }) {
+              log::warn!("调度启动最大化任务失败: {e}");
             }
-            match target.is_maximized() {
-              Ok(true) => log::info!("启动已铺满工作区"),
-              // 部分 macOS 环境下 maximize() 返回 Ok 但窗口未真正进入最大化态。
-              Ok(false) => log::warn!("maximize() 未生效，窗口保留在最小尺寸"),
-              Err(e) => log::warn!("读取最大化状态失败: {e}"),
-            }
-          }) {
-            log::warn!("调度启动最大化任务失败: {e}");
-          }
-        });
+          });
+        }
       }
 
       Ok(())

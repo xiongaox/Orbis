@@ -18,6 +18,7 @@
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { ChevronsLeft, ChevronsRight, ChevronsUp, ChevronsDown, ArrowRightLeft } from 'lucide-react';
 import BaseModal from '../../UI/BaseModal';
 import { getElementColor } from '../../../lib/xuan-bazi/maps/baziStyleMap';
@@ -293,10 +294,12 @@ export default function GanZhiLiuTongModal({
     };
 
     // Header Content
-    const header = (
+    // 关闭按钮经 title 函数形式并入右侧按钮组：此前靠 pr-9 预留 × 的占位，
+    // 会在大运按钮与关闭按钮之间留出约 44px 空档，头部看起来断成两块。
+    const header = (close: ReactNode) => (
         <div className="flex items-center justify-between w-full">
             <span className="text-lg font-medium text-foreground">干支流通</span>
-            <div className="flex items-center gap-2 pr-9">
+            <div className="flex items-center gap-2">
                 <button
                     onClick={() => setShowLiuNian(!showLiuNian)}
                     className={`px-3 py-1 text-sm rounded-md border transition-colors ${showLiuNian
@@ -315,6 +318,7 @@ export default function GanZhiLiuTongModal({
                 >
                     大运
                 </button>
+                {close}
             </div>
         </div>
     );
@@ -326,7 +330,9 @@ export default function GanZhiLiuTongModal({
             title={header}
             titleIcon={<ArrowRightLeft className="w-5 h-5" />}
             maxWidth={isMobile ? 'max-w-none' : 'max-w-[720px]'}
-            className={isMobile ? '!w-screen !h-screen !max-h-screen !rounded-none !m-[-1rem]' : ''}
+            // 移动端全屏走 BaseModal 的 fullScreen：由它统一避让安卓状态栏/导航条
+            // （--safe-area-inset-*），与 GanZhiDiagramModal 同步改造。
+            fullScreen={isMobile}
             bodyClassName={`p-0 overflow-hidden flex flex-col bg-dot-pattern ${isMobile ? '' : 'min-h-[500px]'}`}
         >
             <div

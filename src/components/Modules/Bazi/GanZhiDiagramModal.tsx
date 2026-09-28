@@ -19,6 +19,7 @@
  */
 
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { GitBranch } from 'lucide-react';
 import BaseModal from '../../UI/BaseModal';
 import type { BaziApiResponse } from '../../../types/bazi';
@@ -273,10 +274,11 @@ export default function GanZhiDiagramModal({
     const getGanTrackY = chartData ? calculateTrackY(chartData.tianGanData.relationsWithTracks, ganTextY - 50, true) : () => 0;
     const getDiZhiTrackY = chartData ? calculateTrackY(chartData.diZhiData.relationsWithTracks, zhiTextY + 50, false) : () => 0;
 
-    const header = (
+    // 与 GanZhiLiuTongModal 同步：关闭按钮并入右侧按钮组，去掉 pr-9 预留空档。
+    const header = (close: ReactNode) => (
         <div className="flex items-center justify-between w-full">
             <span className="text-lg font-medium text-foreground">干支流通图解</span>
-            <div className="flex items-center gap-2 pr-9">
+            <div className="flex items-center gap-2">
                 {showLiuNian && (!chartData?.items.find((i: ChartItem) => i.label === '流年')) && (
                     <span className="text-sm text-yellow-500 animate-pulse inline-block">请先选择流年</span>
                 )}
@@ -298,6 +300,7 @@ export default function GanZhiDiagramModal({
                 >
                     大运
                 </button>
+                {close}
             </div>
         </div>
     );
@@ -309,7 +312,10 @@ export default function GanZhiDiagramModal({
             title={header}
             titleIcon={<GitBranch className="w-5 h-5" />}
             maxWidth={isMobile ? 'max-w-none' : 'max-w-[720px]'}
-            className={isMobile ? '!w-screen !h-screen !max-h-screen !rounded-none !m-[-1rem]' : ''}
+            // 移动端全屏走 BaseModal 的 fullScreen：由它统一避让安卓状态栏/导航条
+            // （--safe-area-inset-*）。此前用 !h-screen + 负边距硬拉全屏，卡片顶端
+            // 会顶进状态栏下方，头部与系统栏重叠。
+            fullScreen={isMobile}
             bodyClassName={`p-0 overflow-hidden flex flex-col bg-dot-pattern ${isMobile ? '' : 'min-h-[500px]'}`}
         >
             <div

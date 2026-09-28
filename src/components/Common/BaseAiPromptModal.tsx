@@ -125,7 +125,10 @@ export default function BaseAiPromptModal({
             titleIcon={isMobile ? <Sparkles className="w-5 h-5" /> : undefined}
             showCloseButton={isMobile}
             maxWidth={isMobile ? 'max-w-none' : 'max-w-4xl'}
-            className={`flex-row p-0 overflow-hidden ${isMobile ? '!fixed !inset-0 !w-auto !h-auto !max-w-none !max-h-none !rounded-none !m-0 !border-0' : ''}`}
+            // 移动端全屏走 BaseModal 的 fullScreen：由它统一避让安卓状态栏/导航条
+            // （--safe-area-inset-*）。此前用 !fixed inset-0 强改卡片，头部会顶进状态栏。
+            fullScreen={isMobile}
+            className="flex-row p-0 overflow-hidden"
             bodyClassName={`p-0 ${isMobile ? '!overflow-hidden' : 'min-h-0 !flex-none !h-[70vh] !max-h-[570px] overflow-x-hidden overflow-y-auto md:overflow-hidden'}`}
         >
             {isMobile ? (
