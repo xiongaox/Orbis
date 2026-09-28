@@ -20,6 +20,7 @@
 import { useState, useEffect } from 'react';
 import { X, Copy, ExternalLink, Sparkles, Check, ChevronDown, FileText } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
+import SubPage from '../UI/SubPage';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { openExternalUrl } from '../../utils/browserUtil';
 import AiChatDrawer from './AiChatDrawer';
@@ -113,31 +114,26 @@ export default function BaseAiPromptModal({
 
     const titleText = `${moduleName}信息提示词`;
 
-    return (
-    <>
-        <BaseModal
-            isOpen={isOpen}
-            onClose={onClose}
-            title={isMobile ? (
-                <div className="flex items-center gap-2">
-                    <span className="text-lg font-medium text-foreground">{titleText}</span>
-                    <span className="text-xs text-muted-foreground font-normal">{promptText.length} 字</span>
-                </div>
-            ) : null}
-            titleIcon={isMobile ? <Sparkles className="w-5 h-5" /> : undefined}
-            showCloseButton={isMobile}
-            maxWidth={isMobile ? 'max-w-none' : 'max-w-4xl'}
-            // 移动端全屏走 BaseModal 的 fullScreen：由它统一避让安卓状态栏/导航条
-            // （--safe-area-inset-*）。此前用 !fixed inset-0 强改卡片，头部会顶进状态栏。
-            fullScreen={isMobile}
-            className="flex-row p-0 overflow-hidden"
-            bodyClassName={`p-0 ${isMobile ? '!overflow-hidden' : 'min-h-0 !flex-none !h-[70vh] !max-h-[570px] overflow-x-hidden overflow-y-auto md:overflow-hidden'}`}
-        >
-            {isMobile ? (
-                /* ===== 移动端布局（定稿：方案 C 附件卡 + 方案 A 单列开关行）=====
-                   动线：附件式提示词卡（默认折叠，复制跟随卡片）
-                   → 问题输入 → 分析模块（单列开关行）→ 主 CTA + 常用 AI 宫格。 */
-                <div className="flex flex-col h-full overflow-y-auto">
+    // 抽屉节点：移动端/桌面端两种壳下都渲染
+    const chatDrawer = (
+        <AiChatDrawer
+            isOpen={isChatDrawerOpen}
+            onClose={() => setIsChatDrawerOpen(false)}
+            moduleName={moduleName}
+            initialPrompt={promptText}
+            sessionId={sessionId}
+            caseId={caseId}
+            caseName={caseName}
+            divinationType={divinationType}
+            meta={meta}
+        />
+    );
+
+    // 移动端正文（定稿：方案 C 附件卡 + 方案 A 单列开关行）
+    // 动线：附件式提示词卡（默认折叠，复制跟随卡片）→ 问题输入 → 分析模块 → 主 CTA + 常用 AI 宫格。
+    // 壳由 SubPage 提供（统一页头 + 安全区 + 侧滑返回），这里只写内容。
+    const mobileContent = (
+        <div className="flex flex-col min-h-full">
                     <div className="px-4 pt-4 flex flex-col gap-3.5">
                         {/* 附件式提示词卡 */}
                         <div>
@@ -230,10 +226,12 @@ export default function BaseAiPromptModal({
                             ))}
                         </div>
                     </div>
-                </div>
-            ) : (
-                /* ===== 桌面端布局 ===== */
-                <div className="flex flex-col md:flex-row h-full w-full min-h-0">
+        </div>
+    );
+
+    // 桌面端正文：双栏布局，挂在 BaseModal 下
+    const desktopContent = (
+        <div className="flex flex-col md:flex-row h-full w-full min-h-0">
                     <div className="w-full md:w-[60%] flex flex-col min-h-0 border-b md:border-b-0 md:border-r border-border bg-muted/30">
                         <div className="p-4 h-14 border-b border-border flex items-center justify-between shrink-0">
                             <div className="flex items-center gap-2 text-foreground font-medium">
@@ -328,20 +326,39 @@ export default function BaseAiPromptModal({
                         </div>
                     </div>
                 </div>
-            )}
-        </BaseModal>
+    );
 
-        <AiChatDrawer
-            isOpen={isChatDrawerOpen}
-            onClose={() => setIsChatDrawerOpen(false)}
-            moduleName={moduleName}
-            initialPrompt={promptText}
-            sessionId={sessionId}
-            caseId={caseId}
-            caseName={caseName}
-            divinationType={divinationType}
-            meta={meta}
-        />
-    </>
+    // 移动端：统一二级页面壳（返回手势 + 统一页头）；桌面端：保留双栏弹窗
+    if (isMobile) {
+        return (
+            <>
+                <SubPage
+                    isOpen={isOpen}
+                    onClose={onClose}
+                    title={titleText}
+                    actions={<span className="text-[11px] text-muted-foreground">{promptText.length} 字</span>}
+                >
+                    {mobileContent}
+                </SubPage>
+                {chatDrawer}
+            </>
+        );
+    }
+
+    return (
+        <>
+            <BaseModal
+                isOpen={isOpen}
+                onClose={onClose}
+                title={null}
+                showCloseButton={false}
+                maxWidth="max-w-4xl"
+                className="flex-row p-0 overflow-hidden"
+                bodyClassName="p-0 min-h-0 !flex-none !h-[70vh] !max-h-[570px] overflow-x-hidden overflow-y-auto md:overflow-hidden"
+            >
+                {desktopContent}
+            </BaseModal>
+            {chatDrawer}
+        </>
     );
 }

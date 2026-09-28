@@ -38,6 +38,8 @@ import { Search, Plus, Upload, LogIn, Library } from 'lucide-react';
 import { useAuth } from '../../contexts/useAuth';
 import ConfirmModal from './ConfirmModal';
 import BaseModal from '../UI/BaseModal';
+import SubPage from '../UI/SubPage';
+import { useLayoutMode } from '../../hooks/useLayoutMode';
 
 export interface CategorySpec {
     id: string | null;
@@ -111,14 +113,8 @@ export default function CaseLibraryModal<T extends { id: string }>({
     const [caseToDelete, setCaseToDelete] = useState<T | null>(null);
     const [deletingCaseId, setDeletingCaseId] = useState<string | null>(null);
 
-    // 移动端检测
-    const [isMobile, setIsMobile] = useState(false);
-    useEffect(() => {
-        const check = () => setIsMobile(window.innerWidth < 640);
-        check();
-        window.addEventListener('resize', check);
-        return () => window.removeEventListener('resize', check);
-    }, []);
+    // 移动端检测：与全应用统一走 useLayoutMode
+    const { isMobile } = useLayoutMode();
 
     // 拖拽 sensors
     const sensors = useSensors(
@@ -222,16 +218,9 @@ export default function CaseLibraryModal<T extends { id: string }>({
         </div>
     );
 
-    return (
+    // 正文：移动端 SubPage 与桌面端 BaseModal 共用
+    const libraryContent = (
         <>
-            <BaseModal
-                isOpen={isOpen}
-                onClose={onClose}
-                title={header}
-                titleIcon={<Library className="w-5 h-5" />}
-                maxWidth={isMobile ? 'max-w-sm' : 'max-w-2xl'}
-                bodyClassName={`!flex-none flex flex-col ${isMobile ? 'h-[60vh] p-3' : 'h-[70vh] p-4 sm:p-6'} overflow-hidden`}
-            >
                 {/* 搜索和操作栏 */}
                 <div className={`flex gap-2 ${isMobile ? 'mb-2' : 'mb-4'} shrink-0`}>
                     <div className="relative flex-1">
@@ -350,8 +339,12 @@ export default function CaseLibraryModal<T extends { id: string }>({
                         拖拽卡片左侧手柄可调整顺序
                     </div>
                 )}
-            </BaseModal>
+        </>
+    );
 
+    // 子弹窗节点：两种壳下都渲染
+    const subModals = (
+        <>
             {/* 子弹窗渲染器 */}
             {renderSubModals({
                 showCreateModal,
@@ -373,6 +366,39 @@ export default function CaseLibraryModal<T extends { id: string }>({
                 variant="destructive"
                 loading={!!deletingCaseId}
             />
+        </>
+    );
+
+    // 移动端：统一二级页面壳（返回手势 + 统一页头）；此前是 max-w-sm 的小弹窗，列表非常局促
+    if (isMobile) {
+        return (
+            <>
+                <SubPage
+                    isOpen={isOpen}
+                    onClose={onClose}
+                    title={header}
+                    bodyClassName="overflow-hidden flex flex-col p-3"
+                >
+                    {libraryContent}
+                </SubPage>
+                {subModals}
+            </>
+        );
+    }
+
+    return (
+        <>
+            <BaseModal
+                isOpen={isOpen}
+                onClose={onClose}
+                title={header}
+                titleIcon={<Library className="w-5 h-5" />}
+                maxWidth="max-w-2xl"
+                bodyClassName="!flex-none flex flex-col h-[70vh] p-4 sm:p-6 overflow-hidden"
+            >
+                {libraryContent}
+            </BaseModal>
+            {subModals}
         </>
     );
 }

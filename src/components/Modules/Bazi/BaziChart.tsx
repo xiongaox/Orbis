@@ -17,19 +17,16 @@
  * - 上游依赖：外部依赖 `react`、内部模块 `utils`、内部模块 `useIsPadLandscape` 等 9 个模块
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { cn } from '../../../lib/utils';
 import { useIsPadLandscape } from '../../../hooks/useIsPadLandscape';
 
 import type { BaziApiResponse } from '../../../types/bazi';
 import { calculateShenSha, calculateDynamicShenSha, getJiJie, type ShenShaContext } from '../../../lib/xuan-bazi/utils/baziShenShaUtil';
 import { createDefaultShenShaSetting } from '../../../lib/xuan-bazi/settings/baziShenShaSetting';
-import GanZhiDiagramModal from './GanZhiDiagramModal';
-
 // 导入提取的工具函数和组件
 import { computePillarDetails } from './utils/baziChartUtils';
 import { DetailedPillarCard, YunPillar } from './components/PillarCards';
-
 interface BaziChartProps {
   data: BaziApiResponse | null;
   loading?: boolean;
@@ -54,7 +51,6 @@ export default function BaziChart({
   hideDetails = false,
   onShiftHour,
 }: BaziChartProps) {
-  const [isDiagramOpen, setIsDiagramOpen] = useState(false);
   const isPadLandscape = useIsPadLandscape();
 
   // 提取数据
@@ -217,9 +213,7 @@ export default function BaziChart({
         </div>
       </div>
 
-      {/* 干支图解模态框 */}
-      <GanZhiDiagramModal isOpen={isDiagramOpen} onClose={() => setIsDiagramOpen(false)} baziData={data} selectedDaYunIndex={selectedDaYunIndex ?? null} selectedLiuNianYear={selectedLiuNianYear ?? null} currentYear={currentYear} />
-
+      {/* 干支图解已迁至 BaziCaseInfo 入口（此处为不可达的死代码渲染，已清理） */}
     </div>
   );
 }

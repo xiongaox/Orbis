@@ -41,6 +41,8 @@ import {
 import { RelationsLayer } from './components/GanZhiRender/RelationsLayer';
 import { NodesLayer } from './components/GanZhiRender/NodesLayer';
 import { TextLabelsLayer } from './components/GanZhiRender/TextLabelsLayer';
+import SubPage from '../../../components/UI/SubPage';
+import { useLayoutMode } from '../../../hooks/useLayoutMode';
 
 interface GanZhiDiagramModalProps {
     isOpen: boolean;
@@ -77,14 +79,8 @@ export default function GanZhiDiagramModal({
     const [showDaYun, setShowDaYun] = useState(selectedDaYunIndex !== null);
     const [showLiuNian, setShowLiuNian] = useState(selectedLiuNianYear !== null);
 
-    // 移动端检测
-    const [isMobile, setIsMobile] = useState(false);
-    useEffect(() => {
-        const check = () => setIsMobile(window.innerWidth < 768);
-        check();
-        window.addEventListener('resize', check);
-        return () => window.removeEventListener('resize', check);
-    }, []);
+    // 移动端检测：与全应用统一走 useLayoutMode（768px 断点）
+    const { isMobile } = useLayoutMode();
 
     // 移动端捏合缩放 - 使用 callback ref 确保 DOM 变化时重新绑定
     const [scale, setScale] = useState(1);
@@ -274,56 +270,52 @@ export default function GanZhiDiagramModal({
     const getGanTrackY = chartData ? calculateTrackY(chartData.tianGanData.relationsWithTracks, ganTextY - 50, true) : () => 0;
     const getDiZhiTrackY = chartData ? calculateTrackY(chartData.diZhiData.relationsWithTracks, zhiTextY + 50, false) : () => 0;
 
+    // 页头右侧操作区：移动端进 SubPage 页头 actions，桌面端与关闭按钮同组
+    const headerActions = (
+        <>
+            {showLiuNian && (!chartData?.items.find((i: ChartItem) => i.label === '流年')) && (
+                <span className="text-sm text-yellow-500 animate-pulse inline-block">请先选择流年</span>
+            )}
+            <button
+                onClick={() => setShowLiuNian(!showLiuNian)}
+                className={`px-3 py-1 text-sm rounded-md border transition-colors focus-ring ${showLiuNian
+                    ? 'bg-primary/20 text-primary border-primary/50'
+                    : 'bg-secondary/50 text-muted-foreground border-border hover:bg-secondary'
+                    }`}
+            >
+                流年
+            </button>
+            <button
+                onClick={() => setShowDaYun(!showDaYun)}
+                className={`px-3 py-1 text-sm rounded-md border transition-colors focus-ring ${showDaYun
+                    ? 'bg-primary/20 text-primary border-primary/50'
+                    : 'bg-secondary/50 text-muted-foreground border-border hover:bg-secondary'
+                    }`}
+            >
+                大运
+            </button>
+        </>
+    );
+
     // 与 GanZhiLiuTongModal 同步：关闭按钮并入右侧按钮组，去掉 pr-9 预留空档。
     const header = (close: ReactNode) => (
         <div className="flex items-center justify-between w-full">
             <span className="text-lg font-medium text-foreground">干支流通图解</span>
             <div className="flex items-center gap-2">
-                {showLiuNian && (!chartData?.items.find((i: ChartItem) => i.label === '流年')) && (
-                    <span className="text-sm text-yellow-500 animate-pulse inline-block">请先选择流年</span>
-                )}
-                <button
-                    onClick={() => setShowLiuNian(!showLiuNian)}
-                    className={`px-3 py-1 text-sm rounded-md border transition-colors focus-ring ${showLiuNian
-                        ? 'bg-primary/20 text-primary border-primary/50'
-                        : 'bg-secondary/50 text-muted-foreground border-border hover:bg-secondary'
-                        }`}
-                >
-                    流年
-                </button>
-                <button
-                    onClick={() => setShowDaYun(!showDaYun)}
-                    className={`px-3 py-1 text-sm rounded-md border transition-colors focus-ring ${showDaYun
-                        ? 'bg-primary/20 text-primary border-primary/50'
-                        : 'bg-secondary/50 text-muted-foreground border-border hover:bg-secondary'
-                        }`}
-                >
-                    大运
-                </button>
+                {headerActions}
                 {close}
             </div>
         </div>
     );
 
-    return (
-        <BaseModal
-            isOpen={isOpen}
-            onClose={onClose}
-            title={header}
-            titleIcon={<GitBranch className="w-5 h-5" />}
-            maxWidth={isMobile ? 'max-w-none' : 'max-w-[720px]'}
-            // 移动端全屏走 BaseModal 的 fullScreen：由它统一避让安卓状态栏/导航条
-            // （--safe-area-inset-*）。此前用 !h-screen + 负边距硬拉全屏，卡片顶端
-            // 会顶进状态栏下方，头部与系统栏重叠。
-            fullScreen={isMobile}
-            bodyClassName={`p-0 overflow-hidden flex flex-col bg-dot-pattern ${isMobile ? '' : 'min-h-[500px]'}`}
+    // 图表正文：移动端 SubPage 与桌面端 BaseModal 共用同一份内容
+    const chartContent = (
+        <div
+            ref={containerRef}
+            className="flex-1 overflow-auto p-4 sm:p-8 flex"
+            onDoubleClick={onDoubleClick}
+            style={{ touchAction: 'pan-x pan-y' }}
         >
-            <div
-                ref={containerRef}
-                className="flex-1 overflow-auto p-4 sm:p-8 flex"
-                onDoubleClick={onDoubleClick}
-                style={{ touchAction: 'pan-x pan-y' }}
-            >
                 {chartData && (
                     <div
                         className="relative m-auto transition-all duration-300"
@@ -433,7 +425,34 @@ export default function GanZhiDiagramModal({
                         </svg>
                     </div>
                 )}
-            </div>
+        </div>
+    );
+
+    // 移动端：统一二级页面壳（返回手势 + 统一页头）；桌面端：保留居中弹窗
+    if (isMobile) {
+        return (
+            <SubPage
+                isOpen={isOpen}
+                onClose={onClose}
+                title="干支流通图解"
+                actions={headerActions}
+                bodyClassName="overflow-hidden bg-dot-pattern flex flex-col"
+            >
+                {chartContent}
+            </SubPage>
+        );
+    }
+
+    return (
+        <BaseModal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={header}
+            titleIcon={<GitBranch className="w-5 h-5" />}
+            maxWidth="max-w-[720px]"
+            bodyClassName="p-0 overflow-hidden flex flex-col bg-dot-pattern min-h-[500px]"
+        >
+            {chartContent}
         </BaseModal>
     );
 }

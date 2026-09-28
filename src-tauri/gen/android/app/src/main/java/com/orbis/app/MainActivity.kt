@@ -1,9 +1,12 @@
 package com.orbis.app
 
+import android.content.ContentValues
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.Log
 import android.view.View
 import android.webkit.JavascriptInterface
@@ -14,6 +17,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.webkit.ScriptHandler
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
+import org.json.JSONObject
+import java.io.File
 
 class MainActivity : TauriActivity() {
   private var webView: WebView? = null
@@ -81,6 +86,55 @@ class MainActivity : TauriActivity() {
         } catch (e: Exception) {
           Log.w(TAG, "打开外部链接失败: $url", e)
         }
+      }
+    }
+
+    /**
+     * 导出文本文件到系统「下载」目录（MediaStore.Downloads，Android 10+ 无需存储权限）。
+     * 结果经 evaluateJavascript 回调 window.__orbisExportResult(id, ok, detail)。
+     * API < 29 没有 MediaStore.Downloads：兜底写入应用专属外部目录 exports/ 下。
+     * 注入的方法运行在 Java 桥线程，ContentResolver 读写可在此线程，回调需切主线程。
+     */
+    @JavascriptInterface
+    fun exportToDownloads(requestIdRaw: String, fileName: String, content: String, mimeType: String) {
+      // requestId 会被拼进 JS 字符串，只放行安全字符防注入
+      val requestId = requestIdRaw.replace(Regex("[^A-Za-z0-9_]"), "")
+      val safeName = fileName.replace(Regex("[\\\\/:*?\"<>|]"), "_")
+      try {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+          val values = ContentValues().apply {
+            put(MediaStore.Downloads.DISPLAY_NAME, safeName)
+            put(MediaStore.Downloads.MIME_TYPE, mimeType)
+          }
+          val resolver = applicationContext.contentResolver
+          val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+            ?: throw IllegalStateException("系统拒绝了下载目录写入")
+          resolver.openOutputStream(uri)?.use { stream ->
+            stream.write(content.toByteArray(Charsets.UTF_8))
+            stream.flush()
+          } ?: throw IllegalStateException("无法打开输出流")
+          notifyExportResult(requestId, true, "已保存到系统下载目录")
+        } else {
+          val dir = getExternalFilesDir(null)
+            ?: throw IllegalStateException("外部存储不可用")
+          val target = File(dir, "exports/$safeName")
+          target.parentFile?.mkdirs()
+          target.writeText(content, Charsets.UTF_8)
+          notifyExportResult(requestId, true, "已保存到应用目录 exports/")
+        }
+      } catch (e: Exception) {
+        Log.w(TAG, "导出文件失败: $fileName", e)
+        notifyExportResult(requestId, false, e.message ?: "导出失败")
+      }
+    }
+
+    private fun notifyExportResult(requestId: String, ok: Boolean, detail: String) {
+      val jsDetail = JSONObject.quote(detail)
+      runOnUiThread {
+        webView?.evaluateJavascript(
+          "window.__orbisExportResult && window.__orbisExportResult('$requestId', $ok, $jsDetail);",
+          null
+        )
       }
     }
   }

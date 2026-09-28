@@ -6,6 +6,8 @@ import { remoteBackupService, type RemoteBackupMethod } from '../../services/rem
 import { AUTO_BACKUP_INTERVAL_MINUTES } from '../../services/remoteBackupShared';
 import { exportTextFile } from '../../utils/fileExportUtil';
 import RemoteBackupManagerModal from './RemoteBackupManagerModal';
+import SubPage from '../UI/SubPage';
+import { useLayoutMode } from '../../hooks/useLayoutMode';
 
 interface PrivateDataBackupModalProps {
   isOpen: boolean;
@@ -91,6 +93,9 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
     if (isOpen && configLoaded) void s3BackupService.saveConfig(s3Config);
   }, [s3Config, configLoaded, isOpen]);
 
+  // 移动端检测：必须在 isOpen 早退之前调用，保证 hooks 顺序稳定
+  const { isMobile } = useLayoutMode();
+
   if (!isOpen) return null;
 
   const activeConfig = method === 's3' ? s3Config : webdavConfig;
@@ -133,8 +138,17 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
         extension: 'json',
         typeLabel: 'JSON',
       });
-      if (outcome === 'saved') showSuccessMessage('备份配置已导出（含明文凭证，请妥善保管）');
-      else if (outcome === 'downloaded') showSuccessMessage('备份配置已下载（含明文凭证，请妥善保管）');
+      // 安卓端 saved 是"已写入系统下载目录"，与桌面端"已保存到所选路径"区分开表述
+      const isAndroid = /android/i.test(navigator.userAgent);
+      if (outcome === 'saved') {
+        showSuccessMessage(
+          isAndroid
+            ? '备份配置已保存到系统「下载」目录（含明文凭证，请妥善保管）'
+            : '备份配置已导出（含明文凭证，请妥善保管）'
+        );
+      } else if (outcome === 'downloaded') {
+        showSuccessMessage('备份配置已下载（含明文凭证，请妥善保管）');
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '导出配置失败');
     }
@@ -216,6 +230,172 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
     }
   };
 
+  // 表单正文：移动端 SubPage 与桌面端自绘弹层共用同一份内容
+  const formBody = (
+    <>
+      <div>
+        <p className="mb-2 text-sm text-foreground">备份方式</p>
+        <div role="tablist" aria-label="备份方式" className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-muted/40 p-1">
+          <button type="button" role="tab" aria-selected={method === 'webdav'} disabled={!configLoaded} onClick={() => changeMethod('webdav')} className={`${METHOD_TAB_BASE} ${method === 'webdav' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-50`}>WebDAV</button>
+          <button type="button" role="tab" aria-selected={method === 's3'} disabled={!configLoaded} onClick={() => changeMethod('s3')} className={`${METHOD_TAB_BASE} ${method === 's3' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-50`}>S3 兼容存储</button>
+        </div>
+      </div>
+
+      {method === 's3' ? (
+        <div className="space-y-3">
+          <label className="block text-sm text-foreground">S3 服务地址<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.endpoint} onChange={(event) => updateS3('endpoint', event.target.value)} placeholder="https://s3.us-east-1.amazonaws.com" /></label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="block text-sm text-foreground">区域（Region）<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.region} onChange={(event) => updateS3('region', event.target.value)} placeholder="us-east-1" /></label>
+            <label className="block text-sm text-foreground">存储桶（Bucket）<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.bucket} onChange={(event) => updateS3('bucket', event.target.value)} placeholder="orbis-backups" /></label>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="block text-sm text-foreground">Access Key ID<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.accessKeyId} onChange={(event) => updateS3('accessKeyId', event.target.value)} /></label>
+            <label className="block text-sm text-foreground">Secret Access Key<input type="password" disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.secretAccessKey} onChange={(event) => updateS3('secretAccessKey', event.target.value)} /></label>
+          </div>
+          <label className="block text-sm text-foreground">会话 Token（可选）<input type="password" disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.sessionToken} onChange={(event) => updateS3('sessionToken', event.target.value)} placeholder="使用 STS 临时凭证时填写" /></label>
+          <label className="block text-sm text-foreground">备份前缀<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.backupPrefix} onChange={(event) => updateS3('backupPrefix', event.target.value)} placeholder="orbis/backups" /></label>
+          <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground"><input type="checkbox" disabled={!configLoaded} checked={s3Config.pathStyle} onChange={(event) => updateS3('pathStyle', event.target.checked)} className="h-4 w-4 accent-primary" />路径风格（MinIO 等自建服务勾选）</label>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <label className="block text-sm text-foreground">WebDAV 地址<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={webdavConfig.endpoint} onChange={(event) => updateWebDav('endpoint', event.target.value)} placeholder="https://dav.example.com" /></label>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="block text-sm text-foreground">用户名<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={webdavConfig.username} onChange={(event) => updateWebDav('username', event.target.value)} /></label>
+            <label className="block text-sm text-foreground">密码<input type="password" disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={webdavConfig.password} onChange={(event) => updateWebDav('password', event.target.value)} /></label>
+          </div>
+          <label className="block text-sm text-foreground">备份文件夹<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={webdavConfig.backupDirectory} onChange={(event) => updateWebDav('backupDirectory', event.target.value)} placeholder="orbis/backups" /></label>
+        </div>
+      )}
+
+      <section className="rounded-xl border border-border bg-secondary/20 p-4" aria-labelledby="backup-content-title">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <MessageSquare className="h-4 w-4" />
+            </span>
+            <div>
+              <h3 id="backup-content-title" className="text-sm font-medium text-foreground">备份 AI 研判对话历史</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                产物为 ZIP 归档（案例与对话分包）；关闭后仅备份案例与系统设置
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={activeConfig.includeChatHistory !== false}
+            disabled={!configLoaded}
+            onClick={() => updateActive('includeChatHistory', !(activeConfig.includeChatHistory !== false))}
+            className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors focus-ring disabled:opacity-50 ${
+              activeConfig.includeChatHistory !== false ? 'border-primary bg-primary' : 'border-border bg-muted'
+            }`}
+          >
+            <span
+              className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm transition-transform ${
+                activeConfig.includeChatHistory !== false ? 'translate-x-6 text-primary' : 'translate-x-1 text-muted-foreground'
+              }`}
+            >
+              {activeConfig.includeChatHistory !== false && <Check className="h-3.5 w-3.5" />}
+            </span>
+          </button>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border bg-secondary/20 p-4" aria-labelledby="auto-backup-title">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Clock3 className="h-4 w-4" /></span>
+            <div>
+              <h3 id="auto-backup-title" className="text-sm font-medium text-foreground">自动备份</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">应用运行期间自动创建新版本</p>
+            </div>
+          </div>
+          <button type="button" role="switch" aria-checked={activeConfig.autoBackupEnabled} disabled={!configLoaded} onClick={() => updateActive('autoBackupEnabled', !activeConfig.autoBackupEnabled)} className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors focus-ring disabled:opacity-50 ${activeConfig.autoBackupEnabled ? 'border-primary bg-primary' : 'border-border bg-muted'}`}>
+            <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm transition-transform ${activeConfig.autoBackupEnabled ? 'translate-x-6 text-primary' : 'translate-x-1 text-muted-foreground'}`}>{activeConfig.autoBackupEnabled && <Check className="h-3.5 w-3.5" />}</span>
+          </button>
+        </div>
+        {activeConfig.autoBackupEnabled && <div className="mt-4 border-t border-border pt-3">
+          <div className="relative">
+            <p className="mb-2 text-sm text-foreground">备份频率</p>
+            <button type="button" aria-haspopup="listbox" aria-expanded={frequencyMenuOpen} onClick={() => setFrequencyMenuOpen((open) => !open)} className="flex min-h-10 w-full items-center justify-between rounded-lg border border-border bg-background px-3 text-sm text-foreground transition-colors hover:bg-secondary/60 focus-ring">
+              <span>{formatInterval(activeConfig.autoBackupIntervalMinutes)}</span>
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${frequencyMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {frequencyMenuOpen && <div role="listbox" aria-label="自动备份频率" className="absolute z-[80] mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-xl">
+              {AUTO_BACKUP_INTERVAL_MINUTES.map((minutes) => {
+                const selected = activeConfig.autoBackupIntervalMinutes === minutes;
+                return <button key={minutes} type="button" role="option" aria-selected={selected} onClick={() => { updateActive('autoBackupIntervalMinutes', minutes); setFrequencyMenuOpen(false); }} className={`flex min-h-9 w-full items-center justify-between rounded-md px-3 text-left text-sm transition-colors ${selected ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-secondary/70'}`}><span>{formatInterval(minutes)}</span>{selected && <Check className="h-4 w-4" />}</button>;
+              })}
+            </div>}
+          </div>
+        </div>}
+      </section>
+
+      {message && <p className="rounded-lg bg-secondary/50 px-3 py-2 text-sm text-foreground" role="status">{message}</p>}
+    </>
+  );
+
+  // 底部操作（含隐藏 file input：两套布局都会触发它，不能挂在单一分支里）
+  // 移动端按钮规格对齐「新建案例」底部（h-10 + font-medium），比桌面 h-9 大一档
+  const footerActions = (
+    <>
+      <input
+        ref={configFileInputRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          // 先清空 value，否则连续选择同一个文件不会再次触发 change
+          event.target.value = '';
+          if (file) void importConfig(file);
+        }}
+      />
+      {/* 移动端：一行四个次级操作 + 一行主操作 */}
+      <div className="w-full sm:hidden">
+        <div className="grid grid-cols-4 gap-1.5">
+          <button type="button" onClick={() => void exportConfig()} disabled={busy !== null || !configLoaded} className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-border px-1 text-sm font-medium text-foreground transition-colors hover:bg-secondary/50 disabled:opacity-50 focus-ring"><FileDown className="h-4 w-4 shrink-0" />导出</button>
+          <button type="button" onClick={() => configFileInputRef.current?.click()} disabled={busy !== null || !configLoaded} className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-border px-1 text-sm font-medium text-foreground transition-colors hover:bg-secondary/50 disabled:opacity-50 focus-ring"><FileUp className="h-4 w-4 shrink-0" />导入</button>
+          <button type="button" onClick={() => void run('test')} disabled={busy !== null || !configLoaded} className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-border px-1 text-sm font-medium text-foreground transition-colors hover:bg-secondary/50 disabled:opacity-50 focus-ring"><RefreshCw className={`h-4 w-4 shrink-0 ${busy === 'test' ? 'animate-spin' : ''}`} />测试</button>
+          <button type="button" onClick={() => void run('manager')} disabled={busy !== null || !configLoaded} className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-border px-1 text-sm font-medium text-foreground transition-colors hover:bg-secondary/50 disabled:opacity-50 focus-ring"><Upload className="h-4 w-4 shrink-0" />恢复</button>
+        </div>
+        <button type="button" onClick={() => void run('backup')} disabled={busy !== null || !configLoaded} className="mt-1.5 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-transparent bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary hover:opacity-90 disabled:opacity-50 focus-ring"><HardDriveUpload className="h-4 w-4" />{busy === 'backup' ? '备份中' : '备份'}</button>
+      </div>
+
+      {/* 桌面端：导入/导出用 mr-auto 推到最左 */}
+      <div className="mr-auto hidden flex-wrap items-center gap-2 sm:flex">
+        <button type="button" onClick={() => void exportConfig()} disabled={busy !== null || !configLoaded} className={ACTION_BUTTON_BASE}><FileDown className="h-4 w-4" />导出</button>
+        <button type="button" onClick={() => configFileInputRef.current?.click()} disabled={busy !== null || !configLoaded} className={ACTION_BUTTON_BASE}><FileUp className="h-4 w-4" />导入</button>
+      </div>
+      <button type="button" onClick={() => void run('test')} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} hidden sm:inline-flex`}><RefreshCw className={`h-4 w-4 ${busy === 'test' ? 'animate-spin' : ''}`} />测试</button>
+      <button type="button" onClick={() => void run('manager')} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} hidden sm:inline-flex`}><Upload className="h-4 w-4" />恢复</button>
+      <button type="button" onClick={() => void run('backup')} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} hidden border-transparent bg-primary text-primary-foreground hover:bg-primary hover:opacity-90 sm:inline-flex`}><HardDriveUpload className="h-4 w-4" />{busy === 'backup' ? '备份中' : '备份'}</button>
+    </>
+  );
+
+  // 移动端：统一二级页面壳（返回手势 + 统一页头）；此前居中小卡片在手机上
+  // 表单超高会被裁切，整页展示更合适。
+  if (isMobile) {
+    return (
+      <>
+        <SubPage
+          isOpen={isOpen}
+          onClose={onClose}
+          title="数据备份"
+          bodyClassName="overflow-hidden flex flex-col"
+        >
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4">
+            {formBody}
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border bg-secondary/10 px-3 py-2.5">
+            {footerActions}
+          </div>
+        </SubPage>
+        <RemoteBackupManagerModal isOpen={showManager} method={method} config={method === 's3' ? s3Config : webdavConfig} onClose={() => setShowManager(false)} onRestored={(filename) => showSuccessMessage(`已恢复：${filename}`)} />
+      </>
+    );
+  }
+
   return (
     <>
       <div
@@ -223,8 +403,7 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
         role="dialog"
         aria-modal="true"
         aria-labelledby="private-data-title"
-        // 表单很长，手机竖屏下比视口还高：居中布局会把上下两端顶出屏幕，
-        // 关闭按钮正好在被裁掉的那截里、点不到。留白同时避开系统栏（见 MainActivity.kt）。
+        // 表单很长：居中布局配合内部滚动 + 安全区留白，避免关闭按钮被裁出屏幕。
         style={{
           paddingTop: 'calc(1rem + var(--safe-area-inset-top, 0px))',
           paddingBottom: 'calc(1rem + var(--safe-area-inset-bottom, 0px))',
@@ -240,145 +419,10 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
           </div>
 
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
-            <div>
-              <p className="mb-2 text-sm text-foreground">备份方式</p>
-              <div role="tablist" aria-label="备份方式" className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-muted/40 p-1">
-                <button type="button" role="tab" aria-selected={method === 'webdav'} disabled={!configLoaded} onClick={() => changeMethod('webdav')} className={`${METHOD_TAB_BASE} ${method === 'webdav' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-50`}>WebDAV</button>
-                <button type="button" role="tab" aria-selected={method === 's3'} disabled={!configLoaded} onClick={() => changeMethod('s3')} className={`${METHOD_TAB_BASE} ${method === 's3' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-50`}>S3 兼容存储</button>
-              </div>
-            </div>
-
-            {method === 's3' ? (
-              <div className="space-y-3">
-                <label className="block text-sm text-foreground">S3 服务地址<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.endpoint} onChange={(event) => updateS3('endpoint', event.target.value)} placeholder="https://s3.us-east-1.amazonaws.com" /></label>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <label className="block text-sm text-foreground">区域（Region）<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.region} onChange={(event) => updateS3('region', event.target.value)} placeholder="us-east-1" /></label>
-                  <label className="block text-sm text-foreground">存储桶（Bucket）<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.bucket} onChange={(event) => updateS3('bucket', event.target.value)} placeholder="orbis-backups" /></label>
-                </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <label className="block text-sm text-foreground">Access Key ID<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.accessKeyId} onChange={(event) => updateS3('accessKeyId', event.target.value)} /></label>
-                  <label className="block text-sm text-foreground">Secret Access Key<input type="password" disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.secretAccessKey} onChange={(event) => updateS3('secretAccessKey', event.target.value)} /></label>
-                </div>
-                <label className="block text-sm text-foreground">会话 Token（可选）<input type="password" disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.sessionToken} onChange={(event) => updateS3('sessionToken', event.target.value)} placeholder="使用 STS 临时凭证时填写" /></label>
-                <label className="block text-sm text-foreground">备份前缀<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.backupPrefix} onChange={(event) => updateS3('backupPrefix', event.target.value)} placeholder="orbis/backups" /></label>
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground"><input type="checkbox" disabled={!configLoaded} checked={s3Config.pathStyle} onChange={(event) => updateS3('pathStyle', event.target.checked)} className="h-4 w-4 accent-primary" />路径风格（MinIO 等自建服务勾选）</label>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <label className="block text-sm text-foreground">WebDAV 地址<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={webdavConfig.endpoint} onChange={(event) => updateWebDav('endpoint', event.target.value)} placeholder="https://dav.example.com" /></label>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <label className="block text-sm text-foreground">用户名<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={webdavConfig.username} onChange={(event) => updateWebDav('username', event.target.value)} /></label>
-                  <label className="block text-sm text-foreground">密码<input type="password" disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={webdavConfig.password} onChange={(event) => updateWebDav('password', event.target.value)} /></label>
-                </div>
-                <label className="block text-sm text-foreground">备份文件夹<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={webdavConfig.backupDirectory} onChange={(event) => updateWebDav('backupDirectory', event.target.value)} placeholder="orbis/backups" /></label>
-              </div>
-            )}
-
-            <section className="rounded-xl border border-border bg-secondary/20 p-4" aria-labelledby="backup-content-title">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <MessageSquare className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <h3 id="backup-content-title" className="text-sm font-medium text-foreground">备份 AI 研判对话历史</h3>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      产物为 ZIP 归档（案例与对话分包）；关闭后仅备份案例与系统设置
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={activeConfig.includeChatHistory !== false}
-                  disabled={!configLoaded}
-                  onClick={() => updateActive('includeChatHistory', !(activeConfig.includeChatHistory !== false))}
-                  className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors focus-ring disabled:opacity-50 ${
-                    activeConfig.includeChatHistory !== false ? 'border-primary bg-primary' : 'border-border bg-muted'
-                  }`}
-                >
-                  <span
-                    className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm transition-transform ${
-                      activeConfig.includeChatHistory !== false ? 'translate-x-6 text-primary' : 'translate-x-1 text-muted-foreground'
-                    }`}
-                  >
-                    {activeConfig.includeChatHistory !== false && <Check className="h-3.5 w-3.5" />}
-                  </span>
-                </button>
-              </div>
-            </section>
-
-            <section className="rounded-xl border border-border bg-secondary/20 p-4" aria-labelledby="auto-backup-title">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><Clock3 className="h-4 w-4" /></span>
-                  <div>
-                    <h3 id="auto-backup-title" className="text-sm font-medium text-foreground">自动备份</h3>
-                    <p className="mt-0.5 text-xs text-muted-foreground">应用运行期间自动创建新版本</p>
-                  </div>
-                </div>
-                <button type="button" role="switch" aria-checked={activeConfig.autoBackupEnabled} disabled={!configLoaded} onClick={() => updateActive('autoBackupEnabled', !activeConfig.autoBackupEnabled)} className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors focus-ring disabled:opacity-50 ${activeConfig.autoBackupEnabled ? 'border-primary bg-primary' : 'border-border bg-muted'}`}>
-                  <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm transition-transform ${activeConfig.autoBackupEnabled ? 'translate-x-6 text-primary' : 'translate-x-1 text-muted-foreground'}`}>{activeConfig.autoBackupEnabled && <Check className="h-3.5 w-3.5" />}</span>
-                </button>
-              </div>
-              {activeConfig.autoBackupEnabled && <div className="mt-4 border-t border-border pt-3">
-                <div className="relative">
-                  <p className="mb-2 text-sm text-foreground">备份频率</p>
-                  <button type="button" aria-haspopup="listbox" aria-expanded={frequencyMenuOpen} onClick={() => setFrequencyMenuOpen((open) => !open)} className="flex min-h-10 w-full items-center justify-between rounded-lg border border-border bg-background px-3 text-sm text-foreground transition-colors hover:bg-secondary/60 focus-ring">
-                    <span>{formatInterval(activeConfig.autoBackupIntervalMinutes)}</span>
-                    <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${frequencyMenuOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  {frequencyMenuOpen && <div role="listbox" aria-label="自动备份频率" className="absolute z-[80] mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-xl">
-                    {AUTO_BACKUP_INTERVAL_MINUTES.map((minutes) => {
-                      const selected = activeConfig.autoBackupIntervalMinutes === minutes;
-                      return <button key={minutes} type="button" role="option" aria-selected={selected} onClick={() => { updateActive('autoBackupIntervalMinutes', minutes); setFrequencyMenuOpen(false); }} className={`flex min-h-9 w-full items-center justify-between rounded-md px-3 text-left text-sm transition-colors ${selected ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-secondary/70'}`}><span>{formatInterval(minutes)}</span>{selected && <Check className="h-4 w-4" />}</button>;
-                    })}
-                  </div>}
-                </div>
-              </div>}
-            </section>
-
-            {message && <p className="rounded-lg bg-secondary/50 px-3 py-2 text-sm text-foreground" role="status">{message}</p>}
+            {formBody}
           </div>
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border bg-secondary/10 px-3 py-2.5 sm:px-5 sm:py-3">
-            {/* 导入用的隐藏 file input 必须独立于两套布局之外：
-                桌面端与移动端都会触发它，挂在任一分支里都会在另一端失效。 */}
-            <input
-              ref={configFileInputRef}
-              type="file"
-              accept="application/json,.json"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                // 先清空 value，否则连续选择同一个文件不会再次触发 change
-                event.target.value = '';
-                if (file) void importConfig(file);
-              }}
-            />
-            {/* 移动端：五个按钮挤在一行会折成「3+2」阶梯状，视觉上分裂。
-                改为「一行四个次级操作 + 一行主操作」共两行。
-                高度统一取 h-9(36px)：同一操作区内按钮不等高会显得参差，
-                层级差异改由底色（bg-primary）与文字色体现，而不是靠高度。
-                底栏总高约 2×36 + 间距 + 内边距 ≈ 100px，不再占满弹窗两成空间。 */}
-            <div className="w-full sm:hidden">
-              <div className="grid grid-cols-4 gap-1.5">
-                <button type="button" onClick={() => void exportConfig()} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} justify-center px-0`}><FileDown className="h-4 w-4" />导出</button>
-                <button type="button" onClick={() => configFileInputRef.current?.click()} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} justify-center px-0`}><FileUp className="h-4 w-4" />导入</button>
-                <button type="button" onClick={() => void run('test')} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} justify-center px-0`}><RefreshCw className={`h-4 w-4 ${busy === 'test' ? 'animate-spin' : ''}`} />测试</button>
-                <button type="button" onClick={() => void run('manager')} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} justify-center px-0`}><Upload className="h-4 w-4" />恢复</button>
-              </div>
-              <button type="button" onClick={() => void run('backup')} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} mt-1.5 w-full justify-center border-transparent bg-primary text-primary-foreground hover:bg-primary hover:opacity-90`}><HardDriveUpload className="h-4 w-4" />{busy === 'backup' ? '备份中' : '备份'}</button>
-            </div>
-
-            {/* 桌面端：导入/导出属于「本地文件互转」，与右侧远端动作不同类，
-                用 mr-auto 推到最左并留出间距。 */}
-            <div className="mr-auto hidden flex-wrap items-center gap-2 sm:flex">
-              <button type="button" onClick={() => void exportConfig()} disabled={busy !== null || !configLoaded} className={ACTION_BUTTON_BASE}><FileDown className="h-4 w-4" />导出</button>
-              <button type="button" onClick={() => configFileInputRef.current?.click()} disabled={busy !== null || !configLoaded} className={ACTION_BUTTON_BASE}><FileUp className="h-4 w-4" />导入</button>
-            </div>
-            <button type="button" onClick={() => void run('test')} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} hidden sm:inline-flex`}><RefreshCw className={`h-4 w-4 ${busy === 'test' ? 'animate-spin' : ''}`} />测试</button>
-            <button type="button" onClick={() => void run('manager')} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} hidden sm:inline-flex`}><Upload className="h-4 w-4" />恢复</button>
-            <button type="button" onClick={() => void run('backup')} disabled={busy !== null || !configLoaded} className={`${ACTION_BUTTON_BASE} hidden border-transparent bg-primary text-primary-foreground hover:bg-primary hover:opacity-90 sm:inline-flex`}><HardDriveUpload className="h-4 w-4" />{busy === 'backup' ? '备份中' : '备份'}</button>
+            {footerActions}
           </div>
         </div>
       </div>
