@@ -276,7 +276,7 @@ export default function GanZhiDiagramModal({
     const header = (
         <div className="flex items-center justify-between w-full">
             <span className="text-lg font-medium text-foreground">干支流通图解</span>
-            <div className="flex items-center gap-2 mr-6">
+            <div className="flex items-center gap-2 pr-9">
                 {showLiuNian && (!chartData?.items.find((i: ChartItem) => i.label === '流年')) && (
                     <span className="text-sm text-yellow-500 animate-pulse inline-block">请先选择流年</span>
                 )}

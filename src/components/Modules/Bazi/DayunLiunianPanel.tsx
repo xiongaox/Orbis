@@ -157,6 +157,16 @@ export default function DayunLiunianPanel({
     setActiveHint(null);
   }, [activeDaYunIndex]);
 
+  // 外部改选的大运若不在当前分页内，自动翻到它所在的分页，
+  // 否则"当前流年"跳转后大运/流年行会停留在旧分页上看不到目标年份。
+  useEffect(() => {
+    if (selectedDaYunIndex === null || selectedDaYunIndex === undefined) return;
+    const targetIdx = daYun.findIndex(d => d.index === selectedDaYunIndex);
+    if (targetIdx < 0) return;
+    const targetPage = Math.floor(targetIdx / 10);
+    setDaYunPage(prev => (prev === targetPage ? prev : targetPage));
+  }, [selectedDaYunIndex, daYun]);
+
   // 处理大运点击
   const handleDaYunClick = (index: number) => {
     const newIndex = index === selectedDaYunIndex ? null : index;

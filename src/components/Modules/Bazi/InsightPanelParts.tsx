@@ -182,7 +182,7 @@ export function LogicAnalysisCard({ segment, tags, reasoning, modern }: LogicAna
             {tags.length > 0 && (
                 <div className="flex flex-wrap gap-1">
                     {tags.map((tag, i) => (
-                        <span key={i} className="px-2 py-0.5 text-xs rounded-full bg-primary/10 text-primary border border-primary/20">
+                        <span key={i} className="px-2 py-0.5 text-xs rounded-md bg-primary/10 text-primary border border-primary/20">
                             {tag}
                         </span>
                     ))}

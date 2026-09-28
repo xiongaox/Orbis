@@ -296,7 +296,7 @@ export default function GanZhiLiuTongModal({
     const header = (
         <div className="flex items-center justify-between w-full">
             <span className="text-lg font-medium text-foreground">干支流通</span>
-            <div className="flex items-center gap-2 mr-6">
+            <div className="flex items-center gap-2 pr-9">
                 <button
                     onClick={() => setShowLiuNian(!showLiuNian)}
                     className={`px-3 py-1 text-sm rounded-md border transition-colors ${showLiuNian

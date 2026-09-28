@@ -109,7 +109,8 @@ export default function BaziCaseInfo({
     <>
       <div className={classNames(
         'bg-card rounded-xl border border-[hsl(var(--border-light))] dark:border-border flex-shrink-0',
-        isMobileLayout ? 'p-2 mx-2 mt-2 mb-2' : 'p-4 mx-6 mt-6 mb-4'
+        // 桌面端外边距对齐奇门遁甲的紧凑规格（8px），把宽度让给排盘内容
+        isMobileLayout ? 'p-2 mx-2 mt-2 mb-2' : 'p-3 mx-2 mt-2 mb-2'
       )}>
         {isMobileLayout ? (
           /* === 移动端布局 === */
