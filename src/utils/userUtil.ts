@@ -19,9 +19,25 @@
  */
 
 export const ZODIAC_IMAGES = [
-    '鼠.svg', '牛.svg', '虎.svg', '兔.svg', '龙.svg', '蛇.svg',
-    '马.svg', '羊.svg', '猴.svg', '鸡.svg', '狗.svg', '猪.svg'
+    'rat.svg', 'ox.svg', 'tiger.svg', 'rabbit.svg', 'dragon.svg', 'snake.svg',
+    'horse.svg', 'goat.svg', 'monkey.svg', 'rooster.svg', 'dog.svg', 'pig.svg'
 ];
+
+// 生肖中文名 → ASCII 文件名（不含扩展名）。
+// 资源文件名必须保持 ASCII：Tauri 自定义协议对非 ASCII 路径的编码处理
+// 在部分平台（如 macOS WKWebView）会导致 404 裂图，浏览器端则正常。
+const ZODIAC_FILE_BY_NAME: Record<string, string> = {
+    '鼠': 'rat', '牛': 'ox', '虎': 'tiger', '兔': 'rabbit', '龙': 'dragon', '蛇': 'snake',
+    '马': 'horse', '羊': 'goat', '猴': 'monkey', '鸡': 'rooster', '狗': 'dog', '猪': 'pig'
+};
+
+/**
+ * 根据生肖中文名获取头像地址；未知生肖回退为鼠
+ */
+export function getZodiacAvatarUrl(zodiac?: string | null): string {
+    const file = (zodiac && ZODIAC_FILE_BY_NAME[zodiac]) || 'rat';
+    return `/zodiac/${file}.svg`;
+}
 
 /**
  * 根据年份计算生肖索引 (1900年是鼠年)

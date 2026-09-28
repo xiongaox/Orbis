@@ -19,7 +19,7 @@
  */
 
 import classNames from 'classnames';
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight, Compass } from 'lucide-react';
 import { Solar, Lunar } from 'lunar-typescript';
 import { WEEK_DAYS_MON_FIRST, WEEK_DAYS_SUN_FIRST } from '../../../../constants/calendar';
 import HolidayCountdown from '../HolidayCountdown';
@@ -35,7 +35,8 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
         isCountdownOpen, setIsCountdownOpen,
         isDetailOpen, setIsDetailOpen,
         setIsDatePickerOpen,
-        calendarData
+        calendarData,
+        onGoPaiPan
     } = props;
 
     const renderWeekHeader = () => {
@@ -189,7 +190,19 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
             <div className={classNames('space-y-6', isMobileLayout ? 'p-4' : 'flex-1 p-4 sm:p-6 overflow-y-auto')}>
                 {/* 四柱干支 */}
                 <div className="space-y-4">
-                    <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-3 bg-primary rounded-full"></span>四柱干支</div>
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2"><span className="w-1 h-3 bg-primary rounded-full"></span>四柱干支</div>
+                        {onGoPaiPan && (
+                            <button
+                                type="button"
+                                onClick={() => onGoPaiPan(selectedDate)}
+                                className="flex items-center gap-1 px-2 py-1 rounded-lg border border-border/60 bg-card text-xs font-medium text-primary shadow-sm hover:bg-primary/10 hover:border-primary/30 active:bg-primary/15 transition-colors focus:outline-none focus-ring"
+                            >
+                                <Compass className="w-3.5 h-3.5" />
+                                去排盘
+                            </button>
+                        )}
+                    </div>
                     <div className={classNames('grid', isMobileLayout ? 'grid-cols-4 gap-2' : 'grid-cols-2 md:grid-cols-4 gap-3')}>
                         {[
                             { label: '年柱', val: Lunar.fromDate(selectedDate).getYearInGanZhi() },

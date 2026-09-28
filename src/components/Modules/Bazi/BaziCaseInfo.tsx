@@ -28,6 +28,7 @@ import type { BaziApiResponse } from '../../../types/bazi';
 import GanZhiDiagramModal from './GanZhiDiagramModal';
 import GanZhiLiuTongModal from './GanZhiLiuTongModal';
 import AiPromptModal from './AiPromptModal';
+import { getZodiacAvatarUrl } from '../../../utils/userUtil';
 import { calcJiaoYunInfo } from '../../../utils/yunInfoUtils';
 
 interface BaziCaseInfoProps {
@@ -122,7 +123,7 @@ export default function BaziCaseInfo({
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
                 {baziData?.zodiac ? (
                   <img
-                    src={`/zodiac/${baziData.zodiac}.svg`}
+                    src={getZodiacAvatarUrl(baziData.zodiac)}
                     alt={baziData.zodiac}
                     className="w-8 h-8 object-contain"
                   />
@@ -217,7 +218,7 @@ export default function BaziCaseInfo({
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                 {baziData?.zodiac ? (
                   <img
-                    src={`/zodiac/${baziData.zodiac}.svg`}
+                    src={getZodiacAvatarUrl(baziData.zodiac)}
                     alt={baziData.zodiac}
                     className="w-14 h-14 object-contain"
                   />
