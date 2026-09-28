@@ -253,7 +253,7 @@ export default function ExportCaseModal<T extends object>({
                             >
                                 <div className="flex items-center gap-3">
                                     <div
-                                        className={`w-4 h-4 rounded-[4px] border flex items-center justify-center transition-all duration-200 ${isChecked
+                                        className={`w-4 h-4 rounded border flex items-center justify-center transition-all duration-200 ${isChecked
                                             ? 'bg-primary border-primary shadow-sm scale-110'
                                             : 'border-muted-foreground/50 group-hover:border-primary/50 bg-background'
                                             }`}

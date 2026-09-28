@@ -7,6 +7,8 @@ import { AUTO_BACKUP_INTERVAL_MINUTES } from '../../services/remoteBackupShared'
 import { exportTextFile } from '../../utils/fileExportUtil';
 import RemoteBackupManagerModal from './RemoteBackupManagerModal';
 import SubPage from '../UI/SubPage';
+import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 
 interface PrivateDataBackupModalProps {
@@ -20,7 +22,6 @@ const emptyWebDavConfig: WebDavConfig = {
 const emptyS3Config: S3Config = {
   endpoint: '', region: 'us-east-1', bucket: '', accessKeyId: '', secretAccessKey: '', sessionToken: '', backupPrefix: 'orbis/backups', pathStyle: false, autoBackupEnabled: false, autoBackupIntervalMinutes: 1440, includeChatHistory: true,
 };
-const SUCCESS_MESSAGE_DURATION = 4_000;
 const METHOD_TAB_BASE = 'flex min-h-8 items-center justify-center rounded-md px-3 text-sm transition-colors focus-ring';
 // 底部次级操作按钮（导出/导入/测试/恢复）共用样式，移动端与桌面端两套布局复用同一份。
 // 高度取 h-9(36px)：它是「视觉高度」，DESIGN.md 的 40/44px 是「触控目标」下限——
@@ -41,33 +42,13 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
   const [showManager, setShowManager] = useState(false);
   const [frequencyMenuOpen, setFrequencyMenuOpen] = useState(false);
   const [busy, setBusy] = useState<'backup' | 'test' | 'manager' | null>(null);
-  const [message, setMessage] = useState('');
-  const messageTimerRef = useRef<number | undefined>(undefined);
+  const { toast, showToast } = useToast();
   const configFileInputRef = useRef<HTMLInputElement>(null);
-
-  const clearMessageTimer = () => {
-    if (messageTimerRef.current !== undefined) {
-      window.clearTimeout(messageTimerRef.current);
-      messageTimerRef.current = undefined;
-    }
-  };
-  const showSuccessMessage = (nextMessage: string) => {
-    clearMessageTimer();
-    setMessage(nextMessage);
-    messageTimerRef.current = window.setTimeout(() => {
-      setMessage('');
-      messageTimerRef.current = undefined;
-    }, SUCCESS_MESSAGE_DURATION);
-  };
-
-  useEffect(() => () => clearMessageTimer(), []);
 
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
     setConfigLoaded(false);
-    clearMessageTimer();
-    setMessage('');
     void Promise.all([remoteBackupService.readMethod(), webDavBackupService.readConfig(), s3BackupService.readConfig()])
       .then(([nextMethod, nextWebDavConfig, nextS3Config]) => {
         if (cancelled) return;
@@ -78,11 +59,12 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
       })
       .catch((error: unknown) => {
         if (!cancelled) {
-          setMessage(error instanceof Error ? error.message : '读取已保存的备份配置失败');
+          showToast(error instanceof Error ? error.message : '读取已保存的备份配置失败', 'error');
           setConfigLoaded(true);
         }
       });
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   useEffect(() => {
@@ -119,8 +101,6 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
    * 避免用户误以为该文件可安全分享。
    */
   const exportConfig = async () => {
-    clearMessageTimer();
-    setMessage('');
     try {
       const payload = {
         _format: 'orbis-backup-config',
@@ -141,16 +121,16 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
       // 安卓端 saved 是"已写入系统下载目录"，与桌面端"已保存到所选路径"区分开表述
       const isAndroid = /android/i.test(navigator.userAgent);
       if (outcome === 'saved') {
-        showSuccessMessage(
+        showToast(
           isAndroid
-            ? '备份配置已保存到系统「下载」目录（含明文凭证，请妥善保管）'
-            : '备份配置已导出（含明文凭证，请妥善保管）'
+            ? '配置已保存到「下载」目录（含明文凭证）'
+            : '配置已导出（含明文凭证）'
         );
       } else if (outcome === 'downloaded') {
-        showSuccessMessage('备份配置已下载（含明文凭证，请妥善保管）');
+        showToast('配置已下载（含明文凭证）');
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : '导出配置失败');
+      showToast(error instanceof Error ? error.message : '导出配置失败', 'error');
     }
   };
 
@@ -159,8 +139,6 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
    * 避免把任意 JSON 直接灌进配置对象导致后续备份行为异常。
    */
   const importConfig = async (file: File) => {
-    clearMessageTimer();
-    setMessage('');
     try {
       const parsed = JSON.parse(await file.text()) as Record<string, unknown>;
       if (parsed?._format !== 'orbis-backup-config') {
@@ -190,41 +168,39 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
         s3BackupService.saveConfig(nextS3),
         remoteBackupService.saveMethod(nextMethod),
       ]);
-      showSuccessMessage('备份配置已导入并保存');
+      showToast('配置已导入');
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : '导入配置失败：文件无法解析');
+      showToast(error instanceof Error ? error.message : '导入配置失败：文件无法解析', 'error');
     }
   };
 
   const run = async (action: 'backup' | 'test' | 'manager') => {
     setBusy(action);
-    clearMessageTimer();
-    setMessage('');
     try {
       if (method === 's3') {
         await s3BackupService.saveConfig(s3Config);
         if (action === 'backup') {
           const result = await s3BackupService.backup(s3Config);
-          showSuccessMessage(`已创建备份：${result.backup.filename}`);
+          showToast(`已创建备份：${result.backup.filename}`);
         }
         if (action === 'test') {
           await s3BackupService.testConnection(s3Config);
-          showSuccessMessage('连接成功');
+          showToast('连接成功');
         }
       } else {
         await webDavBackupService.saveConfig(webdavConfig);
         if (action === 'backup') {
           const result = await webDavBackupService.backup(webdavConfig);
-          showSuccessMessage(`已创建备份：${result.backup.filename}`);
+          showToast(`已创建备份：${result.backup.filename}`);
         }
         if (action === 'test') {
           await webDavBackupService.testConnection(webdavConfig);
-          showSuccessMessage('连接成功');
+          showToast('连接成功');
         }
       }
       if (action === 'manager') setShowManager(true);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : '操作失败，请稍后重试');
+      showToast(error instanceof Error ? error.message : '操作失败，请稍后重试', 'error');
     } finally {
       setBusy(null);
     }
@@ -254,7 +230,14 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
           </div>
           <label className="block text-sm text-foreground">会话 Token（可选）<input type="password" disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.sessionToken} onChange={(event) => updateS3('sessionToken', event.target.value)} placeholder="使用 STS 临时凭证时填写" /></label>
           <label className="block text-sm text-foreground">备份前缀<input disabled={!configLoaded} className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus-ring disabled:opacity-50" value={s3Config.backupPrefix} onChange={(event) => updateS3('backupPrefix', event.target.value)} placeholder="orbis/backups" /></label>
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground"><input type="checkbox" disabled={!configLoaded} checked={s3Config.pathStyle} onChange={(event) => updateS3('pathStyle', event.target.checked)} className="h-4 w-4 accent-primary" />路径风格（MinIO 等自建服务勾选）</label>
+          <label className="flex cursor-pointer items-center gap-2.5 text-sm text-foreground group">
+            <input type="checkbox" disabled={!configLoaded} checked={s3Config.pathStyle} onChange={(event) => updateS3('pathStyle', event.target.checked)} className="peer sr-only" />
+            {/* 自定义勾选框：原生 checkbox 在安卓 WebView 上不受 accent-primary 控制，会渲染成系统默认样式 */}
+            <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors group-disabled:opacity-50 peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 ${s3Config.pathStyle ? 'bg-primary border-primary' : 'border-muted-foreground/50 bg-background group-hover:border-primary/50'}`}>
+              {s3Config.pathStyle && <Check className="h-3 w-3 text-primary-foreground" />}
+            </span>
+            路径风格（MinIO 等自建服务勾选）
+          </label>
         </div>
       ) : (
         <div className="space-y-3">
@@ -292,11 +275,9 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
           >
             <span
               className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm transition-transform ${
-                activeConfig.includeChatHistory !== false ? 'translate-x-6 text-primary' : 'translate-x-1 text-muted-foreground'
+                activeConfig.includeChatHistory !== false ? 'translate-x-6' : 'translate-x-1'
               }`}
-            >
-              {activeConfig.includeChatHistory !== false && <Check className="h-3.5 w-3.5" />}
-            </span>
+            />
           </button>
         </div>
       </section>
@@ -311,7 +292,7 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
             </div>
           </div>
           <button type="button" role="switch" aria-checked={activeConfig.autoBackupEnabled} disabled={!configLoaded} onClick={() => updateActive('autoBackupEnabled', !activeConfig.autoBackupEnabled)} className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors focus-ring disabled:opacity-50 ${activeConfig.autoBackupEnabled ? 'border-primary bg-primary' : 'border-border bg-muted'}`}>
-            <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm transition-transform ${activeConfig.autoBackupEnabled ? 'translate-x-6 text-primary' : 'translate-x-1 text-muted-foreground'}`}>{activeConfig.autoBackupEnabled && <Check className="h-3.5 w-3.5" />}</span>
+            <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm transition-transform ${activeConfig.autoBackupEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
           </button>
         </div>
         {activeConfig.autoBackupEnabled && <div className="mt-4 border-t border-border pt-3">
@@ -330,8 +311,6 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
           </div>
         </div>}
       </section>
-
-      {message && <p className="rounded-lg bg-secondary/50 px-3 py-2 text-sm text-foreground" role="status">{message}</p>}
     </>
   );
 
@@ -391,7 +370,8 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
             {footerActions}
           </div>
         </SubPage>
-        <RemoteBackupManagerModal isOpen={showManager} method={method} config={method === 's3' ? s3Config : webdavConfig} onClose={() => setShowManager(false)} onRestored={(filename) => showSuccessMessage(`已恢复：${filename}`)} />
+        <Toast toast={toast} />
+        <RemoteBackupManagerModal isOpen={showManager} method={method} config={method === 's3' ? s3Config : webdavConfig} onClose={() => setShowManager(false)} onRestored={(filename) => showToast(`已恢复：${filename}`)} />
       </>
     );
   }
@@ -426,7 +406,8 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
           </div>
         </div>
       </div>
-      <RemoteBackupManagerModal isOpen={showManager} method={method} config={method === 's3' ? s3Config : webdavConfig} onClose={() => setShowManager(false)} onRestored={(filename) => showSuccessMessage(`已恢复：${filename}`)} />
+      <Toast toast={toast} />
+      <RemoteBackupManagerModal isOpen={showManager} method={method} config={method === 's3' ? s3Config : webdavConfig} onClose={() => setShowManager(false)} onRestored={(filename) => showToast(`已恢复：${filename}`)} />
     </>
   );
 }

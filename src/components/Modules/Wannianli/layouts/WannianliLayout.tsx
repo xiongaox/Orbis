@@ -137,8 +137,8 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
                                     <span className="text-lg font-serif font-light text-muted-foreground/75">/ {selectedDate.getMonth() + 1}月 · {selectedDate.getFullYear()}</span>
                                 </div>
                                 <div className="mt-1 flex items-center gap-2">
-                                    <div className="lunar-badge px-2.5 py-0.5 rounded-[4px] border shadow-sm">
-                                        <span className="lunar-badge__text text-xs font-medium tracking-wide font-serif">{selectedLunar.getMonthInChinese()}月{selectedLunar.getDayInChinese()}</span>
+                                    <div className="lunar-badge px-3 py-1.5 rounded-lg border shadow-sm flex items-center">
+                                        <span className="lunar-badge__text text-xs font-medium tracking-wide font-serif leading-none">{selectedLunar.getMonthInChinese()}月{selectedLunar.getDayInChinese()}</span>
                                     </div>
                                     <span className="text-sm text-muted-foreground/75 font-serif">{selectedWeekday}</span>
                                 </div>
@@ -180,8 +180,8 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
                         <span className="text-lg sm:text-2xl font-serif font-light text-muted-foreground/60">/ {selectedDate.getMonth() + 1}月 · {selectedDate.getFullYear()}</span>
                     </div>
                     <div className="flex items-center gap-3 mt-4">
-                        <div className="lunar-badge px-3 py-1 rounded-[4px] border flex items-center justify-center shadow-sm">
-                            <span className="lunar-badge__text text-sm font-medium tracking-wide font-serif">{Lunar.fromDate(selectedDate).getMonthInChinese()}月{Lunar.fromDate(selectedDate).getDayInChinese()}</span>
+                        <div className="lunar-badge px-3 py-1.5 rounded-lg border flex items-center justify-center shadow-sm">
+                            <span className="lunar-badge__text text-sm font-medium tracking-wide font-serif leading-none">{Lunar.fromDate(selectedDate).getMonthInChinese()}月{Lunar.fromDate(selectedDate).getDayInChinese()}</span>
                         </div>
                         <div className="text-base text-muted-foreground/60 font-serif">{WEEK_DAYS_SUN_FIRST[selectedDate.getDay()]}</div>
                     </div>

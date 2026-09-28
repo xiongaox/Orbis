@@ -95,7 +95,7 @@ export default function JuSelectDialog({
                         <div className="flex rounded-md bg-muted p-1">
                             <button
                                 onClick={() => setIsYang(true)}
-                                className={`flex-1 py-1.5 text-sm font-serif rounded-sm transition-all ${isYang
+                                className={`flex-1 py-1.5 text-sm font-serif rounded-md transition-all ${isYang
                                     ? 'bg-background text-foreground shadow-sm font-medium'
                                     : 'text-muted-foreground hover:text-foreground'
                                     }`}
@@ -104,7 +104,7 @@ export default function JuSelectDialog({
                             </button>
                             <button
                                 onClick={() => setIsYang(false)}
-                                className={`flex-1 py-1.5 text-sm font-serif rounded-sm transition-all ${!isYang
+                                className={`flex-1 py-1.5 text-sm font-serif rounded-md transition-all ${!isYang
                                     ? 'bg-background text-foreground shadow-sm font-medium'
                                     : 'text-muted-foreground hover:text-foreground'
                                     }`}

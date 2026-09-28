@@ -151,7 +151,7 @@ export default function QimenHeader({
             <div className={`flex ${isMobileLayout ? 'items-stretch' : 'items-center'} justify-between`}>
                 <div className="flex items-center gap-1 2xl:gap-2">
                     <div className="relative">
-                        <button type="button" onClick={() => setIsMethodOpen(!isMethodOpen)} className="flex items-center gap-1 pl-3 pr-2 py-0.5 rounded-full border border-border text-muted-foreground text-xs 2xl:text-sm font-serif hover:bg-muted/10 transition-colors">
+                        <button type="button" onClick={() => setIsMethodOpen(!isMethodOpen)} className="flex items-center gap-1 pl-3 pr-2 py-1 rounded-lg border border-border text-muted-foreground text-xs 2xl:text-sm font-serif hover:bg-muted/10 transition-colors">
                             <span>{METHODS.find(m => m.value === method)?.label}</span>
                             <svg className={`h-3 w-3 fill-current text-muted-foreground transition-transform ${isMethodOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
                         </button>
@@ -167,14 +167,14 @@ export default function QimenHeader({
                         )}
                     </div>
                     {globalPatterns.map((pattern, idx) => (
-                        <button key={idx} onClick={() => onPatternClick?.(pattern)} className="px-2 2xl:px-3.5 py-0.5 rounded-full border border-border text-muted-foreground text-xs 2xl:text-sm font-serif hover:bg-muted/10 transition-colors" title={pattern.fullLabel}>{pattern.label}</button>
+                        <button key={idx} onClick={() => onPatternClick?.(pattern)} className="px-2.5 2xl:px-3.5 py-1 rounded-lg border border-border text-muted-foreground text-xs 2xl:text-sm font-serif hover:bg-muted/10 transition-colors" title={pattern.fullLabel}>{pattern.label}</button>
                     ))}
                 </div>
                 <div className={`flex ${isMobileLayout ? 'items-stretch' : 'items-center'} gap-1 2xl:gap-2`}>
-                    <button type="button" onClick={onPrevHour} className={`${isMobileLayout ? 'px-3 flex items-center' : 'p-1 2xl:p-1.5'} bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors border border-border`} title="上一局">
+                    <button type="button" onClick={onPrevHour} className={`${isMobileLayout ? 'px-3 flex items-center' : 'p-1 2xl:p-1.5'} bg-secondary/80 text-muted-foreground rounded-lg hover:bg-secondary transition-colors border border-border`} title="上一局">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isMobileLayout ? 'w-4 h-4' : 'w-3 h-3 2xl:w-3.5 2xl:h-3.5'}><path d="m15 18-6-6 6-6" /></svg>
                     </button>
-                    <button type="button" onClick={onNextHour} className={`${isMobileLayout ? 'px-3 flex items-center' : 'p-1 2xl:p-1.5'} bg-secondary/80 text-muted-foreground rounded-full hover:bg-secondary transition-colors border border-border`} title="下一局">
+                    <button type="button" onClick={onNextHour} className={`${isMobileLayout ? 'px-3 flex items-center' : 'p-1 2xl:p-1.5'} bg-secondary/80 text-muted-foreground rounded-lg hover:bg-secondary transition-colors border border-border`} title="下一局">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isMobileLayout ? 'w-4 h-4' : 'w-3 h-3 2xl:w-3.5 2xl:h-3.5'}><path d="m9 18 6-6-6-6" /></svg>
                     </button>
                 </div>

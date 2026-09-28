@@ -51,7 +51,7 @@ export function DetailedPillarCard({
                         onClick={() => onShiftHour(-1)}
                         title="上一时辰"
                         aria-label="上一时辰"
-                        className="w-4 h-4 shrink-0 flex items-center justify-center rounded text-[10px] leading-none text-muted-foreground hover:bg-primary/20 hover:text-primary transition-colors focus:outline-none focus-ring"
+                        className="w-4 h-4 shrink-0 flex items-center justify-center text-[10px] leading-none text-muted-foreground hover:text-primary active:text-primary transition-colors focus:outline-none focus-ring"
                     >
                         ◀
                     </button>
@@ -63,7 +63,7 @@ export function DetailedPillarCard({
                         onClick={() => onShiftHour(1)}
                         title="下一时辰"
                         aria-label="下一时辰"
-                        className="w-4 h-4 shrink-0 flex items-center justify-center rounded text-[10px] leading-none text-muted-foreground hover:bg-primary/20 hover:text-primary transition-colors focus:outline-none focus-ring"
+                        className="w-4 h-4 shrink-0 flex items-center justify-center text-[10px] leading-none text-muted-foreground hover:text-primary active:text-primary transition-colors focus:outline-none focus-ring"
                     >
                         ▶
                     </button>

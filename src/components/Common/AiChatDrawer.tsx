@@ -885,12 +885,12 @@ export default function AiChatDrawer({
                   </div>
 
                   <div
-                    className={`relative group max-w-[92%] rounded-2xl p-3.5 text-base leading-[1.75] ${
+                    className={`relative group max-w-[92%] rounded-xl p-3.5 text-base leading-[1.75] ${
                       isUser
-                        ? 'bg-card border border-border/80 text-foreground rounded-tr-xs shadow-xs space-y-2'
+                        ? 'bg-card border border-border/80 text-foreground rounded-tr shadow-xs space-y-2'
                         : msg.error
-                          ? 'bg-destructive/10 text-destructive border border-destructive/30 rounded-tl-xs'
-                          : 'bg-card border border-border/80 text-foreground rounded-tl-xs shadow-xs space-y-2'
+                          ? 'bg-destructive/10 text-destructive border border-destructive/30 rounded-tl'
+                          : 'bg-card border border-border/80 text-foreground rounded-tl shadow-xs space-y-2'
                     }`}
                   >
                     {/* Assistant 消息的深度思考思维链 */}
@@ -960,7 +960,7 @@ export default function AiChatDrawer({
                   <span className="text-primary font-medium">思考与推演中...</span>
                 </div>
 
-                <div className="relative max-w-[92%] rounded-2xl rounded-tl-xs p-3.5 text-base leading-[1.75] bg-card border border-border/80 text-foreground shadow-xs space-y-2.5">
+                <div className="relative max-w-[92%] rounded-xl rounded-tl p-3.5 text-base leading-[1.75] bg-card border border-border/80 text-foreground shadow-xs space-y-2.5">
                   {/* 流式思维链展示 */}
                   {streamingReasoning && (
                     <div className="rounded-xl border border-border/60 bg-muted/30 overflow-hidden text-xs">

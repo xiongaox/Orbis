@@ -74,12 +74,12 @@ export default function QimenImportModal({ isOpen, onClose, onImported }: QimenI
 
         return (
             <div className="group relative p-3 rounded-lg border border-border bg-muted/40 hover:bg-muted hover:border-primary/50 transition-all duration-200">
-                {/* Header: Title + Index */}
-                <div className="flex justify-between items-center mb-1.5">
-                    <span className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors truncate max-w-[120px]">
+                {/* Header: Title + Index（标题占满剩余宽度，移动端单列卡片可显示更多字符） */}
+                <div className="flex justify-between items-center mb-1.5 gap-2">
+                    <span className="font-semibold text-sm text-foreground group-hover:text-primary transition-colors truncate flex-1 min-w-0">
                         {item.title}
                     </span>
-                    <span className="text-xs text-muted-foreground font-mono">#{index + 1}</span>
+                    <span className="text-xs text-muted-foreground font-mono shrink-0">#{index + 1}</span>
                 </div>
 
                 {/* Date */}
