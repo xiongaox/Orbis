@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>侧栏案例列表 · 重排四稿对比（224px）</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0b0c; color: #e4e0d8;
+  font-family: -apple-system, "PingFang SC", "Noto Sans SC", sans-serif;
+  padding: 26px 22px 60px;
+}
+h1 { font-size: 20px; margin-bottom: 6px; }
+h2 { font-size: 12px; color: #898989; font-weight: 400; margin-top: 30px; margin-bottom: 10px; letter-spacing: .04em; }
+.sub { font-size: 13px; color: #898989; margin-bottom: 14px; line-height: 1.75; max-width: 860px; }
+.sub b { color: #cbae88; font-weight: 600; }
+.note {
+  font-size: 12.5px; color: #898989; line-height: 1.85;
+  background: #141516; border: 1px solid #262729; border-radius: 10px;
+  padding: 13px 17px; margin-bottom: 24px; max-width: 860px;
+}
+.note li { margin-left: 17px; }
+.note b { color: #e4e0d8; font-weight: 600; }
+.note code {
+  font-family: "JetBrains Mono", monospace; font-size: 11.5px;
+  background: #1d1e20; border: 1px solid #2b2c2e; border-radius: 4px;
+  padding: 1px 5px; color: #cbae88;
+}
+.row { display: flex; gap: 24px; overflow-x: auto; padding-bottom: 10px; align-items: flex-start; }
+.col { flex-shrink: 0; width: 272px; }
+.col h3 { font-size: 15px; margin-bottom: 3px; }
+.col h3 span {
+  font-size: 10.5px; font-weight: 500; color: #cbae88;
+  border: 1px solid rgba(203,174,136,.4); background: rgba(203,174,136,.1);
+  border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: 1px;
+}
+.col .meta {
+  font-size: 11.5px; color: #5c5d60; margin-bottom: 6px;
+  font-family: "JetBrains Mono", monospace;
+}
+.col .meta b { color: #cbae88; font-weight: 600; }
+.col .desc { font-size: 12px; color: #898989; line-height: 1.72; margin-bottom: 6px; min-height: 108px; }
+.col .desc em { color: #e4e0d8; font-style: normal; }
+.col .desc .warn { color: #d06565; }
+.col a.open { color: #cbae88; font-size: 12px; text-decoration: none; border-bottom: 1px dotted rgba(203,174,136,.5); }
+iframe {
+  width: 224px; height: 812px;
+  border: 1px solid #333; border-radius: 14px; background: #101112;
+  margin-top: 8px; display: block;
+}
+.legend {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  font-size: 11.5px; color: #5c5d60; margin-top: 8px;
+}
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; }
+</style>
+</head>
+<body>
+<h1>侧栏案例列表 · 重排四稿</h1>
+<p class="sub">
+  因案例库独立界面重构，侧栏案例列表需按新的卡片元素重新排版。
+  <b>硬约束：宽度不变</b> —— 桌面侧栏恒为 <code>w-56 = 224px</code>（2xl 断点 <code>w-64 = 256px</code>），
+  下面四稿全部按 <b>224px 真实宽度</b>渲染，均为可交互 demo。
+</p>
+
+<ul class="note">
+  <li><b>为什么必须重排：</b>现状卡（<code>CaseCard.tsx</code>）在 224px 里实测有两个硬伤 ——
+      ① 四柱用 <code>text-[19px]</code> + <code>w-6</code> 柱宽，四列占 <b>78px</b>，把左侧文字挤到只剩 <b>100px</b>；
+      ② 「编辑/删除」在触屏上因 hover 粘滞而常驻，卡高被顶到约 <b>96px</b>。</li>
+  <li><b>四稿共同处理：</b>编辑/删除改为<b>左滑露出</b>（排序模式下自动禁用）；分类 chip 与姓名同行；日期行不再塞 4 项；
+      仅<b>日干</b>取五行色，其余干支压暗；保留 <code>乾/坤</code> 印章与搜索/筛选/排序模式原有交互。</li>
+  <li><b>取舍核心：</b>224px 里「文字」与「四柱」是零和的。四稿给出四种分法 ——
+      文字优先（A）、排盘优先（B）、两列均分（C）、高度优先（D）。</li>
+  <li><b>自验方式：</b>每稿都用脚本量测真实盒模型（侧栏宽度、横向溢出、文字是否撑破盒子）并驱动鼠标跑完
+      <b>8 项交互测试</b>，四稿均 100% 通过；不是只靠肉眼截图。</li>
+</ul>
+
+<h2>四稿对比（同一屏、同一宽度，可直接滚动各自列表对比）</h2>
+<div class="row">
+  <div class="col">
+    <h3>方案 A<span>文字优先</span></h3>
+    <div class="meta">卡高 <b>53px</b> · 干支 <b>14px 竖排</b> · 含时辰 否</div>
+    <div class="desc">
+      最贴近现状的<em>结构</em>，只做瘦身：仍是「左资料 / 右四柱」。四柱压到 16px 柱宽，把省下的宽度全给文字，
+      第二行只留 <em>日期 + 年龄</em>，分类上移到姓名右侧。改动最小、迁移成本最低；
+      <span class="warn">代价是删掉了出生时辰</span>（整页案例库仍有完整信息）。
+    </div>
+    <a class="open" href="plan-a.html" target="_blank">单独打开 ↗</a>
+    <iframe src="plan-a.html"></iframe>
+  </div>
+
+  <div class="col">
+    <h3>方案 B<span>排盘主导</span></h3>
+    <div class="meta">卡高 <b>103px</b> · 干支 <b>18px 竖排</b> · 含时辰 否</div>
+    <div class="desc">
+      领域感最强：<em>排盘是卡片主角</em>，居中放大到 18px，并加一行极淡的 <em>年/月/日/时</em> 柱名做参照系；
+      姓名与日期压成上下两行细字。干支可读性四稿最好，格局派扫一眼就能定位日主；
+      <span class="warn">代价是卡高翻倍（约 103px），一屏可见条数明显减少</span>。
+    </div>
+    <a class="open" href="plan-b.html" target="_blank">单独打开 ↗</a>
+    <iframe src="plan-b.html"></iframe>
+  </div>
+
+  <div class="col">
+    <h3>方案 C<span>两列均分</span></h3>
+    <div class="meta">卡高 <b>62px</b> · 干支 <b>14px 竖排</b> · 含时辰 否</div>
+    <div class="desc">
+      用 <em>grid 两列</em>把 224px 明确切开：左列姓名+日期，右列排盘+年龄。
+      年龄做成<em>主色小字角标</em>钉在排盘右下，成为扫读锚点；分类 chip 推在第一行最右。
+      密度与可读性折中，版面最「整齐」；<span class="warn">代价是左侧文字列最窄，长名省略更早</span>。
+    </div>
+    <a class="open" href="plan-c.html" target="_blank">单独打开 ↗</a>
+    <iframe src="plan-c.html"></iframe>
+  </div>
+
+  <div class="col">
+    <h3>方案 D<span>高度最优</span></h3>
+    <div class="meta">卡高 <b>70px</b> · 干支 <b>14px 横排</b> · 含时辰 <b>是</b></div>
+    <div class="desc">
+      把「干上支下」压成<em>干支一组横排</em>（乙巳 己丑 丁亥 庚戌），与案例库整页的写法一致。
+      干支自成一段、不再与文字争宽度，因此<em>唯一保留了出生时辰</em>；日柱整组加淡主色底做锚点。
+      <span class="warn">代价是失去列对齐，日干高亮不如竖排醒目</span>。
+    </div>
+    <a class="open" href="plan-d.html" target="_blank">单独打开 ↗</a>
+    <iframe src="plan-d.html"></iframe>
+  </div>
+</div>
+
+<div class="legend">
+  <span><i class="dot" style="background:#ec6aa0"></i>坤（女）</span>
+  <span><i class="dot" style="background:#6b9df2"></i>乾（男）</span>
+  <span><i class="dot" style="background:#cbae88"></i>日干五行色 / 分类 chip / 选中态</span>
+  <span><i class="dot" style="background:#898989"></i>其余干支压暗至 55% 透明度</span>
+</div>
+
+<h2>怎么试</h2>
+<p class="sub">
+  四稿交互一致：<b>点卡片</b>选中、<b>按住卡片向左拖</b>露出 编辑/删除、<b>⇅</b> 进排序模式（显示拖拽手柄且左滑自动禁用）、
+  <b>顶部 chips</b> 筛选分类、<b>搜索框</b>过滤、列表内<b>点空白处</b>收起左滑。
+  也可直接在终端跑 <code>node measure.mjs plan-x.html</code>（盒模型量测）与
+  <code>node interact.mjs plan-x.html</code>（8 项交互测试）复核。
+</p>
+</body>
+</html>

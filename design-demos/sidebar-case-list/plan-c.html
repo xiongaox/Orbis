@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 C · 三段均分卡（224px）</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+/* C = 把 224px 切成「印章+姓名 / 排盘 / 日期+年龄」三段，
+   用两列网格（左信息 1fr，右排盘 auto）在极窄宽度里追求最高信息密度。
+   与 A 的差别：A 的第二行塞了日期+年龄+分类，C 把分类移到第一行右端，
+   第二行只放日期，并把年龄用主色小字钉在卡片右上角作为「扫读锚点」。 */
+.card { padding: 7px 9px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+/* 左列：印章 + 姓名（第一行）/ 日期（第二行） */
+.lcol { min-width: 0; }
+.r1 { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.seal {
+  flex-shrink: 0;
+  width: 17px; height: 17px; border-radius: 4px;
+  font-size: 10.5px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.seal.m { background: var(--male-soft); color: var(--male); }
+.seal.f { background: var(--female-soft); color: var(--female); }
+.name {
+  font-size: 12.5px; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  min-width: 0;
+}
+.r2 {
+  display: flex; align-items: center; gap: 4px;
+  margin-top: 4px; font-size: 10.5px; color: var(--muted-2);
+  white-space: nowrap; min-width: 0;
+}
+.r2 .date { overflow: hidden; text-overflow: ellipsis; }
+.r2 .dot { width: 2.5px; height: 2.5px; border-radius: 50%; background: #3a3b3e; flex-shrink: 0; }
+
+/* 右列：排盘 + 年龄角标 */
+.rcol { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.mc { display: flex; gap: 2px; }
+.mc-col { width: 16px; flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
+.mc-col span { font-size: 14px; font-weight: 600; line-height: 1.3; }
+.age {
+  font-size: 9.5px; line-height: 1;
+  color: var(--primary); opacity: .8;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 分类 chip 钉在第一行右端（排在姓名后，靠 margin-left:auto 推到最右） */
+.tagchip {
+  flex-shrink: 0;
+  margin-left: auto;
+  height: 14px; padding: 0 4px; border-radius: 4px;
+  font-size: 9.5px; line-height: 1;
+  display: inline-flex; align-items: center;
+  background: var(--primary-soft); color: var(--primary);
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <aside class="sidebar">
+    <div class="sb-head">
+      <div class="hrow">
+        <button class="sb-title" id="openLibrary">案例库</button>
+        <span class="sb-count" id="total">(12)</span>
+      </div>
+      <div class="filters" id="chips"></div>
+      <div class="searchbox">
+        <span class="s-ico">⌕</span>
+        <input id="search" type="text" placeholder="搜索案例...">
+      </div>
+      <div class="actions">
+        <button class="abtn icon" id="exportBtn" title="导出">↑</button>
+        <button class="abtn icon" id="importBtn" title="导入">↓</button>
+        <button class="abtn primary" id="createBtn">＋ 新建</button>
+        <button class="abtn icon" id="sortBtn" title="排序模式">⇅</button>
+      </div>
+    </div>
+    <div class="sb-body"><div class="list" id="list"></div></div>
+  </aside>
+</div>
+<div class="toast" id="toast"><span></span></div>
+
+<script src="app.js"></script>
+<script>
+/* 高度目标 ≈ 53px，与 A 同级但年龄改为右上角主色角标 */
+renderCard = function (c) {
+  const dayGan = c.p[2][0];
+  return `
+  <div class="card">
+    <div class="grid">
+      <div class="lcol">
+        <div class="r1">
+          <span class="seal ${c.g}">${c.g === 'm' ? '乾' : '坤'}</span>
+          <span class="name">${c.name}</span>
+          <span class="tagchip">${c.tag}</span>
+        </div>
+        <div class="r2">
+          <span class="date">${cnDate(c.date)}</span>
+        </div>
+      </div>
+      <div class="rcol">
+        <div class="mc">
+          ${c.p.map(([g, z], i) => `
+            <div class="mc-col serif">
+              <span class="${i === 2 ? EL[dayGan] : 'g-plain'}">${g}</span>
+              <span class="g-plain">${z}</span>
+            </div>`).join('')}
+        </div>
+        <span class="age">${c.age}岁</span>
+      </div>
+    </div>
+  </div>`;
+};
+renderList();
+</script>
+</body>
+</html>

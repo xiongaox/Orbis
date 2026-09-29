@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 B · 排盘主导卡（224px）</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+/* B = 领域感最强：把四柱排盘做成卡片的视觉主体，居中放大；文字信息压成上下两行细字。
+   与 A 的区别在于「谁是主角」：A 是资料卡挂着排盘，B 是排盘卡挂着资料。
+   224px 宽度下排盘获得全部横向空间，干支可以放大到 18px（A 只有 14px），
+   扫列表时盘面可读性明显更好；代价是姓名等文字行变窄，长名必省略。 */
+.card { padding: 7px 9px 8px; text-align: center; }
+
+/* 上部：姓名 + 印章 + 分类，居中一行 */
+.cap {
+  display: flex; align-items: center; justify-content: center;
+  gap: 5px; min-width: 0;
+}
+.name {
+  font-size: 12.5px; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  min-width: 0;
+}
+.seal {
+  flex-shrink: 0;
+  width: 16px; height: 16px; border-radius: 4px;
+  font-size: 10px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.seal.m { background: var(--male-soft); color: var(--male); }
+.seal.f { background: var(--female-soft); color: var(--female); }
+.tagchip {
+  flex-shrink: 0; height: 14px; padding: 0 4px; border-radius: 4px;
+  font-size: 9.5px; line-height: 1;
+  display: inline-flex; align-items: center;
+  background: var(--primary-soft); color: var(--primary);
+}
+
+/* 中部：四柱排盘 —— 卡片主体，居中放大 */
+.mc {
+  display: flex; justify-content: center; gap: 9px;
+  margin: 3px 0 2px;
+}
+.mc-col {
+  width: 21px; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center;
+}
+.mc-col span { font-size: 18px; font-weight: 600; line-height: 1.22; }
+/* 柱名（年/月/日/时）用极淡小字，给排盘一个参照系 */
+.mc-lab {
+  display: flex; justify-content: center; gap: 9px;
+  margin-bottom: 1px;
+}
+.mc-lab i {
+  width: 21px; flex-shrink: 0;
+  font-style: normal; font-size: 8.5px; line-height: 1;
+  color: var(--muted-2); letter-spacing: .08em;
+}
+.mc-lab i.day { color: var(--primary); opacity: .75; }
+
+/* 下部：出生日期 · 年龄，居中弱信息 */
+.foot {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  font-size: 10px; color: var(--muted-2);
+  white-space: nowrap; overflow: hidden;
+}
+.foot .date { overflow: hidden; text-overflow: ellipsis; }
+.foot .dot { width: 2.5px; height: 2.5px; border-radius: 50%; background: #3a3b3e; flex-shrink: 0; }
+.foot > .dot + span { flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <aside class="sidebar">
+    <div class="sb-head">
+      <div class="hrow">
+        <button class="sb-title" id="openLibrary">案例库</button>
+        <span class="sb-count" id="total">(12)</span>
+      </div>
+      <div class="filters" id="chips"></div>
+      <div class="searchbox">
+        <span class="s-ico">⌕</span>
+        <input id="search" type="text" placeholder="搜索案例...">
+      </div>
+      <div class="actions">
+        <button class="abtn icon" id="exportBtn" title="导出">↑</button>
+        <button class="abtn icon" id="importBtn" title="导入">↓</button>
+        <button class="abtn primary" id="createBtn">＋ 新建</button>
+        <button class="abtn icon" id="sortBtn" title="排序模式">⇅</button>
+      </div>
+    </div>
+    <div class="sb-body"><div class="list" id="list"></div></div>
+  </aside>
+</div>
+<div class="toast" id="toast"><span></span></div>
+
+<script src="app.js"></script>
+<script>
+/* 卡片高度目标 ≈ 88px：排盘是主角，字号 18px */
+renderCard = function (c) {
+  const dayGan = c.p[2][0];
+  return `
+  <div class="card">
+    <div class="cap">
+      <span class="seal ${c.g}">${c.g === 'm' ? '乾' : '坤'}</span>
+      <span class="name">${c.name}</span>
+      <span class="tagchip">${c.tag}</span>
+    </div>
+    <div class="mc-lab">
+      ${GAN_LABEL.map((l, i) => `<i class="${i === 2 ? 'day' : ''}">${l}</i>`).join('')}
+    </div>
+    <div class="mc">
+      ${c.p.map(([g, z], i) => `
+        <div class="mc-col serif">
+          <span class="${i === 2 ? EL[dayGan] : 'g-plain'}">${g}</span>
+          <span class="g-plain">${z}</span>
+        </div>`).join('')}
+    </div>
+    <div class="foot">
+      <span class="date">${cnDate(c.date)}</span>
+      <span class="dot"></span>
+      <span>${c.age}岁</span>
+    </div>
+  </div>`;
+};
+renderList();
+</script>
+</body>
+</html>

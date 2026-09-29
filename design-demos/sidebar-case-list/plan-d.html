@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 D · 干支横排一行（224px）</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+/* D = 最省高度的一稿：把「干上支下」的两行排盘压成「干支一组」的横向一行，
+   即 乙巳 己丑 丁亥 庚戌 四个双字词组横排 —— 与用户截图里案例库整页的写法一致。
+   好处：卡高降到约 46px，一屏能看 15+ 条；且左右不再争宽度（干支自成一段，姓名另一段）。
+   代价：失去「干上支下」的列对齐，日干高亮不如竖排醒目，只能靠颜色区分。 */
+.card { padding: 7px 9px; }
+
+.top {
+  display: flex; align-items: center; gap: 5px;
+  min-width: 0;
+}
+.seal {
+  flex-shrink: 0;
+  width: 16px; height: 16px; border-radius: 4px;
+  font-size: 10px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.seal.m { background: var(--male-soft); color: var(--male); }
+.seal.f { background: var(--female-soft); color: var(--female); }
+.name {
+  font-size: 12.5px; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  min-width: 0;
+}
+.tagchip {
+  flex-shrink: 0; margin-left: auto;
+  height: 14px; padding: 0 4px; border-radius: 4px;
+  font-size: 9.5px; line-height: 1;
+  display: inline-flex; align-items: center;
+  background: var(--primary-soft); color: var(--primary);
+}
+
+/* 干支一行：四个词组，词组内干与支同字号、无分隔；词组之间用极淡空格 */
+.pillars {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-top: 3px;
+  padding: 0 1px;
+}
+.pg {
+  flex-shrink: 0;
+  font-size: 14px; font-weight: 600; line-height: 1.25;
+  letter-spacing: .01em;
+}
+.pg .z { opacity: .55; }
+/* 日柱整组描一个极淡主色底，作为扫读锚点 */
+.pg.day {
+  position: relative;
+  padding: 0 3px;
+  margin: 0 -3px;
+  border-radius: 4px;
+  background: var(--primary-soft);
+}
+
+.foot {
+  display: flex; align-items: center; gap: 4px;
+  margin-top: 3px;
+  font-size: 10.5px; color: var(--muted-2);
+  white-space: nowrap; min-width: 0;
+}
+.foot .date { overflow: hidden; text-overflow: ellipsis; }
+.foot .dot { width: 2.5px; height: 2.5px; border-radius: 50%; background: #3a3b3e; flex-shrink: 0; }
+.foot .time { font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.foot .age { flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <aside class="sidebar">
+    <div class="sb-head">
+      <div class="hrow">
+        <button class="sb-title" id="openLibrary">案例库</button>
+        <span class="sb-count" id="total">(12)</span>
+      </div>
+      <div class="filters" id="chips"></div>
+      <div class="searchbox">
+        <span class="s-ico">⌕</span>
+        <input id="search" type="text" placeholder="搜索案例...">
+      </div>
+      <div class="actions">
+        <button class="abtn icon" id="exportBtn" title="导出">↑</button>
+        <button class="abtn icon" id="importBtn" title="导入">↓</button>
+        <button class="abtn primary" id="createBtn">＋ 新建</button>
+        <button class="abtn icon" id="sortBtn" title="排序模式">⇅</button>
+      </div>
+    </div>
+    <div class="sb-body"><div class="list" id="list"></div></div>
+  </aside>
+</div>
+<div class="toast" id="toast"><span></span></div>
+
+<script src="app.js"></script>
+<script>
+/* D 稿保留出生时辰（A 稿为腾宽度删掉了），因为横排干支不再与文字争宽度 */
+renderCard = function (c) {
+  const dayGan = c.p[2][0];
+  return `
+  <div class="card">
+    <div class="top">
+      <span class="seal ${c.g}">${c.g === 'm' ? '乾' : '坤'}</span>
+      <span class="name">${c.name}</span>
+      <span class="tagchip">${c.tag}</span>
+    </div>
+    <div class="pillars serif">
+      ${c.p.map(([g, z], i) => `
+        <span class="pg${i === 2 ? ' day' : ''}">
+          <span class="${i === 2 ? EL[dayGan] : 'g-plain'}">${g}</span><span class="z">${z}</span>
+        </span>`).join('')}
+    </div>
+    <div class="foot">
+      <span class="date">${cnDate(c.date)}</span>
+      <span class="time">${c.time}</span>
+      <span class="dot"></span>
+      <span class="age">${c.age}岁</span>
+    </div>
+  </div>`;
+};
+renderList();
+</script>
+</body>
+</html>
