@@ -95,25 +95,19 @@ export default function WangShuaiDashboard({ data, rawLogs = [] }: WangShuaiDash
     <div className="space-y-3.5 text-xs sm:text-sm">
       {/* 1. 核心定调卡片 */}
       <div className="p-3.5 rounded-xl border border-border/80 bg-card/70 shadow-xs space-y-2.5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-foreground text-sm flex items-baseline gap-1.5">
-              <Compass className="w-4 h-4 text-primary shrink-0 translate-y-[0.19em]" />
-              日主【{dayMaster}】· 生于【{yueZhi}月】
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-semibold text-foreground text-sm flex items-baseline gap-1.5">
+            <Compass className="w-4 h-4 text-primary shrink-0 translate-y-[0.19em]" />
+            日主【{dayMaster}】· 生于【{yueZhi}月】
+          </span>
+          {pattern && (
+            <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-medium border border-primary/20">
+              {pattern}
             </span>
-            {pattern && (
-              <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-medium border border-primary/20">
-                {pattern}
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">格局定调：</span>
-            <span className={`px-2.5 py-0.5 rounded-md text-xs font-bold border ${getVerdictBadgeStyle(verdictLevel)}`}>
-              {finalVerdict}
-            </span>
-          </div>
+          )}
+          <span className={`px-2.5 py-0.5 rounded-md text-xs font-bold border ${getVerdictBadgeStyle(verdictLevel)}`}>
+            {finalVerdict}
+          </span>
         </div>
 
         {verdictDetail && (

@@ -16,6 +16,7 @@ import type { ReactNode } from 'react';
 import { Sparkles, Compass, Bot } from 'lucide-react';
 import BaseModal from '../../UI/BaseModal';
 import SubPage from '../../UI/SubPage';
+import SubPageTabs from '../../UI/SubPageTabs';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import type { BaziApiResponse } from '../../../types/bazi';
 import { aiChatService } from '../../../services/aiChatService';
@@ -232,7 +233,8 @@ export default function PhysicsLogModal({
 
   if (!isOpen) return null;
 
-  // Tab 条：桌面端嵌在弹窗头部两行结构里；移动端放 SubPage 正文顶部
+  // Tab 条：桌面端嵌在弹窗头部两行结构里（分段控件）；移动端用统一的
+  // SubPageTabs 钉在 SubPage 页头正下方，不随正文滚动。
   const tabBar = (
     <div className="flex items-center p-1 bg-muted/60 rounded-xl border border-border/50 w-full">
       <button
@@ -305,9 +307,19 @@ export default function PhysicsLogModal({
         onClose={handleClose}
         title={title}
         bodyClassName="p-4"
+        tabBar={(
+          <SubPageTabs
+            ariaLabel="旺衰分析视图"
+            tabs={[
+              { key: 'dashboard', label: '格局与旺衰看板' },
+              { key: 'ai', label: 'AI 深度推演' },
+            ]}
+            active={activeTab}
+            onChange={setActiveTab}
+          />
+        )}
         footer={footer}
       >
-        <div className="mb-4">{tabBar}</div>
         {tabContent}
       </SubPage>
     );

@@ -7,6 +7,7 @@ import { AUTO_BACKUP_INTERVAL_MINUTES } from '../../services/remoteBackupShared'
 import { exportTextFile } from '../../utils/fileExportUtil';
 import RemoteBackupManagerModal from './RemoteBackupManagerModal';
 import SubPage from '../UI/SubPage';
+import SubPageTabs from '../UI/SubPageTabs';
 import Toast from './Toast';
 import { useToast } from '../../hooks/useToast';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
@@ -206,16 +207,22 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
     }
   };
 
+  // 备份方式切换条：桌面端是表单首行的「备份方式」分段控件；移动端升级为
+  // SubPage 页头正下方的统一 tab 条（SubPageTabs），不再占正文一节。
+  const desktopMethodSection = (
+    <div>
+      <p className="mb-2 text-sm text-foreground">备份方式</p>
+      <div role="tablist" aria-label="备份方式" className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-muted/40 p-1">
+        <button type="button" role="tab" aria-selected={method === 'webdav'} disabled={!configLoaded} onClick={() => changeMethod('webdav')} className={`${METHOD_TAB_BASE} ${method === 'webdav' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-50`}>WebDAV</button>
+        <button type="button" role="tab" aria-selected={method === 's3'} disabled={!configLoaded} onClick={() => changeMethod('s3')} className={`${METHOD_TAB_BASE} ${method === 's3' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-50`}>S3 兼容存储</button>
+      </div>
+    </div>
+  );
+
   // 表单正文：移动端 SubPage 与桌面端自绘弹层共用同一份内容
   const formBody = (
     <>
-      <div>
-        <p className="mb-2 text-sm text-foreground">备份方式</p>
-        <div role="tablist" aria-label="备份方式" className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-muted/40 p-1">
-          <button type="button" role="tab" aria-selected={method === 'webdav'} disabled={!configLoaded} onClick={() => changeMethod('webdav')} className={`${METHOD_TAB_BASE} ${method === 'webdav' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-50`}>WebDAV</button>
-          <button type="button" role="tab" aria-selected={method === 's3'} disabled={!configLoaded} onClick={() => changeMethod('s3')} className={`${METHOD_TAB_BASE} ${method === 's3' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-50`}>S3 兼容存储</button>
-        </div>
-      </div>
+      {!isMobile && desktopMethodSection}
 
       {method === 's3' ? (
         <div className="space-y-3">
@@ -362,6 +369,17 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
           onClose={onClose}
           title="数据备份"
           bodyClassName="overflow-hidden flex flex-col"
+          tabBar={(
+            <SubPageTabs
+              ariaLabel="备份方式"
+              tabs={[
+                { key: 'webdav', label: 'WebDAV', disabled: !configLoaded },
+                { key: 's3', label: 'S3 兼容存储', disabled: !configLoaded },
+              ]}
+              active={method}
+              onChange={changeMethod}
+            />
+          )}
         >
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4">
             {formBody}

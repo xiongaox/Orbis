@@ -13,6 +13,7 @@
  * 使用约束：
  * - 仅移动端使用；桌面端各业务组件保留原弹窗布局（居中/右侧抽屉），不要强行换壳
  * - 页头右侧操作区放当前页的开关/按钮组（如流年/大运切换），不放关闭类按钮
+ * - 页内 tab 切换用 tabBar 插槽挂 SubPageTabs，钉在页头正下方，不要塞进滚动正文
  */
 import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { ChevronLeft } from 'lucide-react';
@@ -25,6 +26,8 @@ interface SubPageProps {
     titleIcon?: ReactNode;
     /** 页头右侧操作区（当前页的常驻按钮/开关组） */
     actions?: ReactNode;
+    /** 页头正下方的 tab 切换条（可选，配合 SubPageTabs 使用），不随正文滚动 */
+    tabBar?: ReactNode;
     children: ReactNode;
     bodyClassName?: string;
     /** 需要钉在底部的操作条（可选） */
@@ -37,6 +40,7 @@ export default function SubPage({
     title,
     titleIcon,
     actions,
+    tabBar,
     children,
     bodyClassName = '',
     footer,
@@ -81,6 +85,7 @@ export default function SubPage({
                 <h1 className="flex-1 min-w-0 text-lg font-semibold text-foreground truncate">{title}</h1>
                 {actions && <div className="shrink-0 flex items-center gap-2 pr-1">{actions}</div>}
             </div>
+            {tabBar && <div className="shrink-0">{tabBar}</div>}
             <div className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${bodyClassName}`}>
                 {children}
             </div>

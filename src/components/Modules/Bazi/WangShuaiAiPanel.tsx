@@ -14,6 +14,7 @@ import {
   Copy,
   Check,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Brain,
   AlertCircle,
@@ -21,20 +22,22 @@ import {
   Square,
   Cpu,
   BookOpen,
+  X,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import type { AiModelService } from '../../../services/aiModelService';
 import type { BaziApiResponse } from '../../../types/bazi';
+import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import {
   getGodsByVerdict,
   parseAiVerdict,
 } from '../../../lib/xuan-bazi/skills/yueyuanWangShuaiSkill';
 
 /**
- * 自定义深浅色主题兼容的高级下拉选择菜单
- * 彻底消除 macOS / Windows 原生 select 弹出的白底刺眼菜单
+ * 桌面端高级下拉选择菜单（移动端不走此组件，改用底部选择板 pickerSheetEl）
+ * 深浅色主题兼容，彻底消除 macOS / Windows 原生 select 弹出的白底刺眼菜单
  */
 interface DropdownOption {
   value: string;
@@ -266,6 +269,9 @@ export default function WangShuaiAiPanel({
   // 推演全文「专注阅读模式」开关：默认关闭、全文常驻展开（内容超高才能保证弹窗可滚动）。
   // 开启后隐藏全文只留结论卡 + 两行摘要。点「开始/重新推演」时自动退出该模式。
   const [reportCollapsed, setReportCollapsed] = useState(false);
+  // 移动端服务/模型底部选择板：'svc' | 'model' | null
+  const [pickerSheet, setPickerSheet] = useState<'svc' | 'model' | null>(null);
+  const { isMobile } = useLayoutMode();
 
   const currentService = useMemo(() => {
     return services.find((s) => s.id === selectedServiceId) || services[0] || null;
@@ -387,33 +393,115 @@ export default function WangShuaiAiPanel({
     }
   }, [parsedVerdict]);
 
+  // 移动端：服务/模型底部选择板（与 AI 助手页同款交互，选项行加大到 48px 触控目标）
+  const pickerSheetEl = isMobile && pickerSheet ? (
+    <>
+      <div className="fixed inset-0 z-[110] bg-black/55" onClick={() => setPickerSheet(null)} />
+      <div
+        className="fixed left-0 right-0 bottom-0 z-[115] bg-popover border-t border-border rounded-t-2xl"
+        style={{ paddingBottom: 'calc(10px + var(--safe-area-inset-bottom, 0px))' }}
+      >
+        <div className="w-9 h-1 rounded-full bg-border mx-auto mt-2.5" />
+        <div className="flex items-center justify-between px-4 pt-2 pb-1">
+          <span className="text-sm font-semibold text-foreground">{pickerSheet === 'svc' ? '选择服务' : '选择模型'}</span>
+          <button
+            type="button"
+            onClick={() => setPickerSheet(null)}
+            className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted cursor-pointer"
+            aria-label="关闭"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="max-h-[46vh] overflow-y-auto px-2 pb-1">
+          {(pickerSheet === 'svc' ? serviceOptions : modelOptions).map((opt) => {
+            const isCurrent = pickerSheet === 'svc' ? opt.value === selectedServiceId : opt.value === selectedModel;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  if (pickerSheet === 'svc') onSelectServiceId(opt.value);
+                  else onSelectModel(opt.value);
+                  setPickerSheet(null);
+                }}
+                className={`w-full flex items-center justify-between gap-2 min-h-12 px-3.5 text-left text-base border-b border-border/40 last:border-b-0 transition-colors cursor-pointer ${
+                  isCurrent ? 'text-primary font-medium' : 'text-foreground hover:bg-muted/50'
+                }`}
+              >
+                <span className="truncate">{opt.label}</span>
+                {isCurrent && <Check className="w-4 h-4 shrink-0" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  ) : null;
+
   return (
-    <div className="space-y-3 text-xs sm:text-sm">
-      {/* 1. 模型配置区：选择卡铺满双列 + 全宽主 CTA，空间从容、层级清晰 */}
+    <>
+      <div className="space-y-3 text-xs sm:text-sm">
+      {/* 1. 模型配置区：移动端为 44px 触控选择行，点按唤起底部选择板（与 AI 助手页同款交互）；
+          桌面端维持双列下拉，悬停弹出更适合鼠标操作 */}
       <div className="p-3 rounded-xl border border-border/80 bg-card/70 shadow-xs space-y-2.5">
         {services.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <CustomDropdown
-                label="服务"
-                value={selectedServiceId}
-                options={serviceOptions}
-                onChange={onSelectServiceId}
-                disabled={isLoading}
-                icon={<Bot className="w-4 h-4 text-indigo-500 shrink-0" />}
-              />
-
-              {modelOptions.length > 0 && (
-                <CustomDropdown
-                  label="模型"
-                  value={selectedModel}
-                  options={modelOptions}
-                  onChange={onSelectModel}
+            {isMobile ? (
+              <div className="space-y-2">
+                <button
+                  type="button"
                   disabled={isLoading}
-                  icon={<Cpu className="w-4 h-4 text-primary shrink-0" />}
+                  onClick={() => setPickerSheet('svc')}
+                  className="w-full min-h-11 flex items-center gap-2.5 px-3.5 rounded-xl border border-border/80 bg-background/90 hover:bg-muted/70 text-sm transition-colors disabled:opacity-50 cursor-pointer select-none focus-ring"
+                >
+                  <Bot className="w-4 h-4 text-indigo-500 shrink-0" />
+                  <span className="text-muted-foreground shrink-0">服务</span>
+                  <span className="flex-1 min-w-0 text-left font-medium text-foreground truncate">
+                    {currentService?.name || '请选择'}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                </button>
+
+                {modelOptions.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={isLoading}
+                    onClick={() => setPickerSheet('model')}
+                    className="w-full min-h-11 flex items-center gap-2.5 px-3.5 rounded-xl border border-border/80 bg-background/90 hover:bg-muted/70 text-sm transition-colors disabled:opacity-50 cursor-pointer select-none focus-ring"
+                  >
+                    <Cpu className="w-4 h-4 text-primary shrink-0" />
+                    <span className="text-muted-foreground shrink-0">模型</span>
+                    <span className="flex-1 min-w-0 text-left font-medium text-foreground truncate">
+                      {selectedModel || '请选择'}
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <CustomDropdown
+                  label="服务"
+                  value={selectedServiceId}
+                  options={serviceOptions}
+                  onChange={onSelectServiceId}
+                  disabled={isLoading}
+                  icon={<Bot className="w-4 h-4 text-indigo-500 shrink-0" />}
                 />
-              )}
-            </div>
+
+                {modelOptions.length > 0 && (
+                  <CustomDropdown
+                    label="模型"
+                    value={selectedModel}
+                    options={modelOptions}
+                    onChange={onSelectModel}
+                    disabled={isLoading}
+                    icon={<Cpu className="w-4 h-4 text-primary shrink-0" />}
+                  />
+                )}
+              </div>
+            )}
 
             {isLoading ? (
               <button
@@ -720,6 +808,8 @@ export default function WangShuaiAiPanel({
           </div>
         )
       )}
-    </div>
+      </div>
+      {pickerSheetEl}
+    </>
   );
 }
