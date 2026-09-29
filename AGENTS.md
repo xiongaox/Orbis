@@ -61,6 +61,18 @@ Orbis/
 - 样式基于 Tailwind + CSS 变量 token；暗色切换走 `class`。
 - 涉及 UI、样式、组件视觉或设计 token 的任务，必须先阅读根目录 `DESIGN.md`；修改设计规范后运行 `design.md lint DESIGN.md`。
 
+## UI 验收与交付规则（重要）
+- **UI 验证由用户人工完成，AI 不要在界面验证上耗时**。不要为了「看一眼效果」去反复截图、
+  导航界面、点控件、定位元素或抓取 DOM；这些操作对交付没有价值，且极其浪费时间。
+- **AI 的职责边界**：改完代码 → 通过静态自检（`npm run lint`、`npx tsc -b`）→ **把包构建出来** → 交付并说明构建产物路径。
+- **构建方式视目标端而定**，桌面端与移动端同一规则：
+  - 移动端：按 `orbis-build-env` skill 执行 `npx tauri android build --target aarch64`（release，已正式签名）。
+  - 桌面端：`npm run tauri:build`。
+- **例外（仅限这些情况才可做界面检查）**：用户明确要求截图/验证；或需要排查
+  「构建是否成功」「资源是否加载」这类无法靠静态检查确认的链路问题时，最多确认一次，不要反复试。
+- 若确实需要给出视觉效果，优先产出 `design-demos/` 下的可交互 demo 让用户自己打开看，
+  而不是 AI 在设备上截图。
+
 ## ANTI-PATTERNS (THIS PROJECT)
 - 不要提交 `.env`、`keys/`、`dist-cases/`。
 - 不要在 UI 层复制算法常量或映射表，优先复用领域层导出。

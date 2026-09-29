@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+import containerQueries from '@tailwindcss/container-queries';
+
 export default {
   darkMode: "class",
   content: [
@@ -80,5 +82,5 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [containerQueries],
 }
