@@ -9,6 +9,8 @@
 import React, { useState, useMemo } from 'react';
 import { UserCog, Sparkles, RotateCcw, Check, BookOpen, AlertTriangle } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
+import SubPage from '../UI/SubPage';
+import { useLayoutMode } from '../../hooks/useLayoutMode';
 import {
   aiRolePromptService,
   type AiRoleTemplate,
@@ -67,6 +69,8 @@ export default function AiRoleSettingsModal({
     return matched ? matched.id : 'custom';
   });
   const [isSaved, setIsSaved] = useState(false);
+  // 移动端检测：必须在任何早退之前调用，保证 hooks 顺序稳定
+  const { isMobile } = useLayoutMode();
 
   const handleSelectTemplate = (template: AiRoleTemplate) => {
     setSelectedTemplateId(template.id);
@@ -99,58 +103,8 @@ export default function AiRoleSettingsModal({
     }, 400);
   };
 
-  return (
-    <BaseModal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={
-        <div className="flex items-center gap-2">
-          <UserCog className="w-5 h-5 text-primary" />
-          <span className="font-semibold text-foreground">AI 角色设定与系统提示词规范</span>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-            {moduleName}
-          </span>
-        </div>
-      }
-      maxWidth="max-w-2xl"
-      footer={
-        <div className="flex items-center justify-between w-full">
-          <button
-            type="button"
-            onClick={handleResetDefault}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors border border-border/60"
-            title={`恢复为${recommendedName}规范`}
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            恢复推荐规范
-          </button>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
-            >
-              取消
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-all shadow-sm active:scale-95"
-            >
-              {isSaved ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-green-400" />
-                  已保存
-                </>
-              ) : (
-                '保存并生效'
-              )}
-            </button>
-          </div>
-        </div>
-      }
-    >
-      <div className="space-y-4 text-sm">
+  const bodyContent = (
+    <div className="space-y-4 text-sm">
         {/* 核心理念提示 */}
         <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-start gap-2.5 text-amber-700 dark:text-amber-300">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
@@ -222,7 +176,72 @@ export default function AiRoleSettingsModal({
             placeholder="请输入大模型扮演的角色与推演规则要求..."
           />
         </div>
-      </div>
+    </div>
+  );
+
+  const footerContent = (
+    <div className="flex items-center justify-between w-full">
+          <button
+            type="button"
+            onClick={handleResetDefault}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors border border-border/60"
+            title={`恢复为${recommendedName}规范`}
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            恢复推荐规范
+          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+            >
+              取消
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 rounded-md transition-all shadow-sm active:scale-95"
+            >
+              {isSaved ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-green-400" />
+                  已保存
+                </>
+              ) : (
+                '保存并生效'
+              )}
+            </button>
+          </div>
+    </div>
+  );
+
+  // 移动端：整页推入，与其余二级界面统一
+  if (isMobile) {
+    return (
+      <SubPage isOpen={isOpen} onClose={onClose} title="AI 角色设定" footer={footerContent}>
+        <div className="px-4 py-4">{bodyContent}</div>
+      </SubPage>
+    );
+  }
+
+  return (
+    <BaseModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={
+        <div className="flex items-center gap-2">
+          <UserCog className="w-5 h-5 text-primary" />
+          <span className="font-semibold text-foreground">AI 角色设定与系统提示词规范</span>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+            {moduleName}
+          </span>
+        </div>
+      }
+      maxWidth="max-w-2xl"
+      footer={footerContent}
+    >
+      {bodyContent}
     </BaseModal>
   );
 }

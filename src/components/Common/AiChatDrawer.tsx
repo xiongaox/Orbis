@@ -15,6 +15,8 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { pushBackHandler, popBackHandler } from '../../utils/androidBackButton';
+import { useMediaQuery } from '../../hooks/useMediaQuery';
+import SubPage from '../UI/SubPage';
 import {
   Sparkles,
   Bot,
@@ -31,6 +33,7 @@ import {
   History,
   Plus,
   UserCog,
+  Clock3,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -172,14 +175,30 @@ export default function AiChatDrawer({
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
+  // 移动端：会话历史底部抽屉 与 服务/模型选择板
+  const [showHistorySheet, setShowHistorySheet] = useState(false);
+  const [pickerSheet, setPickerSheet] = useState<'svc' | 'mdl' | null>(null);
+  // 移动端整页壳（SubPage）与桌面右侧抽屉共用同一份内容
+  const isMobileLayout = !useMediaQuery('(min-width: 768px)');
 
-  // 安卓返回手势/返回键：侧滑关闭对话抽屉（桌面端为 no-op）
+  // 安卓返回手势/返回键：移动端由 SubPage 统一接入返回栈，抽屉仅在桌面布局下自注册（桌面为 no-op）
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || isMobileLayout) return;
     const handler = () => onClose();
     pushBackHandler(handler);
     return () => popBackHandler(handler);
-  }, [isOpen, onClose]);
+  }, [isOpen, isMobileLayout, onClose]);
+
+  // 安卓返回：底部选择板/历史抽屉打开时先收起浮层（后入栈，盖过 SubPage 的关闭动作）
+  useEffect(() => {
+    if (!showHistorySheet && !pickerSheet) return;
+    const handler = () => {
+      setShowHistorySheet(false);
+      setPickerSheet(null);
+    };
+    pushBackHandler(handler);
+    return () => popBackHandler(handler);
+  }, [showHistorySheet, pickerSheet]);
 
   // 区分会话 ID 与元信息
   const effectiveDivinationType: DivinationType = divinationType || (moduleName.includes('奇门') ? 'qimen' : 'bazi');
@@ -579,50 +598,39 @@ export default function AiChatDrawer({
 
   if (!isOpen) return null;
 
-  return (
+  // 抽屉内容：页头（研判对象/操作/服务模型条）+ 消息区 + 输入区，移动端整页壳与桌面抽屉共用
+  const drawerBody = (
     <>
-      <div
-        className="fixed inset-0 z-[100] isolate flex items-stretch justify-end p-0 bg-black/20 dark:bg-black/35 transition-colors duration-200"
-        role="dialog"
-        aria-modal="true"
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            if (abortControllerRef.current) abortControllerRef.current.abort();
-            setIsLoading(false);
-            onClose();
-          }
-        }}
-      >
-        <div
-          className="w-full sm:w-[520px] md:w-[580px] lg:w-[640px] max-w-[96vw] h-full bg-background border-l border-border shadow-2xl flex flex-col animate-slide-in-right z-10"
-          onClick={(e) => e.stopPropagation()}
-          // 抽屉贴顶贴底，而浮层定位在视口上、拿不到根节点的安全区留白，头部会被安卓
-          // 系统栏盖住（见 MainActivity.kt 注入的 --safe-area-inset-*）。面板自带背景色，
-          // 系统栏区域仍铺满，只有内容被顶下来。
-          style={{
-            paddingTop: 'var(--safe-area-inset-top, 0px)',
-            paddingBottom: 'var(--safe-area-inset-bottom, 0px)',
-          }}
-        >
-          {/* Header */}
+          {/* 移动端：研判对象条（页头正下方，长名省略） */}
+          {isMobileLayout && (
+            <div className="flex-shrink-0 flex items-center gap-1.5 min-w-0 px-3.5 py-2 border-b border-border/60 text-xs text-muted-foreground">
+              <Clock3 className="w-3.5 h-3.5 shrink-0" />
+              <span className="shrink-0">研判对象：</span>
+              <span className="truncate font-medium text-foreground">{effectiveCaseName}</span>
+            </div>
+          )}
+
+          {/* 桌面端页头（移动端由 SubPage 页头 + 对象条替代） */}
+          {!isMobileLayout && (
+          <>
           <div className="p-3 sm:p-4 border-b border-border shrink-0 bg-card/95 backdrop-blur-md space-y-2.5 relative z-30">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
-                <span className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
-                  <Bot className="w-5 h-5" />
-                </span>
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                    <span>{moduleName} AI 研判助手</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 shrink-0">
-                      多轮对话
-                    </span>
-                  </div>
-                  <div className="text-[11px] text-muted-foreground truncate">
-                    研判对象：<span className="text-foreground font-medium">{effectiveCaseName}</span>
+                  <span className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
+                    <Bot className="w-5 h-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      <span>{moduleName} AI 研判助手</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 shrink-0">
+                        多轮对话
+                      </span>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground truncate">
+                      研判对象：<span className="text-foreground font-medium">{effectiveCaseName}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
               <div className="flex items-center gap-1.5">
                 {/* 会话历史（当前命主名下所有会话切换与继续上次对话） */}
@@ -843,6 +851,8 @@ export default function AiChatDrawer({
               </div>
             </div>
           </div>
+          </>
+          )}
 
           {/* 消息历史滚动区 */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 relative z-0">
@@ -867,6 +877,22 @@ export default function AiChatDrawer({
                     <Sparkles className="w-3.5 h-3.5" />
                     <span>发送当前排盘发起初审</span>
                   </button>
+                )}
+
+                {/* 移动端：快捷追问融入空态作为建议 */}
+                {isMobileLayout && (
+                  <div className="flex flex-wrap justify-center gap-2 pt-2">
+                    {quickQuestions.map((q) => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => void handleSendMessage(q)}
+                        className="px-3 py-1.5 rounded-lg border border-border bg-card text-xs text-foreground transition-colors active:bg-muted cursor-pointer"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
             )}
@@ -996,7 +1022,8 @@ export default function AiChatDrawer({
             <div ref={messagesEndRef} />
           </div>
 
-          {/* 快捷追问建议胶囊 */}
+          {/* 快捷追问建议胶囊（仅桌面端；移动端建议融入空态） */}
+          {!isMobileLayout && (
           <div className="px-3 sm:px-4 py-2 bg-muted/20 border-t border-border/40 overflow-x-auto flex items-center gap-1.5 shrink-0 scrollbar-none">
             <span className="text-[11px] text-muted-foreground shrink-0 flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-primary" />
@@ -1014,6 +1041,74 @@ export default function AiChatDrawer({
               </button>
             ))}
           </div>
+          )}
+
+          {/* 移动端：服务/模型换挡条（两枚 chips 平分宽度）+ 清空（小占比） */}
+          {isMobileLayout && (
+            <div ref={clearConfirmRef} className="flex-shrink-0 relative flex items-center gap-2 px-3 pt-3 pb-1.5">
+              <button
+                type="button"
+                onClick={() => setPickerSheet('svc')}
+                title="切换服务"
+                className="flex-1 min-w-0 h-8 flex items-center justify-center gap-1.5 rounded-lg border border-border bg-secondary/60 text-xs transition-colors active:bg-secondary cursor-pointer"
+              >
+                <Bot className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span className="font-medium text-foreground truncate">{currentService?.name ?? '未配置服务'}</span>
+              </button>
+              {modelOptions.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setPickerSheet('mdl')}
+                  title="切换模型"
+                  className="flex-1 min-w-0 h-8 flex items-center justify-center gap-1.5 rounded-lg border border-border bg-secondary/60 text-xs transition-colors active:bg-secondary cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <span className="font-medium text-foreground truncate">{selectedModel}</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowClearConfirm((prev) => !prev)}
+                title="清空当前对话"
+                className={`w-11 h-8 shrink-0 flex items-center justify-center rounded-lg border transition-colors cursor-pointer ${
+                  showClearConfirm
+                    ? 'text-destructive bg-destructive/15 border-destructive/40'
+                    : 'text-muted-foreground border-border active:bg-muted'
+                }`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+
+              {/* 清空确认气泡：从换挡条向上弹出 */}
+              {showClearConfirm && (
+                <div className="absolute right-3 bottom-full mb-2 z-30 w-56 p-3 rounded-xl border border-border/90 bg-popover text-popover-foreground shadow-2xl text-xs space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="font-semibold text-foreground flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
+                    <span>清空对话记录？</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    清空后当前模块的对话历史将无法恢复。
+                  </p>
+                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/40">
+                    <button
+                      type="button"
+                      onClick={() => setShowClearConfirm(false)}
+                      className="px-2.5 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer transition-colors"
+                    >
+                      取消
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmClear}
+                      className="px-2.5 py-1 rounded-md text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium cursor-pointer shadow-xs transition-colors"
+                    >
+                      确认清空
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 底部输入框 */}
           <div className="p-3 sm:p-4 border-t border-border bg-card/70 shrink-0 space-y-2">
@@ -1063,9 +1158,11 @@ export default function AiChatDrawer({
               </div>
             </div>
           </div>
-        </div>
-      </div>
+    </>
+  );
 
+  const modals = (
+    <>
       {/* AI 服务集成设置弹窗 */}
       {isSettingsOpen && (
         <AiIntegrationModal
@@ -1085,6 +1182,227 @@ export default function AiChatDrawer({
           moduleName={moduleName}
         />
       )}
+    </>
+  );
+
+  // 移动端：SubPage 页头右侧动作组（历史角标 / 角色 / 设置）
+  const mobileHeaderActions = (
+    <>
+      <button
+        type="button"
+        onClick={() => setShowHistorySheet(true)}
+        title="会话历史"
+        className="relative w-9 h-9 flex items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors active:bg-muted cursor-pointer"
+      >
+        <History className="w-4 h-4" />
+        {caseSessions.length > 0 && (
+          <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex items-center justify-center">
+            {caseSessions.length}
+          </span>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={() => setIsRoleModalOpen(true)}
+        title="AI 角色设定"
+        className="w-9 h-9 flex items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors active:bg-muted cursor-pointer"
+      >
+        <UserCog className="w-4 h-4 text-primary" />
+      </button>
+      <button
+        type="button"
+        onClick={() => setIsSettingsOpen(true)}
+        title="AI 服务设置"
+        className="w-9 h-9 flex items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors active:bg-muted cursor-pointer"
+      >
+        <Settings className="w-4 h-4" />
+      </button>
+    </>
+  );
+
+  // 移动端：会话历史底部抽屉
+  const historySheetEl = isMobileLayout ? (
+    <>
+      <div
+        className={`fixed inset-0 z-[110] bg-black/55 transition-opacity duration-200 ${showHistorySheet ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setShowHistorySheet(false)}
+      />
+      <div
+        className={`fixed left-0 right-0 bottom-0 z-[115] bg-popover border-t border-border rounded-t-2xl flex flex-col max-h-[72vh] transition-transform duration-300 ${showHistorySheet ? 'translate-y-0' : 'translate-y-full'}`}
+        style={{ paddingBottom: 'var(--safe-area-inset-bottom, 0px)' }}
+      >
+        <div className="w-9 h-1 rounded-full bg-border mx-auto mt-2.5 shrink-0" />
+        <div className="flex items-center justify-between px-4 pt-2 pb-1 shrink-0">
+          <div className="flex items-baseline gap-2">
+            <span className="text-sm font-semibold text-foreground">会话历史</span>
+            <span className="text-[10px] text-muted-foreground">共 {caseSessions.length} 次研判</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowHistorySheet(false)}
+            className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted cursor-pointer"
+            aria-label="关闭"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex-1 min-h-0 overflow-y-auto px-4">
+          {caseSessions.length === 0 ? (
+            <div className="py-10 text-center text-xs text-muted-foreground">当前命主暂无历史对话</div>
+          ) : (
+            caseSessions.map((s) => {
+              const isCurrent = s.id === activeSessionId;
+              const lastMsg = s.messages[s.messages.length - 1];
+              const timeStr = new Date(s.updatedAt).toLocaleDateString([], {
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+              return (
+                <div
+                  key={s.id}
+                  onClick={() => {
+                    handleSelectHistorySession(s.id);
+                    setShowHistorySheet(false);
+                  }}
+                  className="flex items-center justify-between gap-2 py-3 border-b border-border/50 last:border-b-0 cursor-pointer"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className={`flex items-center gap-1 text-[13px] font-medium ${isCurrent ? 'text-primary' : 'text-foreground'}`}>
+                      {isCurrent && <Check className="w-3.5 h-3.5 shrink-0" />}
+                      <span className="truncate">{s.title || '命理综合研判'}</span>
+                    </div>
+                    <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      {lastMsg?.content || '暂无提问'}
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground shrink-0">{timeStr}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => handleDeleteSessionItem(s.id, e)}
+                    title="删除此会话"
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
+        <div className="p-3 border-t border-border/60 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              handleCreateNewSession();
+              setShowHistorySheet(false);
+            }}
+            className="w-full h-10 flex items-center justify-center gap-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium transition-colors active:bg-primary/90 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            开启新会话
+          </button>
+        </div>
+      </div>
+    </>
+  ) : null;
+
+  // 移动端：服务/模型选择板
+  const pickerSheetEl = isMobileLayout && pickerSheet ? (
+    <>
+      <div className="fixed inset-0 z-[110] bg-black/55" onClick={() => setPickerSheet(null)} />
+      <div
+        className="fixed left-0 right-0 bottom-0 z-[115] bg-popover border-t border-border rounded-t-2xl"
+        style={{ paddingBottom: 'calc(10px + var(--safe-area-inset-bottom, 0px))' }}
+      >
+        <div className="w-9 h-1 rounded-full bg-border mx-auto mt-2.5" />
+        <div className="flex items-center justify-between px-4 pt-2 pb-1">
+          <span className="text-sm font-semibold text-foreground">{pickerSheet === 'svc' ? '选择服务' : '选择模型'}</span>
+          <button
+            type="button"
+            onClick={() => setPickerSheet(null)}
+            className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted cursor-pointer"
+            aria-label="关闭"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="max-h-[46vh] overflow-y-auto px-2">
+          {(pickerSheet === 'svc' ? serviceOptions : modelOptions).map((opt) => {
+            const isCurrent = pickerSheet === 'svc' ? opt.value === selectedServiceId : opt.value === selectedModel;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  if (pickerSheet === 'svc') setSelectedServiceId(opt.value);
+                  else setSelectedModel(opt.value);
+                  setPickerSheet(null);
+                }}
+                className={`w-full flex items-center justify-between gap-2 px-3 py-3 text-left text-sm border-b border-border/40 last:border-b-0 transition-colors cursor-pointer ${
+                  isCurrent ? 'text-primary font-medium' : 'text-foreground hover:bg-muted/50'
+                }`}
+              >
+                <span className="truncate">{opt.label}</span>
+                {isCurrent && <Check className="w-4 h-4 shrink-0" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  ) : null;
+
+  // 移动端：统一整页二级界面（返回手势由 SubPage 接管，页面铺满不再露底层内容）
+  if (isMobileLayout) {
+    return (
+      <>
+        <SubPage
+          isOpen={isOpen}
+          onClose={onClose}
+          title={`${moduleName} AI 研判助手`}
+          actions={mobileHeaderActions}
+          bodyClassName="flex flex-col"
+        >
+          {drawerBody}
+        </SubPage>
+        {modals}
+        {historySheetEl}
+        {pickerSheetEl}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div
+        className="fixed inset-0 z-[100] isolate flex items-stretch justify-end p-0 bg-black/20 dark:bg-black/35 transition-colors duration-200"
+        role="dialog"
+        aria-modal="true"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            if (abortControllerRef.current) abortControllerRef.current.abort();
+            setIsLoading(false);
+            onClose();
+          }
+        }}
+      >
+        <div
+          className="w-full sm:w-[520px] md:w-[580px] lg:w-[640px] max-w-[96vw] h-full bg-background border-l border-border shadow-2xl flex flex-col animate-slide-in-right z-10"
+          onClick={(e) => e.stopPropagation()}
+          // 抽屉贴顶贴底，而浮层定位在视口上、拿不到根节点的安全区留白，头部会被安卓
+          // 系统栏盖住（见 MainActivity.kt 注入的 --safe-area-inset-*）。面板自带背景色，
+          // 系统栏区域仍铺满，只有内容被顶下来。
+          style={{
+            paddingTop: 'var(--safe-area-inset-top, 0px)',
+            paddingBottom: 'var(--safe-area-inset-bottom, 0px)',
+          }}
+        >
+          {drawerBody}
+        </div>
+      </div>
+      {modals}
     </>
   );
 }

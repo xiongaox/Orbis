@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B3 · 上下文进页头</title>
+<link rel="stylesheet" href="shared.css?v=3">
+<style>
+/* B3：卡片消失，上下文并入页头第二行；点摘要行展开整宽换挡面板 */
+.phead2 { flex-shrink: 0; border-bottom: 1px solid var(--border-soft); position: relative; z-index: 40; background: var(--bg); }
+.ph-main { display: flex; align-items: center; gap: 6px; padding: 0 10px; height: 46px; }
+.ph-main .back {
+  width: 36px; height: 36px;
+  border: none; background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.ph-main h1 { flex: 1; min-width: 0; font-size: 17px; font-weight: 600; }
+.ph-main .hacts { display: flex; align-items: center; gap: 6px; }
+.ph-sub {
+  width: 100%;
+  border: none; background: transparent;
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 14px 8px;
+  border-top: 1px solid var(--border-soft);
+  font-size: 10.5px; color: var(--muted);
+  cursor: pointer;
+}
+.ph-sub .obj { color: var(--text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ph-sub .sum { margin-left: auto; }
+.ph-sub .chev { transition: transform .2s; color: var(--muted); }
+.ph-sub.open .chev { transform: rotate(180deg); }
+
+/* 换挡面板：整宽下拉，锚在页头下 */
+.ctx-panel {
+  position: absolute;
+  left: 0; right: 0; top: 100%;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 16px 32px rgba(0,0,0,.45);
+  padding: 12px 14px 14px;
+  display: none;
+  animation: panel-in .2s ease;
+}
+.ctx-panel.show { display: block; }
+@keyframes panel-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.ctx-panel .row { display: flex; align-items: center; gap: 8px; }
+.ctx-panel .row + .row { margin-top: 10px; }
+.ctx-panel .k { font-size: 11px; color: var(--muted); width: 34px; flex-shrink: 0; }
+.opts { display: flex; gap: 7px; flex-wrap: wrap; }
+.opt {
+  font-size: 11.5px; padding: 6px 11px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.opt.on { border-color: var(--primary-border); background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+.ctx-panel .acts { display: flex; gap: 8px; margin-top: 12px; }
+.ctx-panel .acts .mini-btn { width: 34px; height: 34px; }
+.mini-btn {
+  border: 1px solid var(--border-soft);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.mini-btn:active { background: var(--surface-2); color: var(--text); }
+
+.empty {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 0 30px; text-align: center; gap: 12px;
+}
+.empty h4 { font-size: 15px; font-weight: 600; }
+.empty p { font-size: 11.5px; color: var(--muted); line-height: 1.7; max-width: 280px; }
+.cta {
+  height: 40px; padding: 0 18px;
+  border: none; border-radius: 10px;
+  background: var(--primary); color: var(--primary-fg);
+  font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; gap: 6px;
+  cursor: pointer;
+}
+.cta:active { background: var(--primary-press); }
+.inputbar { padding: 8px 12px 12px; }
+.ib-box {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 8px 10px;
+}
+.ib-box:focus-within { border-color: var(--primary-border); }
+.ib-box textarea { min-height: 34px; max-height: 96px; }
+.ib-foot { display: flex; align-items: center; justify-content: space-between; padding-top: 7px; border-top: 1px solid var(--border-soft); margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="statusbar"><span>9:48</span><span class="sb-icons"><span class="sb-dot on"></span><span class="sb-dot on"></span><span class="sb-dot"></span></span></div>
+
+  <div class="page">
+    <!-- 页头两行：标题 + 上下文摘要（点击展开换挡面板） -->
+    <div class="phead2">
+      <div class="ph-main">
+        <button class="back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
+        <h1>八字 AI 研判助手</h1>
+      </div>
+      <button class="ph-sub" id="phSub" onclick="togglePanel()">
+        研判对象：<span class="obj">2026-09-29 排盘</span>
+        <span class="badge">多轮对话</span>
+        <span class="sum mono" id="ctxSum">yjs · deepseek-v4</span>
+        <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+
+      <!-- 换挡面板 -->
+      <div class="ctx-panel" id="ctxPanel">
+        <div class="row">
+          <span class="k">服务</span>
+          <div class="opts" id="svcOpts">
+            <button class="opt on" onclick="pick(this, 'yjs')">yjs</button>
+            <button class="opt" onclick="pick(this, '中转直连')">中转直连</button>
+            <button class="opt" onclick="pick(this, '本地代理')">本地代理</button>
+          </div>
+        </div>
+        <div class="row">
+          <span class="k">模型</span>
+          <div class="opts" id="mdlOpts">
+            <button class="opt on" onclick="pick(this, 'deepseek-v4-flash')">deepseek-v4-flash</button>
+            <button class="opt" onclick="pick(this, 'glm-5')">glm-5</button>
+            <button class="opt" onclick="pick(this, 'kimi-k3')">kimi-k3</button>
+          </div>
+        </div>
+        <div class="acts">
+          <button class="mini-btn" title="会话历史" style="position:relative">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+            <span style="position:absolute; top:-5px; right:-5px; min-width:14px; height:14px; padding:0 3px; border-radius:7px; background:var(--primary); color:var(--primary-fg); font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center">3</span>
+          </button>
+          <button class="mini-btn" title="AI 角色">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/></svg>
+          </button>
+          <button class="mini-btn" title="AI 服务设置" style="margin-left:auto">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 空态：直接开始，无卡片占位 -->
+    <div class="chat" id="chat">
+      <div class="empty" id="empty">
+        <h4>开启深度命理研判</h4>
+        <p>输入您想要了解的问题，AI 将结合当前排盘推演。</p>
+        <div class="sugg">
+          <button onclick="ask('详断事业与职场贵人')">详断事业与职场贵人</button>
+          <button onclick="ask('详评正偏财运走向')">详评正偏财运走向</button>
+          <button onclick="ask('婚恋感情应期分析')">婚恋感情应期分析</button>
+        </div>
+        <button class="cta" onclick="ask('发送当前排盘发起初审')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/></svg>
+          发送当前排盘发起初审
+        </button>
+      </div>
+    </div>
+
+    <!-- 输入区 -->
+    <div class="inputbar">
+      <div class="ib-box">
+        <textarea class="chat-input" rows="2" placeholder="询问关于本命盘的任何问题…"></textarea>
+        <div class="ib-foot">
+          <span class="caption">已关联当前排盘上下文</span>
+          <button class="send-btn" style="height:32px; padding:0 14px" onclick="askSend()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>
+            发送
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const AI_REPLY = '以丙火日主生于酉月取正财格而论：\n\n<span class="sec">事业层面</span>，当前大运财星透干而比劫有制，宜以专业能力立身、借团队之势进取。\n\n<span class="sec">财运层面</span>，2026 丙午流年比肩夺财之象明显，重大投入宜在上半年落实。';
+let count = 0;
+let svc = 'yjs', mdl = 'deepseek-v4-flash';
+
+function togglePanel() {
+  document.getElementById('ctxPanel').classList.toggle('show');
+  document.getElementById('phSub').classList.toggle('open');
+}
+function pick(btn, name) {
+  const group = btn.parentElement;
+  group.querySelectorAll('.opt').forEach(o => o.classList.remove('on'));
+  btn.classList.add('on');
+  if (group.id === 'svcOpts') svc = name; else mdl = name;
+  document.getElementById('ctxSum').textContent = `${svc} · ${mdl.split('-')[0]}${count ? ` · ${count} 条` : ''}`;
+}
+function ask(text) { send(text); }
+function askSend() { send('详断事业与职场贵人'); }
+
+function send(text) {
+  const empty = document.getElementById('empty');
+  if (empty) empty.remove();
+  const panel = document.getElementById('ctxPanel');
+  if (panel.classList.contains('show')) togglePanel();
+  const chat = document.getElementById('chat');
+  chat.insertAdjacentHTML('beforeend', `
+    <div class="msg user">
+      <span class="meta">我</span>
+      <div class="bubble">${text}</div>
+    </div>
+    <div class="msg ai" id="typingMsg">
+      <span class="meta">八字 AI 助手</span>
+      <div class="bubble"><div class="typing"><i></i><i></i><i></i></div></div>
+    </div>`);
+  chat.scrollTop = chat.scrollHeight;
+  setTimeout(() => {
+    document.getElementById('typingMsg').querySelector('.bubble').innerHTML = AI_REPLY.replace(/\n/g, '<br>');
+    count += 1;
+    document.getElementById('ctxSum').textContent = `${svc} · ${mdl.split('-')[0]} · ${count} 条`;
+    chat.scrollTop = chat.scrollHeight;
+  }, 900);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B4b · 底部换挡条（对象独立行 + 历史抽屉 + 角色整页）</title>
+<link rel="stylesheet" href="shared.css?v=3">
+<style>
+/* B4b：B4 的落地优化——对象独占一行防长标题溢出；历史/角色纳入统一移动端范式 */
+.empty {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 0 30px; text-align: center; gap: 12px;
+}
+.empty h4 { font-size: 15px; font-weight: 600; }
+.empty p { font-size: 11.5px; color: var(--muted); line-height: 1.7; max-width: 280px; }
+.cta {
+  height: 40px; padding: 0 18px;
+  border: none; border-radius: 10px;
+  background: var(--primary); color: var(--primary-fg);
+  font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; gap: 6px;
+  cursor: pointer;
+}
+.cta:active { background: var(--primary-press); }
+
+/* 标题条：页头下方一行，只放对象名 */
+.ctx-top {
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: 6px;
+  min-width: 0;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 12px; color: var(--muted);
+}
+.ctx-top .pre { flex-shrink: 0; white-space: nowrap; }
+.ctx-top .t { color: var(--text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 底部换挡条：服务/模型两枚 chips 平分宽度（底部留白与输入区间距合计 12px，与侧边距一致） */
+.ctxbar {
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px 4px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--bg);
+}
+.ctxbar .dd {
+  flex: 1 1 0;
+  max-width: none;
+  justify-content: center;
+  height: 32px;
+  font-size: 12px;
+}
+.ctxbar .dd b { max-width: none; }
+
+/* 底部选择板（服务/模型/历史共用外壳） */
+.mask {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,.55);
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s;
+  z-index: 40;
+}
+.mask.show { opacity: 1; pointer-events: auto; }
+.sheet {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: #1b1c1e;
+  border-radius: 16px 16px 0 0;
+  border-top: 1px solid var(--border);
+  transform: translateY(102%);
+  transition: transform .3s cubic-bezier(.32, .72, .28, 1);
+  z-index: 45;
+  display: flex; flex-direction: column;
+  max-height: 72%;
+}
+.sheet.show { transform: none; }
+.grab { width: 36px; height: 4px; border-radius: 2px; background: #3a3b3e; margin: 10px auto 0; flex-shrink: 0; }
+.sheet-h { display: flex; align-items: center; justify-content: space-between; padding: 8px 18px 6px; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+.sheet-h .x { width: 30px; height: 30px; border: none; background: transparent; color: var(--muted); font-size: 17px; cursor: pointer; }
+.sheet-h .sub { font-size: 10px; color: var(--muted); font-weight: 400; margin-left: 6px; }
+.opts { padding: 2px 18px 6px; overflow-y: auto; }
+.opt-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px;
+  padding: 12px 2px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-soft);
+}
+.opt-row:last-child { border-bottom: none; }
+.opt-row .t { font-size: 13.5px; color: var(--text); }
+.opt-row.on .t { color: var(--primary); font-weight: 600; }
+.opt-row .d { font-size: 10.5px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 240px; }
+.opt-row .tick { color: var(--primary); opacity: 0; flex-shrink: 0; }
+.opt-row.on .tick { opacity: 1; }
+.trash { border: none; background: transparent; color: #6a6b6e; padding: 4px; cursor: pointer; border-radius: 7px; flex-shrink: 0; }
+.trash:active { color: #c93636; background: rgba(201,54,54,.12); }
+.sheet-foot { flex-shrink: 0; padding: 8px 18px 14px; border-top: 1px solid var(--border-soft); }
+.sheet-foot .primary {
+  width: 100%; height: 40px;
+  border: none; border-radius: 10px;
+  background: var(--primary); color: var(--primary-fg);
+  font-size: 13.5px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer;
+}
+.sheet-foot .primary:active { background: var(--primary-press); }
+
+/* 角色设定：整页推入层 */
+.rolepage {
+  position: absolute; inset: 0;
+  background: var(--bg);
+  z-index: 55;
+  display: flex; flex-direction: column;
+  animation: page-in .26s cubic-bezier(.32, .72, .28, 1);
+}
+@keyframes page-in { from { transform: translateX(24%); opacity: 0; } to { transform: none; opacity: 1; } }
+.rolepage .phead { border-bottom: 1px solid var(--border-soft); }
+.rp-body { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 16px 20px; }
+.warn {
+  border: 1px solid rgba(203,174,136,.3);
+  background: var(--primary-soft);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 11px; line-height: 1.7; color: var(--text);
+  display: flex; gap: 8px;
+}
+.warn svg { flex-shrink: 0; color: var(--primary); margin-top: 1px; }
+.sec-label { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; color: var(--muted); margin: 16px 2px 8px; display: flex; align-items: center; justify-content: space-between; }
+.tpl {
+  border: 1px solid var(--border-soft);
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.tpl + .tpl { margin-top: 8px; }
+.tpl.on { border-color: var(--primary-border); background: rgba(203,174,136,.08); }
+.tpl .t { font-size: 13px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.tpl .t .rec { font-size: 9px; padding: 1px 6px; border-radius: 5px; background: var(--primary); color: var(--primary-fg); font-weight: 700; }
+.tpl .d { font-size: 10.5px; color: var(--muted); line-height: 1.6; margin-top: 4px; }
+.prompt-box {
+  border: 1px solid var(--border-soft);
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 12px; line-height: 1.8; color: rgba(228,224,216,.85);
+  max-height: 180px; overflow-y: auto;
+  white-space: pre-wrap;
+}
+.rp-foot {
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--bg);
+}
+.ghost-btn {
+  height: 38px; padding: 0 12px;
+  border: none; background: transparent;
+  color: var(--muted); font-size: 12.5px;
+  border-radius: 9px; cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+}
+.ghost-btn:active { background: var(--surface-2); color: var(--text); }
+.primary-btn {
+  height: 38px; padding: 0 16px;
+  border: none; border-radius: 9px;
+  background: var(--primary); color: var(--primary-fg);
+  font-size: 12.5px; font-weight: 600;
+  cursor: pointer;
+  margin-left: auto;
+}
+.primary-btn:active { background: var(--primary-press); }
+
+.toast {
+  position: absolute; left: 50%; bottom: 120px;
+  transform: translateX(-50%) translateY(8px);
+  background: #242528; border: 1px solid var(--border);
+  color: var(--text); font-size: 12px;
+  padding: 9px 14px; border-radius: 10px;
+  display: flex; gap: 7px; align-items: center;
+  opacity: 0; pointer-events: none; transition: all .25s;
+  z-index: 70; white-space: nowrap;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="statusbar"><span>9:48</span><span class="sb-icons"><span class="sb-dot on"></span><span class="sb-dot on"></span><span class="sb-dot"></span></span></div>
+
+  <div class="page">
+    <div class="phead">
+      <button class="back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <h1 id="pageTitle">八字 AI 研判助手</h1>
+      <div class="hacts">
+        <button class="hbtn" onclick="openSheet('hist')" title="会话历史">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+          <span class="cnt" id="histCnt">3</span>
+        </button>
+        <button class="hbtn" onclick="openRole()" title="AI 角色">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/></svg>
+        </button>
+        <button class="hbtn" title="AI 服务设置">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 标题条：页头下方，只放对象名 -->
+    <div class="ctx-top" title="阿曾二女儿（坤造）">
+      <span class="pre">研判对象：</span>
+      <span class="t">阿曾二女儿（坤造）</span>
+    </div>
+
+    <!-- 空态 -->
+    <div class="chat" id="chat">
+      <div class="empty" id="empty">
+        <h4>开启深度命理研判</h4>
+        <p>输入您想要了解的问题，AI 将结合当前排盘推演。</p>
+        <div class="sugg">
+          <button onclick="ask('详断事业与职场贵人')">详断事业与职场贵人</button>
+          <button onclick="ask('详评正偏财运走向')">详评正偏财运走向</button>
+          <button onclick="ask('婚恋感情应期分析')">婚恋感情应期分析</button>
+        </div>
+        <button class="cta" onclick="ask('发送当前排盘发起初审')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/></svg>
+          发送当前排盘发起初审
+        </button>
+      </div>
+    </div>
+
+    <!-- 底部换挡条：服务/模型平分宽度 -->
+    <div class="ctxbar">
+      <button class="dd" onclick="openSheet('svc')" title="切换服务">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        <b id="svcChip">yjs</b>
+      </button>
+      <button class="dd" onclick="openSheet('mdl')" title="切换模型">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/></svg>
+        <b id="mdlChip">deepseek-v4</b>
+      </button>
+    </div>
+
+    <!-- 输入区 -->
+    <div class="inputbar">
+      <div class="ib-box">
+        <textarea class="chat-input" rows="2" placeholder="询问关于本命盘的任何问题…"></textarea>
+        <div class="ib-foot">
+          <span class="caption">已关联当前排盘上下文</span>
+          <button class="send-btn" style="height:32px; padding:0 14px" onclick="askSend()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>
+            发送
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 遮罩 + 选择板（服务/模型/历史共用） -->
+  <div class="mask" id="mask" onclick="closeSheet()"></div>
+  <div class="sheet" id="sheet">
+    <div class="grab"></div>
+    <div class="sheet-h"><span><span id="sheetTitle">选择服务</span><span class="sub" id="sheetSub"></span></span><button class="x" onclick="closeSheet()">✕</button></div>
+    <div class="opts" id="sheetOpts"></div>
+    <div class="sheet-foot" id="sheetFoot" hidden>
+      <button class="primary" onclick="newSession()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+        开启新会话
+      </button>
+    </div>
+  </div>
+
+  <!-- AI 角色设定：整页推入 -->
+  <div class="rolepage" id="rolePage" hidden>
+    <div class="phead">
+      <button class="back" onclick="closeRole()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <h1>AI 角色设定</h1>
+    </div>
+    <div class="rp-body">
+      <div class="warn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></svg>
+        <span>命理严谨性准则：一旦喜忌断反，万事吉凶预测皆相反。系统会在研判前锁定排盘真值（四柱干支与客格局象），确保大模型开展子平学术深度论证。</span>
+      </div>
+
+      <div class="sec-label"><span>预设角色模板</span><span style="letter-spacing:0; font-weight:400">点击套用</span></div>
+      <div id="tpls">
+        <div class="tpl on" onclick="pickTpl(this)">
+          <div class="t">跃洲子平宗师 <span class="rec">推荐</span></div>
+          <div class="d">真值排盘锁定，子平学术深度推导，拒绝粗筛，严密断妻财子禄寿</div>
+        </div>
+        <div class="tpl" onclick="pickTpl(this)">
+          <div class="t">民间盲派命理师</div>
+          <div class="d">重干支字碰字、刑冲穿绝、墓库开闭与直断六亲流年吉凶</div>
+        </div>
+        <div class="tpl" onclick="pickTpl(this)">
+          <div class="t">现代生涯与心性顾问</div>
+          <div class="d">将传统十神格局与现代职业规划、心理认知、财商战略有机结合</div>
+        </div>
+      </div>
+
+      <div class="sec-label"><span>研判系统提示词规范（System Prompt）</span><span class="mono" style="letter-spacing:0; font-weight:400">1229 字</span></div>
+      <div class="prompt-box">你是由正统子平命理学融合《渊海子平》《子平真诠》《滴天髓》《穷通宝鉴》构建的【跃洲 · 专业八字命理研究宗师】。
+你秉持严谨客观、理法自治、实事求是的学术态度，负责对命盘进行【旺衰学术深度推导】与【妻财子禄寿全息研判】。
+
+【防幻觉与干支层级铁律（P0 级核心法则，必须严格遵守）】
+1. 天干透出与地支藏干层级分明，严禁混淆；
+2. 所有推断必须锚定排盘真值，禁止虚构干支、大运与流年；
+3. 吉凶判断前先述格局与旺衰依据，再给结论。</div>
+    </div>
+    <div class="rp-foot">
+      <button class="ghost-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        恢复推荐规范
+      </button>
+      <button class="ghost-btn" onclick="closeRole()">取消</button>
+      <button class="primary-btn" onclick="saveRole()">保存并生效</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"><span id="toastMsg"></span></div>
+</div>
+
+<script>
+const AI_REPLY = '以丙火日主生于酉月取正财格而论：\n\n<span class="sec">事业层面</span>，当前大运财星透干而比劫有制，宜以专业能力立身、借团队之势进取。\n\n<span class="sec">财运层面</span>，2026 丙午流年比肩夺财之象明显，重大投入宜在上半年落实。';
+const SVC_LIST = [
+  { name: 'yjs', desc: '当前已连接' },
+  { name: '中转直连', desc: 'OpenAI 兼容接口' },
+  { name: '本地代理', desc: '127.0.0.1:8080' },
+];
+const MDL_LIST = [
+  { name: 'deepseek-v4-flash', desc: 'yjs 服务' },
+  { name: 'glm-5', desc: 'yjs 服务' },
+  { name: 'kimi-k3', desc: '中转直连' },
+];
+let sessions = [
+  { title: '命理综合研判', last: '详断事业与职场贵人，结合大运流年…', time: '昨天 21:04', current: true },
+  { title: '婚姻应期追问', last: '2026 丙午流年夫妻宫引动，应期上…', time: '3 天前', current: false },
+  { title: '财运策略复盘', last: '比肩夺财之象明显，上半年落实投入…', time: '9/12', current: false },
+];
+let sheetMode = 'svc';
+
+/* ---- 底部选择板：服务 / 模型 / 历史 三用 ---- */
+function openSheet(mode) {
+  sheetMode = mode;
+  const title = document.getElementById('sheetTitle');
+  const sub = document.getElementById('sheetSub');
+  const opts = document.getElementById('sheetOpts');
+  const foot = document.getElementById('sheetFoot');
+  if (mode === 'svc' || mode === 'mdl') {
+    title.textContent = mode === 'svc' ? '选择服务' : '选择模型';
+    sub.textContent = '';
+    foot.hidden = true;
+    const list = mode === 'svc' ? SVC_LIST : MDL_LIST;
+    const current = mode === 'svc' ? document.getElementById('svcChip').textContent : document.getElementById('mdlChip').textContent;
+    opts.innerHTML = list.map(o => `
+      <div class="opt-row ${o.name === current ? 'on' : ''}" onclick="pick('${o.name}')">
+        <div><div class="t">${o.name}</div><div class="d">${o.desc}</div></div>
+        <svg class="tick" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>`).join('');
+  } else {
+    title.textContent = '会话历史';
+    sub.textContent = `共 ${sessions.length} 次研判`;
+    foot.hidden = false;
+    opts.innerHTML = sessions.length === 0
+      ? '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px">当前命主暂无历史对话</div>'
+      : sessions.map((s, i) => `
+        <div class="opt-row ${s.current ? 'on' : ''}" onclick="pickSession(${i})">
+          <div style="flex:1;min-width:0">
+            <div class="t">${s.title}</div>
+            <div class="d">${s.last}</div>
+          </div>
+          <span class="d" style="max-width:none; flex-shrink:0">${s.time}</span>
+          ${s.current ? '<svg class="tick" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="opacity:1"><path d="M20 6 9 17l-5-5"/></svg>' : ''}
+          <button class="trash" title="删除此会话" onclick="event.stopPropagation(); delSession(${i})">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>`).join('');
+  }
+  document.getElementById('mask').classList.add('show');
+  document.getElementById('sheet').classList.add('show');
+}
+function closeSheet() {
+  document.getElementById('mask').classList.remove('show');
+  document.getElementById('sheet').classList.remove('show');
+}
+function pick(name) {
+  if (sheetMode === 'svc') document.getElementById('svcChip').textContent = name;
+  else document.getElementById('mdlChip').textContent = name;
+  closeSheet();
+}
+function pickSession(i) {
+  sessions = sessions.map((s, idx) => ({ ...s, current: idx === i }));
+  closeSheet();
+  toast(`已切换到「${sessions[i].title}」`);
+}
+function delSession(i) {
+  sessions.splice(i, 1);
+  document.getElementById('histCnt').textContent = sessions.length;
+  openSheet('hist'); // 重渲染列表
+  toast('会话已删除');
+}
+function newSession() {
+  closeSheet();
+  document.getElementById('chat').innerHTML = EMPTY_HTML;
+  toast('已开启新会话');
+}
+
+/* ---- 预置多轮对话：展示有内容时的效果 ---- */
+const EMPTY_HTML = document.getElementById('empty')?.outerHTML ?? '';
+const REASONING = '先锁定排盘真值：丙火日主生于酉月，辛金正财当令透于时干；年柱丙午比肩帮身，日主偏弱。旺衰层面财多身弱，取印比为用——先立格局再谈吉凶，避免断语飘移。';
+function userMsg(text) {
+  return `<div class="msg user"><span class="meta">我</span><div class="bubble">${text}</div></div>`;
+}
+function aiMsg(text, withReason) {
+  return `<div class="msg ai"><span class="meta">八字 AI 助手</span><div class="bubble">${withReason ? `
+    <div class="reason"><button class="r-head" onclick="this.parentElement.classList.toggle('open')">✦ 已深度思考（用时 8 秒）<svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></button><div class="r-body">${REASONING}</div></div>` : ''}${text}</div></div>`;
+}
+function prefill() {
+  const empty = document.getElementById('empty');
+  if (empty) empty.remove();
+  const chat = document.getElementById('chat');
+  chat.innerHTML = [
+    userMsg('发送当前排盘发起初审'),
+    aiMsg('初判：<span class="sec">正财格成立</span>。丙火日主生于酉月，辛金正财透于时干，财星成格而有情；日主偏弱，行运喜东南木火之地。整体格局清而不杂，属于<strong>财格佩印</strong>的可用之局，可在此前提下展开六亲与流年的细化研判。', true),
+    userMsg('详评正偏财运走向'),
+    aiMsg('<span class="sec">正财（稳定收入）</span>：正财坐于时柱有根，主中晚年财路平稳，宜以专业技能立身，忌投机。<br><span class="sec">偏财（流动之财）</span>：偏财深藏日支，2026 丙午流年比肩透干，有夺财之象，合伙与借贷须谨慎，重大投入宜在上半年落实。', false),
+    userMsg('婚恋感情应期分析'),
+    aiMsg('<span class="sec">妻星与宫位</span>：以辛金正财为妻星，坐卯木印地，妻贤而缘分偏晚。<br><span class="sec">应期推断</span>：2027 丁未年红鸾入命，2028 戊申年天喜临门，两年皆为婚恋应期的候选窗口。', false),
+  ].join('');
+  chat.scrollTop = chat.scrollHeight;
+}
+prefill();
+
+/* ---- 角色设定整页 ---- */
+function openRole() { document.getElementById('rolePage').hidden = false; }
+function closeRole() { document.getElementById('rolePage').hidden = true; }
+function pickTpl(el) {
+  document.querySelectorAll('#tpls .tpl').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+}
+function saveRole() { closeRole(); toast('角色已生效，下次研判起使用'); }
+
+/* ---- 对话模拟 ---- */
+function ask(text) { send(text); }
+function askSend() { send('详断事业与职场贵人'); }
+function send(text) {
+  const empty = document.getElementById('empty');
+  if (empty) empty.remove();
+  const chat = document.getElementById('chat');
+  chat.insertAdjacentHTML('beforeend', `
+    <div class="msg user">
+      <span class="meta">我</span>
+      <div class="bubble">${text}</div>
+    </div>
+    <div class="msg ai" id="typingMsg">
+      <span class="meta">八字 AI 助手</span>
+      <div class="bubble"><div class="typing"><i></i><i></i><i></i></div></div>
+    </div>`);
+  chat.scrollTop = chat.scrollHeight;
+  setTimeout(() => {
+    document.getElementById('typingMsg').querySelector('.bubble').innerHTML = AI_REPLY.replace(/\n/g, '<br>');
+    chat.scrollTop = chat.scrollHeight;
+  }, 900);
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>

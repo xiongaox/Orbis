@@ -222,10 +222,11 @@ export default function AiIntegrationModal({ isOpen, onClose }: AiIntegrationMod
             <button
               type="button"
               onClick={handleAdd}
-              className="flex h-9 items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-3 text-[14px] font-medium text-primary transition-colors active:bg-primary/20 focus-ring"
+              aria-label="添加模型服务"
+              title="添加模型服务"
+              className="w-9 h-9 flex items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors active:bg-muted cursor-pointer focus-ring"
             >
               <Plus className="h-4 w-4" />
-              添加
             </button>
           }
           bodyClassName="overflow-hidden flex flex-col"
