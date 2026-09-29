@@ -6,9 +6,8 @@
  * - 主要目标：承载具体业务模块的前端功能
  *
  * 关键职责：
- * - 渲染 UI 视图并处理交互逻辑
- * - 处理用户输入与展示边界行为
- * - 向上层提供稳定可复用能力
+ * - 渲染侧边栏案例卡片：左侧姓名/性别/分类/出生日期时辰，右侧四柱迷你排盘
+ * - 仅日干保留五行色，其余干支压暗；年龄与日期合并为一行弱信息
  *
  * 主要导出：
  * - `default CaseCard`
@@ -23,22 +22,13 @@ import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../../../../ut
 import { TIAN_GAN_WU_XING } from '../../../../../lib/xuan-bazi/maps';
 
 
-// 五行背景色常量
-const ELEMENT_BG_10: Record<string, string> = {
-    木: 'var(--element-wood-bg)',
-    火: 'var(--element-fire-bg)',
-    土: 'var(--element-earth-bg)',
-    金: 'var(--element-metal-bg)',
-    水: 'var(--element-water-bg)',
-};
-
-// 五行文字色常量
+// 五行文字色常量，仅用于日干
 const ELEMENT_TEXT_COLOR: Record<string, string> = {
-    木: 'var(--element-wood-text)',
-    火: 'var(--element-fire-text)',
-    土: 'var(--element-earth-text)',
-    金: 'var(--element-metal-text)',
-    水: 'var(--element-water-text)',
+    木: 'text-[var(--element-wood)]',
+    火: 'text-[var(--element-fire)]',
+    土: 'text-[var(--element-earth)]',
+    金: 'text-[var(--element-metal)]',
+    水: 'text-[var(--element-water)]',
 };
 
 interface CaseCardDisplayItem {
@@ -67,16 +57,27 @@ export default function CaseCard({
     onEdit,
     onDelete,
 }: CaseCardProps) {
+    // 四柱：年 月 日 时（每柱天干 + 地支）
     const pillars = getBaziPillarsFromDateString(item.birthDate ?? item.date);
-    const displayPillars = pillars.length === 8 ? [
-        pillars[0], pillars[2], pillars[4], pillars[6],
-        pillars[1], pillars[3], pillars[5], pillars[7]
-    ] : pillars;
+    const pillarPairs = pillars.length === 8
+        ? [0, 2, 4, 6].map(i => [pillars[i], pillars[i + 1]] as const)
+        : [];
+
     const age = getAgeFromBirth(item.birthDate);
-    const dayGan = displayPillars.length >= 3 ? displayPillars[2] : '';
-    const dayGanElement = TIAN_GAN_WU_XING[dayGan] || '';
-    const dayGanBg = ELEMENT_BG_10[dayGanElement];
-    const dayGanColor = ELEMENT_TEXT_COLOR[dayGanElement];
+
+    // 仅日干使用五行色，其余干支统一压暗
+    const dayGan = pillarPairs[2]?.[0] ?? '';
+    const dayGanColor = ELEMENT_TEXT_COLOR[TIAN_GAN_WU_XING[dayGan] || ''] ?? '';
+    const isMale = item.gender === '男';
+
+    // 日期与时间拆成两段展示，与案例库卡片（SortableCaseCard）同一度量
+    const birth = new Date(item.birthDate);
+    const hasBirth = !Number.isNaN(birth.getTime());
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const displayDate = hasBirth
+        ? `${birth.getFullYear()}年${birth.getMonth() + 1}月${birth.getDate()}日`
+        : item.date;
+    const displayTime = hasBirth ? `${pad(birth.getHours())}:${pad(birth.getMinutes())}` : '';
 
     return (
         <div
@@ -89,79 +90,85 @@ export default function CaseCard({
                     onSelectCase(item.id);
                 }
             }}
-            className={`group relative w-full text-left p-3 rounded-xl mb-2 transition-[box-shadow,transform] duration-300 cursor-pointer border ${isSelected
-                ? 'bg-card border-primary/40 ring-1 ring-primary/20 shadow-md z-10'
-                : 'bg-card border-border/40 dark:border-border/30 shadow-[0_2px_6px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_16px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 hover:z-10 hover:border-border/60'
+            className={`group relative mb-2 w-full cursor-pointer select-none rounded-xl border px-3.5 py-3 text-left transition-colors ${isSelected
+                ? 'border-primary/40 bg-card shadow-[0_0_0_1px_hsl(var(--primary)/0.2)]'
+                : 'border-border/40 bg-card hover:border-border/60 dark:border-border/30'
                 }`}
         >
-            <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-medium text-foreground">{item.name}</span>
-                        <span className="text-xs text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground">{item.gender}</span>
-                    </div>
-                    <div className="text-xs text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground mb-2">{item.date}</div>
-                    <div className="grid grid-cols-4 gap-1 w-fit">
-                        {displayPillars.map((pillar, index) => (
-                            <span
-                                key={index}
-                                style={index === 2 && (dayGanBg || dayGanColor)
-                                    ? { backgroundColor: dayGanBg, color: dayGanColor }
-                                    : undefined}
-                                className={`w-6 h-6 flex items-center justify-center text-xs bg-[hsl(var(--muted-hover))] dark:bg-sidebar-accent/80 border rounded text-foreground/80 font-mono ${isSelected ? 'border-border' : 'border-[hsl(var(--border-lighter))] dark:border-sidebar-border/30'}`}
-                            >
-                                {pillar}
+            <div className="flex items-center justify-between gap-3">
+                {/* 左侧：姓名 / 性别 / 分类 / 出生日期时辰 */}
+                <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                        <span className="truncate text-sm font-medium text-foreground">{item.name}</span>
+                        {/* 性别印章：专用性别色实底容器，同分类 chip 一套度量（demo shared.css .seal） */}
+                        <span className={`inline-flex h-[21px] w-5 shrink-0 items-center justify-center rounded-md text-xs leading-none ${isMale
+                            ? 'bg-[var(--gender-male-bg)] text-[var(--gender-male)]'
+                            : 'bg-[var(--gender-female-bg)] text-[var(--gender-female)]'
+                            }`}>
+                            {isMale ? '乾' : '坤'}
+                        </span>
+                        {item.tags && item.tags.length > 0 && (
+                            <span className="inline-flex h-5 shrink-0 items-center rounded-[5px] bg-primary/10 px-1.5 text-[13px] leading-none text-primary">
+                                {item.tags[0]}
                             </span>
-                        ))}
+                        )}
+                    </div>
+                    <div className="mt-1 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+                        <span>{displayDate}</span>
+                        {displayTime && <span className="tabular-nums">{displayTime}</span>}
+                        {age !== null && (
+                            <>
+                                <span className="h-[3px] w-[3px] shrink-0 rounded-full bg-border" />
+                                <span>{age}岁</span>
+                            </>
+                        )}
                     </div>
                 </div>
-                {isAuthenticated && (
-                    <div className="flex flex-col items-end self-stretch">
-                        {item.tags && item.tags.length > 0 && (
-                            <div className="flex flex-wrap justify-end gap-1 mb-2 max-w-[96px]">
-                                {item.tags.slice(0, 3).map(tag => (
-                                    <span key={tag} className="text-xs px-1.5 py-0.5 rounded bg-[hsl(var(--accent-primary)/0.12)] text-[hsl(var(--accent-primary))] dark:bg-primary/10 dark:text-primary/80">
-                                        {tag}
-                                    </span>
-                                ))}
-                                {item.tags.length > 3 && (
-                                    <span className="text-xs text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground">+{item.tags.length - 3}</span>
-                                )}
+
+                {/* 右侧：四列迷你排盘（干上支下），尺寸与案例库卡片一致 */}
+                {pillarPairs.length > 0 && (
+                    <div className="flex shrink-0 gap-[3px]">
+                        {pillarPairs.map(([gan, zhi], i) => (
+                            <div key={i} className="flex w-6 flex-col items-center font-serif leading-tight">
+                                <span className={`text-[19px] font-semibold ${i === 2 ? dayGanColor : 'text-foreground/55'}`}>{gan}</span>
+                                <span className="text-[19px] font-semibold text-foreground/55">{zhi}</span>
                             </div>
-                        )}
-                        <div className="flex flex-col items-end gap-2 mt-auto">
-                            {age !== null && (
-                                <div className="text-xs text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground">今年{age}岁</div>
-                            )}
-                            <div className="flex gap-1.5">
-                                <button
-                                    type="button"
-                                    onClick={(event) => {
-                                        event.stopPropagation();
-                                        onEdit(item.id);
-                                    }}
-                                    className="p-1.5 rounded-md border border-border hover:border-primary/50 hover:bg-primary/10 text-muted-foreground hover:text-primary"
-                                    aria-label="编辑案例"
-                                >
-                                    <Pencil className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={(event) => {
-                                        event.stopPropagation();
-                                        onDelete(item.id);
-                                    }}
-                                    disabled={false} // Loading state handled by parent via ConfirmModal usually, but visual disable could be passed
-                                    className="p-1.5 rounded-md border border-border hover:border-red-400 hover:bg-red-100 dark:hover:bg-destructive/20 text-muted-foreground hover:text-red-500 dark:hover:text-destructive disabled:opacity-60 disabled:cursor-not-allowed"
-                                    aria-label="删除案例"
-                                >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 )}
             </div>
+
+            {/* 悬停时露出操作，浏览时列表保持安静。
+                触屏上 hover / focus 会粘住（点一下就常驻），故仅在具备悬停能力的指针设备上按 hover/focus 露出；
+                触屏改为「当前选中案例」常显，避免误触后按钮一直挂着 */}
+            {isAuthenticated && (
+                <div className={`mt-1.5 flex justify-end gap-1.5 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0'} [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100`}>
+                    <button
+                        type="button"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onEdit(item.id);
+                        }}
+                        className="flex h-6 items-center gap-1 rounded-md border border-border px-2 text-[11px] text-muted-foreground hover:border-primary/50 hover:bg-primary/10 hover:text-primary"
+                        aria-label="编辑案例"
+                    >
+                        <Pencil className="w-3 h-3" />
+                        编辑
+                    </button>
+                    <button
+                        type="button"
+                        onClick={(event) => {
+                            event.stopPropagation();
+                            onDelete(item.id);
+                        }}
+                        className="flex h-6 items-center gap-1 rounded-md border border-border px-2 text-[11px] text-muted-foreground hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+                        aria-label="删除案例"
+                    >
+                        <Trash2 className="w-3 h-3" />
+                        删除
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

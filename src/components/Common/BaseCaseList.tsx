@@ -67,8 +67,8 @@ export default function BaseCaseList({
 }: BaseCaseListProps) {
     return (
         <aside className={variant === 'drawer'
-            ? "w-full h-full bg-card flex flex-col min-h-0"
-            : "w-full h-full bg-sidebar/5 border-r border-border/50 flex flex-col min-h-0"
+            ? "w-full h-full select-none bg-card flex flex-col min-h-0"
+            : "w-full h-full select-none bg-sidebar/5 border-r border-border/50 flex flex-col min-h-0"
         }>
             <div className={variant === 'drawer' ? 'p-3 border-b border-border/60 space-y-2 shrink-0' : 'p-4 border-b border-border/50 space-y-3 shrink-0'}>
                 {/* 顶部：案例库与筛选 */}
@@ -145,7 +145,10 @@ export default function BaseCaseList({
             </div>
 
             {/* 列表内容区 */}
-            <div className={`flex-1 min-h-0 overflow-y-auto ${variant === 'drawer' ? 'px-1.5 py-2' : 'p-4'}`}>
+            <div
+                className={`flex-1 min-h-0 select-none overflow-y-auto ${variant === 'drawer' ? 'px-1.5 py-2' : 'p-4'}`}
+                onContextMenu={(e) => e.preventDefault()}
+            >
                 {isLoading ? (
                     <div className="text-center text-xs text-muted-foreground py-6">
                         加载中...
