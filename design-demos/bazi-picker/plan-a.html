@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 A · 竖柱卡 + 分组键盘</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+/* 方案 A：四柱各自成一张竖卡（干上支下），键盘固定双行，地支按阴阳分组亮暗 */
+.a-pillars { display: flex; gap: 8px; padding: 14px 14px 8px; }
+.a-col {
+  flex: 1;
+  background: #1b1c1e;
+  border: 1px solid #2a2b2e;
+  border-radius: 12px;
+  padding: 7px 6px 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.a-col-name { font-size: 11px; color: var(--muted); letter-spacing: .14em; }
+.a-cell {
+  width: 100%; height: 52px;
+  border-radius: 9px;
+  background: #121314;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 23px; font-weight: 600;
+  cursor: pointer;
+  transition: background .18s, box-shadow .18s;
+}
+.a-cell.on { background: var(--primary-soft); animation: breathe 1.6s ease-in-out infinite; }
+
+.a-dots { display: flex; gap: 12px; justify-content: center; padding: 2px 0 9px; }
+.a-dotgrp { display: flex; gap: 4px; }
+.a-dot { width: 6px; height: 6px; border-radius: 50%; background: #2c2d30; transition: background .2s; }
+.a-dot.done { background: var(--primary); }
+.a-dot.cur { background: transparent; box-shadow: inset 0 0 0 1.5px var(--primary); animation: dotpulse 1.4s ease-in-out infinite; }
+@keyframes dotpulse { 0%,100% { box-shadow: inset 0 0 0 1.5px var(--primary); } 50% { box-shadow: inset 0 0 0 1.5px rgba(203,174,136,.35); } }
+
+.a-status {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0 16px 10px;
+  font-size: 11.5px; color: var(--muted);
+}
+.a-status .hint b { color: var(--primary); font-weight: 600; }
+
+.a-kbd .key { background: #202124; border: 1px solid #2a2b2e; box-shadow: 0 1px 0 rgba(0,0,0,.25); }
+.a-kbd .key:active { background: #2b2c2f; }
+
+.a-actions { display: flex; gap: 10px; padding: 2px 14px 14px; }
+.a-clear {
+  height: 44px; padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border-soft);
+  color: var(--muted); font-size: 13px;
+}
+.a-clear:active { background: rgba(255,255,255,.05); }
+.a-reverse {
+  flex: 1; height: 44px;
+  border-radius: 10px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 14px; font-weight: 600;
+  transition: background .2s, color .2s;
+}
+.a-reverse.ready { background: var(--primary); color: var(--primary-fg); }
+.a-reverse:active { transform: scale(.985); }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="statusbar"><span>11:55</span><span class="sb-icons"><i class="sb-dot on"></i><i class="sb-dot on"></i><i class="sb-dot"></i></span></div>
+  <div class="page">
+    <div class="phead"><button class="back">‹</button>新建案例</div>
+    <div class="ghostform">
+      <div class="gf lab"></div><div class="gf inp"></div>
+      <div class="gf lab"></div><div class="gf inp"></div>
+      <div class="gf lab"></div><div class="gf row"></div>
+    </div>
+  </div>
+  <div class="overlay"></div>
+  <div class="sheet-wrap">
+    <div class="sheet">
+      <div class="sheet-head">
+        <button class="sh-cancel">取消</button>
+        <div class="tabs"><span class="tab">公历</span><span class="tab">农历</span><span class="tab on">四柱</span></div>
+        <button class="sh-ok">确定</button>
+      </div>
+
+      <div class="a-pillars" id="pillars"></div>
+      <div class="a-dots" id="dots"></div>
+      <div class="a-status">
+        <span class="hint" id="hint"></span>
+        <span>范围 1900–2100</span>
+      </div>
+
+      <div class="kbd a-kbd" id="kbd"></div>
+
+      <div class="results" id="results" hidden>
+        <div class="res-cap"><b>找到 2 个匹配日期</b><button id="res-back">返回修改</button></div>
+        <div class="res-item" data-d="1984-03-05 07:20"><span class="mono">1984-03-05 07:20</span><span class="tag">甲子年 · 丙寅月</span></div>
+        <div class="res-item" data-d="2044-03-20 07:20"><span class="mono">2044-03-20 07:20</span><span class="tag">甲子年 · 丙寅月</span></div>
+      </div>
+
+      <div class="a-actions">
+        <button class="a-clear" id="clear">清除</button>
+        <button class="a-reverse" id="reverse">反查日期</button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"><span></span></div>
+</div>
+
+<script>
+const STEMS = '甲乙丙丁戊己庚辛壬癸'.split('');
+const YANG_B = ['子','寅','辰','午','申','戌'], YIN_B = ['丑','卯','巳','未','酉','亥'];
+const EL = { '甲':'e-wood','乙':'e-wood','丙':'e-fire','丁':'e-fire','戊':'e-earth','己':'e-earth','庚':'e-metal','辛':'e-metal','壬':'e-water','癸':'e-water','子':'e-water','丑':'e-earth','寅':'e-wood','卯':'e-wood','辰':'e-earth','巳':'e-fire','午':'e-fire','未':'e-earth','申':'e-metal','酉':'e-metal','戌':'e-earth','亥':'e-water' };
+const PILLAR = ['年','月','日','时'];
+
+let slots = ['甲','子','丙','寅',null,null,null,null];
+let active = 4;
+let toastTimer;
+
+const $ = s => document.querySelector(s);
+const full = () => slots.every(Boolean);
+
+function toast(msg) {
+  const t = $('#toast');
+  t.querySelector('span').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// 构建四张竖卡 + 进度点
+const pillarsEl = $('#pillars');
+pillarsEl.innerHTML = PILLAR.map((n, c) => `
+  <div class="a-col">
+    <div class="a-col-name">${n}</div>
+    <div class="a-cell serif" data-i="${c*2}"></div>
+    <div class="a-cell serif" data-i="${c*2+1}"></div>
+  </div>`).join('');
+$('#dots').innerHTML = PILLAR.map((n, c) =>
+  `<div class="a-dotgrp">${[0,1].map(k => `<div class="a-dot" data-i="${c*2+k}"></div>`).join('')}</div>`).join('');
+
+const cells = [...pillarsEl.querySelectorAll('.a-cell')];
+const dots = [...$('#dots').querySelectorAll('.a-dot')];
+
+cells.forEach(c => c.addEventListener('click', () => {
+  const i = +c.dataset.i;
+  active = slots[i] ? (i % 2 === 0 ? i : i - 1) : i; // 点已填的支回到该柱天干，点空格直接聚焦
+  render();
+}));
+
+// 从 from 起找下一个空位，找不到则回绕，全满返回 null
+function nextSlot(from) {
+  for (let i = from; i < 8; i++) if (!slots[i]) return i;
+  for (let i = 0; i < 8; i++) if (!slots[i]) return i;
+  return null;
+}
+
+function keyRow(chars, lbl, enabled, cls) {
+  const keys = chars.map(c => `<div class="key serif ${EL[c]}${enabled ? '' : ' dis'}" data-k="${c}">${c}</div>`).join('');
+  return `<div class="krow">${lbl ? `<div class="klabel v">${lbl}</div>` : ''}${keys}</div>`;
+}
+
+function renderKbd() {
+  const kbd = $('#kbd');
+  if (active === null) {
+    kbd.innerHTML = keyRow(STEMS.slice(0,5), '', false) + keyRow(STEMS.slice(5), '', false);
+    return;
+  }
+  if (active % 2 === 0) {
+    kbd.innerHTML = keyRow(STEMS.slice(0,5), '', true) + keyRow(STEMS.slice(5), '', true);
+  } else {
+    const yang = STEMS.indexOf(slots[active-1]) % 2 === 0;
+    kbd.innerHTML = keyRow(YANG_B, '阳支', yang) + keyRow(YIN_B, '阴支', !yang);
+  }
+}
+
+function render() {
+  cells.forEach(c => {
+    const i = +c.dataset.i, v = slots[i];
+    c.textContent = v || '';
+    c.className = 'a-cell serif' + (v ? ' ' + EL[v] : '') + (i === active ? ' on' : '');
+  });
+  dots.forEach(d => {
+    const i = +d.dataset.i;
+    d.className = 'a-dot' + (slots[i] ? ' done' : i === active ? ' cur' : '');
+  });
+  $('#hint').innerHTML = active === null
+    ? '四柱已成，可<b>反查日期</b>'
+    : `正在输入 · <b>${PILLAR[active>>1]}柱${active % 2 ? '地支' : '天干'}</b>`;
+  renderKbd();
+  $('#reverse').classList.toggle('ready', full());
+}
+
+$('#kbd').addEventListener('click', e => {
+  const k = e.target.closest('.key');
+  if (!k) return;
+  slots[active] = k.dataset.k;
+  active = nextSlot(active + 1);
+  render();
+});
+
+$('#clear').addEventListener('click', () => {
+  slots = Array(8).fill(null);
+  active = 0;
+  $('#results').hidden = true;
+  $('#kbd').hidden = false;
+  render();
+});
+
+$('#reverse').addEventListener('click', () => {
+  if (!full()) { toast('请先完整填写四柱'); return; }
+  $('#kbd').hidden = true;
+  $('#results').hidden = false;
+});
+
+$('#res-back').addEventListener('click', () => {
+  $('#results').hidden = true;
+  $('#kbd').hidden = false;
+});
+
+[...document.querySelectorAll('.res-item')].forEach(r => r.addEventListener('click', () => {
+  toast(`已选定 ${r.dataset.d}，将切回公历页复核`);
+  $('#results').hidden = true;
+  $('#kbd').hidden = false;
+  render();
+}));
+
+render();
+</script>
+</body>
+</html>

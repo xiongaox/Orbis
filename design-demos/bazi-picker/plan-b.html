@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 B · 候选栏输入法式</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+/* 方案 B：候选条即进度（输入法隐喻），中部大字预览当前柱，天干/地支键盘统一按阴阳分两行 */
+.b-cand { display: flex; gap: 6px; padding: 10px 12px 0; }
+.cg {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 7px 0 6px;
+  border-radius: 9px;
+  background: #1a1b1d;
+  border: 1px solid #26272a;
+  cursor: pointer;
+  transition: border-color .18s, background .18s;
+}
+.cg .chars {
+  font-size: 15px; font-weight: 600;
+  min-height: 21px; letter-spacing: .12em;
+  display: flex; gap: 6px;
+}
+.cg .chars .ph { color: #333438; }
+.cg .cname { font-size: 9.5px; color: #6a6b6e; letter-spacing: .18em; }
+.cg.cur { border-color: rgba(203,174,136,.45); background: rgba(203,174,136,.07); }
+.cg.cur .cname { color: var(--primary); }
+.cg.full { border-color: #2e2f31; }
+
+.b-preview {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 15px 18px 13px;
+}
+.bp-left .bp-cap { font-size: 10.5px; color: var(--muted); letter-spacing: .06em; margin-bottom: 8px; }
+.bp-left .bp-cap b { color: var(--primary); font-weight: 600; }
+.bp-slots { display: flex; gap: 8px; }
+.bp-slot {
+  width: 54px; height: 54px;
+  border-radius: 10px;
+  background: #121314;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; font-weight: 600;
+}
+.bp-slot.on { background: var(--primary-soft); animation: breathe 1.6s ease-in-out infinite; }
+.bp-right { text-align: right; font-family: "JetBrains Mono", ui-monospace, monospace; }
+.bp-right .n { font-size: 19px; color: var(--text); font-weight: 500; }
+.bp-right .u { font-size: 10.5px; color: var(--muted-2); margin-top: 2px; letter-spacing: .1em; }
+
+.b-kbd .key { background: transparent; border: 1px solid #2b2c2f; }
+.b-kbd .key:active { background: var(--primary-soft); border-color: rgba(203,174,136,.4); }
+
+.b-actions { display: flex; gap: 10px; padding: 2px 14px 14px; }
+.b-clear {
+  height: 44px; padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border-soft);
+  color: var(--muted); font-size: 13px;
+}
+.b-clear:active { background: rgba(255,255,255,.05); }
+.b-reverse {
+  flex: 1; height: 44px;
+  border-radius: 10px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 14px; font-weight: 600;
+  transition: background .2s, color .2s;
+}
+.b-reverse.ready { background: var(--primary); color: var(--primary-fg); }
+.b-reverse:active { transform: scale(.985); }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="statusbar"><span>11:55</span><span class="sb-icons"><i class="sb-dot on"></i><i class="sb-dot on"></i><i class="sb-dot"></i></span></div>
+  <div class="page">
+    <div class="phead"><button class="back">‹</button>新建案例</div>
+    <div class="ghostform">
+      <div class="gf lab"></div><div class="gf inp"></div>
+      <div class="gf lab"></div><div class="gf inp"></div>
+      <div class="gf lab"></div><div class="gf row"></div>
+    </div>
+  </div>
+  <div class="overlay"></div>
+  <div class="sheet-wrap">
+    <div class="sheet">
+      <div class="sheet-head">
+        <button class="sh-cancel">取消</button>
+        <div class="tabs"><span class="tab">公历</span><span class="tab">农历</span><span class="tab on">四柱</span></div>
+        <button class="sh-ok">确定</button>
+      </div>
+
+      <div class="b-cand" id="cand"></div>
+
+      <div class="b-preview">
+        <div class="bp-left">
+          <div class="bp-cap" id="hint"></div>
+          <div class="bp-slots">
+            <div class="bp-slot serif" id="bs0"></div>
+            <div class="bp-slot serif" id="bs1"></div>
+          </div>
+        </div>
+        <div class="bp-right">
+          <div class="n" id="count">4/8</div>
+          <div class="u">已填字数</div>
+        </div>
+      </div>
+
+      <div class="kbd b-kbd" id="kbd"></div>
+
+      <div class="results" id="results" hidden>
+        <div class="res-cap"><b>找到 2 个匹配日期</b><button id="res-back">返回修改</button></div>
+        <div class="res-item" data-d="1984-03-05 07:20"><span class="mono">1984-03-05 07:20</span><span class="tag">甲子年 · 丙寅月</span></div>
+        <div class="res-item" data-d="2044-03-20 07:20"><span class="mono">2044-03-20 07:20</span><span class="tag">甲子年 · 丙寅月</span></div>
+      </div>
+
+      <div class="b-actions">
+        <button class="b-clear" id="clear">清除</button>
+        <button class="b-reverse" id="reverse">反查日期</button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"><span></span></div>
+</div>
+
+<script>
+const STEMS = '甲乙丙丁戊己庚辛壬癸'.split('');
+const YANG_S = ['甲','丙','戊','庚','壬'], YIN_S = ['乙','丁','己','辛','癸'];
+const YANG_B = ['子','寅','辰','午','申','戌'], YIN_B = ['丑','卯','巳','未','酉','亥'];
+const EL = { '甲':'e-wood','乙':'e-wood','丙':'e-fire','丁':'e-fire','戊':'e-earth','己':'e-earth','庚':'e-metal','辛':'e-metal','壬':'e-water','癸':'e-water','子':'e-water','丑':'e-earth','寅':'e-wood','卯':'e-wood','辰':'e-earth','巳':'e-fire','午':'e-fire','未':'e-earth','申':'e-metal','酉':'e-metal','戌':'e-earth','亥':'e-water' };
+const PILLAR = ['年','月','日','时'];
+
+let slots = ['甲','子','丙','寅',null,null,null,null];
+let active = 4;
+let toastTimer;
+
+const $ = s => document.querySelector(s);
+const full = () => slots.every(Boolean);
+
+function toast(msg) {
+  const t = $('#toast');
+  t.querySelector('span').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// 候选条
+$('#cand').innerHTML = PILLAR.map((n, c) => `
+  <div class="cg" data-col="${c}">
+    <div class="chars serif">
+      <span data-p="${c*2}"></span><span data-p="${c*2+1}"></span>
+    </div>
+    <div class="cname">${n}柱</div>
+  </div>`).join('');
+const cgs = [...$('#cand').querySelectorAll('.cg')];
+cgs.forEach(g => g.addEventListener('click', () => {
+  const col = +g.dataset.col;
+  const a = col * 2, b = col * 2 + 1;
+  active = !slots[a] ? a : (!slots[b] ? b : a); // 空柱从天干起，半柱补地支，整柱回看天干
+  render();
+}));
+
+// 从 from 起找下一个空位，找不到则回绕，全满返回 null
+function nextSlot(from) {
+  for (let i = from; i < 8; i++) if (!slots[i]) return i;
+  for (let i = 0; i < 8; i++) if (!slots[i]) return i;
+  return null;
+}
+
+function keyRow(chars, lbl, enabled) {
+  const keys = chars.map(c => `<div class="key serif ${EL[c]}${enabled ? '' : ' dis'}" data-k="${c}">${c}</div>`).join('');
+  return `<div class="krow">${lbl ? `<div class="klabel v">${lbl}</div>` : ''}${keys}</div>`;
+}
+
+function renderKbd() {
+  const kbd = $('#kbd');
+  if (active === null) {
+    kbd.innerHTML = keyRow(YANG_S, '阳干', false) + keyRow(YIN_S, '阴干', false);
+    return;
+  }
+  if (active % 2 === 0) {
+    kbd.innerHTML = keyRow(YANG_S, '阳干', true) + keyRow(YIN_S, '阴干', true);
+  } else {
+    const yang = STEMS.indexOf(slots[active-1]) % 2 === 0;
+    kbd.innerHTML = keyRow(YANG_B, '阳支', yang) + keyRow(YIN_B, '阴支', !yang);
+  }
+}
+
+function render() {
+  // 候选条
+  cgs.forEach(g => {
+    const col = +g.dataset.col;
+    g.querySelectorAll('.chars span').forEach(sp => {
+      const i = +sp.dataset.p, v = slots[i];
+      sp.textContent = v || '·';
+      sp.className = 'serif' + (v ? ' ' + EL[v] : ' ph');
+    });
+    g.classList.toggle('cur', active !== null && (active >> 1) === col);
+  });
+  // 大字预览：当前柱
+  const p = (active === null ? 3 : active >> 1);
+  [0, 1].forEach(k => {
+    const el = $('#bs' + k), i = p * 2 + k, v = slots[i];
+    el.textContent = v || '';
+    el.className = 'bp-slot serif' + (v ? ' ' + EL[v] : '') + (i === active ? ' on' : '');
+  });
+  $('#hint').innerHTML = active === null
+    ? '四柱已成 · 可<b>反查日期</b>'
+    : `正在输入 · <b>${PILLAR[active>>1]}柱${active % 2 ? '地支' : '天干'}</b>`;
+  $('#count').textContent = slots.filter(Boolean).length + '/8';
+  renderKbd();
+  $('#reverse').classList.toggle('ready', full());
+}
+
+$('#kbd').addEventListener('click', e => {
+  const k = e.target.closest('.key');
+  if (!k) return;
+  slots[active] = k.dataset.k;
+  active = nextSlot(active + 1);
+  render();
+});
+
+$('#clear').addEventListener('click', () => {
+  slots = Array(8).fill(null);
+  active = 0;
+  $('#results').hidden = true;
+  $('#kbd').hidden = false;
+  render();
+});
+
+$('#reverse').addEventListener('click', () => {
+  if (!full()) { toast('请先完整填写四柱'); return; }
+  $('#kbd').hidden = true;
+  $('#results').hidden = false;
+});
+
+$('#res-back').addEventListener('click', () => {
+  $('#results').hidden = true;
+  $('#kbd').hidden = false;
+});
+
+[...document.querySelectorAll('.res-item')].forEach(r => r.addEventListener('click', () => {
+  toast(`已选定 ${r.dataset.d}，将切回公历页复核`);
+  $('#results').hidden = true;
+  $('#kbd').hidden = false;
+  render();
+}));
+
+render();
+</script>
+</body>
+</html>

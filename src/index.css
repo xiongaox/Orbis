@@ -88,6 +88,10 @@
   --element-earth-text: rgba(139, 109, 3, 0.5);
   --element-metal-text: rgba(239, 145, 4, 0.5);
   --element-water-text: rgba(46, 131, 246, 0.5);
+  --gender-male: #6b9df2;
+  --gender-female: #ec6aa0;
+  --gender-male-bg: rgba(107, 157, 242, 0.14);
+  --gender-female-bg: rgba(236, 106, 160, 0.13);
   --qimen-men: #DC2626;
   --qimen-xing: #16A34A;
   --qimen-shen: #B45309;

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 B2 · 迷你排盘卡（左滑操作版）</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+/* B2 = 方案 B 精修：去掉 ⋯ 改左滑露出 编辑/删除（同方案 C），
+   腾出的宽度用于排版呼吸；日柱列去容器底色，靠五行色本身表达；
+   「今年X岁」→「X岁」，删「X日主」标注 */
+.rowwrap {
+  position: relative;
+  border-radius: 12px;
+  margin-bottom: 7px;
+  overflow: hidden;
+}
+.row-actions {
+  position: absolute; top: 0; right: 0; bottom: 0;
+  display: flex;
+  z-index: 1;
+}
+.row-actions button {
+  width: 68px;
+  font-size: 12.5px; font-weight: 600;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+}
+.row-actions .ra-edit { background: #2a2b2e; color: var(--primary); }
+.row-actions .ra-del { background: var(--danger-soft); color: var(--danger); }
+
+.row {
+  position: relative; z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  background: #17181a;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: 12px 14px 12px 14px;
+  cursor: pointer;
+  transition: transform .18s;
+  touch-action: pan-y;
+}
+.row:active { background: #1c1d1f; }
+.row.sel { border-color: rgba(203,174,136,.45); box-shadow: 0 0 0 1px rgba(203,174,136,.25); }
+
+/* 迷你排盘：干上支下 4 列，无框无底，日柱不再包裹 */
+.mc { display: flex; gap: 4px; flex-shrink: 0; }
+.mc-col {
+  width: 26px;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 1px 0;
+}
+.mc-col .gan, .mc-col .zhi { font-size: 20px; font-weight: 600; line-height: 1.3; }
+
+.binfo { flex: 1; min-width: 0; }
+.binfo .r1 { display: flex; align-items: center; gap: 8px; }
+.binfo .name { font-size: 14.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.binfo .tagchip { margin-left: auto; }
+.binfo .r2 {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 5px;
+  font-size: 11.5px; color: var(--muted-2);
+}
+.binfo .r2 .dot { width: 3px; height: 3px; border-radius: 50%; background: #3a3b3e; }
+
+/* 排序模式 */
+.handle {
+  position: absolute; left: 1px; top: 50%;
+  transform: translateY(-50%);
+  width: 18px; height: 44px;
+  display: none; align-items: center; justify-content: center;
+  color: var(--muted-2);
+  font-size: 13px; letter-spacing: -1px;
+  cursor: grab;
+  touch-action: none;
+  z-index: 3;
+}
+body.sortmode .handle { display: flex; }
+body.sortmode .row { padding-left: 26px; cursor: default; }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="statusbar"><span>1:36</span><span class="sb-icons"><i class="sb-dot on"></i><i class="sb-dot on"></i><i class="sb-dot"></i></span></div>
+  <div class="page">
+    <div class="phead">
+      <button class="back">‹</button>
+      <span class="title">案例库</span>
+      <span class="count" id="total">(13)</span>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="sortBtn" title="排序模式">⇅</button>
+    </div>
+    <div class="toolbar">
+      <div class="searchbox">
+        <span class="s-ico">⌕</span>
+        <input id="search" type="text" placeholder="搜索案例...">
+      </div>
+      <button class="tb-btn sec" id="importBtn">导入</button>
+      <button class="tb-btn pri" id="createBtn">＋ 新建</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="list" id="list"></div>
+    <div class="sortbar" id="sortbar" hidden><span>排序模式</span><b>拖动卡片左侧手柄</b><span>调整顺序</span></div>
+  </div>
+  <div class="toast" id="toast"><span></span></div>
+</div>
+
+<script>
+const TAGS = ['家人','恋人','自己','朋友','父母','案例'];
+const CASES = [
+  { id:'1',  name:'阿曾二女儿', g:'f', tag:'朋友', date:'2026-01-13', age:1,  p:['乙巳','己丑','丁亥','庚戌'] },
+  { id:'2',  name:'羊刃格3',    g:'f', tag:'案例', date:'1995-04-03', age:32, p:['乙亥','己卯','甲子','丙寅'] },
+  { id:'3',  name:'羊刃格2',    g:'f', tag:'案例', date:'1996-12-31', age:31, p:['丙子','庚子','壬寅','戊申'] },
+  { id:'4',  name:'羊刃格1',    g:'m', tag:'案例', date:'1982-05-14', age:45, p:['壬戌','乙巳','丁酉','丙午'] },
+  { id:'5',  name:'建禄格4',    g:'m', tag:'案例', date:'1995-06-04', age:32, p:['乙亥','辛巳','丙子','己亥'] },
+  { id:'6',  name:'建禄格3',    g:'f', tag:'案例', date:'1996-02-15', age:31, p:['丙子','庚寅','壬午','壬寅'] },
+  { id:'7',  name:'建禄格2',    g:'f', tag:'朋友', date:'1997-09-13', age:29, p:['丁丑','己酉','庚辰','戊寅'] },
+  { id:'8',  name:'母亲',       g:'f', tag:'父母', date:'1962-08-09', age:64, p:['壬寅','己酉','己酉','甲子'] },
+  { id:'9',  name:'父亲',       g:'m', tag:'父母', date:'1960-03-21', age:66, p:['庚子','己卯','辛丑','甲午'] },
+  { id:'10', name:'林一',       g:'f', tag:'恋人', date:'1998-10-24', age:28, p:['戊寅','壬戌','癸卯','壬子'] },
+  { id:'11', name:'本人',       g:'m', tag:'自己', date:'1993-11-08', age:33, p:['癸酉','癸亥','辛巳','壬辰'] },
+  { id:'12', name:'姐姐',       g:'f', tag:'家人', date:'1990-06-30', age:36, p:['庚午','癸未','丁丑','癸卯'] },
+  { id:'13', name:'爷爷',       g:'m', tag:'家人', date:'1936-03-05', age:90, p:['丙子','庚寅','戊戌','戊申'] },
+];
+const EL = { '甲':'e-wood','乙':'e-wood','丙':'e-fire','丁':'e-fire','戊':'e-earth','己':'e-earth','庚':'e-metal','辛':'e-metal','壬':'e-water','癸':'e-water','子':'e-water','丑':'e-earth','寅':'e-wood','卯':'e-wood','辰':'e-earth','巳':'e-fire','午':'e-fire','未':'e-earth','申':'e-metal','酉':'e-metal','戌':'e-earth','亥':'e-water' };
+const cnDate = d => { const [y,m,day] = d.split('-'); return `${+y}年${+m}月${+day}日`; };
+
+const $ = s => document.querySelector(s);
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast');
+  t.querySelector('span').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+let selectedTag = null, search = '', sortMode = false, openId = null;
+
+const chipsEl = $('#chips');
+function renderChips() {
+  const counts = { all: CASES.length };
+  TAGS.forEach(t => counts[t] = CASES.filter(c => c.tag === t).length);
+  chipsEl.innerHTML = [`<button class="chip${selectedTag === null ? ' on' : ''}" data-t="">全部<span class="n">(${counts.all})</span></button>`]
+    .concat(TAGS.map(t => `<button class="chip${selectedTag === t ? ' on' : ''}" data-t="${t}">${t}<span class="n">(${counts[t]})</span></button>`))
+    .join('');
+}
+chipsEl.addEventListener('click', e => {
+  const c = e.target.closest('.chip');
+  if (!c) return;
+  selectedTag = c.dataset.t || null;
+  renderChips();
+  renderList();
+});
+
+function filtered() {
+  return CASES.filter(c =>
+    (!selectedTag || c.tag === selectedTag) &&
+    (!search || c.name.includes(search) || c.date.includes(search)));
+}
+
+function mcHTML(pairs) {
+  return `<div class="mc">${pairs.map(pair => `
+    <div class="mc-col serif">
+      <span class="gan ${EL[pair[0]]}">${pair[0]}</span>
+      <span class="zhi ${EL[pair[1]]}">${pair[1]}</span>
+    </div>`).join('')}</div>`;
+}
+
+const listEl = $('#list');
+function renderList() {
+  const items = filtered();
+  $('#total').textContent = `(${CASES.length})`;
+  if (!items.length) {
+    listEl.innerHTML = `<div class="empty">没有匹配的案例<br><span style="font-size:11px;">换个关键词或分类试试</span></div>`;
+    return;
+  }
+  listEl.innerHTML = items.map(c => `
+    <div class="rowwrap" data-id="${c.id}">
+      <div class="row-actions">
+        <button class="ra-edit" data-id="${c.id}">✎<span>编辑</span></button>
+        <button class="ra-del" data-id="${c.id}">✕<span>删除</span></button>
+      </div>
+      <div class="row" data-id="${c.id}">
+        <span class="handle">⣿</span>
+        ${mcHTML(c.p)}
+        <div class="binfo">
+          <div class="r1">
+            <span class="seal ${c.g}">${c.g === 'm' ? '乾' : '坤'}</span>
+            <span class="name">${c.name}</span>
+            <span class="tagchip">${c.tag}</span>
+          </div>
+          <div class="r2">
+            <span>${cnDate(c.date)}</span><span class="dot"></span><span>${c.age}岁</span>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// 左滑操作（同方案 C）
+let swiping = null, startX = 0, dx = 0, suppressClick = false;
+const REVEAL = 140;
+listEl.addEventListener('pointerdown', e => {
+  const row = e.target.closest('.row');
+  if (!row || sortMode) return;
+  closeOpen();
+  swiping = row; startX = e.clientX; dx = 0;
+  row.style.transition = 'none';
+  row.setPointerCapture?.(e.pointerId);
+});
+listEl.addEventListener('pointermove', e => {
+  if (!swiping) return;
+  dx = e.clientX - startX;
+  if (dx > 0) dx = 0;
+  swiping.style.transform = `translateX(${Math.max(dx, -REVEAL)}px)`;
+});
+function endSwipe() {
+  if (!swiping) return;
+  const row = swiping; swiping = null;
+  row.style.transition = '';
+  if (Math.abs(dx) > 8) suppressClick = true; // 滑动后浏览器补发的 click 不当作点选
+  if (dx < -44) {
+    row.style.transform = `translateX(${-REVEAL}px)`;
+    openId = row.dataset.id;
+  } else {
+    row.style.transform = '';
+    openId = null;
+  }
+}
+listEl.addEventListener('pointerup', endSwipe);
+listEl.addEventListener('pointercancel', endSwipe);
+function closeOpen() {
+  if (!openId) return;
+  const r = listEl.querySelector(`.row[data-id="${openId}"]`);
+  if (r) r.style.transform = '';
+  openId = null;
+}
+
+listEl.addEventListener('click', e => {
+  if (suppressClick) { suppressClick = false; return; }
+  const edit = e.target.closest('.ra-edit');
+  if (edit) {
+    const c = CASES.find(x => x.id === edit.dataset.id);
+    toast(`打开编辑「${c.name}」`);
+    return;
+  }
+  const del = e.target.closest('.ra-del');
+  if (del) {
+    const i = CASES.findIndex(x => x.id === del.dataset.id);
+    const [gone] = CASES.splice(i, 1);
+    openId = null;
+    renderChips();
+    renderList();
+    toast(`已删除「${gone.name}」（演示）`);
+    return;
+  }
+  const handle = e.target.closest('.handle');
+  if (handle) { toast('演示：按住手柄拖动排序'); return; }
+  const row = e.target.closest('.row');
+  if (row) {
+    if (openId === row.dataset.id) { closeOpen(); return; }
+    if (sortMode) return;
+    const c = CASES.find(x => x.id === row.dataset.id);
+    toast(`已选择「${c.name}」并载入排盘`);
+  }
+});
+
+$('#sortBtn').addEventListener('click', () => {
+  sortMode = !sortMode;
+  $('#sortBtn').classList.toggle('on', sortMode);
+  $('#sortbar').hidden = !sortMode;
+  closeOpen();
+  renderList();
+  if (sortMode) toast('已进入排序模式');
+});
+
+$('#search').addEventListener('input', e => { search = e.target.value.trim(); renderList(); });
+$('#importBtn').addEventListener('click', () => toast('打开导入（演示）'));
+$('#createBtn').addEventListener('click', () => toast('打开新建案例（演示）'));
+
+renderChips();
+renderList();
+</script>
+</body>
+</html>

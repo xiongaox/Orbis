@@ -14,7 +14,7 @@
  * - `default BaziDatePicker`
  *
  * 依赖关系：
- * - 上游依赖：外部依赖 `react`、外部依赖 `lucide-react`、内部模块 `baziSearchUtil` 等 5 个模块
+ * - 上游依赖：外部依赖 `react`、外部依赖 `lucide-react`、内部模块 `baziSearchUtil`、`baziJichuMap`、`baziStyleMap`、`useToast`
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 
@@ -22,40 +22,69 @@ import { useState } from 'react';
 import { Loader2, Search, ChevronRight } from 'lucide-react';
 import { baziReverseSearch, type BaziSearchResult, type BaziTarget } from '../../../lib/xuan-bazi/utils/baziSearchUtil';
 import { TIAN_GAN, DI_ZHI } from '../../../lib/xuan-bazi/maps/baziJichuMap';
-import { getElementTextColor, getElementBgColor } from '../../../lib/xuan-bazi/maps/baziStyleMap';
+import { getElementTextColor } from '../../../lib/xuan-bazi/maps/baziStyleMap';
+import { useToast } from '../../../hooks/useToast';
+import Toast from '../../Common/Toast';
+import { cn } from '../../../lib/utils';
 
 interface BaziDatePickerProps {
     onChange?: (val: (string | null)[]) => void;
     onSelectDate?: (date: Date) => void;
 }
 
-const STEMS = [...TIAN_GAN];
-const BRANCHES = [...DI_ZHI]; // Keep local names for minimal diff, or refactor usages
-
 type SlotIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7; // Y-Gan, Y-Zhi, M-Gan, M-Zhi, D-Gan, D-Zhi, H-Gan, H-Zhi
 
+const STEMS: string[] = [...TIAN_GAN];
+const BRANCHES: string[] = [...DI_ZHI];
+// 键盘固定双行：天干按序 2×5，地支按阴阳 2×6（偶位为阳），键数与行数不随输入状态跳动
+const STEM_ROWS: string[][] = [STEMS.slice(0, 5), STEMS.slice(5)];
+const YANG_ZHI: string[] = DI_ZHI.filter((_, i) => i % 2 === 0);
+const YIN_ZHI: string[] = DI_ZHI.filter((_, i) => i % 2 === 1);
+const PILLAR_NAMES = ['年', '月', '日', '时'] as const;
+
+// 从 from+1 起找下一个空位，找不到则回绕到第一个空位；全部填满返回 null（四柱已成）
+function nextEmptySlot(arr: (string | null)[], from: SlotIndex): SlotIndex | null {
+    for (let i = from + 1; i < arr.length; i++) {
+        if (!arr[i]) return i as SlotIndex;
+    }
+    for (let i = 0; i < arr.length; i++) {
+        if (!arr[i]) return i as SlotIndex;
+    }
+    return null;
+}
+
 export default function BaziDatePicker({ onChange, onSelectDate }: BaziDatePickerProps) {
-    // Array of 8 nulls
     const [slots, setSlots] = useState<(string | null)[]>(Array(8).fill(null));
     const [activeSlot, setActiveSlot] = useState<SlotIndex | null>(0);
     const [isSearching, setIsSearching] = useState(false);
     const [searchResults, setSearchResults] = useState<BaziSearchResult[]>([]);
     const [showResults, setShowResults] = useState(false);
+    const { toast, showToast } = useToast();
+
+    const isComplete = slots.every(Boolean);
 
     const handleSelect = (char: string) => {
         if (activeSlot === null) return;
 
         const newSlots = [...slots];
         newSlots[activeSlot] = char;
+
+        // 天干换到另一阴阳后，同柱旧地支必然失配（如 乙寅）：清掉地支，让焦点落回地支位强制重选
+        if (activeSlot % 2 === 0) {
+            const zhi = newSlots[activeSlot + 1];
+            if (zhi && (BRANCHES.indexOf(zhi) % 2 === 0) !== (STEMS.indexOf(char) % 2 === 0)) {
+                newSlots[activeSlot + 1] = null;
+            }
+        }
+
         setSlots(newSlots);
         onChange?.(newSlots);
+        setActiveSlot(nextEmptySlot(newSlots, activeSlot));
+    };
 
-        // Auto advance
-        if (activeSlot < 7) {
-            setActiveSlot((activeSlot + 1) as SlotIndex);
-        } else {
-            setActiveSlot(null);
-        }
+    const handleSlotClick = (index: SlotIndex) => {
+        // 任意字位（含已填地支）点击后直接聚焦该位；失配由 handleSelect 选天干时兜底清理
+        setActiveSlot(index);
     };
 
     const handleClear = () => {
@@ -68,7 +97,7 @@ export default function BaziDatePicker({ onChange, onSelectDate }: BaziDatePicke
 
     const handleSearch = async () => {
         if (slots.some(s => !s)) {
-            alert('请完整填写四柱信息');
+            showToast('请先完整填写四柱', 'error');
             return;
         }
 
@@ -85,7 +114,7 @@ export default function BaziDatePicker({ onChange, onSelectDate }: BaziDatePicke
             setSearchResults(results);
 
             if (results.length === 0) {
-                alert('未找到匹配的日期 (1900-2100年)');
+                showToast('未找到匹配的日期 (1900-2100年)', 'error');
             } else if (results.length === 1 && onSelectDate) {
                 onSelectDate(results[0].solarDate);
             } else {
@@ -93,144 +122,206 @@ export default function BaziDatePicker({ onChange, onSelectDate }: BaziDatePicke
             }
         } catch (e) {
             console.error(e);
-            alert('查询出错');
+            showToast('查询出错', 'error');
         } finally {
             setIsSearching(false);
         }
     };
 
-    const isSelectingStem = activeSlot !== null && activeSlot % 2 === 0;
-
-    // Filter logic for Branches based on Stem polarity
-    let currentOptions = isSelectingStem ? STEMS : BRANCHES;
-
-    if (!isSelectingStem && activeSlot !== null) {
-        const stemSlotIndex = activeSlot - 1;
-        const selectedStem = slots[stemSlotIndex];
-
-        if (selectedStem) {
-            const stemIndex = STEMS.indexOf(selectedStem as typeof STEMS[number]);
-            const isYang = stemIndex % 2 === 0;
-            currentOptions = BRANCHES.filter((_, idx) => (idx % 2 === 0) === isYang);
+    // 键盘行数据：天干轮全开放；地支轮按同柱天干阴阳锁定另一组（天干未定时两组都开放）
+    const keyboardRows: { chars: string[]; enabled: boolean }[] = (() => {
+        if (activeSlot === null) {
+            return STEM_ROWS.map(chars => ({ chars, enabled: false }));
         }
-    }
+        if (activeSlot % 2 === 0) {
+            return STEM_ROWS.map(chars => ({ chars, enabled: true }));
+        }
+        const ganValue = slots[activeSlot - 1];
+        if (!ganValue) {
+            return [
+                { chars: YANG_ZHI, enabled: true },
+                { chars: YIN_ZHI, enabled: true },
+            ];
+        }
+        const isYangStem = STEMS.indexOf(ganValue) % 2 === 0;
+        return [
+            { chars: YANG_ZHI, enabled: isYangStem },
+            { chars: YIN_ZHI, enabled: !isYangStem },
+        ];
+    })();
+
+    const hint = (() => {
+        if (activeSlot === null) {
+            return <>四柱已成，可<span className="font-medium text-primary">反查日期</span></>;
+        }
+        const name = PILLAR_NAMES[Math.floor(activeSlot / 2)];
+        if (activeSlot % 2 === 0) {
+            return <>正在输入 · <span className="font-medium text-primary">{name}柱天干</span></>;
+        }
+        const ganValue = slots[activeSlot - 1];
+        const pairHint = ganValue ? ` · 取${STEMS.indexOf(ganValue) % 2 === 0 ? '阳' : '阴'}支` : '';
+        return <>正在输入 · <span className="font-medium text-primary">{name}柱地支</span>{pairHint}</>;
+    })();
 
     return (
-        <div className="flex flex-col h-full bg-popover">
-            {/* Pillars Display Area */}
-            <div className="grid grid-cols-4 gap-4 px-6 py-6 border-b border-border bg-popover z-10 shadow-sm relative">
-                {['年柱', '月柱', '日柱', '时柱'].map((label, colIndex) => {
-                    const ganIndex = colIndex * 2;
-                    const zhiIndex = colIndex * 2 + 1;
-
-                    const ganValue = slots[ganIndex];
-                    const zhiValue = slots[zhiIndex];
-
-                    const isGanActive = activeSlot === ganIndex;
-                    const isZhiActive = activeSlot === zhiIndex;
-
+        <div className="flex h-full flex-col bg-popover">
+            {/* 柱卡区：每柱一张竖卡，衬线大字直接落卡，空位以「干 / 支」水印占位 */}
+            <div className="grid grid-cols-4 gap-2 px-4 pt-4">
+                {PILLAR_NAMES.map((name, col) => {
+                    const ganIndex = (col * 2) as SlotIndex;
+                    const zhiIndex = (col * 2 + 1) as SlotIndex;
                     return (
-                        <div key={colIndex} className="flex flex-col items-center gap-3">
-                            <span className="text-sm text-foreground font-medium select-none">{label}</span>
-
-                            {/* Stem Slot */}
-                            <div
-                                onClick={() => setActiveSlot(ganIndex as SlotIndex)}
-                                className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl font-serif font-bold cursor-pointer transition-all duration-200 select-none border
-                                    ${isGanActive ? 'border-primary shadow-[0_0_10px_rgba(var(--primary),0.3)] bg-transparent' : 'border-border/30 bg-muted hover:bg-muted/80'}
-                                    ${ganValue ? getElementTextColor(ganValue) : ''}
-                                `}
-                                style={{
-                                    backgroundColor: ganValue && !isGanActive ? getElementBgColor(ganValue)?.replace('/5', '/10') : undefined
-                                }}
-                            >
-                                {ganValue}
-                            </div>
-
-                            {/* Branch Slot */}
-                            <div
-                                onClick={() => setActiveSlot(zhiIndex as SlotIndex)}
-                                className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl font-serif font-bold cursor-pointer transition-all duration-200 select-none border
-                                    ${isZhiActive ? 'border-primary shadow-[0_0_10px_rgba(var(--primary),0.3)] bg-transparent' : 'border-border/30 bg-muted hover:bg-muted/80'}
-                                    ${zhiValue ? getElementTextColor(zhiValue) : ''}
-                                `}
-                                style={{
-                                    backgroundColor: zhiValue && !isZhiActive ? getElementBgColor(zhiValue)?.replace('/5', '/10') : undefined
-                                }}
-                            >
-                                {zhiValue}
-                            </div>
+                        <div key={name} className="flex flex-col items-center rounded-xl border border-border/60 bg-secondary/30 px-1 pb-3 pt-2">
+                            <span className="select-none text-[10px] tracking-[0.2em] text-muted-foreground">{name}</span>
+                            <PillarSlot index={ganIndex} value={slots[ganIndex]} activeSlot={activeSlot} onSelect={handleSlotClick} />
+                            <span className="my-1 h-px w-3.5 bg-border" />
+                            <PillarSlot index={zhiIndex} value={slots[zhiIndex]} activeSlot={activeSlot} onSelect={handleSlotClick} />
                         </div>
                     );
                 })}
             </div>
 
-            {/* Range & Actions */}
-            <div className="flex items-center justify-between px-6 py-3 text-xs text-muted-foreground bg-popover z-10 border-b border-border">
-                <span>范围：1900-2100</span>
-                <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={handleSearch}
-                        disabled={isSearching}
-                        className={`flex items-center gap-1 px-3 py-1.5 rounded-full transition-all text-xs font-medium border border-transparent
-                            ${isSearching ? 'bg-muted text-muted-foreground cursor-wait' : 'bg-primary/10 text-primary hover:bg-primary/20 hover:border-primary/20 active:scale-95'}
-                        `}
-                    >
-                        {isSearching ? <Loader2 className="w-3 h-3 animate-spin" /> : <Search className="w-3 h-3" />}
-                        {isSearching ? '...' : '反查'}
-                    </button>
-                    <div className="w-[1px] h-3 bg-border mx-1" />
-                    <button
-                        type="button"
-                        onClick={handleClear}
-                        className="hover:text-foreground px-2 py-1.5 rounded-md hover:bg-muted transition-colors"
-                    >
-                        清除
-                    </button>
-                </div>
+            {/* 输入进度点：8 点对应 8 字 */}
+            <div className="flex justify-center gap-3 pb-2 pt-3">
+                {PILLAR_NAMES.map((name, col) => (
+                    <div key={name} className="flex gap-1">
+                        {[0, 1].map(k => {
+                            const i = (col * 2 + k) as SlotIndex;
+                            return (
+                                <span
+                                    key={k}
+                                    className={cn(
+                                        'h-1.5 w-1.5 rounded-full transition-colors',
+                                        slots[i]
+                                            ? 'bg-primary'
+                                            : activeSlot === i
+                                                ? 'animate-pen-breathe border-[1.5px] border-primary bg-transparent'
+                                                : 'bg-muted-foreground/25'
+                                    )}
+                                />
+                            );
+                        })}
+                    </div>
+                ))}
             </div>
 
-            {/* Selection Grid or Results */}
-            <div className="flex-1 overflow-y-auto w-full p-4 relative min-h-0">
-                {showResults ? (
-                    <div className="flex flex-col gap-2 animate-in fade-in zoom-in-95 duration-200">
-                        <div className="flex justify-between items-center mb-2 px-1">
-                            <span className="text-sm font-medium text-foreground">找到 {searchResults.length} 个结果:</span>
-                            <button onClick={() => setShowResults(false)} className="text-xs text-primary hover:underline">返回修改</button>
-                        </div>
-                        {searchResults.map((res, i) => (
-                            <button
-                                type="button"
-                                key={i}
-                                onClick={() => onSelectDate?.(res.solarDate)}
-                                className="p-3 rounded-xl bg-muted/30 border border-transparent hover:border-primary/50 hover:bg-primary/5 text-left text-sm transition-all flex items-center justify-between group"
-                            >
-                                <span className="font-mono text-foreground/90 group-hover:text-primary transition-colors">{res.description}</span>
-                                <ChevronRight className="w-4 h-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </button>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-5 gap-3 pb-8">
-                        {currentOptions.map((char) => (
-                            <button
-                                type="button"
-                                key={char}
-                                onClick={() => handleSelect(char)}
-                                className={`
-                                    aspect-square rounded-xl flex items-center justify-center text-xl font-serif font-bold transition-all
-                                    ${getElementTextColor(char)}
-                                    ${getElementBgColor(char)}
-                                    hover:brightness-95 active:scale-95
-                                `}
-                            >
-                                {char}
-                            </button>
-                        ))}
-                    </div>
-                )}
+            {/* 状态行：当前输入位置 / 配对规则 / 有效年份范围 */}
+            <div className="flex items-center justify-between px-5 pb-3 text-xs text-muted-foreground">
+                <span>{hint}</span>
+                <span>范围 1900–2100</span>
             </div>
-        </div >
+
+            {/* 字盘 / 反查结果 */}
+            {showResults ? (
+                <div className="max-h-56 overflow-y-auto px-4">
+                    <div className="mb-2 flex items-center justify-between px-1">
+                        <span className="text-sm font-medium text-foreground">找到 {searchResults.length} 个结果</span>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setShowResults(false);
+                                setActiveSlot(prev => (prev === null ? 0 : prev));
+                            }}
+                            className="text-xs text-primary hover:underline"
+                        >
+                            返回修改
+                        </button>
+                    </div>
+                    {searchResults.map((res, i) => (
+                        <button
+                            type="button"
+                            key={i}
+                            onClick={() => onSelectDate?.(res.solarDate)}
+                            className="mb-2 flex w-full items-center justify-between rounded-xl border border-border/60 bg-secondary/40 px-3.5 py-3 text-left transition-colors hover:border-primary/50 hover:bg-primary/5 active:bg-primary/10"
+                        >
+                            <span className="font-mono text-sm text-foreground/90">{res.description}</span>
+                            <ChevronRight className="h-4 w-4 text-primary" />
+                        </button>
+                    ))}
+                </div>
+            ) : (
+                <div className="min-h-0 flex-1 px-3">
+                    {keyboardRows.map((row, r) => (
+                        <div key={r} className="mb-1.5 flex gap-1.5">
+                            {row.chars.map(char => (
+                                <button
+                                    type="button"
+                                    key={char}
+                                    onClick={() => handleSelect(char)}
+                                    disabled={!row.enabled}
+                                    className={cn(
+                                        'h-11 flex-1 select-none rounded-lg font-serif text-xl font-semibold transition-all active:scale-95 active:bg-muted',
+                                        getElementTextColor(char),
+                                        row.enabled ? 'hover:bg-muted/40' : 'pointer-events-none opacity-15'
+                                    )}
+                                >
+                                    {char}
+                                </button>
+                            ))}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* 动作行：清除 + 反查（四柱填满后升为主按钮） */}
+            <div className="flex items-center gap-2.5 px-4 pb-4 pt-1">
+                <button
+                    type="button"
+                    onClick={handleClear}
+                    className="h-11 rounded-lg border border-border px-4 text-sm text-muted-foreground transition-colors hover:text-foreground active:bg-muted/40"
+                >
+                    清除
+                </button>
+                <button
+                    type="button"
+                    onClick={handleSearch}
+                    disabled={isSearching}
+                    className={cn(
+                        'flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg text-sm font-semibold transition-all active:scale-[0.99]',
+                        isComplete
+                            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                            : 'bg-primary/10 text-primary hover:bg-primary/15'
+                    )}
+                >
+                    {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    反查日期
+                </button>
+            </div>
+
+            <Toast toast={toast} />
+        </div>
+    );
+}
+
+interface PillarSlotProps {
+    index: SlotIndex;
+    value: string | null;
+    activeSlot: SlotIndex | null;
+    onSelect: (index: SlotIndex) => void;
+}
+
+/** 柱内单字位：空位显示「干 / 支」水印，当前输入位以呼吸金线标记笔位 */
+function PillarSlot({ index, value, activeSlot, onSelect }: PillarSlotProps) {
+    const isGan = index % 2 === 0;
+    const isActive = activeSlot === index;
+    return (
+        <button
+            type="button"
+            onClick={() => onSelect(index)}
+            aria-label={`${PILLAR_NAMES[Math.floor(index / 2)]}柱${isGan ? '天干' : '地支'}`}
+            className="relative flex h-[46px] w-full items-center justify-center"
+        >
+            <span
+                className={cn(
+                    'select-none font-serif text-3xl font-bold leading-none',
+                    value ? getElementTextColor(value) : 'text-muted-foreground/25'
+                )}
+            >
+                {value ?? (isGan ? '干' : '支')}
+            </span>
+            {isActive && (
+                <span className="absolute bottom-0 left-1/2 h-[2.5px] w-6 -translate-x-1/2 animate-pen-breathe rounded-full bg-primary" />
+            )}
+        </button>
     );
 }

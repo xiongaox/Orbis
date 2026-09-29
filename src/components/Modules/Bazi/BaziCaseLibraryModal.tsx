@@ -69,7 +69,7 @@ export default function BaziCaseLibraryModal({
                 return matchesSearch && !!matchesTag;
             }}
             getItemName={(item) => item.name}
-            renderCard={({ caseData, isSelected, onSelect, onEdit, onDelete }) => (
+            renderCard={({ caseData, isSelected, onSelect, onEdit, onDelete, sortMode }) => (
                 <SortableCaseCard
                     key={caseData.id}
                     caseData={caseData}
@@ -77,6 +77,7 @@ export default function BaziCaseLibraryModal({
                     onSelect={onSelect}
                     onEdit={onEdit}
                     onDelete={onDelete}
+                    sortMode={sortMode}
                 />
             )}
             renderSubModals={({ showCreateModal, showImportModal, editingCase, closeCreateModal, closeImportModal, closeEditModal, refreshData }) => (

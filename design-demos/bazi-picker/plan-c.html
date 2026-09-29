@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 C · 四宫印章排盘</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+/* 方案 C：2×2 传统排盘四宫格，柱名为印章角标，大字衬线；键盘无边框字盘 */
+.c-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 14px 16px 6px; }
+.c-palace {
+  position: relative;
+  min-height: 118px;
+  border: 1px solid #2a2b2e;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #1b1c1e, #17181a);
+  padding: 14px 10px 16px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer;
+  transition: border-color .18s, box-shadow .18s, background .18s;
+}
+.c-seal {
+  position: absolute; top: 9px; left: 9px;
+  width: 22px; height: 22px;
+  border-radius: 6px;
+  background: #2a2422; color: #e2d5c5;
+  font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .18s, color .18s;
+}
+.c-palace .c-char { font-size: 34px; font-weight: 700; line-height: 38px; }
+.c-palace .c-char.ph { color: #2f3033; font-weight: 400; }
+.c-palace.cur {
+  border-color: rgba(203,174,136,.55);
+  background: linear-gradient(180deg, #221f1a, #1a1917);
+  box-shadow: 0 0 0 1px rgba(203,174,136,.22), 0 0 22px rgba(203,174,136,.1);
+}
+.c-palace.cur .c-seal { background: var(--primary); color: var(--primary-fg); }
+
+.c-status {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 18px 10px;
+  font-size: 11.5px; color: var(--muted);
+}
+.c-status .hint b { color: var(--primary); font-weight: 600; }
+.c-status .clear-btn { font-size: 11.5px; color: var(--muted); padding: 4px 8px; border-radius: 7px; }
+.c-status .clear-btn:active { background: rgba(255,255,255,.06); color: var(--text); }
+
+.c-kbd .key { background: transparent; border-radius: 10px; font-size: 21px; }
+.c-kbd .key:active { background: #232427; }
+
+.c-actions { padding: 2px 16px 14px; }
+.c-reverse {
+  width: 100%; height: 44px;
+  border-radius: 10px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 14px; font-weight: 600;
+  transition: background .2s, color .2s;
+}
+.c-reverse.ready { background: var(--primary); color: var(--primary-fg); }
+.c-reverse:active { transform: scale(.99); }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="statusbar"><span>11:55</span><span class="sb-icons"><i class="sb-dot on"></i><i class="sb-dot on"></i><i class="sb-dot"></i></span></div>
+  <div class="page">
+    <div class="phead"><button class="back">‹</button>新建案例</div>
+    <div class="ghostform">
+      <div class="gf lab"></div><div class="gf inp"></div>
+      <div class="gf lab"></div><div class="gf inp"></div>
+      <div class="gf lab"></div><div class="gf row"></div>
+    </div>
+  </div>
+  <div class="overlay"></div>
+  <div class="sheet-wrap">
+    <div class="sheet">
+      <div class="sheet-head">
+        <button class="sh-cancel">取消</button>
+        <div class="tabs"><span class="tab">公历</span><span class="tab">农历</span><span class="tab on">四柱</span></div>
+        <button class="sh-ok">确定</button>
+      </div>
+
+      <div class="c-grid" id="grid"></div>
+
+      <div class="c-status">
+        <span class="hint" id="hint"></span>
+        <span style="display:flex;align-items:center;gap:8px;">
+          <span>范围 1900–2100</span>
+          <button class="clear-btn" id="clear">清除</button>
+        </span>
+      </div>
+
+      <div class="kbd c-kbd" id="kbd"></div>
+
+      <div class="results" id="results" hidden>
+        <div class="res-cap"><b>找到 2 个匹配日期</b><button id="res-back">返回修改</button></div>
+        <div class="res-item" data-d="1984-03-05 07:20"><span class="mono">1984-03-05 07:20</span><span class="tag">甲子年 · 丙寅月</span></div>
+        <div class="res-item" data-d="2044-03-20 07:20"><span class="mono">2044-03-20 07:20</span><span class="tag">甲子年 · 丙寅月</span></div>
+      </div>
+
+      <div class="c-actions">
+        <button class="c-reverse" id="reverse">反查日期</button>
+      </div>
+    </div>
+  </div>
+  <div class="toast" id="toast"><span></span></div>
+</div>
+
+<script>
+const STEMS = '甲乙丙丁戊己庚辛壬癸'.split('');
+const YANG_B = ['子','寅','辰','午','申','戌'], YIN_B = ['丑','卯','巳','未','酉','亥'];
+const EL = { '甲':'e-wood','乙':'e-wood','丙':'e-fire','丁':'e-fire','戊':'e-earth','己':'e-earth','庚':'e-metal','辛':'e-metal','壬':'e-water','癸':'e-water','子':'e-water','丑':'e-earth','寅':'e-wood','卯':'e-wood','辰':'e-earth','巳':'e-fire','午':'e-fire','未':'e-earth','申':'e-metal','酉':'e-metal','戌':'e-earth','亥':'e-water' };
+const PILLAR = ['年','月','日','时'];
+
+let slots = ['甲','子','丙','寅',null,null,null,null];
+let active = 4;
+let toastTimer;
+
+const $ = s => document.querySelector(s);
+const full = () => slots.every(Boolean);
+
+function toast(msg) {
+  const t = $('#toast');
+  t.querySelector('span').textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// 四宫
+$('#grid').innerHTML = PILLAR.map((n, c) => `
+  <div class="c-palace" data-col="${c}">
+    <span class="c-seal serif">${n}</span>
+    <div class="c-char serif" data-p="${c*2}"></div>
+    <div class="c-char serif" data-p="${c*2+1}"></div>
+  </div>`).join('');
+const palaces = [...$('#grid').querySelectorAll('.c-palace')];
+palaces.forEach(p => p.addEventListener('click', () => {
+  const col = +p.dataset.col;
+  const a = col * 2, b = col * 2 + 1;
+  active = !slots[a] ? a : (!slots[b] ? b : a);
+  render();
+}));
+
+// 从 from 起找下一个空位，找不到则回绕，全满返回 null
+function nextSlot(from) {
+  for (let i = from; i < 8; i++) if (!slots[i]) return i;
+  for (let i = 0; i < 8; i++) if (!slots[i]) return i;
+  return null;
+}
+
+function keyRow(chars, lbl, enabled) {
+  const keys = chars.map(c => `<div class="key serif ${EL[c]}${enabled ? '' : ' dis'}" data-k="${c}">${c}</div>`).join('');
+  return `<div class="krow">${lbl ? `<div class="klabel v">${lbl}</div>` : ''}${keys}</div>`;
+}
+
+function renderKbd() {
+  const kbd = $('#kbd');
+  if (active === null) {
+    kbd.innerHTML = keyRow(STEMS.slice(0,5), '', false) + keyRow(STEMS.slice(5), '', false);
+    return;
+  }
+  if (active % 2 === 0) {
+    kbd.innerHTML = keyRow(STEMS.slice(0,5), '', true) + keyRow(STEMS.slice(5), '', true);
+  } else {
+    const yang = STEMS.indexOf(slots[active-1]) % 2 === 0;
+    kbd.innerHTML = keyRow(YANG_B, '阳支', yang) + keyRow(YIN_B, '阴支', !yang);
+  }
+}
+
+function render() {
+  document.querySelectorAll('.c-char').forEach(el => {
+    const i = +el.dataset.p, v = slots[i];
+    el.textContent = v || (i % 2 === 0 ? '干' : '支');
+    el.className = 'c-char serif' + (v ? ' ' + EL[v] : ' ph');
+  });
+  palaces.forEach(p => {
+    const col = +p.dataset.col;
+    p.classList.toggle('cur', active !== null && (active >> 1) === col);
+  });
+  $('#hint').innerHTML = active === null
+    ? '四柱已成，可<b>反查日期</b>'
+    : `正在输入 · <b>${PILLAR[active>>1]}柱${active % 2 ? '地支' : '天干'}</b>`;
+  renderKbd();
+  $('#reverse').classList.toggle('ready', full());
+}
+
+$('#kbd').addEventListener('click', e => {
+  const k = e.target.closest('.key');
+  if (!k) return;
+  slots[active] = k.dataset.k;
+  active = nextSlot(active + 1);
+  render();
+});
+
+$('#clear').addEventListener('click', () => {
+  slots = Array(8).fill(null);
+  active = 0;
+  $('#results').hidden = true;
+  $('#kbd').hidden = false;
+  render();
+});
+
+$('#reverse').addEventListener('click', () => {
+  if (!full()) { toast('请先完整填写四柱'); return; }
+  $('#kbd').hidden = true;
+  $('#results').hidden = false;
+});
+
+$('#res-back').addEventListener('click', () => {
+  $('#results').hidden = true;
+  $('#kbd').hidden = false;
+});
+
+[...document.querySelectorAll('.res-item')].forEach(r => r.addEventListener('click', () => {
+  toast(`已选定 ${r.dataset.d}，将切回公历页复核`);
+  $('#results').hidden = true;
+  $('#kbd').hidden = false;
+  render();
+}));
+
+render();
+</script>
+</body>
+</html>

@@ -264,7 +264,7 @@ export default function AdvancedDatePicker({ value, isOpen, onClose, onConfirm, 
 
                 {/* Bazi Picker Area */}
                 {mode === 'bazi' ? (
-                    <div className="h-[430px] bg-popover border-t border-border">
+                    <div className="max-h-[65vh] bg-popover border-t border-border">
                         <BaziDatePicker
                             onSelectDate={(date) => {
                                 // Sync local state and switch to solar mode for review

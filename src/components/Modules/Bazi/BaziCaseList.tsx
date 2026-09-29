@@ -143,19 +143,23 @@ export default function CaseList({
         item.birth_date.includes(search);
       const matchesTag = !selectedTag || (item.tags && item.tags.includes(selectedTag));
       return matchesSearch && matchesTag;
-    }).map(c => ({
-      id: c.id,
-      name: c.name,
-      date: new Date(c.birth_date).toLocaleDateString('zh-CN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      }),
-      type: 'bazi' as ChartType,
-      gender: c.gender === 'male' ? '男' : '女',
-      birthDate: c.birth_date,
-      tags: c.tags,
-    }));
+    }).map(c => {
+      // 出生日期带时辰：时柱本身由时辰决定，列表里必须可见
+      const birth = new Date(c.birth_date);
+      const hasBirth = !Number.isNaN(birth.getTime());
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return {
+        id: c.id,
+        name: c.name,
+        date: hasBirth
+          ? `${birth.getFullYear()}年${birth.getMonth() + 1}月${birth.getDate()}日 ${pad(birth.getHours())}:${pad(birth.getMinutes())}`
+          : c.birth_date,
+        type: 'bazi' as ChartType,
+        gender: c.gender === 'male' ? '男' : '女',
+        birthDate: c.birth_date,
+        tags: c.tags,
+      };
+    });
   }, [isAuthenticated, cases, search, selectedTag]);
 
   const handleDeleteCase = (id: string) => {

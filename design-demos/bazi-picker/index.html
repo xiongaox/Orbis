@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>四柱输入面板 · 三稿对比</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0b0c; color: #e4e0d8;
+  font-family: -apple-system, "PingFang SC", "Noto Sans SC", sans-serif;
+  padding: 28px 20px 60px;
+}
+h1 { font-size: 20px; margin-bottom: 6px; }
+.sub { font-size: 13px; color: #898989; margin-bottom: 10px; line-height: 1.7; max-width: 720px; }
+.sub b { color: #cbae88; font-weight: 600; }
+.fixes {
+  font-size: 12.5px; color: #898989; line-height: 1.9;
+  background: #141516; border: 1px solid #262729; border-radius: 10px;
+  padding: 12px 16px; margin-bottom: 28px; max-width: 720px;
+}
+.fixes li { margin-left: 18px; }
+.fixes b { color: #e4e0d8; font-weight: 600; }
+.row { display: flex; gap: 28px; overflow-x: auto; padding-bottom: 12px; align-items: flex-start; }
+.col { flex-shrink: 0; width: 420px; }
+.col h2 { font-size: 15px; margin-bottom: 4px; }
+.col .ref { font-size: 12px; color: #cbae88; margin-bottom: 4px; }
+.col p { font-size: 12px; color: #898989; line-height: 1.7; margin-bottom: 12px; min-height: 96px; }
+.col a { color: #cbae88; font-size: 12px; }
+iframe {
+  width: 390px; height: 844px;
+  border: 1px solid #333; border-radius: 30px; background: #101112;
+}
+</style>
+</head>
+<body>
+<h1>四柱输入面板（AdvancedDatePicker · 四柱页签）· 重构三稿</h1>
+<p class="sub">现状问题：四柱是 <b>8 个孤立方块</b>（天干一行地支一行，柱的概念不存在）；地支键盘只剩 6 键时 <b>大片留白</b>、键数在 10/6 之间跳动；「阳干配阳支」规则完全靠心算；反查和清除挤在一行小字里。三稿均为 <b>可交互 demo</b>（已预填年月两柱，可点击补完、切柱、反查看结果态；结果为演示假数据），暗色主题。选定方向后我再落地到 BaziDatePicker（移动端弹层与桌面弹窗共用，同套样式自适应）。</p>
+<ul class="fixes">
+  <li><b>三稿共同修复：</b>以「柱」为单位重组（干支成组可读）；键盘固定双行（天干 2×5 / 地支按阴阳分 2×6），不再出现留白与键数跳动；「阳干配阳支」通过分组亮暗直接外显；输入焦点呼吸光标 + 「正在输入 · 日柱天干」提示；反查升级为填满后的主行动，结果就地展开。</li>
+</ul>
+
+<h1 style="font-size:17px;margin-top:8px;">第二轮 · 以方案 A 为基础精修（已去掉地支键盘左侧「阳支 / 阴支」标签）</h1>
+<p class="sub">三版共同点：键位满宽无左侧标签；<b>可选组正常显示、禁用组压暗到 15% 透明度</b>；配对规则改由状态行一句话外显（如「正在输入 · 日柱地支 · 取阳支」）。均为可交互 demo（预填年月两柱）。</p>
+<div class="row" style="margin-bottom:32px;">
+  <div class="col">
+    <h2>A2 · 实底键帽精修</h2>
+    <div class="ref">方案 A 一比一定稿向精修</div>
+    <p>结构、进度点、动作区与方案 A 完全一致，只做质感收敛：柱卡换渐变纸面、键帽实底更柔和；地支可选组正常、禁用组压暗。最接近可直接落地的形态。</p>
+    <a href="plan-a2.html" target="_blank">单独打开 ↗</a>
+    <iframe src="plan-a2.html"></iframe>
+  </div>
+  <div class="col">
+    <h2>A3 · 紧凑计算器</h2>
+    <div class="ref">高密度工具向</div>
+    <p>整体高度压缩约四分之一：键帽 40px 密排无描边、柱卡 44px 槽位；去掉全局进度点，完成态由柱卡自身表达（当前柱整卡描边点亮）；「清除」收进状态行，反查整宽占底。弹层最矮、遮挡最少。</p>
+    <a href="plan-a3.html" target="_blank">单独打开 ↗</a>
+    <iframe src="plan-a3.html"></iframe>
+  </div>
+  <div class="col">
+    <h2>A4 · 大字字盘</h2>
+    <div class="ref">文房气质向（结构仍是 A）</div>
+    <p>柱卡去掉内槽方格，30px 衬线大字直接落卡，空位以「干 / 支」水印占位，焦点为呼吸的金色笔位下划线；键盘去边框成纯字盘。视觉最松弛，与第一轮方案 C 的气质衔接，但布局和交互仍保持 A 的骨架。</p>
+    <a href="plan-a4.html" target="_blank">单独打开 ↗</a>
+    <iframe src="plan-a4.html"></iframe>
+  </div>
+</div>
+
+<h1 style="font-size:17px;">第一轮 · 初始三稿（供回顾）</h1>
+<div class="row">
+  <div class="col">
+    <h2>方案 A · 竖柱卡 + 分组键盘</h2>
+    <div class="ref">借鉴：专业排盘 App 柱卡 + 计算器键盘</div>
+    <p>改动最稳的方案。保持四列结构，但每柱天干地支合成一张竖卡（干上支下、中缝分隔），柱的概念一眼成立；当前输入格呼吸金框，下方 8 点进度条对应 8 个字；键盘为实底键帽，地支按「阳支 / 阴支」两行分组亮暗。填满后「反查日期」从淡金软底升为实底主按钮。与现状最接近，迁移成本最低。</p>
+    <a href="plan-a.html" target="_blank">单独打开 ↗</a>
+    <iframe src="plan-a.html"></iframe>
+  </div>
+  <div class="col">
+    <h2>方案 B · 候选栏输入法式</h2>
+    <div class="ref">借鉴：iOS 键盘候选栏 / Gboard</div>
+    <p>把「输四柱」当成打字来设计。顶部候选条即进度：四柱胶囊组、当前组金框高亮，点候选组可回跳补字；中部大字预览当前柱 + 已填 x/8 计数；键盘描边键帽，天干也按「阳干 / 阴干」分两行——与地支键盘结构完全一致，天干地支切换时键盘形状零跳动。信息反馈最强，适合把输入做顺手的场景。</p>
+    <a href="plan-b.html" target="_blank">单独打开 ↗</a>
+    <iframe src="plan-b.html"></iframe>
+  </div>
+  <div class="col">
+    <h2>方案 C · 四宫印章排盘</h2>
+    <div class="ref">借鉴：传统排盘盘面 / 印章</div>
+    <p>领域感最强的方案。2×2 四宫大卡对应四柱，柱名是左上角小印章（当前宫印章点亮为金色），空位以「干 / 支」大字水印占位，填入后衬线大字上五行色；键盘去边框成素字盘，更文房气质。视觉与主界面排盘卡呼应，输入完成后四宫整体即「盘面雏形」。改动幅度最大，纵向也最高，需要压缩状态行。</p>
+    <a href="plan-c.html" target="_blank">单独打开 ↗</a>
+    <iframe src="plan-c.html"></iframe>
+  </div>
+</div>
+</body>
+</html>

@@ -34,7 +34,7 @@ import {
     sortableKeyboardCoordinates,
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Search, Plus, Upload, LogIn, Library } from 'lucide-react';
+import { Search, Plus, Upload, LogIn, Library, ArrowUpDown } from 'lucide-react';
 import { useAuth } from '../../contexts/useAuth';
 import ConfirmModal from './ConfirmModal';
 import BaseModal from '../UI/BaseModal';
@@ -68,6 +68,8 @@ export interface CaseLibraryModalProps<T extends { id: string }> {
         onSelect: () => void;
         onEdit: () => void;
         onDelete: () => void;
+        /** 排序模式状态：卡片据此显示拖拽手柄、禁用左滑 */
+        sortMode: boolean;
     }) => ReactNode;
 
     renderSubModals: (props: {
@@ -105,6 +107,8 @@ export default function CaseLibraryModal<T extends { id: string }>({
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string | null>(categories[0]?.id ?? null);
+    // 排序模式：常驻的拖拽手柄与底部提示改为按需开启，浏览时零占用
+    const [sortMode, setSortMode] = useState(false);
 
     // 子弹窗状态
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -210,11 +214,25 @@ export default function CaseLibraryModal<T extends { id: string }>({
     };
 
     const header = (
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2">
             <span>案例库</span>
             <span className="text-sm font-normal text-muted-foreground">
                 ({cases.length})
             </span>
+            {isAuthenticated && (
+                <button
+                    type="button"
+                    onClick={() => setSortMode(v => !v)}
+                    aria-pressed={sortMode}
+                    title={sortMode ? '退出排序模式' : '排序模式'}
+                    className={`ml-auto mr-1 flex h-8 w-8 items-center justify-center rounded-lg transition-colors focus-ring ${sortMode
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                >
+                    <ArrowUpDown className="h-4 w-4" />
+                </button>
+            )}
         </div>
     );
 
@@ -279,7 +297,7 @@ export default function CaseLibraryModal<T extends { id: string }>({
                                     key={cat.id ?? 'all'}
                                     type="button"
                                     onClick={() => setSelectedCategory(cat.id)}
-                                    className={`${isMobile ? 'whitespace-nowrap px-2.5 py-1.5 text-xs rounded-full' : 'w-full text-left px-3 py-2 text-sm rounded-md'} transition-colors focus-ring ${isActive
+                                    className={`${isMobile ? 'whitespace-nowrap px-2.5 py-1.5 text-xs rounded-md' : 'w-full text-left px-3 py-2 text-sm rounded-md'} transition-colors focus-ring ${isActive
                                         ? 'bg-primary/10 text-primary font-medium'
                                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
                                         }`}
@@ -315,7 +333,10 @@ export default function CaseLibraryModal<T extends { id: string }>({
                                     items={filteredCases.map(c => c.id)}
                                     strategy={verticalListSortingStrategy}
                                 >
-                                    <div className={`grid ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}>
+                                    <div
+                                        className={`grid select-none ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}
+                                        onContextMenu={(e) => e.preventDefault()}
+                                    >
                                         {filteredCases.map((caseData) => renderCard({
                                             caseData,
                                             isSelected: selectedCaseId === caseData.id,
@@ -324,7 +345,8 @@ export default function CaseLibraryModal<T extends { id: string }>({
                                                 if (isMobile) onClose();
                                             },
                                             onEdit: () => setEditingCase(caseData),
-                                            onDelete: () => setCaseToDelete(caseData)
+                                            onDelete: () => setCaseToDelete(caseData),
+                                            sortMode
                                         }))}
                                     </div>
                                 </SortableContext>
@@ -333,10 +355,10 @@ export default function CaseLibraryModal<T extends { id: string }>({
                     </div>
                 </div>
 
-                {/* 底部提示 */}
-                {isAuthenticated && filteredCases.length > 0 && (
-                    <div className="mt-4 pt-3 border-t border-border text-xs text-muted-foreground text-center shrink-0">
-                        拖拽卡片左侧手柄可调整顺序
+                {/* 底部提示：仅在排序模式下出现，浏览时不再常驻占位 */}
+                {sortMode && filteredCases.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground text-center shrink-0">
+                        拖动卡片左侧手柄调整顺序，完成后点击页头按钮退出
                     </div>
                 )}
         </>
@@ -377,7 +399,7 @@ export default function CaseLibraryModal<T extends { id: string }>({
                     isOpen={isOpen}
                     onClose={onClose}
                     title={header}
-                    bodyClassName="overflow-hidden flex flex-col p-3"
+                    bodyClassName="overflow-hidden select-none flex flex-col p-3"
                 >
                     {libraryContent}
                 </SubPage>
@@ -394,7 +416,7 @@ export default function CaseLibraryModal<T extends { id: string }>({
                 title={header}
                 titleIcon={<Library className="w-5 h-5" />}
                 maxWidth="max-w-2xl"
-                bodyClassName="!flex-none flex flex-col h-[70vh] p-4 sm:p-6 overflow-hidden"
+                bodyClassName="!flex-none select-none flex flex-col h-[70vh] p-4 sm:p-6 overflow-hidden"
             >
                 {libraryContent}
             </BaseModal>
