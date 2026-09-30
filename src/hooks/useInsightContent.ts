@@ -97,7 +97,7 @@ function buildDiTianSuiContent(pillars: PillarData[]): InsightContent | undefine
                 summary: monthlyEntry.poem,
                 summaryTitle: `${monthlyEntry.meta.stem} · ${monthlyEntry.meta.month}`,
                 keyPoints: monthlyEntry.analysis.map(a =>
-                    `**${a.segment}**\n【${a.tags.join('、')}】\n${a.logic.reasoning}\n💡 ${a.modern_meaning}`
+                    `**${a.segment}**\n【${a.tags.join('、')}】\n${a.logic.reasoning}\n${a.modern_meaning}`
                 ),
                 keyPointsTitle: '逻辑解析',
                 ditiansuiBasic: basicEntry,

@@ -135,7 +135,12 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
   const bodyContent = (
     <>
       <Toast toast={toast} />
-      <div className="px-5 pt-5 text-base leading-6 text-muted-foreground">选择需要保留、恢复或删除的远端备份版本。列表固定分页显示，不会影响备份设置弹窗大小。</div>
+      {/* 「分页不影响弹窗大小」是桌面弹窗才需要交代的事，移动端二级页面不带这句 */}
+      <div className={`${isMobile ? 'text-sm' : 'text-base'} px-5 pt-5 leading-6 text-muted-foreground`}>
+        {isMobile
+          ? '选择需要保留、恢复或删除的远端备份版本。'
+          : '选择需要保留、恢复或删除的远端备份版本。列表固定分页显示，不会影响备份设置弹窗大小。'}
+      </div>
       <div className="m-5 overflow-hidden rounded-xl border border-border">
         <div className={`hidden ${TABLE_GRID} items-center border-b border-border bg-secondary/30 px-3 py-3.5 text-left text-sm font-medium text-muted-foreground md:grid`}>
           <label className="flex h-4 w-4 cursor-pointer items-center justify-center">
@@ -147,19 +152,24 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
           <span className="text-left">文件名</span><span className="text-left">修改时间</span><span className="text-left">文件大小</span><span className="text-left">操作</span>
         </div>
         {busy === 'load' ? <p className="px-4 py-12 text-center text-base text-muted-foreground">正在读取备份文件…</p> : visibleBackups.length === 0 ? <p className="px-4 py-12 text-center text-base text-muted-foreground">当前文件夹还没有备份版本。</p> : visibleBackups.map((backup) => (
-          <div key={backup.path} className={`grid ${TABLE_GRID} border-b border-border/70 px-3 py-3.5 text-left last:border-b-0 md:items-center`}>
-            <label className="flex h-4 w-4 cursor-pointer items-center justify-center">
+          <div key={backup.path} className="flex items-start gap-3 border-b border-border/70 px-4 py-3 text-left last:border-b-0 md:grid md:grid-cols-[42px_minmax(0,1fr)_170px_110px_140px] md:items-center md:gap-2 md:px-3 md:py-3.5">
+            <label className="mt-0.5 flex h-4 w-4 shrink-0 cursor-pointer items-center justify-center md:mt-0">
               <input type="checkbox" checked={selectedPaths.has(backup.path)} onChange={() => toggleSelection(backup.path)} aria-label={`选择 ${backup.filename}`} className="peer sr-only" />
               <span className={`flex h-4 w-4 items-center justify-center rounded border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 ${selectedPaths.has(backup.path) ? 'bg-primary border-primary' : 'border-muted-foreground/50 bg-background hover:border-primary/50'}`}>
                 {selectedPaths.has(backup.path) && <Check className="h-3 w-3 text-primary-foreground" />}
               </span>
             </label>
-            <span className="truncate text-left font-mono text-sm text-foreground" title={backup.filename}>{backup.filename}</span>
-            <span className="text-left text-sm text-muted-foreground">{formatDate(backup.createdAt)}</span>
-            <span className="text-left text-sm text-muted-foreground">{formatSize(backup.size)}</span>
-            <div className="flex items-center justify-start gap-1">
-              <button type="button" onClick={() => setPendingRestore(backup)} disabled={busy !== null} className="rounded-md px-2 py-1.5 text-sm text-primary hover:bg-primary/10 disabled:opacity-50"><Download className="mr-1 inline h-3.5 w-3.5" />{busy === 'restore' ? '恢复中' : '恢复'}</button>
-              <button type="button" onClick={() => setPendingDeletePaths([backup.path])} disabled={busy !== null} className="rounded-md px-2 py-1.5 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50">删除</button>
+            <div className="min-w-0 flex-1 md:contents">
+              <span className="block truncate font-mono text-sm text-foreground" title={backup.filename}>{backup.filename}</span>
+              <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground md:contents">
+                <span className="md:text-left md:text-sm">{formatDate(backup.createdAt)}</span>
+                <span className="md:hidden" aria-hidden="true">·</span>
+                <span className="md:text-left md:text-sm">{formatSize(backup.size)}</span>
+              </div>
+              <div className="-mr-2 mt-1.5 flex items-center justify-end gap-1 md:mr-0 md:mt-0 md:justify-start">
+                <button type="button" onClick={() => setPendingRestore(backup)} disabled={busy !== null} className="min-h-10 rounded-md px-2.5 py-1.5 text-sm text-primary hover:bg-primary/10 disabled:opacity-50 md:min-h-0 md:px-2"><Download className="mr-1 inline h-3.5 w-3.5" />{busy === 'restore' ? '恢复中' : '恢复'}</button>
+                <button type="button" onClick={() => setPendingDeletePaths([backup.path])} disabled={busy !== null} className="min-h-10 rounded-md px-2.5 py-1.5 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50 md:min-h-0 md:px-2">删除</button>
+              </div>
             </div>
           </div>
         ))}

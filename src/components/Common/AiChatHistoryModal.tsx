@@ -8,6 +8,8 @@
  */
 
 import { useState, useMemo, useEffect, useRef, useSyncExternalStore } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
+import ConfirmModal from './ConfirmModal';
 import {
   Search,
   Star,
@@ -98,6 +100,139 @@ function resolveSessionTitle(s: AiChatSession): string {
     : '命理综合研判';
 }
 
+/** 移动端会话卡片左滑露出的删除区宽度（单按钮）与展开阈值 */
+const SWIPE_REVEAL_PX = 72;
+const SWIPE_OPEN_THRESHOLD = 24;
+
+interface MobileSessionCardProps {
+  session: AiChatSession;
+  onOpen: () => void;
+  onDelete: () => void;
+}
+
+/**
+ * 移动端会话卡片：左滑露出删除。
+ * 手势与案例卡片（CaseList/CaseCard）同一范式：6px 死区 + 横纵轴锁
+ * （纵向意图交还列表滚动）+ 吞掉真实滑动后浏览器补发的 click。
+ */
+function MobileSessionCard({ session: s, onOpen, onDelete }: MobileSessionCardProps) {
+  const lastMsg = s.messages[s.messages.length - 1];
+  const timeDisplay = new Date(s.updatedAt).toLocaleDateString([], {
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const preview = stripMarkdownForPreview(lastMsg?.content || '', 62);
+  const typeLabel = DIVINATION_TYPE_SHORT_NAMES[s.divinationType] || s.divinationTypeName;
+
+  const [swipeX, setSwipeX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const gesture = useRef({ x: 0, y: 0, base: 0, lock: null as null | 'x' | 'y', moved: false });
+  const suppressClick = useRef(false);
+
+  const handlePointerDown = (event: ReactPointerEvent) => {
+    gesture.current = { x: event.clientX, y: event.clientY, base: swipeX, lock: null, moved: false };
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent) => {
+    const g = gesture.current;
+    if (g.lock === null) {
+      const dx = event.clientX - g.x;
+      const dy = event.clientY - g.y;
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      // 纵向意图交还给列表滚动，避免与滚动抢手势
+      if (Math.abs(dy) > Math.abs(dx)) { g.lock = 'y'; return; }
+      g.lock = 'x';
+      setIsSwiping(true);
+    }
+    if (g.lock !== 'x') return;
+    g.moved = true;
+    setSwipeX(Math.max(-SWIPE_REVEAL_PX, Math.min(0, g.base + (event.clientX - g.x))));
+  };
+
+  const endSwipe = () => {
+    const g = gesture.current;
+    if (g.lock === 'x' && g.moved) {
+      setSwipeX(swipeX < -SWIPE_OPEN_THRESHOLD ? -SWIPE_REVEAL_PX : 0);
+      suppressClick.current = true;
+    }
+    setIsSwiping(false);
+    g.lock = null;
+  };
+
+  const handleSelect = () => {
+    if (suppressClick.current) { suppressClick.current = false; return; }
+    // 已展开时，点卡片本体先收起而非进入详情
+    if (swipeX !== 0) { setSwipeX(0); return; }
+    onOpen();
+  };
+
+  return (
+    <div className="relative w-full select-none overflow-hidden rounded-xl border border-border bg-card">
+      {/* 左滑露出的删除区：位于卡片底层，靠前景层位移显形 */}
+      <button
+        type="button"
+        onClick={(event) => { event.stopPropagation(); onDelete(); }}
+        className="absolute inset-y-0 right-0 z-[1] flex w-[72px] flex-col items-center justify-center gap-0.5 bg-destructive/15 text-[11px] font-semibold text-destructive"
+        aria-label="删除会话"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+        删除
+      </button>
+
+      {/* 前景层：卡片本体 */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={handleSelect}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleSelect();
+          }
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endSwipe}
+        onPointerCancel={endSwipe}
+        onPointerLeave={() => { if (gesture.current.lock === 'x') endSwipe(); }}
+        style={{
+          transform: swipeX ? `translateX(${swipeX}px)` : undefined,
+          transition: isSwiping ? 'none' : 'transform 180ms cubic-bezier(0.2, 0.8, 0.3, 1)',
+          touchAction: 'pan-y',
+        }}
+        className="relative z-[2] w-full cursor-pointer bg-card px-3.5 py-3 text-left transition-colors active:bg-muted/60 hover:bg-muted/40"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              {s.isFavorite && (
+                <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500 shrink-0" />
+              )}
+              <span className="text-[15px] font-semibold text-foreground truncate">
+                {resolveSessionTitle(s)}
+              </span>
+            </div>
+
+            <p className="mt-1 text-[13px] leading-snug text-muted-foreground line-clamp-2">
+              {preview || '暂无问答'}
+            </p>
+
+            <div className="mt-1.5 text-[12px] text-muted-foreground/80 truncate">
+              {typeLabel}
+              {s.caseName ? ` · ${s.caseName}` : ''}
+            </div>
+          </div>
+
+          <div className="shrink-0 text-right text-[12px] text-muted-foreground">
+            <div className="font-mono">{timeDisplay}</div>
+            <div className="mt-0.5 opacity-80">{s.messages.length} 轮</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface AiChatHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -129,6 +264,8 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
   // 确认操作浮层状态
   const [showClearAllConfirm, setShowClearAllConfirm] = useState(false);
   const [showDeleteSessionConfirm, setShowDeleteSessionConfirm] = useState(false);
+  // 左滑删除的目标会话（列表卡片滑出删除后经确认弹窗执行）
+  const [pendingSwipeDelete, setPendingSwipeDelete] = useState<AiChatSession | null>(null);
   const clearAllRef = useRef<HTMLDivElement>(null);
   const deleteSessionRef = useRef<HTMLDivElement>(null);
 
@@ -494,26 +631,12 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
             </div>
 
             <div
-              className={`relative group max-w-[92%] rounded-xl p-3.5 text-base leading-[1.75] ${
+              className={`relative group max-w-[92%] rounded-xl p-3.5 text-sm md:text-base leading-[1.75] ${
                 isUser
                   ? 'bg-card border border-border text-foreground rounded-tr shadow-xs space-y-2'
                   : 'bg-card border border-border text-foreground rounded-tl shadow-xs space-y-2'
               }`}
             >
-              {/* 复制按钮 */}
-              <button
-                type="button"
-                onClick={() => handleCopyText(msg.id, msg.content)}
-                className="absolute right-2 top-2 p-1 rounded-md bg-background/80 hover:bg-muted text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                title="复制内容"
-              >
-                {isCopied ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-500" />
-                ) : (
-                  <Copy className="w-3.5 h-3.5" />
-                )}
-              </button>
-
               {/* 思考过程折叠 */}
               {!isUser && msg.reasoning && (
                 <div className="rounded-lg border border-border/60 bg-muted/30 overflow-hidden mb-2">
@@ -551,6 +674,20 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
                   {msg.content}
                 </ReactMarkdown>
               </div>
+
+              {/* 复制按钮：绝对定位不参与排版，放末尾避免 space-y 把正文容器当第二个兄弟加顶边距 */}
+              <button
+                type="button"
+                onClick={() => handleCopyText(msg.id, msg.content)}
+                className="absolute right-2 top-2 p-1 rounded-md bg-background/80 hover:bg-muted text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                title="复制内容"
+              >
+                {isCopied ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" />
+                )}
+              </button>
             </div>
           </div>
         );
@@ -558,55 +695,18 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
     </div>
   );
 
-  // 移动端会话卡片：扁平列表，标题与摘要优先，案例名降为附属信息
-  const renderMobileSessionCard = (s: AiChatSession) => {
-    const lastMsg = s.messages[s.messages.length - 1];
-    const timeDisplay = new Date(s.updatedAt).toLocaleDateString([], {
-      month: '2-digit',
-      day: '2-digit',
-    });
-    const preview = stripMarkdownForPreview(lastMsg?.content || '', 62);
-    const typeLabel = DIVINATION_TYPE_SHORT_NAMES[s.divinationType] || s.divinationTypeName;
-
-    return (
-      <button
-        key={s.id}
-        type="button"
-        onClick={() => {
-          setSelectedSessionId(s.id);
-          setMobileView('detail');
-        }}
-        className="w-full text-left rounded-xl border border-border bg-card px-3.5 py-3 transition-colors active:bg-muted/60 hover:bg-muted/40 cursor-pointer"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              {s.isFavorite && (
-                <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500 shrink-0" />
-              )}
-              <span className="text-[15px] font-semibold text-foreground truncate">
-                {resolveSessionTitle(s)}
-              </span>
-            </div>
-
-            <p className="mt-1 text-[13px] leading-snug text-muted-foreground line-clamp-2">
-              {preview || '暂无问答'}
-            </p>
-
-            <div className="mt-1.5 text-[12px] text-muted-foreground/80 truncate">
-              {typeLabel}
-              {s.caseName ? ` · ${s.caseName}` : ''}
-            </div>
-          </div>
-
-          <div className="shrink-0 text-right text-[12px] text-muted-foreground">
-            <div className="font-mono">{timeDisplay}</div>
-            <div className="mt-0.5 opacity-80">{s.messages.length} 轮</div>
-          </div>
-        </div>
-      </button>
-    );
-  };
+  // 移动端会话卡片：扁平列表，标题与摘要优先，案例名降为附属信息；左滑露出删除
+  const renderMobileSessionCard = (s: AiChatSession) => (
+    <MobileSessionCard
+      key={s.id}
+      session={s}
+      onOpen={() => {
+        setSelectedSessionId(s.id);
+        setMobileView('detail');
+      }}
+      onDelete={() => setPendingSwipeDelete(s)}
+    />
+  );
 
   // 移动端：全屏两级视图（列表页 ⇄ 详情页），不使用桌面三栏结构。
   // 壳走 SubPage（统一页头 + 返回手势）；详情页内部的返回键是页内二级导航，保留原位。
@@ -639,7 +739,7 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
                     <span className="text-[15px] font-semibold text-foreground truncate">
                       {currentSession.caseName}
                     </span>
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 shrink-0">
+                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 shrink-0">
                       {DIVINATION_TYPE_SHORT_NAMES[currentSession.divinationType] ||
                         currentSession.divinationTypeName}
                     </span>
@@ -801,6 +901,25 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
             </>
           )}
         </div>
+
+        {/* 左滑删除会话的确认弹窗 */}
+        <ConfirmModal
+          isOpen={pendingSwipeDelete !== null}
+          onClose={() => setPendingSwipeDelete(null)}
+          onConfirm={() => {
+            if (!pendingSwipeDelete) return;
+            aiChatHistoryService.deleteSession(pendingSwipeDelete.id);
+            if (selectedSessionId === pendingSwipeDelete.id) {
+              setSelectedSessionId(null);
+              setMobileView('list');
+            }
+            setPendingSwipeDelete(null);
+          }}
+          title="删除会话"
+          description={pendingSwipeDelete ? `确认删除「${resolveSessionTitle(pendingSwipeDelete)}」吗？删除后无法恢复。` : undefined}
+          confirmText="删除"
+          variant="destructive"
+        />
       </SubPage>
     );
   }
@@ -1096,7 +1215,7 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
                     <span className="text-sm sm:text-base font-semibold text-foreground truncate">
                       {currentSession.caseName}
                     </span>
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 shrink-0">
+                    <span className="text-[11px] px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 shrink-0">
                       {currentSession.divinationTypeName}
                     </span>
                   </div>

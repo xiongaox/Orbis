@@ -300,7 +300,7 @@ export default function GanZhiDiagramModal({
     // 与 GanZhiLiuTongModal 同步：关闭按钮并入右侧按钮组，去掉 pr-9 预留空档。
     const header = (close: ReactNode) => (
         <div className="flex items-center justify-between w-full">
-            <span className="text-lg font-medium text-foreground">干支流通图解</span>
+            <span className="text-lg font-medium text-foreground">干支图解</span>
             <div className="flex items-center gap-2">
                 {headerActions}
                 {close}
@@ -318,7 +318,7 @@ export default function GanZhiDiagramModal({
         >
                 {chartData && (
                     <div
-                        className="relative m-auto transition-all duration-300"
+                        className="relative m-auto"
                         style={{ transform: `scale(${scale})`, transformOrigin: 'center top' }}
                     >
                         <svg
@@ -434,7 +434,7 @@ export default function GanZhiDiagramModal({
             <SubPage
                 isOpen={isOpen}
                 onClose={onClose}
-                title="干支流通图解"
+                title="干支图解"
                 actions={headerActions}
                 bodyClassName="overflow-hidden bg-dot-pattern flex flex-col"
             >

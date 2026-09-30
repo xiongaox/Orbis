@@ -260,15 +260,15 @@ export default function InsightPanel({
             {ditiansuiSubTab === 'logic' && content.keyPoints && content.keyPoints.length > 0 && (
               <div className="overflow-y-auto space-y-3 pr-1">
                 {content.keyPoints.map((point, index) => {
-                  // 解析结构化内容（格式：**段落**\n【标签】\n推理\n💡现代意义）
+                  // 解析结构化内容（格式：**段落**\n【标签】\n推理\n现代意义）
                   const lines = point.split('\n');
                   const segmentMatch = lines[0]?.match(/\*\*(.+?)\*\*/);
                   const segment = segmentMatch ? segmentMatch[1] : lines[0];
                   const tagsMatch = lines[1]?.match(/【(.+?)】/);
                   const tags = tagsMatch ? tagsMatch[1].split('、') : [];
                   const reasoning = lines[2] || '';
-                  const modernMatch = lines[3]?.match(/💡\s*(.+)/);
-                  const modern = modernMatch ? modernMatch[1] : '';
+                  // 兼容历史数据中可能残留的 💡 前缀
+                  const modern = lines.slice(3).join('\n').replace(/^💡\s*/, '').trim();
 
                   return (
                     <div key={index} className="bg-secondary/30 rounded-lg border border-border p-4 space-y-2">
@@ -289,7 +289,7 @@ export default function InsightPanel({
                       )}
                       {modern && (
                         <div className="text-sm text-foreground font-bold bg-secondary/50 rounded p-2 border-l-2 border-muted-foreground/30">
-                          💡 {modern}
+                          {modern}
                         </div>
                       )}
                     </div>
