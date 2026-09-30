@@ -14,11 +14,11 @@
  * - `default BaziPage`
  *
  * 依赖关系：
- * - 上游依赖：外部依赖 `react`、外部依赖 `classnames`、内部模块 `BaziCaseInfo` 等 10 个模块
+ * - 上游依赖：外部依赖 `react`、内部模块 `utils`、内部模块 `BaziCaseInfo` 等 10 个模块
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 import { useState } from 'react';
-import classNames from 'classnames';
+import { cn } from '../../../lib/utils';
 import BaziCaseInfo from './BaziCaseInfo';
 import BaziChart from './BaziChart';
 import DayunLiunianPanel from './DayunLiunianPanel';
@@ -67,7 +67,7 @@ export default function BaziPage() {
                 currentYear={simpleCurrentBaziYear}
                 isMobileLayout={isMobileLayout}
             />
-            <div className={classNames(
+            <div className={cn(
                 // 列宽以神煞四字（48px）+ 内边距（8px，px-1 py-1）为准，56px 即可不换行。
                 // 按 7 列（胎命身+四柱）上限取 5fr:7fr：排盘表约 467px（7 列 58px、6 列 67px），
                 // 右侧保留约 653px，与原始 2fr:3fr 的右栏宽度一致，信息不被截断。
@@ -86,7 +86,7 @@ export default function BaziPage() {
                     hideDetails={hideDetails}
                     onShiftHour={handleShiftShiChen}
                 />
-                <div className={classNames('flex flex-col min-h-0 lg:overflow-y-auto', 'gap-2')}>
+                <div className={cn('flex flex-col min-h-0 lg:overflow-y-auto', 'gap-2')}>
                     {/* 五行旺衰信息条 */}
                     <div className="flex-shrink-0">
                         <WuxingStatusBar

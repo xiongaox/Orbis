@@ -84,10 +84,21 @@
 
 ### 总计
 确定可删（safe-delete 与死配置，直接口径）：
-- 条1 -3654、条2 -367、条4 -46、条8 -114、条14 -49、条16 -120、条21 -40、条23 -7、条24 -2、条25 -57、条29 -40、条30 -360、条31 -276
-- `net: -5132 lines, -5 deps countable`（classnames、@types/classnames、lunar-javascript、ts-morph、xlsx）
+- 条2 -367、条4 -46、条8 -114、条14 -49、条16 -120、条21 -40、条23 -7、条24 -2、条25 -57、条29 -40、条30 -360、条31 -276（条1 头注释为 verify-first，不计入本口径，见「执行状态」）
+- `net: -1478 lines, -5 deps countable`（classnames、@types/classnames、lunar-javascript、ts-morph、xlsx）
 - 另计非行资产：public 2 个 svg、public/zodiac 12 个中文副本（条27 视 Web 兼容结论）、supabase 6 SQL + docs/database-schema.sql、notes/sanyuan 12 个 git 跟踪文件（约 940K）
 
 verify-first / shrink 的进一步合并收益（未计入上表，uncounted）：约 -1200 ~ -1500 lines（条20 约 -400~872、条17 约 -250、条13 -80、条11 -50、条9 -40、条7 -60、条22 -50、条18 -30、条12 -15、条15 -10 及其余小项）。
+
+### 执行状态（2026-09-30，分支 codex/tauri-migration）
+**已执行 safe-delete 批次（1 个 commit）**：
+- 删除 18 个死文件/资产：4 个死 hook（useGanZhiDiagram/useDayunLiunian/useDragSort/useCaseActions）、3 个死组件（InsightPanelParts/CaseSearch/SimplePillarCard）、RealtimeClock、liunianStatusUtil、settings 死文件 ×2 + barrel index、chartConfig.ts（已内联进 PlaceholderChart）、WannianliLayoutProps.ts（已并入 WannianliLayout）、lunar-javascript.d.ts、vercel.json、public 2 svg
+- package.json：-5 deps（classnames、@types/classnames、lunar-javascript、ts-morph、xlsx）、-2 死脚本（test:normal/test:admin）
+- classNames → cn() 迁移：4 文件 35 处（HolidayCountdown、WannianliLayout、BaziPage、BaziCaseInfo），含 4 处文件头注释依赖行同步
+- 同步 src/hooks/AGENTS.md（移除表中 3 个已删 hook 行）
+- 实测 diff：26 文件，+102 / -1535（净 -1433，与预估 1478 的差异来自内联时保留的接口/映射表本体）
+- 自检：`npm run lint` 0 错误（1 个既有 warning，属 useCaseStudy.ts，与本次无关）；`npx tsc -b` 通过；`npm run build` 成功（8.63s）
+
+**未执行（留待后续批次）**：条1 头样板注释（198 文件级改写，verify-first 单独批）；条27 zodiac 中文副本（等 Web 兼容结论）；条6+28 Supabase 栈（需先核对 main 分支使用情况）；全部 verify-first / shrink 重构项（条7/12/13/17/18/19/20/22 等）。
 
 **审计覆盖声明**：src/（components/hooks/lib/services/contexts/utils/types/constants/data 非语料部分）、scripts/、src-tauri/src + Cargo.toml、workers/、supabase/、docs/、notes/、public/、根配置（package.json/vite/eslint/tailwind/tsconfig/wrangler/vercel/CI）。未逐行阅读：src/data/cases 语料（约 747 个 Markdown，属内容资产非代码）、src-tauri/src 仅做依赖与结构核对（1381 行，未逐行审）、dist-cases 与构建产物。

@@ -14,13 +14,13 @@
  * - `default HolidayCountdown`
  *
  * 依赖关系：
- * - 上游依赖：外部依赖 `react`、外部依赖 `lunar-typescript`、外部依赖 `classnames` 等 4 个模块
+ * - 上游依赖：外部依赖 `react`、外部依赖 `lunar-typescript`、内部模块 `utils` 等 4 个模块
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 
 import { useMemo, useState, useEffect } from 'react';
 import { Lunar, Solar } from 'lunar-typescript';
-import classNames from 'classnames';
+import { cn } from '../../../lib/utils';
 import { WEEK_DAYS_SUN_FIRST } from '../../../constants/calendar';
 
 type HolidayItem = {
@@ -192,7 +192,7 @@ export default function HolidayCountdown({
                 <div className="flex bg-muted p-1 rounded-lg border border-border/40">
                     <button
                         onClick={() => setFilterType('all')}
-                        className={classNames(
+                        className={cn(
                             "flex-1 px-3 py-1 text-xs font-bold rounded-md transition-all duration-200",
                             filterType === 'all'
                                 ? "bg-background text-foreground shadow-[0_1px_3px_rgba(0,0,0,0.1)] dark:shadow-none"
@@ -203,7 +203,7 @@ export default function HolidayCountdown({
                     </button>
                     <button
                         onClick={() => setFilterType('off')}
-                        className={classNames(
+                        className={cn(
                             "flex-1 px-3 py-1 text-xs font-bold rounded-md transition-all duration-200",
                             filterType === 'off'
                                 ? "bg-background text-primary shadow-[0_1px_3px_rgba(0,0,0,0.1)] dark:shadow-none"
@@ -227,7 +227,7 @@ export default function HolidayCountdown({
                                 onSelectDate(date);
                             }
                         }}
-                        className={classNames(
+                        className={cn(
                             "group relative overflow-hidden rounded-xl cursor-pointer",
                             "transition-[box-shadow,transform] duration-300",
                             "bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-transparent dark:border-border/60 dark:shadow-none hover:shadow-[0_8px_16px_rgba(0,0,0,0.08)] hover:-translate-y-0.5",
@@ -252,7 +252,7 @@ export default function HolidayCountdown({
 	                                </div>
 	                                <div className="flex flex-col items-end gap-1 shrink-0 ml-2">
 	                                    <div className="flex items-baseline gap-0.5">
-	                                        <span className={classNames(
+	                                        <span className={cn(
 	                                            "text-2xl font-mono font-bold tracking-tight",
 	                                            h.diffDays <= 7 ? "text-primary" : "text-foreground/70"
 	                                        )}>

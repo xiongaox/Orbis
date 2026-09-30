@@ -14,11 +14,34 @@
  * - `default PlaceholderChart`
  *
  * 依赖关系：
- * - 上游依赖：内部模块 `types`、内部模块 `chartConfig`
+ * - 上游依赖：内部模块 `types`、外部依赖 `lucide-react`
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
+import type { ComponentType } from 'react';
+import {
+    BookOpen,
+    Calendar,
+    Compass,
+    Flower2,
+    Grid3X3,
+    Moon,
+    Sparkles,
+    Star,
+    Sun,
+} from 'lucide-react';
 import type { ChartType } from '../../types';
-import { chartMeta } from '../../utils/chartConfig';
+
+const chartMeta: Record<ChartType, { title: string; icon: ComponentType<{ className?: string }> }> = {
+    bazi: { title: '八字', icon: Compass },
+    qimen: { title: '奇门', icon: Grid3X3 },
+    liuyao: { title: '六爻', icon: BookOpen },
+    ziwei: { title: '紫薇', icon: Star },
+    daliuren: { title: '大六壬', icon: Moon },
+    xiaoliuren: { title: '案例学习', icon: Sun },
+    meihua: { title: '梅花', icon: Flower2 },
+    wannianli: { title: '万年历', icon: Calendar },
+    sanyuan: { title: '三元天星', icon: Sparkles },
+};
 
 interface PlaceholderChartProps {
     chart: ChartType;
