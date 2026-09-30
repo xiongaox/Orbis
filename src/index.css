@@ -194,6 +194,18 @@ body {
   font-feature-settings: "palt";
 }
 
+/* 全局禁用拖选：盘面/列表/操作区不参与划选，杜绝右键与拖拽把界面文字拖蓝。
+   输入框必须可编辑可选，单独放开。 */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 @layer utilities {
   /* 兜底 ring-offset-color 必须显式设为页面底色：全局只对 .focus-ring 上了
      ring-offset-background，而下方 button 等元素直接 @apply focus-ring，

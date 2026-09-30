@@ -17,7 +17,7 @@
  * - 上游依赖：外部依赖 `react`、内部模块 `lunarUtil`、内部模块 `useAuth` 等 14 个模块
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { getBaziPillarsFromDateString } from '../../../utils/lunarUtil';
 import { useAuth } from '../../../contexts/useAuth';
 import { baziCaseService, CASE_TAGS, type BaziCase, type CaseTag, type CreateCaseInput } from '../../../services/baziCaseService';
@@ -31,6 +31,11 @@ import ExportCaseModal from '../../Common/ExportCaseModal';
 import CaseCard from './components/CaseList/CaseCard';
 import CaseTagFilter from './components/CaseList/CaseTagFilter';
 import BaseCaseList from '../../Common/BaseCaseList';
+import {
+  OPEN_AI_CHAT_EVENT,
+  getAiResearchStatuses,
+  subscribeAiResearchStatus,
+} from '../../../services/aiTaskStatusService';
 
 type ChartType =
   | 'bazi'
@@ -167,6 +172,19 @@ export default function CaseList({
     if (target) setCaseToDelete(target);
   };
 
+  // AI 研判任务状态：研判中 / 未读研判（跨组件登记，见 aiTaskStatusService）
+  const aiStatuses = useSyncExternalStore(
+    subscribeAiResearchStatus,
+    getAiResearchStatuses,
+    getAiResearchStatuses
+  );
+
+  // 状态按钮点击：先切到该案例（让研判抽屉的会话与排盘上下文对齐），再直接打开研判抽屉
+  const handleOpenAiResearch = useCallback((id: string) => {
+    onSelectCase?.(id);
+    window.dispatchEvent(new CustomEvent(OPEN_AI_CHAT_EVENT, { detail: { divinationType: 'bazi' } }));
+  }, [onSelectCase]);
+
   const handleEditCase = (id: string) => {
     const target = cases.find(c => c.id === id);
     if (target) setEditingCase(target);
@@ -264,6 +282,8 @@ export default function CaseList({
           item={item}
           isSelected={selectedCaseId === item.id}
           isAuthenticated={isAuthenticated}
+          aiStatus={aiStatuses[item.id]?.status ?? null}
+          onOpenAiResearch={handleOpenAiResearch}
           onSelectCase={(id) => {
             onSelectCase?.(id);
             onDrawerClose?.();

@@ -415,7 +415,9 @@ export default function CaseLibraryModal<T extends { id: string }>({
                 onClose={onClose}
                 title={header}
                 titleIcon={<Library className="w-5 h-5" />}
-                maxWidth="max-w-2xl"
+                // 桌面端两列网格下单卡约 356px，与移动端手机整宽卡片同档；
+                // max-w-2xl 时代单卡仅 ~250px，卡片定稿为整宽设计后会出现姓名截断、日期竖排折行
+                maxWidth="max-w-4xl"
                 bodyClassName="!flex-none select-none flex flex-col h-[70vh] p-4 sm:p-6 overflow-hidden"
             >
                 {libraryContent}

@@ -39,9 +39,10 @@ export default function QimenDesktopLayout(props: QimenLayoutProps) {
         selectedMaXingKey, setSelectedMaXingKey,
         dynamicMaKong
     } = props;
-    const [showChangSheng, setShowChangSheng] = useState(false);
+    // 与移动端 useQimenState 的默认一致：长生 + 宫位预选中，十神默认关闭
+    const [showChangSheng, setShowChangSheng] = useState(true);
     const [showShiShen, setShowShiShen] = useState(false);
-    const [showPalaceMeta, setShowPalaceMeta] = useState(false);
+    const [showPalaceMeta, setShowPalaceMeta] = useState(true);
 
     const toggleChangSheng = () => setShowChangSheng((current) => {
         if (current) return false;

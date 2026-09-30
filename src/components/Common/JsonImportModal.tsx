@@ -19,7 +19,7 @@
  */
 
 import { useRef, useState, useCallback, useMemo } from 'react';
-import { Upload, FileJson, Check, AlertCircle, LayoutTemplate, X, ClipboardPaste, Download, ChevronRight, Table2, Trash2 } from 'lucide-react';
+import { FileJson, Check, AlertCircle, ClipboardPaste, Download, ChevronRight, Table2, Trash2 } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
 import SubPage from '../UI/SubPage';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
@@ -320,98 +320,10 @@ export default function JsonImportModal<T>({
         }
     };
 
-    // Steps configuration for timeline
-    const steps = [
-        { id: 'upload', label: '上传文件' },
-        { id: 'preview', label: '预览数据' },
-        { id: 'result', label: '完成导入' }
-    ];
-
-    const currentStepIndex = steps.findIndex(s => s.id === (step === 'importing' ? 'result' : step));
-
-    // 桌面端左侧栏：竖排步骤 + 模板下载（原样保留）
-    const desktopSidebar = (
-        <div className="w-[220px] bg-muted/30 border-r border-border flex flex-col p-6 relative overflow-hidden flex-shrink-0">
-            {/* Logo/Icon */}
-            <div className="mb-8 relative z-10">
-                <div className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center shadow-sm mb-3">
-                    <FileJson className="w-5 h-5 text-primary" />
-                </div>
-                <h2 className="text-lg font-bold text-foreground tracking-tight">{title}</h2>
-                <p className="text-xs text-muted-foreground mt-1.5">支持批量导入 JSON 格式数据</p>
-            </div>
-
-            {/* Vertical Stepper */}
-            <div className="flex-1 space-y-6 relative z-10">
-                {steps.map((s, idx) => {
-                    const isActive = idx === currentStepIndex;
-                    const isCompleted = idx < currentStepIndex;
-
-                    return (
-                        <div key={s.id} className="flex gap-3 group">
-                            <div className="relative flex flex-col items-center">
-                                <div className={`
-                                    w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border transition-all duration-300 z-10
-                                    ${isActive
-                                        ? 'bg-primary border-primary text-primary-foreground shadow-sm'
-                                        : isCompleted
-                                            ? 'bg-muted border-primary/20 text-muted-foreground'
-                                            : 'bg-muted/50 border-border text-muted-foreground/50'
-                                    }
-                                `}>
-                                    {isCompleted ? <Check className="w-3 h-3" /> : idx + 1}
-                                </div>
-                                {idx !== steps.length - 1 && (
-                                    <div className={`w-0.5 flex-1 mt-1.5 mb-[-1.25rem] transition-colors duration-300 ${isCompleted ? 'bg-primary/20' : 'bg-border'}`} />
-                                )}
-                            </div>
-                            <div className={`pt-0.5 transition-colors duration-300 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
-                                <div className="font-medium text-xs">{s.label}</div>
-                                {isActive && s.id === 'upload' && <div className="text-xs text-muted-foreground mt-0.5">请选择或拖拽文件</div>}
-                                {isActive && s.id === 'preview' && <div className="text-xs text-muted-foreground mt-0.5">确认数据无误后导入</div>}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* Bottom Action: Download Template */}
-            <div className="mt-auto relative z-10">
-                <button
-                    onClick={handleDownloadTemplate}
-                    disabled={templateBusy}
-                    className="w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-muted/40 hover:bg-muted border border-transparent hover:border-border transition-all text-left group focus-ring disabled:opacity-50 disabled:pointer-events-none"
-                >
-                    <div className="p-1.5 rounded-lg bg-background text-muted-foreground group-hover:text-foreground transition-colors border border-border">
-                        <LayoutTemplate className="w-3.5 h-3.5" />
-                    </div>
-                    <div>
-                        <div className="text-xs text-muted-foreground group-hover:text-muted-foreground/80">还没有数据?</div>
-                        <div className="text-xs font-medium text-foreground group-hover:text-primary transition-colors">下载标准模版</div>
-                    </div>
-                </button>
-                {templateSaved && (
-                    <div className="mt-2 px-1 text-[11px] leading-relaxed text-green-500" role="status">{templateSaved}</div>
-                )}
-            </div>
-        </div>
-    );
-
     // 工作区：上传/预览/处理/结果各步骤的共享内容（移动端与桌面端共用）
     const workspace = (
         /* RIGHT CONTENT: Workspace */
         <div className="flex-1 bg-background flex flex-col relative w-full overflow-hidden">
-                {/* Custom Close Button - 桌面端显示（移动端关闭按钮已在顶部步骤条中） */}
-                {!isMobile && (
-                    <button
-                        onClick={handleClose}
-                        className="absolute top-6 right-6 p-1.5 rounded-lg text-muted-foreground/50 hover:text-foreground hover:bg-muted transition-all z-20 focus-ring"
-                        aria-label="Close"
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-                )}
-
                 <div className={`flex-1 ${isMobile ? 'p-4' : 'p-6'} flex flex-col justify-center h-full overflow-hidden`}>
 
                     {/* 文件输入提升到工作区根部：移动端列表行与桌面端拖拽框共用 */}
@@ -427,138 +339,113 @@ export default function JsonImportModal<T>({
                         }}
                     />
 
-                    {/* Step 1: Upload（移动端 = 分区列表；桌面端 = 拖拽虚线框） */}
+                    {/* Step 1: Upload：分区操作列表，移动端与桌面端同一设计（原桌面端为
+                        侧栏步骤条 + 拖拽大框，已按移动端重构方案移植）。hero 行在桌面端
+                        兼作拖拽落区；移动端列表占满整页高度可滚动，桌面端按内容自然高度
+                        撑起弹窗（超过 70vh 时列表内部滚动，弹窗不再固定高）。 */}
                     {step === 'upload' && (
-                        <div className="h-full flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
-                            {!isMobile && <h3 className="text-xl font-semibold text-foreground mb-4">上传文件</h3>}
-                            {isMobile ? (
-                                <div className="flex-1 min-h-0 overflow-y-auto pb-2 pt-1">
-                                    <div className="rounded-xl border border-border bg-card overflow-hidden">
+                        <div className={`${isMobile ? 'h-full' : ''} flex flex-col animate-in fade-in slide-in-from-right-4 duration-300`}>
+                            <div className={`min-h-0 overflow-y-auto pb-2 pt-1 ${isMobile ? 'flex-1' : 'max-h-[70vh]'}`}>
+                                <div
+                                    className={`rounded-xl border overflow-hidden transition-colors ${dragOver ? 'border-primary bg-primary/5' : 'border-border bg-card'}`}
+                                    onDrop={handleDrop}
+                                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                                    onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
+                                >
+                                    <ActionRow
+                                        hero
+                                        icon={<FileJson className="w-5 h-5" />}
+                                        title="选择 JSON 文件"
+                                        sub={isMobile ? '从本机文件中选取 · 支持批量导入' : '点击选择，或将 JSON 文件拖到此处'}
+                                        onClick={() => fileInputRef.current?.click()}
+                                    />
+                                </div>
+
+                                <div className="my-3 h-px bg-border" />
+                                <div className="rounded-xl border border-border bg-card divide-y divide-border/60 overflow-hidden">
+                                    <div>
                                         <ActionRow
-                                            hero
-                                            icon={<FileJson className="w-5 h-5" />}
-                                            title="选择 JSON 文件"
-                                            sub="从本机文件中选取 · 支持批量导入"
-                                            onClick={() => fileInputRef.current?.click()}
+                                            icon={<ClipboardPaste className="w-[17px] h-[17px]" />}
+                                            title="粘贴 JSON 数据"
+                                            sub="从聊天 / 笔记复制后直接粘贴解析"
+                                            open={pasteOpen}
+                                            onClick={() => setPasteOpen(v => !v)}
+                                        />
+                                        {pasteOpen && (
+                                            <div className="px-4 pt-3 pb-4">
+                                                <textarea
+                                                    value={pasteText}
+                                                    onChange={(e) => setPasteText(e.target.value)}
+                                                    placeholder="粘贴 JSON 数组内容（格式可参考标准模板）"
+                                                    autoFocus
+                                                    className="w-full min-h-[96px] resize-none rounded-lg border border-border bg-background p-3 text-xs font-mono text-foreground placeholder:text-muted-foreground/60 outline-none focus-ring"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => parseAndPreview(pasteText)}
+                                                    disabled={!pasteText.trim()}
+                                                    className="mt-2.5 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-xs font-semibold transition-all active:scale-[0.98] focus-ring disabled:opacity-40 disabled:pointer-events-none"
+                                                >
+                                                    解析并预览
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        <ActionRow
+                                            icon={<Download className="w-[17px] h-[17px]" />}
+                                            title="保存标准模板"
+                                            sub="保存到本机 · import_template.json"
+                                            onClick={handleDownloadTemplate}
+                                            disabled={templateBusy}
                                         />
                                     </div>
 
-                                    <div className="my-3 h-px bg-border" />
-                                    <div className="rounded-xl border border-border bg-card divide-y divide-border/60 overflow-hidden">
-                                        <div>
-                                            <ActionRow
-                                                icon={<ClipboardPaste className="w-[17px] h-[17px]" />}
-                                                title="粘贴 JSON 数据"
-                                                sub="从聊天 / 笔记复制后直接粘贴解析"
-                                                open={pasteOpen}
-                                                onClick={() => setPasteOpen(v => !v)}
-                                            />
-                                            {pasteOpen && (
-                                                <div className="px-4 pt-3 pb-4">
-                                                    <textarea
-                                                        value={pasteText}
-                                                        onChange={(e) => setPasteText(e.target.value)}
-                                                        placeholder="粘贴 JSON 数组内容（格式可参考标准模板）"
-                                                        autoFocus
-                                                        className="w-full min-h-[96px] resize-none rounded-lg border border-border bg-background p-3 text-xs font-mono text-foreground placeholder:text-muted-foreground/60 outline-none focus-ring"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => parseAndPreview(pasteText)}
-                                                        disabled={!pasteText.trim()}
-                                                        className="mt-2.5 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-xs font-semibold transition-all active:scale-[0.98] focus-ring disabled:opacity-40 disabled:pointer-events-none"
-                                                    >
-                                                        解析并预览
-                                                    </button>
+                                    <div>
+                                        <ActionRow
+                                            icon={<Table2 className="w-[17px] h-[17px]" />}
+                                            title="查看字段说明"
+                                            sub={`${templateFields.length} 个字段 · 含示例值`}
+                                            open={fieldsOpen}
+                                            onClick={() => setFieldsOpen(v => !v)}
+                                        />
+                                        {fieldsOpen && templateFields.length > 0 && (
+                                            <div className="px-4 pt-3 pb-4">
+                                                <div className="rounded-lg border border-border/60 divide-y divide-border/50 overflow-hidden">
+                                                    {templateFields.map(f => (
+                                                        <div key={f.key} className="flex items-center gap-3 px-3.5 py-2.5">
+                                                            <span className="w-16 shrink-0 text-xs font-medium text-foreground">{f.key}</span>
+                                                            <span className="flex-1 min-w-0 truncate text-right font-mono text-[11px] text-muted-foreground">{f.example}</span>
+                                                        </div>
+                                                    ))}
                                                 </div>
-                                            )}
-                                        </div>
-
-                                        <div>
-                                            <ActionRow
-                                                icon={<Download className="w-[17px] h-[17px]" />}
-                                                title="保存标准模板"
-                                                sub="保存到本机 · import_template.json"
-                                                onClick={handleDownloadTemplate}
-                                                disabled={templateBusy}
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <ActionRow
-                                                icon={<Table2 className="w-[17px] h-[17px]" />}
-                                                title="查看字段说明"
-                                                sub={`${templateFields.length} 个字段 · 含示例值`}
-                                                open={fieldsOpen}
-                                                onClick={() => setFieldsOpen(v => !v)}
-                                            />
-                                            {fieldsOpen && templateFields.length > 0 && (
-                                                <div className="px-4 pt-3 pb-4">
-                                                    <div className="rounded-lg border border-border/60 divide-y divide-border/50 overflow-hidden">
-                                                        {templateFields.map(f => (
-                                                            <div key={f.key} className="flex items-center gap-3 px-3.5 py-2.5">
-                                                                <span className="w-16 shrink-0 text-xs font-medium text-foreground">{f.key}</span>
-                                                                <span className="flex-1 min-w-0 truncate text-right font-mono text-[11px] text-muted-foreground">{f.example}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
+                                            </div>
+                                        )}
                                     </div>
-
-                                    {templateSaved && (
-                                        <div className="mt-3 p-3 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center gap-2 text-green-500 animate-in slide-in-from-bottom-2" role="status">
-                                            <Check className="w-4 h-4 flex-shrink-0" />
-                                            <span className="text-xs font-medium">{templateSaved}</span>
-                                        </div>
-                                    )}
-
-                                    {error && (
-                                        <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-red-400 animate-in slide-in-from-bottom-2">
-                                            <AlertCircle className="w-4 h-4" />
-                                            <span className="text-xs font-medium">{error}</span>
-                                        </div>
-                                    )}
                                 </div>
-                            ) : (
-                                <>
-                                    <div
-                                        className={`
-                                            flex-1 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all duration-300 cursor-pointer relative overflow-hidden group
-                                            ${dragOver
-                                                ? 'border-primary bg-primary/5'
-                                                : 'border-border hover:border-primary/50 hover:bg-muted/50'
-                                            }
-                                        `}
-                                        onDrop={handleDrop}
-                                        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                                        onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
-                                        onClick={() => fileInputRef.current?.click()}
-                                    >
-                                        <div className={`w-16 h-16 mb-4 rounded-xl bg-muted border border-border flex items-center justify-center transition-transform duration-500 ${dragOver ? 'scale-110 shadow-lg' : 'group-hover:scale-105'}`}>
-                                            <Upload className={`w-7 h-7 ${dragOver ? 'text-primary' : 'text-muted-foreground'}`} />
-                                        </div>
-                                        <div className="text-center space-y-1.5">
-                                            <p className="text-base font-medium text-foreground">点击上传或将文件拖到这里</p>
-                                            <p className="text-xs text-muted-foreground">支持 .json 格式文件</p>
-                                        </div>
-                                    </div>
 
-                                    {error && (
-                                        <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-red-400 animate-in slide-in-from-bottom-2">
-                                            <AlertCircle className="w-4 h-4" />
-                                            <span className="text-xs font-medium">{error}</span>
-                                        </div>
-                                    )}
-                                </>
-                            )}
+                                {templateSaved && (
+                                    <div className="mt-3 p-3 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center gap-2 text-green-500 animate-in slide-in-from-bottom-2" role="status">
+                                        <Check className="w-4 h-4 flex-shrink-0" />
+                                        <span className="text-xs font-medium">{templateSaved}</span>
+                                    </div>
+                                )}
+
+                                {error && (
+                                    <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-red-400 animate-in slide-in-from-bottom-2">
+                                        <AlertCircle className="w-4 h-4" />
+                                        <span className="text-xs font-medium">{error}</span>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
-                    {/* Step 2: Preview - Card Grid or Table */}
+                    {/* Step 2: Preview - Card Grid or Table.
+                        桌面端弹窗高度自适应后，预览区必须自带定界高度，否则 flex-1 无界会撑破弹窗 */}
                     {step === 'preview' && (
-                        <div className="h-full flex flex-col animate-in fade-in slide-in-from-right-4 duration-300">
+                        <div className={`flex flex-col animate-in fade-in slide-in-from-right-4 duration-300 ${isMobile ? 'h-full' : 'h-[520px] max-h-[60vh]'}`}>
                             <div className="flex items-center justify-between mb-4 flex-shrink-0">
                                 <div className="flex items-center gap-2">
                                     <h3 className="text-lg font-semibold text-foreground">预览数据</h3>
@@ -631,9 +518,9 @@ export default function JsonImportModal<T>({
                         </div>
                     )}
 
-                    {/* Step 3: Loading */}
+                    {/* Step 3: Loading（桌面端弹窗随内容自适应，仅保留上下呼吸空间） */}
                     {step === 'importing' && (
-                        <div className="h-full flex flex-col items-center justify-center animate-in fade-in duration-500">
+                        <div className={`flex flex-col items-center justify-center animate-in fade-in duration-500 ${isMobile ? 'h-full' : 'py-10'}`}>
                             <div className="relative">
                                 <div className="w-20 h-20 rounded-full border-4 border-muted" />
                                 <div className="absolute top-0 left-0 w-20 h-20 rounded-full border-4 border-primary border-t-transparent animate-spin" />
@@ -644,7 +531,7 @@ export default function JsonImportModal<T>({
 
                     {/* Step 4: Result */}
                     {step === 'result' && importResult && (
-                        <div className="h-full flex flex-col items-center justify-center animate-in zoom-in-95 duration-300">
+                        <div className={`flex flex-col items-center justify-center animate-in zoom-in-95 duration-300 ${isMobile ? 'h-full' : 'py-10'}`}>
                             <div className="w-24 h-24 rounded-full bg-green-500/10 flex items-center justify-center border border-green-500/20 mb-8 shadow-sm">
                                 <Check className="w-12 h-12 text-green-500" />
                             </div>
@@ -664,7 +551,7 @@ export default function JsonImportModal<T>({
         </div>
     );
 
-    // 移动端：统一二级页面壳（返回手势 + 统一页头）；桌面端：保留左侧栏弹窗
+    // 移动端：统一二级页面壳（返回手势 + 统一页头）；桌面端：同设计居中弹窗，页头由 BaseModal 统一提供
     if (isMobile) {
         return (
             <SubPage
@@ -682,13 +569,14 @@ export default function JsonImportModal<T>({
         <BaseModal
             isOpen={isOpen}
             onClose={handleClose}
-            title={null}
-            maxWidth="max-w-3xl"
-            className="flex-row p-0 overflow-hidden !h-[640px] !max-h-[95vh]"
-            bodyClassName="p-0 overflow-hidden flex flex-row h-full"
-            showCloseButton={false}
+            title={title}
+            maxWidth="max-w-lg"
+            // 高度随步骤内容自适应：上传列表按自然高度展示不留大片空白，
+            // 展开粘贴/字段说明时弹窗随之长高；预览步骤单独给定界高度（见下），
+            // 整体仍受 BaseModal 默认 max-h-[85vh] 约束
+            className="p-0 overflow-hidden"
+            bodyClassName="p-0 overflow-hidden flex flex-col"
         >
-            {desktopSidebar}
             {workspace}
         </BaseModal>
     );

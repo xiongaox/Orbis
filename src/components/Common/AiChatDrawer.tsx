@@ -44,6 +44,7 @@ import AiIntegrationModal from './AiIntegrationModal';
 import AiRoleSettingsModal from './AiRoleSettingsModal';
 import { drawerMarkdownComponents } from './markdownComponents';
 import { aiRolePromptService } from '../../services/aiRolePromptService';
+import { setAiResearchRunning, setAiResearchUnread, clearAiResearchStatus } from '../../services/aiTaskStatusService';
 import {
   aiChatHistoryService,
   type DivinationType,
@@ -115,7 +116,7 @@ function CustomDropdown({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen((prev) => !prev)}
-        className={`flex items-center gap-1 px-2.5 py-1 text-xs rounded-lg border border-border/80 bg-background/90 hover:bg-muted/70 text-foreground transition-all duration-150 cursor-pointer select-none focus:outline-none focus:ring-1 focus:ring-primary ${
+        className={`flex items-center gap-1.5 px-3 h-10 text-[13px] rounded-lg border border-border/80 bg-background/90 hover:bg-muted/70 text-foreground transition-all duration-150 cursor-pointer select-none focus:outline-none focus:ring-1 focus:ring-primary ${
           disabled ? 'opacity-50 cursor-not-allowed' : ''
         } ${isOpen ? 'border-primary ring-1 ring-primary/40 bg-muted/50' : ''}`}
       >
@@ -125,7 +126,7 @@ function CustomDropdown({
           {displayLabel}
         </span>
         <ChevronDown
-          className={`w-3 h-3 text-muted-foreground transition-transform duration-200 shrink-0 ${
+          className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${
             isOpen ? 'rotate-180' : ''
           }`}
         />
@@ -240,17 +241,37 @@ export default function AiChatDrawer({
   // 消息与交互状态
   const [messages, setMessages] = useState<ChatMessageItem[]>([]);
   const [inputText, setInputText] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [streamingText, setStreamingText] = useState('');
-  const [streamingReasoning, setStreamingReasoning] = useState('');
   const [expandedReasonings, setExpandedReasonings] = useState<Record<string, boolean>>({});
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const clearConfirmRef = useRef<HTMLDivElement>(null);
 
-  const abortControllerRef = useRef<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // 并发研判：一次生成对应一个会话的「运行」，不同会话可同时进行、互不阻塞。
+  // 关闭抽屉/切换案例/切换会话都不中止生成；结果靠发送时的会话 ID 落回原会话。
+  interface ActiveRun {
+    controller: AbortController;
+    text: string;
+    reasoning: string;
+    /** 清空会话等场景主动放弃时置位：中止后不再把部分结果写回 */
+    discarded: boolean;
+  }
+  const [runs, setRuns] = useState<Record<string, ActiveRun>>({});
+  const runsRef = useRef(runs);
+  runsRef.current = runs;
+  const activeSessionIdRef = useRef(activeSessionId);
+  activeSessionIdRef.current = activeSessionId;
+  const isOpenRef = useRef(isOpen);
+  isOpenRef.current = isOpen;
+  // 当前查看会话的进行中运行（决定流式气泡与停止按钮）
+  const activeRun = runs[activeSessionId];
+
+  // 打开研判抽屉即视为开始阅读：清除该案例的未读/进行中标记
+  useEffect(() => {
+    if (isOpen && caseId) clearAiResearchStatus(caseId);
+  }, [isOpen, caseId]);
 
   // 点击外部关闭历史浮层与清空确认气泡
   useEffect(() => {
@@ -273,39 +294,31 @@ export default function AiChatDrawer({
   // 读取与持久化当前会话的对话历史
   useEffect(() => {
     if (!isOpen || !activeSessionId) return;
+    // 该会话正在生成中：保持内存里的流式视图，不用落盘历史覆盖
+    if (runsRef.current[activeSessionId]) return;
     const session = aiChatHistoryService.getSession(activeSessionId);
     if (session && Array.isArray(session.messages)) {
       setMessages(session.messages);
     } else {
       setMessages([]);
     }
-  }, [isOpen, activeSessionId]);
+  }, [isOpen, activeSessionId, runs]);
 
-  // 开启属于当前命主的全新会话
+  // 开启属于当前命主的全新会话（进行中的运行属于原会话，后台继续）
   const handleCreateNewSession = useCallback(() => {
-    if (isLoading && abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      setIsLoading(false);
-    }
     const newSessionId = `${effectiveDivinationType}_${caseId ? `case_${caseId}` : 'free'}_${Date.now()}`;
     setActiveSessionId(newSessionId);
     setMessages([]);
     setInputText('');
-    setStreamingText('');
-    setStreamingReasoning('');
     setShowHistoryPopover(false);
     setShowClearConfirm(false);
-  }, [effectiveDivinationType, caseId, isLoading]);
+  }, [effectiveDivinationType, caseId]);
 
-  // 切换到当前命主的某条历史会话（继续上次对话）
+  // 切换到当前命主的某条历史会话（继续上次对话；进行中的运行后台继续）
   const handleSelectHistorySession = useCallback((targetSessionId: string) => {
     if (targetSessionId === activeSessionId) {
       setShowHistoryPopover(false);
       return;
-    }
-    if (isLoading && abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      setIsLoading(false);
     }
     setActiveSessionId(targetSessionId);
     const session = aiChatHistoryService.getSession(targetSessionId);
@@ -314,15 +327,18 @@ export default function AiChatDrawer({
     } else {
       setMessages([]);
     }
-    setStreamingText('');
-    setStreamingReasoning('');
     setShowHistoryPopover(false);
     setShowClearConfirm(false);
-  }, [activeSessionId, isLoading]);
+  }, [activeSessionId]);
 
-  // 删除当前命主的某个历史会话
+  // 删除当前命主的某个历史会话（若其上有生成任务，标记放弃后中止，避免完成后写回已删会话）
   const handleDeleteSessionItem = useCallback((targetSessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    const run = runsRef.current[targetSessionId];
+    if (run) {
+      run.discarded = true;
+      run.controller.abort();
+    }
     aiChatHistoryService.deleteSession(targetSessionId);
     if (targetSessionId === activeSessionId) {
       const remaining = caseSessions.filter((s) => s.id !== targetSessionId);
@@ -334,13 +350,13 @@ export default function AiChatDrawer({
     }
   }, [activeSessionId, caseSessions, handleSelectHistorySession, handleCreateNewSession]);
 
-  const saveMessages = useCallback(
-    (newMessages: ChatMessageItem[]) => {
-      setMessages(newMessages);
-
+  // 持久化指定会话的消息（不触碰视图状态）：后台生成期间发送时的会话
+  // 与用户当前查看的会话可能分叉，落盘必须回到发送时的会话
+  const persistMessages = useCallback(
+    (targetSessionId: string, newMessages: ChatMessageItem[]) => {
       // 智能生成会话标题，绝不将命主名称作为标题
       let customTitle: string | undefined;
-      const existing = aiChatHistoryService.getSession(activeSessionId);
+      const existing = aiChatHistoryService.getSession(targetSessionId);
       if (existing?.title && existing.title !== effectiveCaseName && existing.title !== '命理研判') {
         customTitle = existing.title;
       } else {
@@ -350,7 +366,7 @@ export default function AiChatDrawer({
         }
       }
 
-      aiChatHistoryService.updateSessionMessages(activeSessionId, newMessages, {
+      aiChatHistoryService.updateSessionMessages(targetSessionId, newMessages, {
         caseId,
         caseName: effectiveCaseName,
         divinationType: effectiveDivinationType,
@@ -359,7 +375,7 @@ export default function AiChatDrawer({
         title: customTitle,
       });
     },
-    [activeSessionId, caseId, effectiveCaseName, effectiveDivinationType, moduleName, meta]
+    [caseId, effectiveCaseName, effectiveDivinationType, moduleName, meta]
   );
 
   // 加载可用服务
@@ -424,18 +440,13 @@ export default function AiChatDrawer({
 
   useEffect(() => {
     scrollToBottom(false);
-  }, [messages, streamingText, scrollToBottom]);
+  }, [messages, runs, scrollToBottom]);
 
-  // 监听 ESC 键关闭
+  // 监听 ESC 键关闭（关闭不中止生成，任务转后台继续跑）
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (abortControllerRef.current) {
-          abortControllerRef.current.abort();
-          abortControllerRef.current = null;
-        }
-        setIsLoading(false);
         onClose();
       }
     };
@@ -443,25 +454,28 @@ export default function AiChatDrawer({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // 中止请求
+  // 中止当前查看会话的生成（其他会话的运行不受影响）
   const handleStop = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
-    setIsLoading(false);
-  }, []);
+    runsRef.current[activeSessionId]?.controller.abort();
+  }, [activeSessionId]);
 
   // 执行发送消息
   const handleSendMessage = useCallback(
     async (textToSend?: string) => {
       const content = (textToSend !== undefined ? textToSend : inputText).trim();
-      if (!content || isLoading) return;
+      if (!content) return;
+      // 同一会话同时只允许一个生成任务；不同会话可并行（多线程研判）
+      if (runsRef.current[activeSessionIdRef.current]) return;
 
       if (!currentService) {
         setIsSettingsOpen(true);
         return;
       }
+
+      // 发送瞬间的会话快照：后台生成期间用户可能切换案例/会话，
+      // 落盘与状态登记都必须回到发送时的会话，而不是完成时的视图
+      const sentSessionId = activeSessionIdRef.current;
+      const sentMessages = messages;
 
       const userMsg: ChatMessageItem = {
         id: `user-${Date.now()}`,
@@ -470,17 +484,19 @@ export default function AiChatDrawer({
         timestamp: Date.now(),
       };
 
-      const nextMessages = [...messages, userMsg];
-      saveMessages(nextMessages);
+      const nextMessages = [...sentMessages, userMsg];
+      setMessages(nextMessages);
+      persistMessages(sentSessionId, nextMessages);
       setInputText('');
 
-      // 重置流式缓存
-      setStreamingText('');
-      setStreamingReasoning('');
-      setIsLoading(true);
-
+      // 登记运行：同一会话互斥，不同会话并行
       const controller = new AbortController();
-      abortControllerRef.current = controller;
+      const runEntry: ActiveRun = { controller, text: '', reasoning: '', discarded: false };
+      runsRef.current = { ...runsRef.current, [sentSessionId]: runEntry };
+      setRuns(runsRef.current);
+
+      // 登记研判中状态（仅案例会话），供首页案例列表状态按钮展示
+      if (caseId) setAiResearchRunning(caseId);
 
       // 构造大模型对话上下文
       const chatPayloadMessages = nextMessages.map((m) => ({
@@ -493,6 +509,25 @@ export default function AiChatDrawer({
       let accumulatedText = '';
       let accumulatedReasoning = '';
 
+      // 统一收尾：按「完成时用户是否正停留在该会话」决定未读标记；
+      // 关闭抽屉不中止生成，停止（手动）与出错即时清除登记
+      const finishRun = (outcome: 'success' | 'stopped' | 'error') => {
+        setRuns(prev => {
+          if (!(sentSessionId in prev)) return prev;
+          const next = { ...prev };
+          delete next[sentSessionId];
+          return next;
+        });
+        if (!caseId) return;
+        if (outcome === 'success' && !(isOpenRef.current && activeSessionIdRef.current === sentSessionId)) {
+          setAiResearchUnread(caseId);
+        } else {
+          clearAiResearchStatus(caseId);
+        }
+      };
+
+      let outcome: 'success' | 'stopped' | 'error' = 'success';
+
       try {
         const { fullText, fullReasoning } = await aiChatService.callChatStream({
           service: currentService,
@@ -504,12 +539,13 @@ export default function AiChatDrawer({
           onChunk: (chunk) => {
             if (chunk.reasoning) {
               accumulatedReasoning += chunk.reasoning;
-              setStreamingReasoning(accumulatedReasoning);
+              runEntry.reasoning = accumulatedReasoning;
             }
             if (chunk.text) {
               accumulatedText += chunk.text;
-              setStreamingText(accumulatedText);
+              runEntry.text = accumulatedText;
             }
+            setRuns(prev => ({ ...prev }));
           },
         });
 
@@ -521,10 +557,13 @@ export default function AiChatDrawer({
           timestamp: Date.now(),
         };
         const allNext = [...nextMessages, assistantMsg];
-        saveMessages(allNext);
+        persistMessages(sentSessionId, allNext);
+        if (activeSessionIdRef.current === sentSessionId) {
+          setMessages(allNext);
+        }
 
         // 首轮对话完成后，后台异步利用当前模型生成精炼研判标题
-        if (messages.length === 0 && currentService) {
+        if (sentMessages.length === 0 && currentService) {
           const firstUser = nextMessages.find((m) => m.role === 'user');
           if (firstUser) {
             void aiChatService.generateConversationTitle({
@@ -535,14 +574,15 @@ export default function AiChatDrawer({
               divinationType: effectiveDivinationType,
             }).then((aiTitle) => {
               if (aiTitle) {
-                aiChatHistoryService.updateSessionTitle(activeSessionId, aiTitle);
+                aiChatHistoryService.updateSessionTitle(sentSessionId, aiTitle);
               }
             });
           }
         }
       } catch (err) {
         if (controller.signal.aborted) {
-          if (accumulatedText.trim()) {
+          outcome = 'stopped';
+          if (!runEntry.discarded && accumulatedText.trim()) {
             const partialMsg: ChatMessageItem = {
               id: `assistant-${Date.now()}`,
               role: 'assistant',
@@ -550,38 +590,41 @@ export default function AiChatDrawer({
               reasoning: accumulatedReasoning || undefined,
               timestamp: Date.now(),
             };
-            saveMessages([...nextMessages, partialMsg]);
+            persistMessages(sentSessionId, [...nextMessages, partialMsg]);
+            if (activeSessionIdRef.current === sentSessionId) {
+              setMessages([...nextMessages, partialMsg]);
+            }
           }
-          return;
+        } else {
+          outcome = 'error';
+          const errorMsg: ChatMessageItem = {
+            id: `assistant-${Date.now()}`,
+            role: 'assistant',
+            content: `推理过程异常：${err instanceof Error ? err.message : '未知错误'}`,
+            timestamp: Date.now(),
+            error: true,
+          };
+          persistMessages(sentSessionId, [...nextMessages, errorMsg]);
+          if (activeSessionIdRef.current === sentSessionId) {
+            setMessages([...nextMessages, errorMsg]);
+          }
         }
-
-        const errorMsg: ChatMessageItem = {
-          id: `assistant-err-${Date.now()}`,
-          role: 'assistant',
-          content: `推理过程异常：${err instanceof Error ? err.message : '未知错误'}`,
-          timestamp: Date.now(),
-          error: true,
-        };
-        saveMessages([...nextMessages, errorMsg]);
       } finally {
-        if (abortControllerRef.current === controller) {
-          abortControllerRef.current = null;
-        }
-        setIsLoading(false);
-        setStreamingText('');
-        setStreamingReasoning('');
+        finishRun(outcome);
       }
     },
-    [currentService, selectedModel, messages, inputText, isLoading, saveMessages, effectiveDivinationType, activeSessionId, moduleName]
+    [caseId, currentService, effectiveDivinationType, inputText, messages, moduleName, persistMessages, selectedModel]
   );
 
-  // 确认清空当前激活的会话分支
+  // 确认清空当前激活的会话分支（该会话若有生成任务，标记放弃后中止，部分结果不再写回）
   const handleConfirmClear = () => {
-    if (isLoading) handleStop();
+    const run = runsRef.current[activeSessionId];
+    if (run) {
+      run.discarded = true;
+      run.controller.abort();
+    }
     setMessages([]);
     aiChatHistoryService.deleteSession(activeSessionId);
-    setStreamingText('');
-    setStreamingReasoning('');
     setShowClearConfirm(false);
   };
 
@@ -601,34 +644,17 @@ export default function AiChatDrawer({
   // 抽屉内容：页头（研判对象/操作/服务模型条）+ 消息区 + 输入区，移动端整页壳与桌面抽屉共用
   const drawerBody = (
     <>
-          {/* 移动端：研判对象条（页头正下方，长名省略） */}
-          {isMobileLayout && (
-            <div className="flex-shrink-0 flex items-center gap-1.5 min-w-0 px-3.5 py-2 border-b border-border/60 text-xs text-muted-foreground">
-              <Clock3 className="w-3.5 h-3.5 shrink-0" />
-              <span className="shrink-0">研判对象：</span>
-              <span className="truncate font-medium text-foreground">{effectiveCaseName}</span>
-            </div>
-          )}
-
           {/* 桌面端页头（移动端由 SubPage 页头 + 对象条替代） */}
           {!isMobileLayout && (
           <>
           <div className="p-3 sm:p-4 border-b border-border shrink-0 bg-card/95 backdrop-blur-md space-y-2.5 relative z-30">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
-                  <span className="p-1.5 rounded-lg bg-primary/10 text-primary shrink-0">
+                  <span className="h-10 w-10 rounded-lg bg-primary/10 text-primary shrink-0 flex items-center justify-center">
                     <Bot className="w-5 h-5" />
                   </span>
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-foreground flex items-center gap-1.5">
-                      <span>{moduleName} AI 研判助手</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 shrink-0">
-                        多轮对话
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-muted-foreground truncate">
-                      研判对象：<span className="text-foreground font-medium">{effectiveCaseName}</span>
-                    </div>
+                  <div className="min-w-0 text-sm font-semibold text-foreground">
+                    {moduleName} AI 研判助手
                   </div>
                 </div>
 
@@ -639,7 +665,7 @@ export default function AiChatDrawer({
                     type="button"
                     onClick={() => setShowHistoryPopover((prev) => !prev)}
                     title={`查看【${effectiveCaseName}】的会话历史`}
-                    className={`p-1.5 rounded-lg border transition-colors cursor-pointer flex items-center gap-1 text-xs ${
+                    className={`h-10 px-3 rounded-lg border transition-colors cursor-pointer flex items-center gap-1.5 text-[13px] ${
                       showHistoryPopover
                         ? 'bg-primary/15 text-primary border-primary/40'
                         : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'
@@ -648,29 +674,32 @@ export default function AiChatDrawer({
                     <History className="w-4 h-4" />
                     <span className="hidden sm:inline font-sans">会话历史</span>
                     {caseSessions.length > 0 && (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-muted text-muted-foreground font-mono">
+                      <span className="text-[10px] px-1.5 rounded-full bg-muted text-muted-foreground font-mono leading-4">
                         {caseSessions.length}
                       </span>
                     )}
                   </button>
 
                   {showHistoryPopover && (
-                    <div className="absolute right-0 top-full mt-2 z-50 w-72 sm:w-80 rounded-xl border border-border/90 bg-popover text-popover-foreground shadow-2xl p-2 text-xs space-y-2 animate-in fade-in zoom-in-95 duration-150">
-                      <div className="flex items-center justify-between px-1 pb-1.5 border-b border-border/50">
-                        <span className="font-semibold text-foreground flex items-center gap-1.5">
-                          <History className="w-3.5 h-3.5 text-primary" />
-                          <span>{effectiveCaseName} · 会话历史</span>
+                    <div className="absolute right-0 top-full mt-2 z-50 w-[400px] max-w-[calc(100vw-3rem)] rounded-xl border border-border/90 bg-popover text-popover-foreground shadow-2xl p-3 space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
+                      {/* 标题行：对象名在抽屉对象条已常显，此处不再重复 */}
+                      <div className="flex items-center justify-between px-1 pb-2 border-b border-border/50">
+                        <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                          <History className="w-4 h-4 text-primary" />
+                          会话历史
                         </span>
-                        <span className="text-[10px] text-muted-foreground font-mono">
-                          共 {caseSessions.length} 次研判
-                        </span>
+                        <span className="text-[11px] text-muted-foreground">共 {caseSessions.length} 次研判</span>
                       </div>
 
                       {/* 历史会话分支列表 */}
-                      <div className="max-h-60 overflow-y-auto space-y-1 pr-0.5">
+                      <div className="max-h-[320px] overflow-y-auto space-y-1.5 pr-0.5">
                         {caseSessions.length === 0 ? (
-                          <div className="py-6 text-center text-muted-foreground text-xs">
-                            当前命主暂无历史对话
+                          <div className="py-8 flex flex-col items-center gap-2 text-center">
+                            <div className="w-11 h-11 rounded-xl bg-muted/60 border border-border/50 flex items-center justify-center">
+                              <History className="w-5 h-5 text-muted-foreground/60" />
+                            </div>
+                            <div className="text-xs text-foreground/70 font-medium">当前命主暂无历史对话</div>
+                            <div className="text-[11px] text-muted-foreground">发送第一条消息后将自动保存会话</div>
                           </div>
                         ) : (
                           caseSessions.map((s) => {
@@ -687,14 +716,14 @@ export default function AiChatDrawer({
                               <div
                                 key={s.id}
                                 onClick={() => handleSelectHistorySession(s.id)}
-                                className={`group p-2 rounded-lg cursor-pointer transition-all border flex items-center justify-between gap-2 ${
+                                className={`group p-2.5 rounded-lg cursor-pointer transition-all border flex items-center justify-between gap-2 ${
                                   isCurrent
                                     ? 'bg-primary/15 text-primary border-primary/30 font-medium shadow-2xs'
                                     : 'border-transparent hover:bg-muted/70 text-foreground/90'
                                 }`}
                               >
                                 <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-1">
+                                  <div className="flex items-center gap-1 text-[13px]">
                                     {isCurrent && (
                                       <Check className="w-3.5 h-3.5 text-primary shrink-0" />
                                     )}
@@ -715,7 +744,7 @@ export default function AiChatDrawer({
                                     title="删除此会话"
                                     className="p-1 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                                   >
-                                    <Trash2 className="w-3 h-3" />
+                                    <Trash2 className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               </div>
@@ -725,13 +754,13 @@ export default function AiChatDrawer({
                       </div>
 
                       {/* 快捷新建按钮 */}
-                      <div className="pt-1.5 border-t border-border/50">
+                      <div className="pt-2 border-t border-border/50">
                         <button
                           type="button"
                           onClick={handleCreateNewSession}
-                          className="w-full py-1.5 px-2.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer"
+                          className="w-full h-9 px-2.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 flex items-center justify-center gap-1.5 text-xs font-medium transition-colors cursor-pointer"
                         >
-                          <Plus className="w-3.5 h-3.5 text-primary" />
+                          <Plus className="w-4 h-4 text-primary" />
                           <span>开启新会话</span>
                         </button>
                       </div>
@@ -744,119 +773,47 @@ export default function AiChatDrawer({
                   type="button"
                   onClick={() => setIsRoleModalOpen(true)}
                   title={`设定 AI 研判角色与提示词规范（${moduleName}）`}
-                  className="p-1.5 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1 text-xs"
+                  className="h-10 px-3 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center gap-1.5 text-[13px]"
                 >
                   <UserCog className="w-4 h-4 text-primary" />
                   <span className="hidden sm:inline font-sans">角色</span>
                 </button>
 
-                {/* 清空当前对话 */}
-                {messages.length > 0 && (
-                  <div className="relative" ref={clearConfirmRef}>
-                    <button
-                      type="button"
-                      onClick={() => setShowClearConfirm((prev) => !prev)}
-                      title="清空对话历史"
-                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                        showClearConfirm
-                          ? 'text-destructive bg-destructive/15 ring-1 ring-destructive/40'
-                          : 'text-muted-foreground hover:text-destructive hover:bg-destructive/10'
-                      }`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-
-                    {showClearConfirm && (
-                      <div className="absolute right-0 top-full mt-2 z-50 w-52 p-3 rounded-xl border border-border/90 bg-popover text-popover-foreground shadow-2xl text-xs space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
-                        <div className="font-semibold text-foreground flex items-center gap-1.5">
-                          <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
-                          <span>清空对话记录？</span>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                          清空后当前模块的对话历史将无法恢复。
-                        </p>
-                        <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/40">
-                          <button
-                            type="button"
-                            onClick={() => setShowClearConfirm(false)}
-                            className="px-2.5 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer transition-colors"
-                          >
-                            取消
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleConfirmClear}
-                            className="px-2.5 py-1 rounded-md text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium cursor-pointer shadow-xs transition-colors"
-                          >
-                            确认清空
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
                 <button
                   type="button"
                   onClick={() => setIsSettingsOpen(true)}
                   title="配置 AI 服务"
-                  className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                  className="h-10 w-10 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center justify-center"
                 >
                   <Settings className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
+                  className="h-10 w-10 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer flex items-center justify-center"
                   aria-label="关闭抽屉"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
-
-            {/* 模型与服务选择控制条 */}
-            <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/40 flex-wrap">
-              {services.length > 0 ? (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <CustomDropdown
-                    label="服务"
-                    value={selectedServiceId}
-                    options={serviceOptions}
-                    onChange={(val) => setSelectedServiceId(val)}
-                    icon={<Bot className="w-3.5 h-3.5 text-primary" />}
-                  />
-                  {modelOptions.length > 0 && (
-                    <CustomDropdown
-                      label="模型"
-                      value={selectedModel}
-                      options={modelOptions}
-                      onChange={(val) => setSelectedModel(val)}
-                      icon={<Sparkles className="w-3.5 h-3.5 text-primary" />}
-                    />
-                  )}
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setIsSettingsOpen(true)}
-                  className="text-xs text-primary hover:underline flex items-center gap-1.5 cursor-pointer"
-                >
-                  <AlertCircle className="w-3.5 h-3.5 text-warning" />
-                  尚未配置 AI 服务，点击前往配置
-                </button>
-              )}
-
-              <div className="text-[11px] text-muted-foreground font-mono ml-auto">
-                {messages.length} 条对话
-              </div>
-            </div>
           </div>
           </>
           )}
 
+          {/* 研判对象条（移动端改版移植：页头正下方独立成条，长名省略；桌面端右端附会话计数） */}
+          <div className="flex-shrink-0 flex items-center gap-1.5 min-w-0 px-3.5 py-2 border-b border-border/60 text-xs text-muted-foreground">
+            <Clock3 className="w-3.5 h-3.5 shrink-0" />
+            <span className="shrink-0">研判对象：</span>
+            <span className="truncate font-medium text-foreground">{effectiveCaseName}</span>
+            {!isMobileLayout && (
+              <span className="ml-auto shrink-0 text-[11px] font-mono">{messages.length} 条对话</span>
+            )}
+          </div>
+
           {/* 消息历史滚动区 */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 relative z-0">
-            {messages.length === 0 && !isLoading && (
+            {messages.length === 0 && !activeRun && (
               <div className="py-12 flex flex-col items-center justify-center text-center space-y-3 px-6">
                 <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shadow-xs">
                   <Sparkles className="w-5 h-5" />
@@ -879,21 +836,20 @@ export default function AiChatDrawer({
                   </button>
                 )}
 
-                {/* 移动端：快捷追问融入空态作为建议 */}
-                {isMobileLayout && (
-                  <div className="flex flex-wrap justify-center gap-2 pt-2">
-                    {quickQuestions.map((q) => (
-                      <button
-                        key={q}
-                        type="button"
-                        onClick={() => void handleSendMessage(q)}
-                        className="px-3 py-1.5 rounded-lg border border-border bg-card text-xs text-foreground transition-colors active:bg-muted cursor-pointer"
-                      >
-                        {q}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                {/* 快捷追问融入空态作为建议（移动端改版，桌面端同步） */}
+                <div className="flex flex-wrap justify-center gap-2 pt-2">
+                  {quickQuestions.map((q) => (
+                    <button
+                      key={q}
+                      type="button"
+                      disabled={!!activeRun}
+                      onClick={() => void handleSendMessage(q)}
+                      className="px-3 py-1.5 rounded-lg border border-border bg-card text-xs text-foreground transition-colors hover:bg-muted active:bg-muted cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -977,8 +933,8 @@ export default function AiChatDrawer({
               );
             })}
 
-            {/* 流式生成中的临时气泡 */}
-            {isLoading && (
+            {/* 流式生成中的临时气泡（仅当用户停留在生成中的会话） */}
+            {activeRun && (
               <div className="flex flex-col items-start space-y-1">
                 <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground px-1">
                   <span>{moduleName} AI 助手</span>
@@ -988,25 +944,25 @@ export default function AiChatDrawer({
 
                 <div className="relative max-w-[92%] rounded-xl rounded-tl p-3.5 text-sm md:text-base leading-[1.75] bg-card border border-border/80 text-foreground shadow-xs space-y-2.5">
                   {/* 流式思维链展示 */}
-                  {streamingReasoning && (
+                  {activeRun.reasoning && (
                     <div className="rounded-xl border border-border/60 bg-muted/30 overflow-hidden text-xs">
                       <div className="flex items-center justify-between px-3 py-1.5 text-muted-foreground bg-muted/40 font-medium">
                         <span className="flex items-center gap-1.5">
                           <Brain className="w-3.5 h-3.5 text-indigo-500 animate-pulse" />
-                          <span>正在推演逻辑 ({streamingReasoning.length} 字)...</span>
+                          <span>正在推演逻辑 ({activeRun.reasoning.length} 字)...</span>
                         </span>
                       </div>
                       <div className="p-3 max-h-48 overflow-y-auto font-mono text-[11px] leading-relaxed text-muted-foreground whitespace-pre-wrap border-t border-border/50 bg-background/50">
-                        {streamingReasoning}
+                        {activeRun.reasoning}
                       </div>
                     </div>
                   )}
 
                   {/* 流式正文 */}
-                  {streamingText ? (
+                  {activeRun.text ? (
                     <div className="max-w-none break-words font-reading">
                       <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={drawerMarkdownComponents}>
-                        {streamingText}
+                        {activeRun.text}
                       </ReactMarkdown>
                     </div>
                   ) : (
@@ -1021,27 +977,6 @@ export default function AiChatDrawer({
 
             <div ref={messagesEndRef} />
           </div>
-
-          {/* 快捷追问建议胶囊（仅桌面端；移动端建议融入空态） */}
-          {!isMobileLayout && (
-          <div className="px-3 sm:px-4 py-2 bg-muted/20 border-t border-border/40 overflow-x-auto flex items-center gap-1.5 shrink-0 scrollbar-none">
-            <span className="text-[11px] text-muted-foreground shrink-0 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-primary" />
-              快捷追问:
-            </span>
-            {quickQuestions.map((q, i) => (
-              <button
-                key={i}
-                type="button"
-                disabled={isLoading}
-                onClick={() => void handleSendMessage(q)}
-                className="text-xs px-2.5 py-1 rounded-full border border-border/70 bg-card hover:bg-muted text-foreground whitespace-nowrap transition-colors shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-          )}
 
           {/* 移动端：服务/模型换挡条（两枚 chips 平分宽度）+ 清空（小占比） */}
           {isMobileLayout && (
@@ -1110,6 +1045,83 @@ export default function AiChatDrawer({
             </div>
           )}
 
+          {/* 桌面端：服务/模型换挡条（移动端改版移植：置于输入区上方，页头不再放第二行控制条）+ 清空 */}
+          {!isMobileLayout && (
+            <div ref={clearConfirmRef} className="flex-shrink-0 relative flex items-center gap-2 flex-wrap px-3 sm:px-4 py-2.5 border-t border-border/40 bg-card/50">
+              {services.length > 0 ? (
+                <div className="flex items-center gap-2 flex-wrap min-w-0">
+                  <CustomDropdown
+                    label="服务"
+                    value={selectedServiceId}
+                    options={serviceOptions}
+                    onChange={(val) => setSelectedServiceId(val)}
+                    icon={<Bot className="w-3.5 h-3.5 text-primary" />}
+                  />
+                  {modelOptions.length > 0 && (
+                    <CustomDropdown
+                      label="模型"
+                      value={selectedModel}
+                      options={modelOptions}
+                      onChange={(val) => setSelectedModel(val)}
+                      icon={<Sparkles className="w-3.5 h-3.5 text-primary" />}
+                    />
+                  )}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="text-xs text-primary hover:underline flex items-center gap-1.5 cursor-pointer"
+                >
+                  <AlertCircle className="w-3.5 h-3.5 text-warning" />
+                  尚未配置 AI 服务，点击前往配置
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowClearConfirm((prev) => !prev)}
+                title="清空当前对话"
+                className={`ml-auto w-10 h-10 shrink-0 flex items-center justify-center rounded-lg border transition-colors cursor-pointer ${
+                  showClearConfirm
+                    ? 'text-destructive bg-destructive/15 border-destructive/40'
+                    : 'text-muted-foreground border-border hover:text-destructive hover:bg-destructive/10'
+                }`}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+
+              {/* 清空确认气泡：从换挡条向上弹出 */}
+              {showClearConfirm && (
+                <div className="absolute right-3 sm:right-4 bottom-full mb-2 z-30 w-56 p-3 rounded-xl border border-border/90 bg-popover text-popover-foreground shadow-2xl text-xs space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="font-semibold text-foreground flex items-center gap-1.5">
+                    <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
+                    <span>清空对话记录？</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    清空后当前模块的对话历史将无法恢复。
+                  </p>
+                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-border/40">
+                    <button
+                      type="button"
+                      onClick={() => setShowClearConfirm(false)}
+                      className="px-2.5 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer transition-colors"
+                    >
+                      取消
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmClear}
+                      className="px-2.5 py-1 rounded-md text-xs bg-destructive text-destructive-foreground hover:bg-destructive/90 font-medium cursor-pointer shadow-xs transition-colors"
+                    >
+                      确认清空
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 底部输入框 */}
           <div className="p-3 sm:p-4 border-t border-border bg-card/70 shrink-0 space-y-2">
             <div className="relative rounded-lg border border-border bg-background focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 transition-colors flex flex-col p-2.5 space-y-2">
@@ -1134,7 +1146,7 @@ export default function AiChatDrawer({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {isLoading ? (
+                  {activeRun ? (
                     <button
                       type="button"
                       onClick={handleStop}
@@ -1382,8 +1394,7 @@ export default function AiChatDrawer({
         aria-modal="true"
         onClick={(e) => {
           if (e.target === e.currentTarget) {
-            if (abortControllerRef.current) abortControllerRef.current.abort();
-            setIsLoading(false);
+            // 关闭抽屉不中止生成：任务转后台继续跑，完成后在案例列表标记未读
             onClose();
           }
         }}
