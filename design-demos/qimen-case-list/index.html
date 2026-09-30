@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>奇门侧栏案例列表 · 重排三稿（224px）</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0b0c; color: #e4e0d8;
+  font-family: -apple-system, "PingFang SC", "Noto Sans SC", sans-serif;
+  padding: 26px 22px 60px;
+}
+h1 { font-size: 20px; margin-bottom: 6px; }
+h2 { font-size: 12px; color: #898989; font-weight: 400; margin-top: 30px; margin-bottom: 10px; letter-spacing: .04em; }
+.sub { font-size: 13px; color: #898989; margin-bottom: 14px; line-height: 1.75; max-width: 860px; }
+.sub b { color: #cbae88; font-weight: 600; }
+.note {
+  font-size: 12.5px; color: #898989; line-height: 1.85;
+  background: #141516; border: 1px solid #262729; border-radius: 10px;
+  padding: 13px 17px; margin-bottom: 24px; max-width: 860px;
+}
+.note li { margin-left: 17px; }
+.note b { color: #e4e0d8; font-weight: 600; }
+.note code {
+  font-family: "JetBrains Mono", monospace; font-size: 11.5px;
+  background: #1d1e20; border: 1px solid #2b2c2e; border-radius: 4px;
+  padding: 1px 5px; color: #cbae88;
+}
+.row { display: flex; gap: 24px; overflow-x: auto; padding-bottom: 10px; align-items: flex-start; }
+.col { flex-shrink: 0; width: 272px; }
+.col h3 { font-size: 15px; margin-bottom: 3px; }
+.col h3 span {
+  font-size: 10.5px; font-weight: 500; color: #cbae88;
+  border: 1px solid rgba(203,174,136,.4); background: rgba(203,174,136,.1);
+  border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: 1px;
+}
+.col .meta {
+  font-size: 11.5px; color: #5c5d60; margin-bottom: 6px;
+  font-family: "JetBrains Mono", monospace;
+}
+.col .meta b { color: #cbae88; font-weight: 600; }
+.col .desc { font-size: 12px; color: #898989; line-height: 1.72; margin-bottom: 6px; min-height: 108px; }
+.col .desc em { color: #e4e0d8; font-style: normal; }
+.col .desc .warn { color: #d06565; }
+.col a.open { color: #cbae88; font-size: 12px; text-decoration: none; border-bottom: 1px dotted rgba(203,174,136,.5); }
+iframe {
+  width: 224px; height: 812px;
+  border: 1px solid #333; border-radius: 14px; background: #101112;
+  margin-top: 8px; display: block;
+}
+.legend {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  font-size: 11.5px; color: #5c5d60; margin-top: 8px;
+}
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; }
+</style>
+</head>
+<body>
+<h1>奇门侧栏案例列表 · 重排三稿</h1>
+<p class="sub">
+  参考八字侧栏案例卡（<b>2026-09-29 定稿版 CaseCard</b>）重排奇门侧栏列表，只动<b>卡片内部的元素与排版</b>。
+  <b>硬约束：宽度不变</b> —— 桌面侧栏恒为 <code>w-56 = 224px</code>（2xl 断点 <code>w-64 = 256px</code>），
+  下面三稿全部按 <b>224px 真实宽度</b>渲染，共享同一套 <code>shared.css</code> 骨架（取自八字定稿 demo），均为可交互 demo。
+</p>
+
+<ul class="note">
+  <li><b>为什么要改：</b>现状卡（<code>QimenCaseList.tsx</code>）是 <code>p-3 rounded-xl</code> + hover 浮起位移阴影，
+      编辑/删除为常驻按钮，卡高约 <b>96px</b>；与八字侧栏 53px 定稿卡并排时完全是两个家族。
+      奇门案例的标题、描述、占测时间、反馈状态在 224px 里也没有主次。</li>
+  <li><b>三稿共同处理（不再单独取舍）：</b>编辑/删除改为<b>左滑露出</b>（与 <code>useSwipeDismiss</code> 同参数：露 120 / 阈 34）；
+      分类 chip 用主色淡底；反馈状态 <b>●已验 / ●待验</b> 语义色 + 文字并用；选中态与八字一致（主色边框 + 1px ring）；
+      四柱是<b>占测时刻的真实干支</b>（lunar-typescript 从 <code>test_date</code> 排出，含立春前年柱乙巳），
+      仅<b>日干</b>取五行色、其余压暗 55%。</li>
+  <li><b>取舍核心：</b>224px 里「文字」（标题 / 描述 / 时间）与「四柱」是零和的 —— 三稿给出三种分法：
+      行内小盘（A）、排盘为轴（B）、文字为轴（C）。</li>
+  <li><b>自验方式：</b>每稿都用脚本量测真实盒模型（<code>measure.mjs</code>：侧栏宽度、横向溢出、文字截断）+
+      CDP 真实驱动鼠标的 <b>6 项交互测试</b>（<code>interact.mjs</code>）+ <code>checktext.py</code> 省略号截断检测，三稿均 100% 通过。</li>
+</ul>
+
+<h2>三稿对比（同一屏、同一宽度，可直接滚动各自列表对比）</h2>
+<div class="row">
+  <div class="col">
+    <h3>方案 A<span>行内小盘 · 文字优先</span></h3>
+    <div class="meta">卡高 <b>53px</b> · 四柱 <b>14px 竖排</b> · 描述 否</div>
+    <div class="desc">
+      最贴近八字定稿的<em>结构</em>：仍是「左资料 / 右四柱」。第一行<em>标题 + 分类 chip（两字简称）</em>同行；
+      第二行<em>日期 · 时刻 + 反馈状态</em>（起局时辰不单写，四柱时柱已含）；四柱压到 14px 竖排让出宽度。
+      三稿最矮、迁移成本最低；<span class="warn">代价是长标题只剩约 7 字宽，省略较早</span>。
+    </div>
+    <a class="open" href="plan-a.html" target="_blank">单独打开 ↗</a>
+    <iframe src="plan-a.html"></iframe>
+  </div>
+
+  <div class="col">
+    <h3>方案 B<span>排盘为轴 · 领域感</span></h3>
+    <div class="meta">卡高 <b>81px</b> · 四柱 <b>15px 横排</b> · 描述 否</div>
+    <div class="desc">
+      <em>排盘是卡片主角</em>：占测四柱「干支一组横排」独占第二行（与案例库整页写法一致），
+      <em>日柱整组加主色淡底</em>做扫读锚点；底行左状态、右日期。干支可读性三稿最好，扫一眼能定位日主与格局；
+      <span class="warn">代价是卡高 81px，一屏可见条数最少</span>。
+    </div>
+    <a class="open" href="plan-b.html" target="_blank">单独打开 ↗</a>
+    <iframe src="plan-b.html"></iframe>
+  </div>
+
+  <div class="col">
+    <h3>方案 C<span>文字为轴 · 描述优先</span></h3>
+    <div class="meta">卡高 <b>73px</b> · 四柱 无 · 描述 <b>是</b></div>
+    <div class="desc">
+      放弃盘面、宽度全给文字：奇门案例靠<em>占测问题</em>识别，所以保留<em>描述摘要一行</em>（hover 出全文）；
+      底行与八字同构 —— 左反馈状态、右<em>日期 · 时刻</em>。检索效率最高、标题可用最宽；
+      <span class="warn">代价是没有盘面元素，与八字列表的家族感最弱</span>。
+    </div>
+    <a class="open" href="plan-c.html" target="_blank">单独打开 ↗</a>
+    <iframe src="plan-c.html"></iframe>
+  </div>
+</div>
+
+<div class="legend">
+  <span><i class="dot" style="background:#168043"></i>已验（反馈状态）</span>
+  <span><i class="dot" style="background:#898989"></i>待验 / 其余干支压暗 55%</span>
+  <span><i class="dot" style="background:#cbae88"></i>日干五行色 / 分类 chip / 选中态 / 日柱锚点</span>
+</div>
+
+<h2>怎么试</h2>
+<p class="sub">
+  三稿交互一致：<b>点卡片</b>选中、<b>按住卡片向左拖</b>露出 编辑/删除、<b>顶部 chips</b> 筛选分类、
+  <b>搜索框</b>过滤（试试「面试」）、列表内<b>点空白处</b>收起左滑。
+  也可直接在终端复核：<code>node measure.mjs plan-a.html</code>（盒模型）、
+  <code>node interact.mjs plan-a.html</code>（6 项交互测试）、<code>python3 checktext.py plan-a.html</code>（截断检测）。
+</p>
+</body>
+</html>

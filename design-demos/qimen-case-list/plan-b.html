@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>方案 B · 排盘主导横排卡（224px）</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+/* B = 排盘是卡片主角：占测四柱「干支一组横排」独占第二行（与案例库整页写法一致），
+    日柱整组加淡主色底做扫读锚点；第一行标题全宽 + 分类 chip 全名；
+    第三行 = 反馈状态（左）+ 占测日期（右对齐）。
+    224px 实测：卡片内容 190px。
+    宽度核算：r2 = 四柱 8字×15px + 3×6px间距 = 138 + 时刻 29 ≈ 171px（不溢出）。 */
+.card { padding: 8px 9px; }
+
+.r1 { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.tagchip {
+  flex-shrink: 0;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1;
+  display: inline-flex; align-items: center;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+/* 四柱横排：干支成段、不与文字争宽；日柱组 = 主色淡底锚点 */
+.r2 {
+  display: flex; align-items: center;
+  margin-top: 5px;
+  min-width: 0;
+}
+.hbar { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.hbar .grp {
+  display: inline-flex; align-items: center;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 15px; font-weight: 600;
+  letter-spacing: .5px;
+}
+.hbar .grp span { color: var(--text); opacity: .55; }
+.hbar .grp.day {
+  background: var(--primary-soft);
+  border-radius: 4px;
+  padding: 1px 4px;
+  gap: 2px;
+}
+.hbar .grp.day span:first-child { color: var(--day-gan, var(--primary)); opacity: 1; }
+.r2 .time {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--muted-2);
+  flex-shrink: 0;
+}
+
+.r3 {
+  display: flex; align-items: center;
+  margin-top: 4px;
+  font-size: 10.5px;
+  color: var(--muted-2);
+  white-space: nowrap;
+}
+.r3 .st { display: inline-flex; align-items: center; gap: 3px; }
+.r3 .st i { width: 5px; height: 5px; border-radius: 50%; background: var(--muted-2); }
+.r3 .st.ok { color: var(--success); }
+.r3 .st.ok i { background: var(--success); }
+.r3 .date { margin-left: auto; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <aside class="sidebar">
+    <div class="sb-head">
+      <div class="hrow">
+        <button class="sb-title" id="openLibrary">案例库</button>
+        <span class="sb-count" id="total">(12)</span>
+      </div>
+      <div class="filters" id="chips"></div>
+      <div class="searchbox">
+        <span class="s-ico">⌕</span>
+        <input id="search" type="text" placeholder="搜索案例...">
+      </div>
+      <div class="actions">
+        <button class="abtn icon" id="exportBtn" title="导出">↑</button>
+        <button class="abtn icon" id="importBtn" title="导入">↓</button>
+        <button class="abtn primary" id="createBtn">＋ 新建</button>
+      </div>
+    </div>
+    <div class="sb-body"><div class="list" id="list"></div></div>
+  </aside>
+</div>
+<div class="toast" id="toast"><span></span></div>
+
+<script src="app.js"></script>
+<script>
+/* 每张卡高度目标 ≈ 77px：排盘独占一行换来的可读性 */
+renderCard = function (c) {
+  const dayGan = c.p[2][0];
+  return `
+  <div class="card">
+    <div class="r1">
+      <span class="title" title="${c.t}">${c.t}</span>
+      <span class="tagchip">${CAT_NAME(c.cat)}</span>
+    </div>
+    <div class="r2">
+      <span class="hbar">
+        ${c.p.map(([g, z], i) => `
+          <span class="grp ${i === 2 ? 'day' : ''}" ${i === 2 ? `style="--day-gan:var(--${EL[dayGan]})"` : ''}>
+            <span>${g}</span><span>${z}</span>
+          </span>`).join('')}
+      </span>
+      <span class="time">${c.time}</span>
+    </div>
+    <div class="r3">
+      <span class="st ${c.st ? 'ok' : ''}"><i></i>${c.st ? '已验' : '待验'}</span>
+      <span class="date">${c.date}</span>
+    </div>
+  </div>`;
+};
+renderList();
+</script>
+</body>
+</html>

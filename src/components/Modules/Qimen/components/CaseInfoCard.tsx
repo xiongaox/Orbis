@@ -1,22 +1,3 @@
-/**
- * CaseInfoCard - 应用源码层
- *
- * 模块定位：
- * - 所在层级：应用源码层
- * - 主要目标：承载具体业务模块的前端功能
- *
- * 关键职责：
- * - 渲染 UI 视图并处理交互逻辑
- * - 处理用户输入与展示边界行为
- * - 向上层提供稳定可复用能力
- *
- * 主要导出：
- * - `default CaseInfoCard`
- *
- * 依赖关系：
- * - 上游依赖：外部依赖 `react`、外部依赖 `lucide-react`、内部模块 `qimenCaseService`
- * - 下游影响：由依赖方的业务逻辑或视图组装调用
- */
 import { useState, useEffect } from 'react';
 import { Eye, EyeOff, FileText, Pencil, Save, X } from 'lucide-react';
 import { type QimenCase, qimenCaseService } from '../../../../services/qimenCaseService';
@@ -25,6 +6,23 @@ interface CaseInfoCardProps {
     caseData: QimenCase | null;
     onCaseUpdated?: (updatedCase: QimenCase) => void;
 }
+
+/**
+ * 隐私模式掩码：每 8 个圆点为一组、组间留空格。
+ * 连续无空格的长串没有天然断行点，字数多时会撑出盒子；
+ * 分组空格提供稳定换行位置，配合 break-all/break-words 双保险。
+ */
+function maskText(text: string | null | undefined, max: number): string {
+    const len = Math.min(text?.length || 0, max);
+    const groups: string[] = [];
+    for (let i = 0; i < len; i += 8) {
+        groups.push('•'.repeat(Math.min(8, len - i)));
+    }
+    return groups.join(' ');
+}
+
+/** 隐私模式下内容盒子的换行/裁切类（明文模式不附加） */
+const privacyBoxClass = 'w-full break-all break-words overflow-hidden';
 
 export default function CaseInfoCard({ caseData, onCaseUpdated }: CaseInfoCardProps) {
     const [isPrivacyMode, setIsPrivacyMode] = useState(false);
@@ -125,8 +123,8 @@ export default function CaseInfoCard({ caseData, onCaseUpdated }: CaseInfoCardPr
                     {isEditMode ? (
                         <textarea value={editData.description} onChange={(e) => setEditData({ ...editData, description: e.target.value })} className="w-full text-sm leading-relaxed p-3.5 bg-muted/30 border border-primary/40 rounded-lg min-h-[80px] whitespace-pre-wrap text-foreground/90 shadow-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="输入事情描述..." />
                     ) : (
-                        <div className="text-sm leading-relaxed p-3.5 bg-muted/30 border border-border/30 rounded-lg min-h-[60px] whitespace-pre-wrap text-foreground/90 shadow-sm">
-                            {isPrivacyMode ? '•'.repeat(Math.min((caseData.description?.length || 0), 100)) + ((caseData.description?.length || 0) > 100 ? '...' : '') : (caseData.description || '无描述')}
+                        <div className={`text-sm leading-relaxed p-3.5 bg-muted/30 border border-border/30 rounded-lg min-h-[60px] whitespace-pre-wrap text-foreground/90 shadow-sm ${isPrivacyMode ? privacyBoxClass : ''}`}>
+                            {isPrivacyMode ? maskText(caseData.description, 100) + ((caseData.description?.length || 0) > 100 ? ' …' : '') : (caseData.description || '无描述')}
                         </div>
                     )}
                 </div>
@@ -137,8 +135,8 @@ export default function CaseInfoCard({ caseData, onCaseUpdated }: CaseInfoCardPr
                     {isEditMode ? (
                         <textarea value={editData.feedback} onChange={(e) => setEditData({ ...editData, feedback: e.target.value })} className="w-full text-sm leading-relaxed p-3.5 bg-muted/30 border border-emerald-500/40 rounded-lg min-h-[80px] whitespace-pre-wrap text-foreground/90 shadow-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/30" placeholder="输入事件反馈..." />
                     ) : (
-                        <div className="text-sm leading-relaxed p-3.5 bg-muted/30 border border-border/30 rounded-lg min-h-[60px] whitespace-pre-wrap text-foreground/90 shadow-sm">
-                            {isPrivacyMode ? '•'.repeat(Math.min((caseData.feedback?.length || 0), 60)) : (caseData.feedback || '暂无反馈')}
+                        <div className={`text-sm leading-relaxed p-3.5 bg-muted/30 border border-border/30 rounded-lg min-h-[60px] whitespace-pre-wrap text-foreground/90 shadow-sm ${isPrivacyMode ? privacyBoxClass : ''}`}>
+                            {isPrivacyMode ? maskText(caseData.feedback, 60) : (caseData.feedback || '暂无反馈')}
                         </div>
                     )}
                 </div>
@@ -149,8 +147,8 @@ export default function CaseInfoCard({ caseData, onCaseUpdated }: CaseInfoCardPr
                     {isEditMode ? (
                         <textarea value={editData.analysis} onChange={(e) => setEditData({ ...editData, analysis: e.target.value })} className="w-full text-sm leading-relaxed p-3.5 bg-muted/30 border border-indigo-500/40 rounded-lg min-h-[100px] whitespace-pre-wrap text-foreground/90 shadow-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/30" placeholder="输入案例断法..." />
                     ) : (
-                        <div className="text-sm leading-relaxed p-3.5 bg-muted/30 border border-border/30 rounded-lg min-h-[80px] whitespace-pre-wrap text-foreground/90 shadow-sm">
-                            {isPrivacyMode ? '•'.repeat(Math.min((caseData.analysis?.length || 0), 80)) : (caseData.analysis || '暂无断语')}
+                        <div className={`text-sm leading-relaxed p-3.5 bg-muted/30 border border-border/30 rounded-lg min-h-[80px] whitespace-pre-wrap text-foreground/90 shadow-sm ${isPrivacyMode ? privacyBoxClass : ''}`}>
+                            {isPrivacyMode ? maskText(caseData.analysis, 80) : (caseData.analysis || '暂无断语')}
                         </div>
                     )}
                 </div>
