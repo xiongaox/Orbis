@@ -93,7 +93,6 @@ export default function QimenPage({ lockedSnapshot, onSnapshotChange }: QimenPag
                         setEditingCase(null);
                     }}
                     onConfirm={(data) => {
-                        console.log('案例保存成功:', data);
                         setIsNewCaseModalOpen(false);
                         setEditingCase(null);
                         calculateQimenByDate(data.date);

@@ -174,7 +174,6 @@ export async function initCspWasm(): Promise<boolean> {
         }
 
         isWasmLoading = true;
-        console.log('🔄 Initializing CSP WASM...');
 
         const bootstrap = async () => {
             try {
@@ -194,7 +193,6 @@ export async function initCspWasm(): Promise<boolean> {
                     wasmModule = await window.createCspModule({
                         locateFile: (path: string) => `/wasm/${path}`
                     });
-                    console.log('🔥 CSP WASM Loaded Successfully!');
                     resolve(true);
                 } else {
                     console.error('createCspModule not found');
