@@ -102,10 +102,10 @@ export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
     // AI 提示词弹窗状态
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
-    // 移动端宫位显示设置状态
-    const [mobileShowChangSheng, setMobileShowChangSheng] = useState(false);
+    // 移动端宫位显示设置状态（默认显示长生诀与宫位信息，十神默认关闭）
+    const [mobileShowChangSheng, setMobileShowChangSheng] = useState(true);
     const [mobileShowShiShen, setMobileShowShiShen] = useState(false);
-    const [mobileShowPalaceMeta, setMobileShowPalaceMeta] = useState(false);
+    const [mobileShowPalaceMeta, setMobileShowPalaceMeta] = useState(true);
     const handleMobileToggleCS = () => {
         if (!mobileShowChangSheng) { setMobileShowChangSheng(true); setMobileShowShiShen(false); }
         else { setMobileShowChangSheng(false); }

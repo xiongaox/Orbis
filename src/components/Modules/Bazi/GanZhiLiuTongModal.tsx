@@ -445,24 +445,28 @@ export default function GanZhiLiuTongModal({
                         </div>
                     </div>
                 )}
+        </div>
+    );
 
-                {/* 图例 */}
-                <div className="flex items-center justify-center gap-3 mt-8">
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#63A103]/10 border border-[#63A103]/20 whitespace-nowrap">
-                        <span className="w-4 h-4 flex items-center justify-center rounded-full bg-[#63A103]/20 text-[10px]" style={{ color: FLOW_COLOR }}>✓</span>
-                        <span className="text-xs font-medium" style={{ color: FLOW_COLOR }}>流通</span>
-                        <span className="text-xs text-muted-foreground">合・生・助</span>
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 whitespace-nowrap">
-                        <span className="w-4 h-4 flex items-center justify-center rounded-full bg-red-500/20 text-[10px]" style={{ color: BLOCK_COLOR }}>✗</span>
-                        <span className="text-xs font-medium" style={{ color: BLOCK_COLOR }}>阻塞</span>
-                        <span className="text-xs text-muted-foreground">冲・刑・克・害・破</span>
-                    </div>
-                </div>
-
-                <div className="text-xs text-muted-foreground/60 mt-4 text-center">
-                    💡 点击任意柱位可高亮其相关关系，再次点击取消
-                </div>
+    // 图例与操作提示：固定在盘面下方的独立底栏，不进入缩放容器，
+    // 避免捏合放大后盘面（视觉溢出布局框）盖住图例。
+    const legendFooter = (
+        <div className="shrink-0 border-t border-border/40 bg-background px-4 py-2.5 flex flex-col items-center gap-1">
+            <div className="flex items-center justify-center gap-5 text-xs whitespace-nowrap">
+                <span className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: FLOW_COLOR }} />
+                    <span className="font-medium" style={{ color: FLOW_COLOR }}>流通</span>
+                    <span className="text-muted-foreground">合・生・助</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: BLOCK_COLOR }} />
+                    <span className="font-medium" style={{ color: BLOCK_COLOR }}>阻塞</span>
+                    <span className="text-muted-foreground">冲・刑・克・害・破</span>
+                </span>
+            </div>
+            <div className="text-xs text-muted-foreground/60 text-center">
+                点击任意柱位可高亮其相关关系，再次点击取消
+            </div>
         </div>
     );
 
@@ -477,6 +481,7 @@ export default function GanZhiLiuTongModal({
                 bodyClassName="overflow-hidden bg-dot-pattern flex flex-col"
             >
                 {chartContent}
+                {legendFooter}
             </SubPage>
         );
     }
@@ -491,6 +496,7 @@ export default function GanZhiLiuTongModal({
             bodyClassName="p-0 overflow-hidden flex flex-col bg-dot-pattern min-h-[500px]"
         >
             {chartContent}
+            {legendFooter}
         </BaseModal>
     );
 }

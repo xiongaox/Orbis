@@ -193,7 +193,7 @@ export function LogicAnalysisCard({ segment, tags, reasoning, modern }: LogicAna
             )}
             {modern && (
                 <div className="text-sm text-foreground font-bold bg-secondary/50 rounded p-2 border-l-2 border-muted-foreground/30">
-                    💡 {modern}
+                    {modern}
                 </div>
             )}
         </div>

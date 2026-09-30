@@ -309,13 +309,40 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
               <span>{formatInterval(activeConfig.autoBackupIntervalMinutes)}</span>
               <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${frequencyMenuOpen ? 'rotate-180' : ''}`} />
             </button>
-            {frequencyMenuOpen && <div role="listbox" aria-label="自动备份频率" className="absolute z-[80] mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-xl">
+            {frequencyMenuOpen && !isMobile && <div role="listbox" aria-label="自动备份频率" className="absolute z-[80] mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-xl">
               {AUTO_BACKUP_INTERVAL_MINUTES.map((minutes) => {
                 const selected = activeConfig.autoBackupIntervalMinutes === minutes;
                 return <button key={minutes} type="button" role="option" aria-selected={selected} onClick={() => { updateActive('autoBackupIntervalMinutes', minutes); setFrequencyMenuOpen(false); }} className={`flex min-h-9 w-full items-center justify-between rounded-md px-3 text-left text-sm transition-colors ${selected ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-secondary/70'}`}><span>{formatInterval(minutes)}</span>{selected && <Check className="h-4 w-4" />}</button>;
               })}
             </div>}
           </div>
+          {/* 移动端：底部选择板（与 AI 服务选择同款交互），避免小面板下拉超出弹窗 */}
+          {frequencyMenuOpen && isMobile && (
+            <>
+              <div className="fixed inset-0 z-[110] bg-black/55" onClick={() => setFrequencyMenuOpen(false)} />
+              <div
+                className="fixed left-0 right-0 bottom-0 z-[115] bg-popover border-t border-border rounded-t-2xl"
+                style={{ paddingBottom: 'calc(10px + var(--safe-area-inset-bottom, 0px))' }}
+              >
+                <div className="w-9 h-1 rounded-full bg-border mx-auto mt-2.5" />
+                <div className="flex items-center justify-between px-4 pt-2 pb-1">
+                  <span className="text-sm font-semibold text-foreground">备份频率</span>
+                  <button type="button" onClick={() => setFrequencyMenuOpen(false)} className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted cursor-pointer" aria-label="关闭"><X className="h-4 w-4" /></button>
+                </div>
+                <div className="max-h-[46vh] overflow-y-auto px-2 pb-1" role="listbox" aria-label="自动备份频率">
+                  {AUTO_BACKUP_INTERVAL_MINUTES.map((minutes) => {
+                    const selected = activeConfig.autoBackupIntervalMinutes === minutes;
+                    return (
+                      <button key={minutes} type="button" role="option" aria-selected={selected} onClick={() => { updateActive('autoBackupIntervalMinutes', minutes); setFrequencyMenuOpen(false); }} className={`w-full flex items-center justify-between gap-2 min-h-12 px-3.5 text-left text-base border-b border-border/40 last:border-b-0 transition-colors cursor-pointer ${selected ? 'text-primary font-medium' : 'text-foreground hover:bg-muted/50'}`}>
+                        <span className="truncate">{formatInterval(minutes)}</span>
+                        {selected && <Check className="h-4 w-4 shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
         </div>}
       </section>
     </>

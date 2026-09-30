@@ -11,6 +11,7 @@ import {
   Plus,
   Server,
   Trash2,
+  X,
   XCircle,
 } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
@@ -314,17 +315,17 @@ export default function AiIntegrationModal({ isOpen, onClose }: AiIntegrationMod
                           className="flex h-11 items-center gap-2.5 rounded-lg px-2.5 transition-colors active:bg-muted/60 focus-ring"
                           aria-label={service.enabled ? `停用 ${service.name}` : `启用 ${service.name}`}
                         >
-                          <span className={`text-[14px] font-medium ${service.enabled ? 'text-success-primary' : 'text-muted-foreground'}`}>
+                          <span className={`text-[14px] font-medium ${service.enabled ? 'text-primary' : 'text-muted-foreground'}`}>
                             {service.enabled ? '已启用' : '已停用'}
                           </span>
                           <span
-                            className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border transition-colors ${
-                              service.enabled ? 'border-success-primary bg-success-primary' : 'border-border bg-muted'
+                            className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors ${
+                              service.enabled ? 'border-primary bg-primary' : 'border-border bg-muted'
                             }`}
                           >
                             <span
-                              className={`absolute left-[3px] top-[3px] h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
-                                service.enabled ? 'translate-x-5' : 'translate-x-0'
+                              className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm transition-transform ${
+                                service.enabled ? 'translate-x-6' : 'translate-x-1'
                               }`}
                             />
                           </span>
@@ -389,7 +390,7 @@ export default function AiIntegrationModal({ isOpen, onClose }: AiIntegrationMod
                         <span className="rounded-md bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
                           {protocolLabel(service)}
                         </span>
-                        <span className={service.enabled ? 'text-xs text-success-primary' : 'text-xs text-muted-foreground'}>
+                        <span className={service.enabled ? 'text-xs text-primary' : 'text-xs text-muted-foreground'}>
                           {service.enabled ? '已启用' : '已停用'}
                         </span>
                       </div>
@@ -402,10 +403,10 @@ export default function AiIntegrationModal({ isOpen, onClose }: AiIntegrationMod
                       <button
                         type="button"
                         onClick={() => void handleToggle(service)}
-                        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border transition-colors focus-ring ${service.enabled ? 'border-success-primary bg-success-primary' : 'border-border bg-muted'}`}
+                        className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors focus-ring ${service.enabled ? 'border-primary bg-primary' : 'border-border bg-muted'}`}
                         aria-label={service.enabled ? `停用 ${service.name}` : `启用 ${service.name}`}
                       >
-                        <span className={`absolute left-[3px] top-[3px] h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${service.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                        <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-background shadow-sm transition-transform ${service.enabled ? 'translate-x-6' : 'translate-x-1'}`} />
                       </button>
                       <button
                         type="button"
@@ -558,7 +559,7 @@ function AiServiceFormModal({ isOpen, isMobile, service, onClose, onSaved }: AiS
           <input value={form.name} onChange={(event) => updateForm('name', event.target.value)} placeholder="例如 DeepSeek" className="modal-input h-[46px] focus-ring" />
         </Field>
         <Field label="API 协议">
-          <ProtocolSelect value={form.protocol} onChange={handleProtocolChange} />
+          <ProtocolSelect value={form.protocol} onChange={handleProtocolChange} isMobile={isMobile} />
         </Field>
       </div>
 
@@ -780,12 +781,14 @@ function Field({ label, children }: { label: React.ReactNode; children: React.Re
   );
 }
 
-function ProtocolSelect({ value, onChange }: { value: AiProtocol; onChange: (value: AiProtocol) => void }) {
+function ProtocolSelect({ value, onChange, isMobile }: { value: AiProtocol; onChange: (value: AiProtocol) => void; isMobile: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const selected = AI_PROTOCOLS.find((item) => item.value === value) ?? AI_PROTOCOLS[0];
 
   useEffect(() => {
+    // 底部抽屉自带遮罩关闭，外点关闭只服务于桌面下拉
+    if (!open || isMobile) return;
     const handlePointerDown = (event: MouseEvent) => {
       if (ref.current && !ref.current.contains(event.target as Node)) {
         setOpen(false);
@@ -794,7 +797,7 @@ function ProtocolSelect({ value, onChange }: { value: AiProtocol; onChange: (val
 
     document.addEventListener('mousedown', handlePointerDown);
     return () => document.removeEventListener('mousedown', handlePointerDown);
-  }, []);
+  }, [open, isMobile]);
 
   return (
     <div ref={ref} className="relative">
@@ -808,7 +811,7 @@ function ProtocolSelect({ value, onChange }: { value: AiProtocol; onChange: (val
         <span className="truncate">{selected.label}</span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
-      {open && (
+      {open && !isMobile && (
         <div className="absolute z-[110] mt-1 w-full overflow-hidden rounded-lg border border-border bg-popover py-1 shadow-lg" role="listbox">
           {AI_PROTOCOLS.map((item) => (
             <button
@@ -827,6 +830,52 @@ function ProtocolSelect({ value, onChange }: { value: AiProtocol; onChange: (val
             </button>
           ))}
         </div>
+      )}
+      {open && isMobile && (
+        <>
+          <div className="fixed inset-0 z-[110] bg-black/55" onClick={() => setOpen(false)} />
+          <div
+            className="fixed left-0 right-0 bottom-0 z-[115] bg-popover border-t border-border rounded-t-2xl"
+            style={{ paddingBottom: 'calc(10px + var(--safe-area-inset-bottom, 0px))' }}
+          >
+            <div className="w-9 h-1 rounded-full bg-border mx-auto mt-2.5" />
+            <div className="flex items-center justify-between px-4 pt-2 pb-1">
+              <span className="text-sm font-semibold text-foreground">API 协议</span>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted cursor-pointer"
+                aria-label="关闭"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="max-h-[46vh] overflow-y-auto px-2 pb-1" role="listbox">
+              {AI_PROTOCOLS.map((item) => {
+                const isCurrent = item.value === value;
+                return (
+                  <button
+                    key={item.value}
+                    type="button"
+                    onClick={() => {
+                      onChange(item.value);
+                      setOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between gap-2 min-h-12 px-3.5 py-2 text-left border-b border-border/40 last:border-b-0 transition-colors cursor-pointer ${isCurrent ? 'text-primary font-medium' : 'text-foreground hover:bg-muted/50'}`}
+                    role="option"
+                    aria-selected={isCurrent}
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-base">{item.label}</span>
+                      {!item.requiresApiKey && <span className="block text-xs text-muted-foreground">无需密钥</span>}
+                    </span>
+                    {isCurrent && <Check className="w-4 h-4 shrink-0" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

@@ -622,7 +622,7 @@ export default function AiChatDrawer({
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                       <span>{moduleName} AI 研判助手</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 shrink-0">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20 shrink-0">
                         多轮对话
                       </span>
                     </div>
@@ -911,7 +911,7 @@ export default function AiChatDrawer({
                   </div>
 
                   <div
-                    className={`relative group max-w-[92%] rounded-xl p-3.5 text-base leading-[1.75] ${
+                    className={`relative group max-w-[92%] rounded-xl p-3.5 text-sm md:text-base leading-[1.75] ${
                       isUser
                         ? 'bg-card border border-border/80 text-foreground rounded-tr shadow-xs space-y-2'
                         : msg.error
@@ -986,7 +986,7 @@ export default function AiChatDrawer({
                   <span className="text-primary font-medium">思考与推演中...</span>
                 </div>
 
-                <div className="relative max-w-[92%] rounded-xl rounded-tl p-3.5 text-base leading-[1.75] bg-card border border-border/80 text-foreground shadow-xs space-y-2.5">
+                <div className="relative max-w-[92%] rounded-xl rounded-tl p-3.5 text-sm md:text-base leading-[1.75] bg-card border border-border/80 text-foreground shadow-xs space-y-2.5">
                   {/* 流式思维链展示 */}
                   {streamingReasoning && (
                     <div className="rounded-xl border border-border/60 bg-muted/30 overflow-hidden text-xs">

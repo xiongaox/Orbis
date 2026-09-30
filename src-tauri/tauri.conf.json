@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Orbis",
+  "productName": "玄枢录",
   "version": "0.1.0",
   "identifier": "com.orbis.app",
   "build": {
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Orbis",
+        "title": "玄枢录",
         "width": 1680,
         "height": 1050,
         "minWidth": 390,

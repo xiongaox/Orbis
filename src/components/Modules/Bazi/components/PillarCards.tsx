@@ -114,8 +114,7 @@ export function DetailedPillarCard({
                     </div>
                     <div className={`flex-1 ${isMobileLayout ? 'py-1 px-0.5 gap-1' : 'px-1 py-1 gap-2'} flex flex-col items-center justify-start min-h-[100px]`}>
                         {shensha.map((s, i) => (
-                            // 移动端窄列：四字神煞固定折成两字两行（限制为两字宽度，避免出现 3+1 断行）
-                            <span key={i} className={`${isMobileLayout ? 'text-[11px] max-w-[26px]' : 'text-xs'} text-foreground text-center`}>{s}</span>
+                            <span key={i} className={`${isMobileLayout ? 'text-[11px]' : 'text-xs'} text-foreground text-center`}>{s}</span>
                         ))}
                     </div>
                 </>
@@ -207,8 +206,7 @@ export function YunPillar({
                     </div>
                     <div className={`flex-1 ${isMobileLayout ? 'py-1 px-0.5 gap-1' : 'px-1 py-1 gap-2'} flex flex-col items-center justify-start min-h-[100px]`}>
                         {shensha.map((s, i) => (
-                            // 移动端窄列：四字神煞固定折成两字两行（限制为两字宽度，避免出现 3+1 断行）
-                            <span key={i} className={`${isMobileLayout ? 'text-[11px] max-w-[26px]' : 'text-xs'} text-foreground text-center`}>{s}</span>
+                            <span key={i} className={`${isMobileLayout ? 'text-[11px]' : 'text-xs'} text-foreground text-center`}>{s}</span>
                         ))}
                     </div>
                 </>
