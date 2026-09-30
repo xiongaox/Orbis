@@ -22,7 +22,7 @@ import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
 import WannianliLayout from './layouts/WannianliLayout';
 import { useWannianliState } from './hooks/useWannianliState';
 
-import type { WannianliLayoutProps } from './layouts/WannianliLayoutProps';
+import type { WannianliLayoutProps } from './layouts/WannianliLayout';
 
 export default function WannianliPage({ onGoPaiPan }: { onGoPaiPan?: WannianliLayoutProps['onGoPaiPan'] }) {
     const wannianliState = useWannianliState();

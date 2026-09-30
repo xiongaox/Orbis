@@ -7,10 +7,9 @@
 | Task | Location | Notes |
 |------|----------|-------|
 | 八字主状态编排 | `useBazi.ts` | 案例切换 + 排盘加载 |
-| 大运流年联动 | `useDayunLiunian.ts` | 时间轴选择逻辑 |
-| 干支图/流通交互 | `useGanZhiDiagram.ts` `useGanZhiLiuTong.ts` | 图结构交互态 |
+| 干支流通交互 | `useGanZhiLiuTong.ts` | 图结构交互态 |
 | 布局判定 | `useLayoutMode.ts` `useIsPadLandscape.ts` | 多端 UI 分流基线 |
-| 基础能力 hook | `useMediaQuery.ts` `useDragSort.ts` | 可复用基础逻辑 |
+| 基础能力 hook | `useMediaQuery.ts` | 可复用基础逻辑 |
 | 左滑展开点空白收起 | `useSwipeDismiss.ts` | 侧栏 CaseCard 与案例库 SortableCaseCard 共用 |
 
 ## CONVENTIONS

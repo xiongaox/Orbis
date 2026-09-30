@@ -14,13 +14,13 @@
  * - `default BaziCaseInfo`
  *
  * 依赖关系：
- * - 上游依赖：外部依赖 `lucide-react`、外部依赖 `react`、外部依赖 `classnames` 等 13 个模块
+ * - 上游依赖：外部依赖 `lucide-react`、外部依赖 `react`、内部模块 `utils` 等 13 个模块
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 
 import { GitBranch, ArrowRightLeft, Sparkles, ChevronUp, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
-import classNames from 'classnames';
+import { cn } from '../../../lib/utils';
 import { baziCaseService } from '../../../services/baziCaseService';
 import { BAZI_CASES_CHANGED_EVENT } from '../../../data/caseConstants';
 import type { Case } from '../../../types';
@@ -108,7 +108,7 @@ export default function BaziCaseInfo({
 
   return (
     <>
-      <div className={classNames(
+      <div className={cn(
         'bg-card rounded-xl border border-[hsl(var(--border-light))] dark:border-border flex-shrink-0',
         // 桌面端外边距对齐奇门遁甲的紧凑规格（8px），把宽度让给排盘内容
         isMobileLayout ? 'p-2 mx-2 mt-2 mb-2' : 'p-3 mx-2 mt-2 mb-2'

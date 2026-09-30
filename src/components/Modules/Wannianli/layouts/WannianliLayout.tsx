@@ -14,17 +14,46 @@
  * - `default WannianliLayout`
  *
  * 依赖关系：
- * - 上游依赖：外部依赖 `classnames`、外部依赖 `lucide-react`、外部依赖 `lunar-typescript` 等 7 个模块
+ * - 上游依赖：内部模块 `utils`、外部依赖 `lucide-react`、外部依赖 `lunar-typescript` 等 7 个模块
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  */
 
-import classNames from 'classnames';
+import { cn } from '../../../../lib/utils';
 import { Calendar, ChevronLeft, ChevronRight, Compass } from 'lucide-react';
 import { Solar, Lunar } from 'lunar-typescript';
 import { WEEK_DAYS_MON_FIRST, WEEK_DAYS_SUN_FIRST } from '../../../../constants/calendar';
 import HolidayCountdown from '../HolidayCountdown';
 import SideDrawer from '../../../UI/SideDrawer';
-import type { WannianliLayoutProps } from './WannianliLayoutProps';
+import type { CalendarDay } from '../hooks/useWannianliState';
+
+export interface WannianliLayoutProps {
+    // 布局模式
+    isPadLandscape: boolean;
+    useDesktopLayout: boolean;
+    isMobileLayout: boolean;
+
+    // 核心状态
+    selectedDate: Date;
+    setSelectedDate: (d: Date) => void;
+    viewDate: Date;
+    setViewDate: (d: Date) => void;
+    weekStart: 0 | 1;
+    setWeekStart: (w: 0 | 1) => void;
+
+    // 抽屉和弹窗开关
+    isDatePickerOpen: boolean;
+    setIsDatePickerOpen: (v: boolean) => void;
+    isCountdownOpen: boolean;
+    setIsCountdownOpen: (v: boolean) => void;
+    isDetailOpen: boolean;
+    setIsDetailOpen: (v: boolean) => void;
+
+    // 已计算的网格数据
+    calendarData: CalendarDay[];
+
+    // 跳转四柱八字，以面板当前选中日期起盘（未提供时隐藏入口）
+    onGoPaiPan?: (date: Date) => void;
+}
 
 export default function WannianliLayout(props: WannianliLayoutProps) {
     const {
@@ -43,12 +72,12 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
         const weekDays = weekStart === 1 ? WEEK_DAYS_MON_FIRST : WEEK_DAYS_SUN_FIRST;
 
         return (
-            <div className={classNames(
+            <div className={cn(
                 'grid grid-cols-7 shrink-0',
                 isMobileLayout ? 'gap-1 px-1 py-1.5' : 'gap-2 px-2 py-2'
             )}>
                 {weekDays.map((d, i) => (
-                    <div key={i} className={classNames(
+                    <div key={i} className={cn(
                         'flex items-center justify-center rounded-lg border border-border/40 bg-card/50 shadow-sm transition-colors',
                         isMobileLayout ? 'py-1.5 text-xs font-medium' : 'py-2 text-base md:text-sm font-medium tracking-widest',
                         (d === '周日' || d === '周六') ? "text-primary/80 bg-primary/5 border-primary/20" : "text-muted-foreground/70"
@@ -64,7 +93,7 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
         const selectedLunar = Lunar.fromDate(selectedDate);
         const selectedWeekday = WEEK_DAYS_SUN_FIRST[selectedDate.getDay()];
 
-        const headerClassName = classNames(
+        const headerClassName = cn(
             'border-b border-border/50 bg-background/50 backdrop-blur-md sticky top-0 z-30',
             isMobileLayout
                 ? 'px-3 py-2 flex flex-col items-start gap-2'
@@ -72,7 +101,7 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
         );
 
         const monthControl = (
-            <div className={classNames(
+            <div className={cn(
                 'flex items-center gap-1 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none rounded-xl border border-transparent dark:border-border/60',
                 isMobileLayout ? 'h-10 w-full min-w-0 p-1' : 'h-[42px] shrink-0 p-1'
             )}>
@@ -80,16 +109,16 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
                     onClick={() => {
                         const d = new Date(viewDate); d.setDate(1); d.setMonth(d.getMonth() - 1); setViewDate(d);
                     }}
-                    className={classNames('h-full rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all flex items-center justify-center shrink-0', isMobileLayout ? 'px-1.5 w-8' : 'px-1.5')}
+                    className={cn('h-full rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all flex items-center justify-center shrink-0', isMobileLayout ? 'px-1.5 w-8' : 'px-1.5')}
                 >
                     <ChevronLeft className="w-5 h-5" />
                 </button>
                 <button
                     onClick={() => setIsDatePickerOpen(true)}
-                    className={classNames('h-full min-w-0 flex items-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all group', isMobileLayout ? 'gap-2 px-2.5 flex-1 justify-center' : 'gap-2 px-3')}
+                    className={cn('h-full min-w-0 flex items-center rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all group', isMobileLayout ? 'gap-2 px-2.5 flex-1 justify-center' : 'gap-2 px-3')}
                 >
-                    <Calendar className={classNames('shrink-0', isMobileLayout ? 'w-[18px] h-[18px]' : 'w-4 h-4')} />
-                    <span className={classNames('font-mono font-medium tracking-tight whitespace-nowrap', isMobileLayout ? 'text-sm' : 'text-sm')}>
+                    <Calendar className={cn('shrink-0', isMobileLayout ? 'w-[18px] h-[18px]' : 'w-4 h-4')} />
+                    <span className={cn('font-mono font-medium tracking-tight whitespace-nowrap', isMobileLayout ? 'text-sm' : 'text-sm')}>
                         {viewDate.getFullYear()}-{String(viewDate.getMonth() + 1).padStart(2, '0')}
                     </span>
                 </button>
@@ -97,7 +126,7 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
                     onClick={() => {
                         const d = new Date(viewDate); d.setDate(1); d.setMonth(d.getMonth() + 1); setViewDate(d);
                     }}
-                    className={classNames('h-full rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all flex items-center justify-center shrink-0', isMobileLayout ? 'px-1.5 w-8' : 'px-1.5')}
+                    className={cn('h-full rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-all flex items-center justify-center shrink-0', isMobileLayout ? 'px-1.5 w-8' : 'px-1.5')}
                 >
                     <ChevronRight className="w-5 h-5" />
                 </button>
@@ -107,16 +136,16 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
         const todayControl = (
             <button
                 onClick={() => { setViewDate(new Date()); setSelectedDate(new Date()); }}
-                className={classNames('flex items-center justify-center font-medium rounded-xl border border-transparent dark:border-border/60 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none hover:shadow-md hover:-translate-y-0.5 text-muted-foreground hover:text-primary transition-all shrink-0', isMobileLayout ? 'h-10 px-3 text-xs' : 'h-[42px] px-4 text-sm')}
+                className={cn('flex items-center justify-center font-medium rounded-xl border border-transparent dark:border-border/60 bg-card shadow-[0_2px_8px_rgba(0,0,0,0.04)] dark:shadow-none hover:shadow-md hover:-translate-y-0.5 text-muted-foreground hover:text-primary transition-all shrink-0', isMobileLayout ? 'h-10 px-3 text-xs' : 'h-[42px] px-4 text-sm')}
             >
                 今日
             </button>
         );
 
         const weekToggleControl = (
-            <div className={classNames('flex bg-muted p-1 rounded-xl border border-border/40 shrink-0', isMobileLayout ? 'h-10' : 'h-[42px]')}>
-                <button onClick={() => setWeekStart(1)} className={classNames("w-9 h-full rounded-lg text-sm font-medium transition-all flex items-center justify-center", weekStart === 1 ? "bg-background text-primary shadow-sm" : "text-muted-foreground/70 hover:text-foreground hover:bg-background/40")}>一</button>
-                <button onClick={() => setWeekStart(0)} className={classNames("w-9 h-full rounded-lg text-sm font-medium transition-all flex items-center justify-center", weekStart === 0 ? "bg-background text-primary shadow-sm" : "text-muted-foreground/70 hover:text-foreground hover:bg-background/40")}>日</button>
+            <div className={cn('flex bg-muted p-1 rounded-xl border border-border/40 shrink-0', isMobileLayout ? 'h-10' : 'h-[42px]')}>
+                <button onClick={() => setWeekStart(1)} className={cn("w-9 h-full rounded-lg text-sm font-medium transition-all flex items-center justify-center", weekStart === 1 ? "bg-background text-primary shadow-sm" : "text-muted-foreground/70 hover:text-foreground hover:bg-background/40")}>一</button>
+                <button onClick={() => setWeekStart(0)} className={cn("w-9 h-full rounded-lg text-sm font-medium transition-all flex items-center justify-center", weekStart === 0 ? "bg-background text-primary shadow-sm" : "text-muted-foreground/70 hover:text-foreground hover:bg-background/40")}>日</button>
             </div>
         );
 
@@ -172,7 +201,7 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
     };
 
     const detailPanel = (
-        <div className={classNames('flex flex-col bg-muted/5', isMobileLayout ? 'h-auto min-h-0' : 'h-full min-h-0')}>
+        <div className={cn('flex flex-col bg-muted/5', isMobileLayout ? 'h-auto min-h-0' : 'h-full min-h-0')}>
             {!isMobileLayout && (
                 <div className="px-4 sm:px-6 pt-5 sm:pt-6 pb-4 border-b border-border/50 bg-background/50 backdrop-blur-sm">
                     <div className="flex items-baseline gap-2">
@@ -187,7 +216,7 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
                     </div>
                 </div>
             )}
-            <div className={classNames('space-y-6', isMobileLayout ? 'p-4' : 'flex-1 p-4 sm:p-6 overflow-y-auto')}>
+            <div className={cn('space-y-6', isMobileLayout ? 'p-4' : 'flex-1 p-4 sm:p-6 overflow-y-auto')}>
                 {/* 四柱干支 */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between gap-2">
@@ -203,14 +232,14 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
                             </button>
                         )}
                     </div>
-                    <div className={classNames('grid', isMobileLayout ? 'grid-cols-4 gap-2' : 'grid-cols-2 md:grid-cols-4 gap-3')}>
+                    <div className={cn('grid', isMobileLayout ? 'grid-cols-4 gap-2' : 'grid-cols-2 md:grid-cols-4 gap-3')}>
                         {[
                             { label: '年柱', val: Lunar.fromDate(selectedDate).getYearInGanZhi() },
                             { label: '月柱', val: Lunar.fromDate(selectedDate).getMonthInGanZhi() },
                             { label: '日柱', val: Lunar.fromDate(selectedDate).getDayInGanZhi() },
                             { label: '时柱', val: Lunar.fromDate(selectedDate).getTimeInGanZhi() }
                         ].map((item, i) => (
-                            <div key={i} className={classNames('bg-background border border-border/50 rounded-xl flex flex-col items-center justify-between shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 dark:hover:bg-primary/5', isMobileLayout ? 'h-24 py-2' : 'h-28 py-3')}>
+                            <div key={i} className={cn('bg-background border border-border/50 rounded-xl flex flex-col items-center justify-between shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 dark:hover:bg-primary/5', isMobileLayout ? 'h-24 py-2' : 'h-28 py-3')}>
                                 <div className="text-[10px] text-muted-foreground/60 font-medium tracking-widest uppercase">{item.label}</div>
                                 <div className="flex-1 flex flex-col justify-center gap-1">
                                     <span className="font-serif text-xl font-bold text-foreground/90">{item.val[0]}</span>
@@ -230,7 +259,7 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
                             { label: '物候', className: 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20', content: Lunar.fromDate(selectedDate).getWuHou() }
                         ].map((row, i) => (
                             <div key={i} className="flex items-center gap-2">
-                                <span className={classNames("px-1.5 py-0.5 rounded text-[11px] font-medium border shrink-0 min-w-[36px] text-center", row.className)}>{row.label}</span>
+                                <span className={cn("px-1.5 py-0.5 rounded text-[11px] font-medium border shrink-0 min-w-[36px] text-center", row.className)}>{row.label}</span>
                                 <span className="text-sm text-foreground/80 font-medium truncate">{row.content}</span>
                             </div>
                         ))}
@@ -278,15 +307,15 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
     );
 
     return (
-        <div className={classNames('flex flex-1 h-full min-h-0 overflow-hidden relative bg-background', useDesktopLayout ? 'flex-row' : 'flex-col')}>
+        <div className={cn('flex flex-1 h-full min-h-0 overflow-hidden relative bg-background', useDesktopLayout ? 'flex-row' : 'flex-col')}>
             {useDesktopLayout && (
                 <HolidayCountdown
                     onSelectDate={(date: Date) => { setSelectedDate(date); setViewDate(date); }}
                 />
             )}
-            <main className={classNames("flex-shrink-0 flex flex-col min-h-0", isPadLandscape ? 'h-full w-full border-r-0 overflow-y-auto' : useDesktopLayout ? 'h-full w-[65%] border-r border-border/50' : 'h-full w-full', isMobileLayout && 'overflow-y-auto')}>
+            <main className={cn("flex-shrink-0 flex flex-col min-h-0", isPadLandscape ? 'h-full w-full border-r-0 overflow-y-auto' : useDesktopLayout ? 'h-full w-[65%] border-r border-border/50' : 'h-full w-full', isMobileLayout && 'overflow-y-auto')}>
                 {renderCalendarHeader()}
-                <div className={classNames(isMobileLayout ? 'flex flex-col bg-muted/5 relative items-stretch justify-start p-2 pt-1' : isPadLandscape ? 'flex flex-col bg-muted/5 relative items-center justify-start p-2' : 'flex-1 flex flex-col overflow-hidden bg-muted/5 relative items-center justify-center p-2')}>
+                <div className={cn(isMobileLayout ? 'flex flex-col bg-muted/5 relative items-stretch justify-start p-2 pt-1' : isPadLandscape ? 'flex flex-col bg-muted/5 relative items-center justify-start p-2' : 'flex-1 flex flex-col overflow-hidden bg-muted/5 relative items-center justify-center p-2')}>
                     {isPadLandscape && (
                         <>
                             <button type="button" onClick={() => setIsCountdownOpen(true)} className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-start group focus:outline-none" aria-label="打开节日倒计时">
@@ -299,17 +328,17 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
                             </button>
                         </>
                     )}
-                    <div className={classNames('w-full flex flex-col', isMobileLayout ? 'max-w-none justify-start' : 'max-w-4xl flex-1 justify-center')}>
+                    <div className={cn('w-full flex flex-col', isMobileLayout ? 'max-w-none justify-start' : 'max-w-4xl flex-1 justify-center')}>
                         {renderWeekHeader()}
-                        <div className={classNames(isMobileLayout ? 'grid grid-cols-7 gap-1 px-1' : 'flex-1 grid grid-cols-7 grid-rows-6 gap-2 px-2 mt-2')}>
+                        <div className={cn(isMobileLayout ? 'grid grid-cols-7 gap-1 px-1' : 'flex-1 grid grid-cols-7 grid-rows-6 gap-2 px-2 mt-2')}>
                             {calendarData.map((day, index: number) => (
                                 <div
                                     key={index}
                                     onClick={() => { const date = new Date(day.solar.getYear(), day.solar.getMonth() - 1, day.solar.getDay()); setSelectedDate(date); if (!day.isCurrentMonth) { setViewDate(date); } }}
-                                    className={classNames('relative flex flex-col justify-center transition-all duration-200 cursor-pointer group', isMobileLayout ? 'aspect-[0.84] rounded-lg p-1' : 'rounded-xl p-1 md:p-2', "bg-card shadow-[0_2px_6px_rgba(0,0,0,0.02)] border border-border/40 dark:border-border/40 dark:shadow-none", "hover:shadow-[0_8px_16px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 hover:z-10", day.isSelected ? "!bg-primary/10 !border-transparent shadow-none !opacity-100 z-20" : day.isHoliday ? "bg-red-100/50 dark:bg-red-900/20 border-red-500/20 dark:border-red-500/20" : "", !day.isCurrentMonth && !day.isSelected && "opacity-40 grayscale-[0.8] shadow-none bg-muted/30 border-transparent")}
+                                    className={cn('relative flex flex-col justify-center transition-all duration-200 cursor-pointer group', isMobileLayout ? 'aspect-[0.84] rounded-lg p-1' : 'rounded-xl p-1 md:p-2', "bg-card shadow-[0_2px_6px_rgba(0,0,0,0.02)] border border-border/40 dark:border-border/40 dark:shadow-none", "hover:shadow-[0_8px_16px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 hover:z-10", day.isSelected ? "!bg-primary/10 !border-transparent shadow-none !opacity-100 z-20" : day.isHoliday ? "bg-red-100/50 dark:bg-red-900/20 border-red-500/20 dark:border-red-500/20" : "", !day.isCurrentMonth && !day.isSelected && "opacity-40 grayscale-[0.8] shadow-none bg-muted/30 border-transparent")}
                                 >
                                     {isMobileLayout ? (
-                                        (day.isHoliday || day.isWork) && (<span className={classNames('absolute top-1 right-1 w-1.5 h-1.5 rounded-full', day.isHoliday ? 'bg-red-500' : 'bg-slate-400')} />)
+                                        (day.isHoliday || day.isWork) && (<span className={cn('absolute top-1 right-1 w-1.5 h-1.5 rounded-full', day.isHoliday ? 'bg-red-500' : 'bg-slate-400')} />)
                                     ) : (
                                         <>
                                             {day.isHoliday && (<div className="absolute top-1 right-1 w-5 h-5 rounded-md text-xs font-bold flex items-center justify-center bg-red-500 text-white opacity-90">休</div>)}
@@ -317,13 +346,13 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
                                         </>
                                     )}
                                     <div className="flex flex-col items-center justify-center z-10 w-full gap-0.5">
-                                        <span className={classNames('font-mono transition-all leading-none mb-0.5', isMobileLayout ? 'text-lg' : 'text-2xl md:text-3xl', day.isToday ? "text-primary drop-shadow-[0_2px_8px_rgba(var(--primary),0.3)]" : day.isSelected ? "text-primary" : (day.isHoliday || (day.isWeekend && !day.isWork)) ? "text-red-500/80" : "text-foreground group-hover:text-primary", !day.isCurrentMonth && !day.isToday && !day.isSelected && "text-muted-foreground/30")}>
+                                        <span className={cn('font-mono transition-all leading-none mb-0.5', isMobileLayout ? 'text-lg' : 'text-2xl md:text-3xl', day.isToday ? "text-primary drop-shadow-[0_2px_8px_rgba(var(--primary),0.3)]" : day.isSelected ? "text-primary" : (day.isHoliday || (day.isWeekend && !day.isWork)) ? "text-red-500/80" : "text-foreground group-hover:text-primary", !day.isCurrentMonth && !day.isToday && !day.isSelected && "text-muted-foreground/30")}>
                                             {day.solar.getDay()}
                                         </span>
-                                        <span className={classNames('font-bold truncate leading-none', isMobileLayout ? 'text-[11px] px-1' : 'text-[16px] px-2', day.isSelected || day.isJieQi ? "text-primary/100" : day.isHoliday ? "text-red-500/60" : "text-muted-foreground/60")}>
+                                        <span className={cn('font-bold truncate leading-none', isMobileLayout ? 'text-[11px] px-1' : 'text-[16px] px-2', day.isSelected || day.isJieQi ? "text-primary/100" : day.isHoliday ? "text-red-500/60" : "text-muted-foreground/60")}>
                                             {day.bottomText}
                                         </span>
-                                        <span className={classNames('font-serif leading-none mt-1', isMobileLayout ? 'text-[10px]' : 'text-[14.4px]', day.isSelected ? "text-primary/80" : "text-muted-foreground/60")}>
+                                        <span className={cn('font-serif leading-none mt-1', isMobileLayout ? 'text-[10px]' : 'text-[14.4px]', day.isSelected ? "text-primary/80" : "text-muted-foreground/60")}>
                                             {day.ganZhi}
                                         </span>
                                     </div>
