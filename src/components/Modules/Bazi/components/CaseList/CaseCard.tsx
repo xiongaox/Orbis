@@ -8,13 +8,15 @@
  * 关键职责：
  * - 渲染侧栏案例卡片：上区为左侧「姓名独占一行 + 性别印章/分类 chip 一行」与右侧四柱
  *   顶对齐；底行横跨整卡宽度，岁数（左）+ 出生日期·时辰（右对齐）
- * - 仅日干保留五行色，其余干支压暗；编辑 / 删除由常驻改为左滑露出
+ * - 仅日干保留五行色，其余干支压暗；编辑 / 删除由常驻改为左滑露出，
+ *   展开后点击卡片以外任意位置经 useSwipeDismiss 全局收起
  *
  * 主要导出：
  * - `default CaseCard`
  *
  * 依赖关系：
- * - 上游依赖：外部依赖 `react`、`lucide-react`、内部模块 `lunarUtil`、内部模块 `maps`
+ * - 上游依赖：外部依赖 `react`、`lucide-react`、内部模块 `lunarUtil`、内部模块 `maps`、
+ *   内部模块 `useSwipeDismiss`
  * - 下游影响：由依赖方的业务逻辑或视图组装调用
  *
  * 排版约束（改动前必读）：
@@ -45,6 +47,7 @@ import type { PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent }
 import { Pencil, Trash2 } from 'lucide-react';
 import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../../../../utils/lunarUtil';
 import { TIAN_GAN_WU_XING } from '../../../../../lib/xuan-bazi/maps';
+import { useSwipeDismiss } from '../../../../../hooks/useSwipeDismiss';
 
 /** 左滑露出的操作区宽度，与案例库 SortableCaseCard 的 REVEAL_PX 保持同一度量 */
 const REVEAL_PX = 120;
@@ -69,11 +72,16 @@ interface CaseCardDisplayItem {
     tags?: string[];
 }
 
+/** AI 研判任务状态（见 aiTaskStatusService）：研判中 / 未读研判，展示为姓名后的小状态按钮 */
+export type CaseCardAiStatus = 'running' | 'unread';
+
 interface CaseCardProps {
     item: CaseCardDisplayItem;
     isSelected: boolean;
     isAuthenticated: boolean;
+    aiStatus?: CaseCardAiStatus | null;
     onSelectCase: (id: string) => void;
+    onOpenAiResearch?: (id: string) => void;
     onEdit: (id: string) => void;
     onDelete: (id: string) => void;
 }
@@ -82,6 +90,8 @@ export default function CaseCard({
     item,
     isSelected,
     isAuthenticated,
+    aiStatus,
+    onOpenAiResearch,
     onSelectCase,
     onEdit,
     onDelete,
@@ -117,6 +127,9 @@ export default function CaseCard({
     const gesture = useRef({ x: 0, y: 0, base: 0, lock: null as null | 'x' | 'y', moved: false });
     // 真实滑动后浏览器补发的 click 不应被当作点选（与案例库 SortableCaseCard 同思路）
     const suppressClick = useRef(false);
+    // 展开态下点击卡片以外任意位置（空白/其他卡片）全局收起
+    const rootRef = useRef<HTMLDivElement | null>(null);
+    useSwipeDismiss(rootRef, swipeX !== 0, () => setSwipeX(0));
 
     const handlePointerDown = (event: ReactPointerEvent) => {
         if (!isAuthenticated) return;
@@ -162,6 +175,7 @@ export default function CaseCard({
 
     return (
         <div
+            ref={rootRef}
             className={`group @container relative w-full select-none overflow-hidden rounded-[10px] border transition-colors ${isSelected
                 ? 'border-primary/40 bg-card shadow-[0_0_0_1px_hsl(var(--primary)/0.2)]'
                 : 'border-border/40 bg-card hover:border-border/60 dark:border-border/30'
@@ -172,7 +186,7 @@ export default function CaseCard({
                 <div className="absolute inset-y-0 right-0 z-[1] flex">
                     <button
                         type="button"
-                        onClick={(event) => { stop(event); onEdit(item.id); }}
+                        onClick={(event) => { stop(event); setSwipeX(0); onEdit(item.id); }}
                         className="flex w-[60px] flex-col items-center justify-center gap-0.5 bg-secondary text-[11px] font-semibold text-primary"
                         aria-label="编辑案例"
                     >
@@ -181,7 +195,7 @@ export default function CaseCard({
                     </button>
                     <button
                         type="button"
-                        onClick={(event) => { stop(event); onDelete(item.id); }}
+                        onClick={(event) => { stop(event); setSwipeX(0); onDelete(item.id); }}
                         className="flex w-[60px] flex-col items-center justify-center gap-0.5 bg-destructive/15 text-[11px] font-semibold text-destructive"
                         aria-label="删除案例"
                     >
@@ -214,10 +228,28 @@ export default function CaseCard({
                 }}
                 className="relative z-[2] flex cursor-pointer flex-col bg-card px-[4px] py-[8px] text-left @[200px]:px-[8px]"
             >
-                {/* 上区：左「姓名 / 印章+分类」与右侧四柱顶对齐 */}
+                {/* 上区：左「姓名 / 印章+分类」与右侧四柱顶对齐。
+                    姓名固定最多 4 字省略：为研判状态按钮留位（名称过长会把状态按钮挤出卡外） */}
                 <div className="flex min-w-0 items-start justify-between gap-[7px] @[206px]:gap-[5px]">
                     <div className="min-w-0 flex-1">
-                        <span className="block truncate text-[14px] font-semibold leading-[17px] text-foreground">{item.name}</span>
+                        <div className="flex min-w-0 items-center gap-[4px]">
+                            <span className="block truncate text-[14px] font-semibold leading-[17px] text-foreground">
+                                {item.name.length > 4 ? `${item.name.slice(0, 4)}…` : item.name}
+                            </span>
+                            {aiStatus && onOpenAiResearch && (
+                                <button
+                                    type="button"
+                                    onClick={(event) => { stop(event); onOpenAiResearch(item.id); }}
+                                    title={aiStatus === 'running' ? 'AI 研判进行中，点击查看' : '有未读的 AI 研判结果，点击查看'}
+                                    className={`shrink-0 h-[16px] px-[4px] rounded-[4px] text-[9.5px] leading-none inline-flex items-center transition-colors cursor-pointer ${aiStatus === 'running'
+                                        ? 'border border-primary/40 bg-primary/10 text-primary animate-pulse'
+                                        : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                        }`}
+                                >
+                                    {aiStatus === 'running' ? '研判中' : '未读研判'}
+                                </button>
+                            )}
+                        </div>
                         <div className="mt-[4px] flex min-w-0 items-center gap-[4px]">
                             {/* 性别印章：第二行行首 */}
                             <span className={`inline-flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-[4px] text-[10.5px] leading-none ${isMale

@@ -24,9 +24,7 @@ interface AiRoleSettingsModalProps {
 
 interface ModuleGuide {
   guideLabel: string;
-  principle: string;
   truthScope: string;
-  school: string;
   highlight: string;
   recommendedId: string;
 }
@@ -34,18 +32,14 @@ interface ModuleGuide {
 // 各模块的研判准则与推荐规范： 不同术数的"断事之本"不同，文案随 moduleName 切换
 const MODULE_GUIDE_BAZI: ModuleGuide = {
   guideLabel: '命理严谨性准则',
-  principle: '八字推演中“旺衰喜忌乃万事之本”，一旦喜忌断反，万事吉凶预测皆相反。',
   truthScope: '四柱干支与客观局象',
-  school: '子平',
   highlight: '妻财子禄寿',
   recommendedId: 'yueyuan_bazi',
 };
 
 const MODULE_GUIDE_QIMEN: ModuleGuide = {
   guideLabel: '推演严谨性准则',
-  principle: '奇门推演中“用神主客乃断事之本”，一旦用神定错、主客颠倒，成败吉凶断语皆相反。',
   truthScope: '九宫格局与星门神仪',
-  school: '奇门遁甲',
   highlight: '用神宫位与趋吉避凶',
   recommendedId: 'qimen_master',
 };
@@ -105,14 +99,12 @@ export default function AiRoleSettingsModal({
 
   const bodyContent = (
     <div className="space-y-4 text-sm">
-        {/* 核心理念提示 */}
+        {/* 核心理念提示：一句话说清「为什么要锁定真值」，细则交给模板本身 */}
         <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-start gap-2.5 text-amber-700 dark:text-amber-300">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
           <div className="text-xs leading-relaxed">
             <span className="font-semibold">{guide.guideLabel}：</span>
-            {guide.principle}
-            推荐使用{recommendedName}规范，系统会在研判前锁定排盘真值（{guide.truthScope}），确保大模型开展{guide.school}学术深度论证，精准分析具体的
-            <span className="font-semibold underline ml-1">{guide.highlight}</span>。
+            推荐套用「{recommendedName}」，研判前系统会先锁定{guide.truthScope}，再围绕{guide.highlight}展开论证。
           </div>
         </div>
 
@@ -123,7 +115,7 @@ export default function AiRoleSettingsModal({
               <Sparkles className="w-3.5 h-3.5 text-primary" />
               预设角色模板
             </label>
-            <span className="text-[11px] text-muted-foreground">点击可快速套用模板提示词</span>
+            <span className="text-[11px] text-muted-foreground">点击套用</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {templates.map((tmpl) => {
@@ -143,7 +135,7 @@ export default function AiRoleSettingsModal({
                   <div className="flex items-center justify-between font-medium mb-1">
                     <span className="truncate">{tmpl.name}</span>
                     {isRecommended && (
-                      <span className="text-[10px] px-1 py-0.2 bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded font-semibold shrink-0">
+                      <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded-[4px] font-semibold shrink-0 ml-1">
                         推荐
                       </span>
                     )}
@@ -162,17 +154,17 @@ export default function AiRoleSettingsModal({
           <div className="flex items-center justify-between mb-1.5">
             <label className="text-xs font-medium text-foreground flex items-center gap-1.5">
               <BookOpen className="w-3.5 h-3.5 text-muted-foreground" />
-              研判系统提示词规范 (System Prompt)
+              系统提示词
             </label>
             <span className="text-[11px] text-muted-foreground">
-              {promptText.length} 字 {selectedTemplateId === 'custom' && '(自定义已编辑)'}
+              {promptText.length} 字 {selectedTemplateId === 'custom' && '· 已自定义'}
             </span>
           </div>
           <textarea
             value={promptText}
             onChange={handleTextChange}
             rows={12}
-            className="w-full px-3 py-2 text-xs font-mono rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary resize-y leading-relaxed text-foreground placeholder:text-muted-foreground/60 shadow-inner"
+            className="w-full px-3 py-2 text-[13px] font-mono rounded-lg border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary resize-y leading-relaxed text-foreground placeholder:text-muted-foreground/60 shadow-inner"
             placeholder="请输入大模型扮演的角色与推演规则要求..."
           />
         </div>
@@ -232,8 +224,8 @@ export default function AiRoleSettingsModal({
       title={
         <div className="flex items-center gap-2">
           <UserCog className="w-5 h-5 text-primary" />
-          <span className="font-semibold text-foreground">AI 角色设定与系统提示词规范</span>
-          <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+          <span className="font-semibold text-foreground">AI 角色设定</span>
+          <span className="text-xs px-2 py-0.5 rounded-md bg-primary/10 text-primary border border-primary/20">
             {moduleName}
           </span>
         </div>

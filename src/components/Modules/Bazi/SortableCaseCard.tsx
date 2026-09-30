@@ -7,7 +7,8 @@
  *
  * 关键职责：
  * - 渲染案例库卡片：乾/坤 印章、四列迷你排盘、出生日期时辰、年龄
- * - 左滑露出 编辑 / 删除；排序模式下显示拖拽手柄并由 dnd-kit 接管
+ * - 左滑露出 编辑 / 删除，展开后点击卡片以外任意位置经 useSwipeDismiss 全局收起；
+ *   排序模式下显示拖拽手柄并由 dnd-kit 接管
  *
  * 主要导出：
  * - `default SortableCaseCard`
@@ -23,6 +24,7 @@ import { GripVertical, Pencil, Trash2 } from 'lucide-react';
 import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../../utils/lunarUtil';
 import { TIAN_GAN_WU_XING } from '../../../lib/xuan-bazi/maps';
 import type { BaziCase } from '../../../services/baziCaseService';
+import { useSwipeDismiss } from '../../../hooks/useSwipeDismiss';
 
 // 五行文字色，仅用于日干
 const ELEMENT_TEXT_COLOR: Record<string, string> = {
@@ -72,6 +74,9 @@ export default function SortableCaseCard({
     const suppressClick = useRef(false);
     // 长按守卫：按下后若在 350ms 内没有形成横向拖动，即判定为长按，本次手势不再触发左滑
     const longPressTimer = useRef<number | null>(null);
+    // 展开态下点击卡片以外任意位置（空白/其他卡片）全局收起；排序模式下无左滑不启用
+    const rootRef = useRef<HTMLDivElement | null>(null);
+    useSwipeDismiss(rootRef, swipeX !== 0 && !sortMode, () => setSwipeX(0));
 
     const clearLongPress = () => {
         if (longPressTimer.current !== null) {
@@ -189,7 +194,11 @@ export default function SortableCaseCard({
 
     return (
         <div
-            ref={setNodeRef}
+            ref={(node) => {
+                // dnd-kit 的节点登记与「点空白收起」的根元素判定共用同一外层节点
+                setNodeRef(node);
+                rootRef.current = node;
+            }}
             style={dndStyle}
             className={`relative select-none overflow-hidden rounded-xl border transition-colors ${isSelected
                 ? 'border-primary/40 shadow-[0_0_0_1px_hsl(var(--primary)/0.25)]'
