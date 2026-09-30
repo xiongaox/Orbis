@@ -1,25 +1,5 @@
-/**
- * BaziCaseList - 应用源码层
- *
- * 模块定位：
- * - 所在层级：应用源码层
- * - 主要目标：承载具体业务模块的前端功能
- *
- * 关键职责：
- * - 渲染 UI 视图并处理交互逻辑
- * - 处理用户输入与展示边界行为
- * - 向上层提供稳定可复用能力
- *
- * 主要导出：
- * - `default CaseList`
- *
- * 依赖关系：
- * - 上游依赖：外部依赖 `react`、内部模块 `lunarUtil`、内部模块 `useAuth` 等 14 个模块
- * - 下游影响：由依赖方的业务逻辑或视图组装调用
- */
 import { useMemo, useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { getBaziPillarsFromDateString } from '../../../utils/lunarUtil';
-import { useAuth } from '../../../contexts/useAuth';
 import { baziCaseService, CASE_TAGS, type BaziCase, type CaseTag, type CreateCaseInput } from '../../../services/baziCaseService';
 import type { Case } from '../../../types';
 import ConfirmModal from '../../Common/ConfirmModal';
@@ -50,7 +30,6 @@ type ChartType =
 interface CaseListProps {
   selectedCaseId?: string | null;
   onSelectCase?: (caseId: string | null) => void;
-  onLoginClick?: () => void;
   onOpenLibrary?: () => void;
   onPreviewCase?: (caseData: Case) => void;
   variant?: 'sidebar' | 'drawer';
@@ -61,13 +40,11 @@ interface CaseListProps {
 export default function CaseList({
   selectedCaseId,
   onSelectCase,
-  onLoginClick,
   onOpenLibrary,
   onPreviewCase,
   variant = 'sidebar',
   onDrawerClose,
 }: CaseListProps) {
-  const { isAuthenticated, loading: authLoading } = useAuth();
   const [search, setSearch] = useState('');
   const [cases, setCases] = useState<BaziCase[]>([]);
   const [loading, setLoading] = useState(false);
@@ -81,11 +58,6 @@ export default function CaseList({
 
   // 加载案例
   const loadCases = useCallback(async () => {
-    if (!isAuthenticated) {
-      setCases([]);
-      return;
-    }
-
     setLoading(true);
     try {
       const data = await baziCaseService.getCases();
@@ -95,26 +67,22 @@ export default function CaseList({
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, []);
 
   useEffect(() => {
-    if (!authLoading) {
-      loadCases();
-    }
-  }, [authLoading, loadCases]);
+    loadCases();
+  }, [loadCases]);
 
   useEffect(() => {
     const handleCasesChanged = () => {
-      if (isAuthenticated) {
-        loadCases();
-      }
+      loadCases();
     };
 
     window.addEventListener(BAZI_CASES_CHANGED_EVENT, handleCasesChanged);
     return () => {
       window.removeEventListener(BAZI_CASES_CHANGED_EVENT, handleCasesChanged);
     };
-  }, [isAuthenticated, loadCases]);
+  }, [loadCases]);
 
   // 处理案例创建成功
   const handleCaseCreated = (newCase?: BaziCase) => {
@@ -140,8 +108,6 @@ export default function CaseList({
 
   // 转换为显示格式
   const displayCases = useMemo(() => {
-    if (!isAuthenticated) return [];
-
     return cases.filter(item => {
       const matchesSearch =
         item.name.includes(search) ||
@@ -165,7 +131,7 @@ export default function CaseList({
         tags: c.tags,
       };
     });
-  }, [isAuthenticated, cases, search, selectedTag]);
+  }, [cases, search, selectedTag]);
 
   const handleDeleteCase = (id: string) => {
     const target = cases.find(c => c.id === id);
@@ -191,7 +157,7 @@ export default function CaseList({
   };
 
   const executeDelete = async () => {
-    if (!isAuthenticated || !caseToDelete) return; // double check
+    if (!caseToDelete) return; // double check
 
     setDeletingCaseId(caseToDelete.id);
     try {
@@ -212,8 +178,6 @@ export default function CaseList({
   return (
     <BaseCaseList
       variant={variant}
-      isAuthenticated={isAuthenticated}
-      onLoginClick={onLoginClick}
       onOpenLibrary={onOpenLibrary}
       renderFilter={
         <CaseTagFilter
@@ -229,7 +193,7 @@ export default function CaseList({
       onCreate={() => setShowCreateModal(true)}
       isLoading={loading}
       isEmpty={displayCases.length === 0}
-      emptyText={isAuthenticated ? '暂无案例，点击上方按钮新建' : '登录后查看您的案例'}
+      emptyText="暂无案例，点击上方按钮新建"
       modals={
         <>
           <CreateCaseModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} onCreated={handleCaseCreated} onPreview={onPreviewCase ? handlePreviewCase : undefined} />
@@ -281,7 +245,6 @@ export default function CaseList({
           key={item.id}
           item={item}
           isSelected={selectedCaseId === item.id}
-          isAuthenticated={isAuthenticated}
           aiStatus={aiStatuses[item.id]?.status ?? null}
           onOpenAiResearch={handleOpenAiResearch}
           onSelectCase={(id) => {

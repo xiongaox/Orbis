@@ -1,6 +1,4 @@
 /**
- * AiChatDrawer - 通用 AI 对话抽屉组件
- *
  * 模块定位：
  * - 所在层级：应用通用组件层
  * - 主要目标：在桌面端右侧抽屉式滑出（移动端自适应），提供基于排盘上下文的多轮 AI 对话能力
@@ -11,7 +9,8 @@
  * - 本地持久化对话历史，支持一键清空与重置
  * - 内置命理快捷追问胶囊，支持一键发送深度追问
  * - 与左侧排盘互不干扰，支持边看盘面边与 AI 实时研判
- */
+ 
+*/
 
 import { useState, useMemo, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 import { pushBackHandler, popBackHandler } from '../../utils/androidBackButton';

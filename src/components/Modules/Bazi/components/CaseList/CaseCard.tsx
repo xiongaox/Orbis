@@ -1,23 +1,9 @@
 /**
- * CaseCard - 应用源码层
- *
- * 模块定位：
- * - 所在层级：应用源码层
- * - 主要目标：承载具体业务模块的前端功能
- *
  * 关键职责：
  * - 渲染侧栏案例卡片：上区为左侧「姓名独占一行 + 性别印章/分类 chip 一行」与右侧四柱
  *   顶对齐；底行横跨整卡宽度，岁数（左）+ 出生日期·时辰（右对齐）
  * - 仅日干保留五行色，其余干支压暗；编辑 / 删除由常驻改为左滑露出，
  *   展开后点击卡片以外任意位置经 useSwipeDismiss 全局收起
- *
- * 主要导出：
- * - `default CaseCard`
- *
- * 依赖关系：
- * - 上游依赖：外部依赖 `react`、`lucide-react`、内部模块 `lunarUtil`、内部模块 `maps`、
- *   内部模块 `useSwipeDismiss`
- * - 下游影响：由依赖方的业务逻辑或视图组装调用
  *
  * 排版约束（改动前必读）：
  * - 侧栏宽度固定为桌面 w-56 = 224px（2xl 断点 w-64 = 256px），本组件不得改变自身宽度。
@@ -40,28 +26,20 @@
  * - 日期必须用短横线格式（1996-12-31）。早期中文「1996年12月31日」占满整行零余量，字号无法放大；
  *   该缺陷实测复现过三次（demo 阶段 16px 柱宽、落地时忽略容器 p-4、恢复四柱字号时）。
  *   改动以上任一数值后，务必用真实渲染重新量测 224px 下是否截断。
- */
+ 
+*/
 
 import { useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../../../../utils/lunarUtil';
-import { TIAN_GAN_WU_XING } from '../../../../../lib/xuan-bazi/maps';
+import { getElementTextColor } from '../../../../../lib/xuan-bazi/maps';
 import { useSwipeDismiss } from '../../../../../hooks/useSwipeDismiss';
 
 /** 左滑露出的操作区宽度，与案例库 SortableCaseCard 的 REVEAL_PX 保持同一度量 */
 const REVEAL_PX = 120;
 /** 超过该位移即判定为「打开」，否则回弹 */
 const OPEN_THRESHOLD = 34;
-
-// 五行文字色常量，仅用于日干
-const ELEMENT_TEXT_COLOR: Record<string, string> = {
-    木: 'text-[var(--element-wood)]',
-    火: 'text-[var(--element-fire)]',
-    土: 'text-[var(--element-earth)]',
-    金: 'text-[var(--element-metal)]',
-    水: 'text-[var(--element-water)]',
-};
 
 interface CaseCardDisplayItem {
     id: string;
@@ -78,7 +56,6 @@ export type CaseCardAiStatus = 'running' | 'unread';
 interface CaseCardProps {
     item: CaseCardDisplayItem;
     isSelected: boolean;
-    isAuthenticated: boolean;
     aiStatus?: CaseCardAiStatus | null;
     onSelectCase: (id: string) => void;
     onOpenAiResearch?: (id: string) => void;
@@ -89,7 +66,6 @@ interface CaseCardProps {
 export default function CaseCard({
     item,
     isSelected,
-    isAuthenticated,
     aiStatus,
     onOpenAiResearch,
     onSelectCase,
@@ -104,7 +80,7 @@ export default function CaseCard({
 
     // 仅日干使用五行色，其余干支统一压暗
     const dayGan = pillarPairs[2]?.[0] ?? '';
-    const dayGanColor = ELEMENT_TEXT_COLOR[TIAN_GAN_WU_XING[dayGan] || ''] ?? '';
+    const dayGanColor = getElementTextColor(dayGan);
     const isMale = item.gender === '男';
 
     // 出生日期与出生时辰拆成两段展示，不展示年龄
@@ -132,12 +108,10 @@ export default function CaseCard({
     useSwipeDismiss(rootRef, swipeX !== 0, () => setSwipeX(0));
 
     const handlePointerDown = (event: ReactPointerEvent) => {
-        if (!isAuthenticated) return;
         gesture.current = { x: event.clientX, y: event.clientY, base: swipeX, lock: null, moved: false };
     };
 
     const handlePointerMove = (event: ReactPointerEvent) => {
-        if (!isAuthenticated) return;
         const g = gesture.current;
         if (g.lock === null) {
             const dx = event.clientX - g.x;
@@ -182,7 +156,6 @@ export default function CaseCard({
                 }`}
         >
             {/* 左滑露出的操作区：位于卡片底层，靠前景层位移显形 */}
-            {isAuthenticated && (
                 <div className="absolute inset-y-0 right-0 z-[1] flex">
                     <button
                         type="button"
@@ -203,7 +176,6 @@ export default function CaseCard({
                         删除
                     </button>
                 </div>
-            )}
 
             {/* 前景层：卡片本体 */}
             <div

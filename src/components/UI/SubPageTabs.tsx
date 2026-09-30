@@ -1,8 +1,5 @@
 /**
- * SubPageTabs - 应用源码层
- *
  * 模块定位：
- * - 所在层级：应用源码层
  * - 主要目标：SubPage 页头正下方的统一 tab 切换条
  *
  * 关键职责：
@@ -12,7 +9,8 @@
  * 使用约束：
  * - 仅移动端使用；桌面端弹窗沿用各自的分段控件布局，不要强行套用
  * - 全应用移动端二级页的 tab 切换统一走本组件，不再各页自绘分段控件
- */
+ 
+*/
 import type { ReactNode } from 'react';
 
 export interface SubPageTabItem<T extends string> {

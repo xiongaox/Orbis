@@ -1,14 +1,12 @@
 /**
- * Toast - 应用源码层
- *
  * 模块定位：
- * - 所在层级：应用源码层
  * - 主要目标：轻量操作反馈小弹窗（页头下方居中浮层，自动消失）
  *
  * 关键职责：
  * - 固定渲染在页头下方的胶囊浮层，长文案截断
  * - 状态与定时由 hooks/useToast 管理，本组件只负责视图
- */
+ 
+*/
 import type { ReactNode } from 'react';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 import type { ToastState, ToastTone } from '../../hooks/useToast';

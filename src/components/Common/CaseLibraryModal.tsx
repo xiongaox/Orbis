@@ -1,22 +1,3 @@
-/**
- * CaseLibraryModal - 应用源码层
- *
- * 模块定位：
- * - 所在层级：应用源码层
- * - 主要目标：提供跨模块的通用 UI 组件
- *
- * 关键职责：
- * - 渲染 UI 视图并处理交互逻辑
- * - 处理用户输入与展示边界行为
- * - 向上层提供稳定可复用能力
- *
- * 主要导出：
- * - `default CaseLibraryModal`, `CategorySpec`, `CaseLibraryModalProps`
- *
- * 依赖关系：
- * - 上游依赖：外部依赖 `react`、外部依赖 `lucide-react`、内部模块 `useAuth` 等 5 个模块
- * - 下游影响：由依赖方的业务逻辑或视图组装调用
- */
 
 import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import {
@@ -34,8 +15,7 @@ import {
     sortableKeyboardCoordinates,
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Search, Plus, Upload, LogIn, Library, ArrowUpDown } from 'lucide-react';
-import { useAuth } from '../../contexts/useAuth';
+import { Search, Plus, Upload, Library, ArrowUpDown } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import BaseModal from '../UI/BaseModal';
 import SubPage from '../UI/SubPage';
@@ -51,7 +31,6 @@ export interface CaseLibraryModalProps<T extends { id: string }> {
     onClose: () => void;
     selectedCaseId?: string | null;
     onSelectCase?: (caseId: string | null, caseItem?: T) => void;
-    onLoginClick?: () => void;
 
     fetchCases: () => Promise<T[]>;
     updateSortOrder?: (ids: string[]) => Promise<void>;
@@ -90,7 +69,6 @@ export default function CaseLibraryModal<T extends { id: string }>({
     onClose,
     selectedCaseId,
     onSelectCase,
-    onLoginClick,
     fetchCases,
     updateSortOrder,
     deleteCase,
@@ -102,7 +80,6 @@ export default function CaseLibraryModal<T extends { id: string }>({
     renderSubModals,
     getItemName,
 }: CaseLibraryModalProps<T>) {
-    const { isAuthenticated, loading: authLoading } = useAuth();
     const [cases, setCases] = useState<T[]>([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
@@ -134,10 +111,6 @@ export default function CaseLibraryModal<T extends { id: string }>({
 
     // 加载案例
     const loadCases = useCallback(async () => {
-        if (!isAuthenticated) {
-            setCases([]);
-            return;
-        }
         setLoading(true);
         try {
             const data = await fetchCases();
@@ -147,23 +120,23 @@ export default function CaseLibraryModal<T extends { id: string }>({
         } finally {
             setLoading(false);
         }
-    }, [isAuthenticated, fetchCases]);
+    }, [fetchCases]);
 
     useEffect(() => {
-        if (isOpen && !authLoading) {
+        if (isOpen) {
             loadCases();
         }
-    }, [isOpen, authLoading, loadCases]);
+    }, [isOpen, loadCases]);
 
     useEffect(() => {
         const handleCasesChanged = () => {
-            if (isAuthenticated && isOpen) {
+            if (isOpen) {
                 loadCases();
             }
         };
         window.addEventListener(refreshEventName, handleCasesChanged);
         return () => window.removeEventListener(refreshEventName, handleCasesChanged);
-    }, [isAuthenticated, isOpen, loadCases, refreshEventName]);
+    }, [isOpen, loadCases, refreshEventName]);
 
     // 筛选后的案例
     const filteredCases = useMemo(() => {
@@ -195,7 +168,7 @@ export default function CaseLibraryModal<T extends { id: string }>({
 
     // 删除案例
     const executeDelete = async () => {
-        if (!isAuthenticated || !caseToDelete) return;
+        if (!caseToDelete) return;
         setDeletingCaseId(caseToDelete.id);
         try {
             await deleteCase(caseToDelete.id);
@@ -219,20 +192,18 @@ export default function CaseLibraryModal<T extends { id: string }>({
             <span className="text-sm font-normal text-muted-foreground">
                 ({cases.length})
             </span>
-            {isAuthenticated && (
-                <button
-                    type="button"
-                    onClick={() => setSortMode(v => !v)}
-                    aria-pressed={sortMode}
-                    title={sortMode ? '退出排序模式' : '排序模式'}
-                    className={`ml-auto mr-1 flex h-8 w-8 items-center justify-center rounded-lg transition-colors focus-ring ${sortMode
-                        ? 'bg-primary/10 text-primary'
-                        : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                >
-                    <ArrowUpDown className="h-4 w-4" />
-                </button>
-            )}
+            <button
+                type="button"
+                onClick={() => setSortMode(v => !v)}
+                aria-pressed={sortMode}
+                title={sortMode ? '退出排序模式' : '排序模式'}
+                className={`ml-auto mr-1 flex h-8 w-8 items-center justify-center rounded-lg transition-colors focus-ring ${sortMode
+                    ? 'bg-primary/10 text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                    }`}
+            >
+                <ArrowUpDown className="h-4 w-4" />
+            </button>
         </div>
     );
 
@@ -251,35 +222,22 @@ export default function CaseLibraryModal<T extends { id: string }>({
                             className="w-full bg-secondary/50 border border-border rounded-lg pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-ring title-outline-none focus:outline-none focus:border-primary/50"
                         />
                     </div>
-                    {isAuthenticated ? (
-                        <>
-                            <button
-                                type="button"
-                                onClick={() => setShowImportModal(true)}
-                                className="flex items-center gap-1.5 px-3 py-2 bg-secondary hover:bg-secondary/80 text-foreground hover:text-foreground/90 rounded-lg text-sm font-medium transition-colors border border-border cursor-pointer shadow-sm focus-ring"
-                            >
-                                <Upload className="w-4 h-4" />
-                                导入
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setShowCreateModal(true)}
-                                className="flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/20 cursor-pointer focus-ring"
-                            >
-                                <Plus className="w-4 h-4" />
-                                新建
-                            </button>
-                        </>
-                    ) : (
-                        <button
-                            type="button"
-                            onClick={onLoginClick}
-                            className="flex items-center gap-2 px-4 py-2 bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border focus-ring"
-                        >
-                            <LogIn className="w-4 h-4" />
-                            新建
-                        </button>
-                    )}
+                    <button
+                        type="button"
+                        onClick={() => setShowImportModal(true)}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-secondary hover:bg-secondary/80 text-foreground hover:text-foreground/90 rounded-lg text-sm font-medium transition-colors border border-border cursor-pointer shadow-sm focus-ring"
+                    >
+                        <Upload className="w-4 h-4" />
+                        导入
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setShowCreateModal(true)}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-sm font-medium transition-colors border border-primary/20 cursor-pointer focus-ring"
+                    >
+                        <Plus className="w-4 h-4" />
+                        新建
+                    </button>
                 </div>
 
                 {/* 主体 */}
@@ -315,10 +273,6 @@ export default function CaseLibraryModal<T extends { id: string }>({
                     <div className="flex-1 min-w-0 overflow-y-auto">
                         {loading ? (
                             <div className="text-center text-muted-foreground py-12">加载中...</div>
-                        ) : !isAuthenticated ? (
-                            <div className="text-center text-muted-foreground py-12 rounded-lg border border-dashed border-border bg-secondary/20">
-                                登录后查看您的案例
-                            </div>
                         ) : filteredCases.length === 0 ? (
                             <div className="text-center text-muted-foreground py-12 rounded-lg border border-dashed border-border bg-secondary/20">
                                 {search || selectedCategory !== categories[0]?.id ? '没有匹配的案例' : '暂无案例，点击上方按钮新建'}

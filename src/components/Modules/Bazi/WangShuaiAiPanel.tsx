@@ -1,11 +1,10 @@
 /**
- * WangShuaiAiPanel - 旺衰 AI 深度推演面板组件
- *
  * 模块定位：
  * - 所在层级：业务组件层
  * - 主要目标：为用户提供正统子平学术级的 AI 深度命理推演与学术论证
  * - 核心优化：轻量控制栏、微缩折叠思考链、表格与排版全面美化、一键复制
- */
+ 
+*/
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import {

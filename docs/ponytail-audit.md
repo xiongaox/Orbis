@@ -101,4 +101,25 @@ verify-first / shrink 的进一步合并收益（未计入上表，uncounted）�
 
 **未执行（留待后续批次）**：条1 头样板注释（198 文件级改写，verify-first 单独批）；条27 zodiac 中文副本（等 Web 兼容结论）；条6+28 Supabase 栈（需先核对 main 分支使用情况）；全部 verify-first / shrink 重构项（条7/12/13/17/18/19/20/22 等）。
 
+### 第二批执行状态（2026-09-30，重构批，同一分支）
+**已执行**（实测 201 文件，+332 / -6003）：
+- 条1 头注释模板清理：脚本化处理 185 文件 -3139 行；仅删四段式模板与套话行，27 个含实质信息的文件（aiChatService、androidBackButton、Toast 等）保留有效注释。
+- 条7 useAuth/useWorkspace 假认证层整体清除：2 个 hook 文件 + 6 个消费文件的恒真分支 + 全链 `onLoginClick`（恒 undefined）+ BaseCaseList/CaseCard/QimenCaseList/SanYuan 两组件的 `isAuthenticated` prop 链，含 `isAuthenticated={true}` 字面量传参。
+- 条9 Bazi context 三文件合一为 `contexts/BaziContext.tsx`（含 react-refresh 规则定点豁免注释）。
+- 条11 aiModelService 三段 probe 合一为 `PROBE_CONFIG` 表驱动（-60 行，错误文案与状态码语义逐字保留）。
+- 条12 QimenAiPromptModal 删除手写空亡/马星算法，复用模块内 `getXunKong`、`MA_XING_MAP`。
+- 条18（收窄）QIMEN_CASES_CHANGED_EVENT 归位 `data/caseConstants.ts`；备份域 3 个事件经核实定义在拥有者文件属合理内聚，不迁。
+- 条17（部分）双 CaseCard 手写五行色表删除，统一走领域层 `getElementTextColor`（骨架合并未做，两卡片布局差异大）。
+- 条19 notes/sanyuan 12 文件（约 940K）移出仓库。
+- 条22 DuanFaSidebar/ShuShuSidebar 合并为 `components/NavSidebar.tsx`，8 处调用点直改，无 wrapper 层。
+- 另：src/hooks/AGENTS.md 同步移除已删 hook 行。
+
+**评估后不做**（成本大于收益，记录理由）：
+- 条20 CaseStudy 图表套件：两套 PalaceCell props 集与视觉交互显著不同（双击手势/马星标记/边框风格），合并将产出 15+ 开关 props 的巨型组件，且视觉差异必须人工验收；CaseStudy 侧已复用领域层（computePillarDetails、qimenStatusUtils、MA_XING_MAP），重复的是有真实差异需求的布局样式。
+- 条13 AiChatDrawer 内嵌 CustomDropdown：与 UI/CustomSelect 样式结构不同（button 组合 label/value/icon），替换会改变 AI 抽屉外观，属 UI 视觉变更需人工验收。
+- 条15 useIsPadLandscape：删减媒体查询会移动 pad 布局判定边界，收益 10 行、风险不划算。
+- 条6+28 Supabase 栈、条27 zodiac 中文副本：文件删除会随将来合并影响 main 分支（main 仍是 Web 线），留待与 main 一起决策。
+
+**自检**：`npm run lint` 0 错误（1 个既有 warning）；`npx tsc -b` 通过；`npm run build` 成功（4.17s）。
+
 **审计覆盖声明**：src/（components/hooks/lib/services/contexts/utils/types/constants/data 非语料部分）、scripts/、src-tauri/src + Cargo.toml、workers/、supabase/、docs/、notes/、public/、根配置（package.json/vite/eslint/tailwind/tsconfig/wrangler/vercel/CI）。未逐行阅读：src/data/cases 语料（约 747 个 Markdown，属内容资产非代码）、src-tauri/src 仅做依赖与结构核对（1381 行，未逐行审）、dist-cases 与构建产物。

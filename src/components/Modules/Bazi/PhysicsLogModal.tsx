@@ -1,6 +1,4 @@
 /**
- * PhysicsLogModal - 旺衰逻辑分析详情弹窗
- *
  * 模块定位：
  * - 所在层级：业务组件层
  * - 主要目标：承载八字旺衰分析详情弹窗，提供【格局与旺衰看板】与【AI 深度推演】双轨架构
@@ -9,7 +7,8 @@
  * - 默认看板：纯本地确定性计算，直观展示能量天平、子平四要素矩阵与全局裁判词
  * - 进阶推演：轻量集成大模型子平学术推导，微缩折叠思考链，排版美化
  * - 拒绝臃肿，消除前后指标矛盾，提供优雅清爽的研判体验
- */
+ 
+*/
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { ReactNode } from 'react';

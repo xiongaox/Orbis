@@ -1,10 +1,9 @@
 /**
- * AiRoleSettingsModal - AI 研判角色与提示词规范设置弹窗
- *
  * 模块定位：
  * - 允许用户自由定制、切换和保存大模型研判的 System Prompt；
  * - 按模块（八字/奇门）预设对应的角色规范与研判准则文案，确保排盘真值先行锁定再深度推演。
- */
+ 
+*/
 
 import React, { useState, useMemo } from 'react';
 import { UserCog, Sparkles, RotateCcw, Check, BookOpen, AlertTriangle } from 'lucide-react';

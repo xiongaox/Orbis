@@ -1,22 +1,3 @@
-/**
- * JsonImportModal - 应用源码层
- *
- * 模块定位：
- * - 所在层级：应用源码层
- * - 主要目标：提供跨模块的通用 UI 组件
- *
- * 关键职责：
- * - 渲染 UI 视图并处理交互逻辑
- * - 处理用户输入与展示边界行为
- * - 向上层提供稳定可复用能力
- *
- * 主要导出：
- * - `default JsonImportModal`, `JsonImportModalProps`
- *
- * 依赖关系：
- * - 上游依赖：外部依赖 `react`、外部依赖 `lucide-react`、内部模块 `BaseModal`、内部模块 `fileExportUtil` 等 5 个模块
- * - 下游影响：由依赖方的业务逻辑或视图组装调用
- */
 
 import { useRef, useState, useCallback, useMemo } from 'react';
 import { FileJson, Check, AlertCircle, ClipboardPaste, Download, ChevronRight, Table2, Trash2 } from 'lucide-react';

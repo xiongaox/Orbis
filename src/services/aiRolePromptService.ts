@@ -1,11 +1,10 @@
 /**
- * aiRolePromptService - 应用服务层
- *
  * 模块定位：
  * - 负责管理和持久化 AI 研判助手的角色设定与系统提示词规范（System Prompt）。
  * - 针对八字排盘，深度融合项目内置的跃渊子平命理规范（yueyuanWangShuaiSkill），
  *   确保大模型在精准客观的旺衰与喜忌基准下，推演具体的妻财子禄寿。
- */
+ 
+*/
 
 export interface AiRoleTemplate {
   id: string;

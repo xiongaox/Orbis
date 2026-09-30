@@ -1,6 +1,4 @@
 /**
- * useToast - 轻量操作反馈状态钩子
- *
  * 模块定位：
  * - 所在层级：业务 hooks 层
  * - 主要目标：持有当前 toast 状态并按语气自动清除
@@ -11,7 +9,8 @@
  *
  * 为什么独立成文件：此前各弹窗的操作反馈以内联段落挂在内容尾部，
  * 内容一长就被推出视口；统一收敛为顶部浮层后各处行为一致。
- */
+ 
+*/
 import { useEffect, useRef, useState } from 'react';
 
 export type ToastTone = 'success' | 'error' | 'info';

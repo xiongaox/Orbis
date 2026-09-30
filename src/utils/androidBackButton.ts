@@ -1,8 +1,5 @@
 /**
- * androidBackButton - 应用源码层
- *
  * 模块定位：
- * - 所在层级：应用源码层
  * - 主要目标：把安卓系统返回（全面屏边缘侧滑 / 返回键）桥接为「关闭最上层浮层」
  *
  * 关键职责：
@@ -12,7 +9,8 @@
  * - 桌面端与纯浏览器环境为 no-op：Escape 关闭已由各浮层组件自行处理
  *
  * 使用方式：浮层组件在打开时 pushBackHandler(onClose)，关闭/卸载时 popBackHandler(onClose)。
- */
+ 
+*/
 import { isTauri } from '@tauri-apps/api/core';
 import { onBackButtonPress } from '@tauri-apps/api/app';
 

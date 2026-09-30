@@ -1,11 +1,10 @@
 /**
- * WangShuaiDashboard - 旺衰研判与格局看板组件
- *
  * 模块定位：
  * - 所在层级：业务组件层
  * - 主要目标：呈现确定性的子平四要素矩阵、能量天平与格局裁决看板
  * - 核心价值：零延迟秒开，逻辑严密自洽，杜绝指标打勾与身弱结论割裂的矛盾
- */
+ 
+*/
 
 import { useState } from 'react';
 import type { ReactNode } from 'react';

@@ -1,8 +1,5 @@
 /**
- * ActivationModal - 应用源码层
- *
  * 模块定位：
- * - 所在层级：应用源码层
  * - 主要目标：案例学习离线加密包的“一机一码”激活弹窗
  *
  * 关键职责：
@@ -10,11 +7,7 @@
  * - 收集激活码（自动清理首尾空白与换行）并触发本地解锁
  * - 展示解密/导入的分阶段进度与错误反馈
  * - 由用户显式触发（试读态的激活按钮），因此支持关闭；激活进行中不允许关闭
- *
- * 依赖关系：
- * - 上游依赖：外部依赖 `lucide-react`、`react`，内部模块 `publicCaseLibraryService`
- * - 下游影响：由 CaseStudyPage 在试读态按需渲染
- */
+*/
 
 import { Check, Copy, KeyRound, Loader2, Lock, ShieldCheck, X } from 'lucide-react';
 import { useEffect, useState } from 'react';

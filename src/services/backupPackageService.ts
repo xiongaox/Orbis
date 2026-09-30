@@ -1,6 +1,4 @@
 /**
- * backupPackageService - 应用服务层
- *
  * 模块定位：
  * - 负责备份产物的模块化多 JSON 归档与解包恢复。
  * - 将原有单一的大 JSON 拆分为：
@@ -9,7 +7,8 @@
  *   - [术数]_chat_history.json：按术数独立分包的 AI 研判对话历史（可选不备份）
  *   - manifest.json：包含版本与模块清单的归档元数据
  * - 打包为标准 ZIP 归档，向下完全兼容老版本单一 JSON 备份的无缝恢复。
- */
+ 
+*/
 
 import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
 import { localPrivateStore, type PrivateRecord } from './localPrivateStore';

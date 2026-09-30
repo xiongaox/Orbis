@@ -1,35 +1,15 @@
-/**
- * DuanFaPage - 应用源码层
- *
- * 模块定位：
- * - 所在层级：应用源码层
- * - 主要目标：承载具体业务模块的前端功能
- *
- * 关键职责：
- * - 渲染 UI 视图并处理交互逻辑
- * - 处理用户输入与展示边界行为
- * - 向上层提供稳定可复用能力
- *
- * 主要导出：
- * - `default DuanFaPage`
- *
- * 依赖关系：
- * - 上游依赖：外部依赖 `react`、内部模块 `useDuanFa`、内部模块 `DuanFaSidebar` 等 16 个模块
- * - 下游影响：由依赖方的业务逻辑或视图组装调用
- */
 import { useState, useRef, useCallback } from 'react';
 import { useDuanFa } from './hooks/useDuanFa';
-import DuanFaSidebar from './components/DuanFaSidebar';
+import NavSidebar from './components/NavSidebar';
 import DuanFaContent from './components/DuanFaContent';
 import DuanFaOutline from './components/DuanFaOutline';
-import ShuShuSidebar from './components/ShuShuSidebar';
 import SideDrawer from '../../UI/SideDrawer';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useIsPadLandscape } from '../../../hooks/useIsPadLandscape';
+import { SHU_SHU_CATEGORIES } from '../../../lib/caseStudy/duanfaCategories';
 
 
 // 学习面板相关
-import { useAuth } from '../../../contexts/useAuth';
 import { useReadingProgress } from './hooks/useReadingProgress';
 import LearningPanelModal from './components/LearningPanelModal';
 import LearningPanelFAB from './components/LearningPanelFAB';
@@ -54,8 +34,8 @@ export default function DuanFaPage() {
         setOutline,
     } = useDuanFa();
 
-    // 认证与面板状态
-    const { isAuthenticated } = useAuth();
+    // 面板状态
+    const fileItems = files.map((f) => ({ id: f.id, label: f.name }));
     const [isLearningPanelOpen, setIsLearningPanelOpen] = useState(false);
     const [isLeftOpen, setIsLeftOpen] = useState(false);
     const [isOutlineOpen, setIsOutlineOpen] = useState(false);
@@ -71,7 +51,7 @@ export default function DuanFaPage() {
     } = useReadingProgress({
         articleId: selectedFileId,
         scrollContainerRef: contentScrollRef,
-        enabled: isAuthenticated && !!selectedFileId,
+        enabled: !!selectedFileId,
     });
 
     // 学习面板 - 获取文章信息（支持多数据源）
@@ -107,22 +87,20 @@ export default function DuanFaPage() {
                 onOutlineChange={setOutline}
             />
 
-            {/* 浮动按钮区 - 仅登录用户可见 */}
-            {isAuthenticated && (
-                <div className="absolute right-6 bottom-6 z-10 flex flex-col items-center gap-3">
-                    {/* 进度环按钮 */}
-                    {selectedFileId && (
-                        <ReadingProgressButton
-                            progress={currentProgress}
-                            savedProgress={savedProgress}
-                            isFinished={currentProgress > 0 ? currentProgress >= 90 : savedProgress >= 90}
-                            onRestore={restoreProgress}
-                        />
-                    )}
-                    {/* 学习面板按钮 */}
-                    <LearningPanelFAB onClick={() => setIsLearningPanelOpen(true)} />
-                </div>
-            )}
+            {/* 浮动按钮区 */}
+            <div className="absolute right-6 bottom-6 z-10 flex flex-col items-center gap-3">
+                {/* 进度环按钮 */}
+                {selectedFileId && (
+                    <ReadingProgressButton
+                        progress={currentProgress}
+                        savedProgress={savedProgress}
+                        isFinished={currentProgress > 0 ? currentProgress >= 90 : savedProgress >= 90}
+                        onRestore={restoreProgress}
+                    />
+                )}
+                {/* 学习面板按钮 */}
+                <LearningPanelFAB onClick={() => setIsLearningPanelOpen(true)} />
+            </div>
         </div>
     );
 
@@ -131,16 +109,22 @@ export default function DuanFaPage() {
             {useDesktopLayout ? (
                 <>
                     {/* 1. 术数分类 (12%) */}
-                    <ShuShuSidebar
+                    <NavSidebar
+                        title="术数"
+                        widthClass="w-[100px] min-w-[100px]"
+                        items={SHU_SHU_CATEGORIES}
                         selectedId={selectedShuShuId}
                         onSelect={handleSelectShuShu}
+                        showActiveBar
                     />
 
                     {/* 2. 主题列表 (15%) */}
-                    <DuanFaSidebar
-                        files={files}
-                        selectedFileId={selectedFileId}
-                        onSelectFile={handleSelectFile}
+                    <NavSidebar
+                        title="断法列表"
+                        widthClass="w-[160px] min-w-[160px]"
+                        items={fileItems}
+                        selectedId={selectedFileId}
+                        onSelect={handleSelectFile}
                     />
 
                     {/* 3. 中间：正文内容 */}
@@ -201,15 +185,21 @@ export default function DuanFaPage() {
                         onClose={() => setIsLeftOpen(false)}
                     >
                         <div className="h-full min-h-0 overflow-hidden flex flex-row">
-                            <ShuShuSidebar
+                            <NavSidebar
+                                title="术数"
+                                widthClass="w-[100px] min-w-[100px]"
+                                items={SHU_SHU_CATEGORIES}
                                 selectedId={selectedShuShuId}
                                 onSelect={handleSelectShuShu}
+                                showActiveBar
                             />
                             <div className="flex-1 min-w-0 h-full overflow-hidden border-r border-border/40">
-                                <DuanFaSidebar
-                                    files={files}
-                                    selectedFileId={selectedFileId}
-                                    onSelectFile={(id) => {
+                                <NavSidebar
+                                    title="断法列表"
+                                    widthClass="w-[160px] min-w-[160px]"
+                                    items={fileItems}
+                                    selectedId={selectedFileId}
+                                    onSelect={(id) => {
                                         handleSelectFile(id);
                                         setIsLeftOpen(false);
                                     }}
@@ -266,18 +256,22 @@ export default function DuanFaPage() {
                         onClose={() => setIsLeftOpen(false)}
                     >
                         <div className="h-full min-h-0 overflow-hidden flex flex-col">
-                            <ShuShuSidebar
+                            <NavSidebar
+                                title="术数"
+                                widthClass="w-[100px] min-w-[100px]"
+                                items={SHU_SHU_CATEGORIES}
                                 selectedId={selectedShuShuId}
-                                onSelect={(id) => {
-                                    handleSelectShuShu(id);
-                                }}
+                                onSelect={handleSelectShuShu}
                                 variant="drawer"
+                                showActiveBar
                             />
                             <div className="flex-1 min-h-0 overflow-hidden">
-                                <DuanFaSidebar
-                                    files={files}
-                                    selectedFileId={selectedFileId}
-                                    onSelectFile={(id) => {
+                                <NavSidebar
+                                    title="断法列表"
+                                    widthClass="w-[160px] min-w-[160px]"
+                                    items={fileItems}
+                                    selectedId={selectedFileId}
+                                    onSelect={(id) => {
                                         handleSelectFile(id);
                                         setIsLeftOpen(false);
                                     }}

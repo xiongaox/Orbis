@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Library, Plus, Search } from 'lucide-react';
-import { useAuth } from '../../../../contexts/useAuth';
 import { SANYUAN_CASES_CHANGED_EVENT } from '../../../../data/caseConstants';
 import type { SanYuanInput } from '../../../../lib/sanyuan';
 import {
@@ -32,7 +31,6 @@ export default function SanYuanCaseLibraryModal({
     onSelectCase,
     onClearSelectedCase,
 }: SanYuanCaseLibraryModalProps) {
-    const { isAuthenticated, loading: authLoading } = useAuth();
     const [cases, setCases] = useState<SanYuanCase[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [search, setSearch] = useState('');
@@ -43,11 +41,6 @@ export default function SanYuanCaseLibraryModal({
     const [isDeleting, setIsDeleting] = useState(false);
 
     const loadCases = useCallback(async () => {
-        if (!isAuthenticated) {
-            setCases([]);
-            return;
-        }
-
         setIsLoading(true);
         try {
             setCases(await sanyuanCaseService.getCases());
@@ -56,13 +49,13 @@ export default function SanYuanCaseLibraryModal({
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticated]);
+    }, []);
 
     useEffect(() => {
-        if (isOpen && !authLoading) {
+        if (isOpen) {
             void loadCases();
         }
-    }, [authLoading, isOpen, loadCases]);
+    }, [isOpen, loadCases]);
 
     useEffect(() => {
         const handleCasesChanged = () => {
@@ -132,12 +125,7 @@ export default function SanYuanCaseLibraryModal({
                 maxWidth="max-w-3xl"
                 bodyClassName="flex min-h-[65vh] flex-col overflow-hidden p-4 sm:p-6"
             >
-                {!isAuthenticated ? (
-                    <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border bg-secondary/20 text-sm text-muted-foreground">
-                        登录后可管理您的三元天星案例
-                    </div>
-                ) : (
-                    <>
+                <>
                         <div className="flex flex-wrap gap-2">
                             <div className="relative min-w-[12rem] flex-1">
                                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -188,7 +176,6 @@ export default function SanYuanCaseLibraryModal({
                             )}
                         </div>
                     </>
-                )}
             </BaseModal>
 
             <SanYuanCaseModal

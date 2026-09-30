@@ -1,25 +1,5 @@
-/**
- * CaseStudyPage - 应用源码层
- *
- * 模块定位：
- * - 所在层级：应用源码层
- * - 主要目标：承载具体业务模块的前端功能
- *
- * 关键职责：
- * - 渲染 UI 视图并处理交互逻辑
- * - 处理用户输入与展示边界行为
- * - 向上层提供稳定可复用能力
- *
- * 主要导出：
- * - `default CaseStudyPage`
- *
- * 依赖关系：
- * - 上游依赖：外部依赖 `react`、内部模块 `useLayoutMode`、内部模块 `useAuth` 等 14 个模块
- * - 下游影响：由依赖方的业务逻辑或视图组装调用
- */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
-import { useAuth } from '../../../contexts/useAuth';
 import { useCaseStudy, ALL_CASES } from './hooks/useCaseStudy';
 import { isActivationSupported } from '../../../services/publicCaseLibraryService';
 import { useReadingProgress } from './hooks/useReadingProgress';
@@ -38,7 +18,6 @@ import { type CaseStudyLayoutProps } from './layouts/CaseStudyLayoutProps';
 export default function CaseStudyPage() {
     const { isPadLandscape, useDesktopLayout } = useLayoutMode();
     const isMobile = !useDesktopLayout && !isPadLandscape;
-    const { isAuthenticated } = useAuth();
 
     // Core state hooks
     const caseStudyState = useCaseStudy();
@@ -62,13 +41,12 @@ export default function CaseStudyPage() {
     const progressProps = useReadingProgress({
         articleId: caseStudyState.isPreviewMode ? null : caseStudyState.activeCase?.id || null,
         scrollContainerRef: contentScrollRef,
-        enabled: isAuthenticated,
     });
 
     const duanFaProgressProps = useReadingProgress({
         articleId: duanFa.selectedFileId,
         scrollContainerRef: duanFaContentRef,
-        enabled: isAuthenticated && caseStudyState.selectedCategory === 'duanfa' && isMobile,
+        enabled: caseStudyState.selectedCategory === 'duanfa' && isMobile,
     });
 
     useEffect(() => {
@@ -86,7 +64,7 @@ export default function CaseStudyPage() {
     }, []);
 
     const layoutProps: CaseStudyLayoutProps = {
-        useDesktopLayout, isPadLandscape, isMobile, isAuthenticated,
+        useDesktopLayout, isPadLandscape, isMobile,
         ...caseStudyState,
         openActivation,
         baziData,

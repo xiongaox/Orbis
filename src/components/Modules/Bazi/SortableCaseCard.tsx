@@ -1,39 +1,17 @@
 /**
- * SortableCaseCard - 应用源码层
- *
- * 模块定位：
- * - 所在层级：应用源码层
- * - 主要目标：承载具体业务模块的前端功能
- *
  * 关键职责：
  * - 渲染案例库卡片：乾/坤 印章、四列迷你排盘、出生日期时辰、年龄
  * - 左滑露出 编辑 / 删除，展开后点击卡片以外任意位置经 useSwipeDismiss 全局收起；
  *   排序模式下显示拖拽手柄并由 dnd-kit 接管
- *
- * 主要导出：
- * - `default SortableCaseCard`
- *
- * 依赖关系：
- * - 上游依赖：外部依赖 `@dnd-kit/sortable`、`@dnd-kit/utilities`、`lucide-react`、内部模块 `lunarUtil`、`maps`
- * - 下游影响：由依赖方的业务逻辑或视图组装调用
- */
+*/
 import { useEffect, useRef, useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Pencil, Trash2 } from 'lucide-react';
 import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../../utils/lunarUtil';
-import { TIAN_GAN_WU_XING } from '../../../lib/xuan-bazi/maps';
+import { getElementTextColor } from '../../../lib/xuan-bazi/maps';
 import type { BaziCase } from '../../../services/baziCaseService';
 import { useSwipeDismiss } from '../../../hooks/useSwipeDismiss';
-
-// 五行文字色，仅用于日干
-const ELEMENT_TEXT_COLOR: Record<string, string> = {
-    木: 'text-[var(--element-wood)]',
-    火: 'text-[var(--element-fire)]',
-    土: 'text-[var(--element-earth)]',
-    金: 'text-[var(--element-metal)]',
-    水: 'text-[var(--element-water)]',
-};
 
 const REVEAL_PX = 140;
 
@@ -175,7 +153,7 @@ export default function SortableCaseCard({
 
     // 仅日干使用五行色，其余干支统一压暗
     const dayGan = pillarPairs[2]?.[0] ?? '';
-    const dayGanColor = ELEMENT_TEXT_COLOR[TIAN_GAN_WU_XING[dayGan] || ''] ?? '';
+    const dayGanColor = getElementTextColor(dayGan);
 
     const birth = new Date(caseData.birth_date);
     const hasValidBirth = !Number.isNaN(birth.getTime());

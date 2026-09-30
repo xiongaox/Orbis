@@ -1,10 +1,9 @@
 /**
- * aiChatHistoryService - 应用服务层
- *
  * 模块定位：
  * - 负责全应用 AI 对话历史的会话隔离、本地持久化、多维索引、收藏管理与 Markdown 导出。
  * - 支持术数类型（八字、奇门、六爻、梅花等）及具体案例层级的树形组织。
- */
+ 
+*/
 
 export type DivinationType = 'bazi' | 'qimen' | 'sanyuan' | string;
 

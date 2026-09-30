@@ -1,11 +1,10 @@
 /**
- * browserUtil - 浏览器与外部链接调用工具
- *
  * 关键职责：
  * - 安卓 WebView 内优先走原生桥（由 MainActivity.kt 注入，用 Intent 调起系统浏览器）
  * - 桌面客户端通过 Tauri IPC 调用原生能力打开外部链接
  * - 普通 Web 浏览器环境下回退至 window.open
- */
+ 
+*/
 
 import { isTauri, invoke } from '@tauri-apps/api/core';
 

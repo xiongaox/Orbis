@@ -1,6 +1,4 @@
 /**
- * fileExportUtil - 跨端文本文件导出
- *
  * 模块定位：
  * - 所在层级：工具层
  * - 主要目标：为 Markdown / JSON 等文本产物提供统一的「保存到本地」能力
@@ -11,7 +9,8 @@
  *
  * 为什么独立成文件：此前该逻辑内联在 aiChatHistoryService 中，
  * 备份配置导出等新场景若各自复制一份，桌面端/浏览器端双分支很容易漏改一边。
- */
+ 
+*/
 import { isTauri, invoke } from '@tauri-apps/api/core';
 
 export type ExportOutcome = 'saved' | 'cancelled' | 'downloaded';
