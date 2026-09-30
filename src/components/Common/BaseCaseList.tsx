@@ -1,29 +1,8 @@
-/**
- * BaseCaseList - 应用源码层
- *
- * 模块定位：
- * - 所在层级：应用源码层
- * - 主要目标：提供跨模块的通用 UI 组件
- *
- * 关键职责：
- * - 渲染 UI 视图并处理交互逻辑
- * - 处理用户输入与展示边界行为
- * - 向上层提供稳定可复用能力
- *
- * 主要导出：
- * - `default BaseCaseList`
- *
- * 依赖关系：
- * - 上游依赖：外部依赖 `react`、外部依赖 `lucide-react`
- * - 下游影响：由依赖方的业务逻辑或视图组装调用
- */
 import type { ReactNode } from 'react';
-import { Search, LogIn, ArrowUpFromLine, ArrowDownToLine } from 'lucide-react';
+import { Search, ArrowUpFromLine, ArrowDownToLine } from 'lucide-react';
 
 interface BaseCaseListProps {
     variant?: 'sidebar' | 'drawer';
-    isAuthenticated: boolean;
-    onLoginClick?: () => void;
 
     // Header actions
     onOpenLibrary?: () => void;
@@ -50,8 +29,6 @@ interface BaseCaseListProps {
 
 export default function BaseCaseList({
     variant = 'sidebar',
-    isAuthenticated,
-    onLoginClick,
     onOpenLibrary,
     renderFilter,
     search,
@@ -98,8 +75,7 @@ export default function BaseCaseList({
                 </div>
 
                 {/* 操作按钮 */}
-                {isAuthenticated ? (
-                    <div className="flex gap-2">
+                <div className="flex gap-2">
                         {onExport && (
                             <button
                                 type="button"
@@ -132,16 +108,6 @@ export default function BaseCaseList({
                             </button>
                         )}
                     </div>
-                ) : (
-                    <button
-                        type="button"
-                        onClick={onLoginClick}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-secondary/50 hover:bg-secondary text-[hsl(var(--text-secondary-light))] hover:text-[hsl(var(--text-primary-light))] dark:text-muted-foreground dark:hover:text-foreground rounded-lg text-sm font-medium transition-colors border border-border focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    >
-                        <LogIn className="w-4 h-4" />
-                        登录后可保存案例
-                    </button>
-                )}
             </div>
 
             {/* 列表内容区 */}

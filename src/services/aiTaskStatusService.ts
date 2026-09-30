@@ -1,25 +1,11 @@
 /**
- * aiTaskStatusService - 应用源码层
- *
- * 模块定位：
- * - 所在层级：应用源码层
- * - 主要目标：本地业务服务与跨组件状态登记
- *
  * 关键职责：
  * - 登记每个案例的 AI 研判任务状态：研判中（running）/ 未读研判（unread）
  * - 关闭研判抽屉不会中止生成；结果落盘后用户不在该会话则标记未读，
  *   供首页案例列表在姓名后展示状态按钮并一键跳转研判抽屉
  * - 状态以案例 ID 为键写入 localStorage 跨启动保留；启动时清理残留的 running
  *   （生成不随进程存活，上一进程留下的 running 即脏数据）
- *
- * 主要导出：
- * - `AiResearchStatus`, `OPEN_AI_CHAT_EVENT`, `setAiResearchRunning`, `setAiResearchUnread`,
- *   `clearAiResearchStatus`, `getAiResearchStatuses`, `subscribeAiResearchStatus`
- *
- * 依赖关系：
- * - 上游依赖：无
- * - 下游影响：由 `AiChatDrawer`（写状态）与 `BaziCaseList`/案例卡片（读状态）消费
- */
+*/
 
 export type AiResearchStatus = 'running' | 'unread';
 

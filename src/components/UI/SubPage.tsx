@@ -1,8 +1,5 @@
 /**
- * SubPage - 应用源码层
- *
  * 模块定位：
- * - 所在层级：应用源码层
  * - 主要目标：移动端二级页面壳，承载从弹窗迁移过来的整页界面
  *
  * 关键职责：
@@ -14,7 +11,8 @@
  * - 仅移动端使用；桌面端各业务组件保留原弹窗布局（居中/右侧抽屉），不要强行换壳
  * - 页头右侧操作区放当前页的开关/按钮组（如流年/大运切换），不放关闭类按钮
  * - 页内 tab 切换用 tabBar 插槽挂 SubPageTabs，钉在页头正下方，不要塞进滚动正文
- */
+ 
+*/
 import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { pushBackHandler, popBackHandler } from '../../utils/androidBackButton';

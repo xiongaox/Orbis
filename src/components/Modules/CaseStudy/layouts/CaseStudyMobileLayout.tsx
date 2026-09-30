@@ -1,22 +1,3 @@
-/**
- * CaseStudyMobileLayout - 应用源码层
- *
- * 模块定位：
- * - 所在层级：应用源码层
- * - 主要目标：承载具体业务模块的前端功能
- *
- * 关键职责：
- * - 渲染 UI 视图并处理交互逻辑
- * - 处理用户输入与展示边界行为
- * - 向上层提供稳定可复用能力
- *
- * 主要导出：
- * - `default CaseStudyMobileLayout`
- *
- * 依赖关系：
- * - 上游依赖：外部依赖 `lucide-react`、外部依赖 `react-markdown`、外部依赖 `rehype-raw` 等 21 个模块
- * - 下游影响：由依赖方的业务逻辑或视图组装调用
- */
 
 import { Compass, Dices } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -33,8 +14,8 @@ import CaseStudyDayunPanel from '../components/CaseStudyDayunPanel';
 import CaseStudyQimenChart from '../components/CaseStudyQimenChart';
 import CasePreviewUnlock from '../components/CasePreviewUnlock';
 import DuanFaContent from '../components/DuanFaContent';
-import ShuShuSidebar from '../components/ShuShuSidebar';
-import DuanFaSidebar from '../components/DuanFaSidebar';
+import NavSidebar from '../components/NavSidebar';
+import { SHU_SHU_CATEGORIES } from '../../../../lib/caseStudy/duanfaCategories';
 import DuanFaOutline from '../components/DuanFaOutline';
 import LearningPanelFAB from '../components/LearningPanelFAB';
 import FavoriteButton from '../components/FavoriteButton';
@@ -49,7 +30,7 @@ const toChineseNum = (num: number) => {
 
 export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
     const {
-        isAuthenticated, allCases, filteredCases, activeCase, authorIntroContent, isCaseContentLoading,
+        allCases, filteredCases, activeCase, authorIntroContent, isCaseContentLoading,
         currentPage, totalPages, setCurrentPage,
         selectedCategory, setSelectedCategory, selectedDayMaster, handleSelectDayMaster,
         searchTerm, setSearchTerm, selectedCaseId, handleSelectCase, handleSelectRandomCase,
@@ -75,7 +56,7 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                             {activeCase.isPreview && (
                                 <span className="shrink-0 text-[10px] leading-none px-1.5 py-1 rounded border border-primary/30 bg-primary/10 text-primary">试读</span>
                             )}
-                            {isAuthenticated && <FavoriteButton articleId={activeCase.id} />}
+                            <FavoriteButton articleId={activeCase.id} />
                         </div>
                         {isCaseContentLoading ? (
                             <ArticleContentLoading />
@@ -120,17 +101,15 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                 </div>
             )}
 
-            {isAuthenticated && (
-                <div className="absolute right-4 bottom-4 z-10 flex flex-col items-center gap-3">
-                    <ReadingProgressButton progress={currentProgress} savedProgress={savedProgress} isFinished={currentProgress > 0 ? currentProgress >= 90 : savedProgress >= 90} onRestore={restoreProgress} />
-                    {activeCase && (
-                        <button type="button" onClick={handleSelectRandomCase} className="w-12 h-12 rounded-full bg-card border border-border text-foreground shadow-sm flex items-center justify-center hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40" aria-label="随机选择案例" title="随机选择案例">
-                            <Dices className="w-5 h-5" />
-                        </button>
-                    )}
-                    <LearningPanelFAB onClick={() => setIsLearningPanelOpen(true)} />
-                </div>
-            )}
+            <div className="absolute right-4 bottom-4 z-10 flex flex-col items-center gap-3">
+                <ReadingProgressButton progress={currentProgress} savedProgress={savedProgress} isFinished={currentProgress > 0 ? currentProgress >= 90 : savedProgress >= 90} onRestore={restoreProgress} />
+                {activeCase && (
+                    <button type="button" onClick={handleSelectRandomCase} className="w-12 h-12 rounded-full bg-card border border-border text-foreground shadow-sm flex items-center justify-center hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40" aria-label="随机选择案例" title="随机选择案例">
+                        <Dices className="w-5 h-5" />
+                    </button>
+                )}
+                <LearningPanelFAB onClick={() => setIsLearningPanelOpen(true)} />
+            </div>
         </div>
     );
 
@@ -184,14 +163,12 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                 {selectedCategory === 'duanfa' ? (
                     <div className="flex-1 flex flex-col overflow-hidden relative">
                         <DuanFaContent ref={duanFaContentRef} content={duanFa.selectedFile?.content || ''} title={duanFa.selectedFile?.name || '奇门断法'} onOutlineChange={duanFa.setOutline} />
-                        {isAuthenticated && (
-                            <div className="absolute right-4 bottom-4 z-10 flex flex-col items-center gap-3">
-                                {duanFa.selectedFileId && (
-                                    <ReadingProgressButton progress={duanFaCurrentProgress} savedProgress={duanFaSavedProgress} isFinished={duanFaCurrentProgress > 0 ? duanFaCurrentProgress >= 90 : duanFaSavedProgress >= 90} onRestore={duanFaRestoreProgress} />
-                                )}
-                                <LearningPanelFAB onClick={() => setIsLearningPanelOpen(true)} />
-                            </div>
-                        )}
+                        <div className="absolute right-4 bottom-4 z-10 flex flex-col items-center gap-3">
+                            {duanFa.selectedFileId && (
+                                <ReadingProgressButton progress={duanFaCurrentProgress} savedProgress={duanFaSavedProgress} isFinished={duanFaCurrentProgress > 0 ? duanFaCurrentProgress >= 90 : duanFaSavedProgress >= 90} onRestore={duanFaRestoreProgress} />
+                            )}
+                            <LearningPanelFAB onClick={() => setIsLearningPanelOpen(true)} />
+                        </div>
                     </div>
                 ) : (
                     contentColumn
@@ -203,9 +180,9 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                     <CategoryTabs categories={CATEGORIES} selectedId={selectedCategory} onSelect={(id) => { setSelectedCategory(id); }} variant="drawer" />
                     {selectedCategory === 'duanfa' ? (
                         <div className="flex-1 min-h-0 overflow-hidden flex flex-row">
-                            <ShuShuSidebar selectedId={duanFa.selectedShuShuId} onSelect={duanFa.handleSelectShuShu} />
+                            <NavSidebar title="术数" widthClass="w-[100px] min-w-[100px]" items={SHU_SHU_CATEGORIES} selectedId={duanFa.selectedShuShuId} onSelect={duanFa.handleSelectShuShu} showActiveBar />
                             <div className="flex-1 min-w-0 h-full overflow-hidden">
-                                <DuanFaSidebar files={duanFa.files} selectedFileId={duanFa.selectedFileId} onSelectFile={(id) => { duanFa.handleSelectFile(id); setIsLeftPanelOpen(false); }} variant="drawer" />
+                                <NavSidebar title="断法列表" widthClass="w-[160px] min-w-[160px]" items={duanFa.files.map((f) => ({ id: f.id, label: f.name }))} selectedId={duanFa.selectedFileId} onSelect={(id) => { duanFa.handleSelectFile(id); setIsLeftPanelOpen(false); }} variant="drawer" />
                             </div>
                         </div>
                     ) : (

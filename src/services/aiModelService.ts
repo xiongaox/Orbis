@@ -169,6 +169,37 @@ const DEFAULT_OPENAI_MODELS = [
   'deepseek-reasoner'
 ];
 
+/** 阶段 2 探测配置：/models 不可用时按协议发一个最小请求验证连通性 */
+const PROBE_CONFIG: Record<AiProtocol, {
+  path: string;
+  body: Record<string, unknown>;
+  defaultModels: string[];
+  officialHosts: string[];
+  hint: string;
+}> = {
+  'anthropic-messages': {
+    path: '/v1/messages',
+    body: { model: 'claude-3-5-sonnet-20241022', max_tokens: 1, messages: [{ role: 'user', content: 'hi' }] },
+    defaultModels: DEFAULT_CLAUDE_MODELS,
+    officialHosts: ['api.anthropic.com', 'api.openai.com'],
+    hint: '（提示：若您使用的是第三方中转站如 woyaopro，请将 Base URL 改为该中转站地址，勿用官方地址）',
+  },
+  responses: {
+    path: '/responses',
+    body: { model: 'gpt-4o-mini', max_tokens: 1, input: [{ role: 'user', content: 'hi' }] },
+    defaultModels: DEFAULT_OPENAI_MODELS,
+    officialHosts: ['api.openai.com'],
+    hint: '（提示：若使用的是第三方中转服务，请将 Base URL 填为服务商接口地址，切勿使用 api.openai.com 官方地址）',
+  },
+  'openai-compatible': {
+    path: '/chat/completions',
+    body: { model: 'gpt-4o-mini', max_tokens: 1, messages: [{ role: 'user', content: 'hi' }] },
+    defaultModels: DEFAULT_OPENAI_MODELS,
+    officialHosts: ['api.openai.com'],
+    hint: '（提示：若使用的是第三方中转服务，请将 Base URL 填为服务商接口地址，切勿使用 api.openai.com 官方地址）',
+  },
+};
+
 async function extractErrorDetail(response: Response): Promise<string> {
   try {
     const text = await response.text();
@@ -244,93 +275,24 @@ export async function testAiModelService(input: Pick<AiModelServiceInput, 'proto
     }
 
     // 阶段 2: 若 /models 接口未开放或返回错误，通过各协议对应的轻量 probe 探测连通性
-    if (protocol.value === 'anthropic-messages') {
-      const messagesUrl = resolveEndpoint(baseUrl, '/v1/messages');
-      const probeRes = await nativeSafeFetch(messagesUrl, {
-        method: 'POST',
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 1,
-          messages: [{ role: 'user', content: 'hi' }],
-        }),
-        signal: controller.signal,
-      });
-
-      if (probeRes.ok || probeRes.status === 400) {
-        return { modelIds: DEFAULT_CLAUDE_MODELS };
-      }
-
-      const errDetail = await extractErrorDetail(probeRes);
-      if (probeRes.status === 401 || probeRes.status === 403) {
-        const hint = (baseUrl.includes('api.anthropic.com') || baseUrl.includes('api.openai.com'))
-          ? '（提示：若您使用的是第三方中转站如 woyaopro，请将 Base URL 改为该中转站地址，勿用官方地址）'
-          : '';
-        throw new Error(`认证失败 (${probeRes.status}): ${errDetail} ${hint}`);
-      }
-
-      throw new Error(`服务返回 (${probeRes.status}): ${errDetail}`);
-    }
-
-    if (protocol.value === 'responses') {
-      const responsesUrl = resolveEndpoint(baseUrl, '/responses');
-      const probeRes = await nativeSafeFetch(responsesUrl, {
-        method: 'POST',
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          max_tokens: 1,
-          input: [{ role: 'user', content: 'hi' }],
-        }),
-        signal: controller.signal,
-      });
-
-      if (probeRes.ok || probeRes.status === 400) {
-        return { modelIds: DEFAULT_OPENAI_MODELS };
-      }
-
-      const errDetail = await extractErrorDetail(probeRes);
-      if (probeRes.status === 401 || probeRes.status === 403) {
-        const hint = baseUrl.includes('api.openai.com')
-          ? '（提示：若使用的是第三方中转服务，请将 Base URL 填为服务商接口地址，切勿使用 api.openai.com 官方地址）'
-          : '';
-        throw new Error(`认证失败 (${probeRes.status}): ${errDetail} ${hint}`);
-      }
-
-      throw new Error(`服务返回 (${probeRes.status}): ${errDetail}`);
-    }
-
-    // openai-compatible (Chat Completions)
-    const completionsUrl = resolveEndpoint(baseUrl, '/chat/completions');
-    const probeRes = await nativeSafeFetch(completionsUrl, {
+    const probe = PROBE_CONFIG[protocol.value];
+    const probeRes = await nativeSafeFetch(resolveEndpoint(baseUrl, probe.path), {
       method: 'POST',
       headers: {
         ...headers,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        max_tokens: 1,
-        messages: [{ role: 'user', content: 'hi' }],
-      }),
+      body: JSON.stringify(probe.body),
       signal: controller.signal,
     });
 
     if (probeRes.ok || probeRes.status === 400) {
-      return { modelIds: DEFAULT_OPENAI_MODELS };
+      return { modelIds: probe.defaultModels };
     }
 
     const errDetail = await extractErrorDetail(probeRes);
     if (probeRes.status === 401 || probeRes.status === 403) {
-      const hint = baseUrl.includes('api.openai.com')
-        ? '（提示：若使用的是第三方中转服务，请将 Base URL 填为服务商接口地址，切勿使用 api.openai.com 官方地址）'
-        : '';
+      const hint = probe.officialHosts.some((host) => baseUrl.includes(host)) ? probe.hint : '';
       throw new Error(`认证失败 (${probeRes.status}): ${errDetail} ${hint}`);
     }
 

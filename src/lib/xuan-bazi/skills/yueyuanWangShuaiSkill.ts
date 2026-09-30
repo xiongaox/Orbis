@@ -1,6 +1,4 @@
 /**
- * yueyuanWangShuaiSkill - 领域技能层
- *
  * 模块定位：
  * - 所在层级：领域计算与 AI Skill 层
  * - 结合项目：/Users/xiongaox/Downloads/00code/yueyuan-bazi (跃渊 · 专业八字分析系统 v1.8)
@@ -11,7 +9,8 @@
  * - 能量天平：生扶方 vs 克泄耗方真实权重比率（能量对比条）
  * - 裁判词生成：将得失博弈与最终旺衰定调合一，杜绝自相矛盾
  * - 构造符合跃渊规范的学术推导 Prompt
- */
+ 
+*/
 
 import type { BaziApiResponse, PillarData } from '../../../types/bazi';
 

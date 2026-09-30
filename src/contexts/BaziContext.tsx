@@ -1,36 +1,34 @@
-/**
- * BaziContext - 应用源码层
- *
- * 模块定位：
- * - 所在层级：应用源码层
- * - 主要目标：承载前端具体功能
- *
- * 关键职责：
- * - 渲染 UI 视图并处理交互逻辑
- * - 处理用户输入与展示边界行为
- * - 向上层提供稳定可复用能力
- *
- * 主要导出：
- * - `BaziProvider`
- *
- * 依赖关系：
- * - 上游依赖：外部依赖 `react`、内部模块 `useBazi`、内部模块 `baziContextStore`
- * - 下游影响：由依赖方的业务逻辑或视图组装调用
- */
-import type { ReactNode } from 'react';
+/* eslint-disable react-refresh/only-export-components -- context 定义、Provider 与消费 hook 同文件是 React 惯例；拆回多文件仅为迁就 HMR 导出检查，属过度分层 */
+import { createContext, useContext, type ReactNode } from 'react';
+import type { BaziApiResponse } from '../types/bazi';
+import type { Case } from '../types';
+import type { BaziLockedSnapshot } from '../lib/lockedChartStorage';
 import { useBazi } from '../hooks/useBazi';
-import { BaziContext } from './baziContextStore';
 
-// Provider Props
-interface BaziProviderProps {
-    children: ReactNode;
+export interface BaziContextValue {
+    selectedCaseId: string | null;
+    selectedCase: Case | null;
+    baziData: BaziApiResponse | null;
+    loading: boolean;
+    error: string | null;
+    selectedDaYunIndex: number | null;
+    selectedLiuNianYear: number | null;
+    selectedLiuYueIndex: number | null;
+    setSelectedDaYunIndex: (index: number | null) => void;
+    setSelectedLiuNianYear: (year: number | null) => void;
+    setSelectedLiuYueIndex: (index: number | null) => void;
+    handleSelectCase: (caseId: string | null) => void;
+    handleSetTransientCase: (caseData: Case) => void;
+    handleShiftShiChen: (delta: 1 | -1) => void;
+    getLockedSnapshot: () => BaziLockedSnapshot;
+    restoreLockedSnapshot: (snapshot: BaziLockedSnapshot) => Promise<void>;
+    initializeBazi: () => void;
 }
 
-/**
- * BaziProvider - 八字状态提供者
- * 包裹需要访问八字状态的组件树
- */
-export function BaziProvider({ children }: BaziProviderProps) {
+const BaziContext = createContext<BaziContextValue | null>(null);
+
+/** 八字状态提供者：包裹需要访问八字状态的组件树 */
+export function BaziProvider({ children }: { children: ReactNode }) {
     const baziState = useBazi();
 
     return (
@@ -38,4 +36,12 @@ export function BaziProvider({ children }: BaziProviderProps) {
             {children}
         </BaziContext.Provider>
     );
+}
+
+export function useBaziContext(): BaziContextValue {
+    const context = useContext(BaziContext);
+    if (!context) {
+        throw new Error('useBaziContext must be used within a BaziProvider');
+    }
+    return context;
 }

@@ -1,22 +1,3 @@
-/**
- * CaseStudyDesktopLayout - 应用源码层
- *
- * 模块定位：
- * - 所在层级：应用源码层
- * - 主要目标：承载具体业务模块的前端功能
- *
- * 关键职责：
- * - 渲染 UI 视图并处理交互逻辑
- * - 处理用户输入与展示边界行为
- * - 向上层提供稳定可复用能力
- *
- * 主要导出：
- * - `default CaseStudyDesktopLayout`
- *
- * 依赖关系：
- * - 上游依赖：外部依赖 `lucide-react`、外部依赖 `react-markdown`、外部依赖 `rehype-raw` 等 17 个模块
- * - 下游影响：由依赖方的业务逻辑或视图组装调用
- */
 
 import { Compass, Dices } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -45,7 +26,7 @@ const toChineseNum = (num: number) => {
 
 export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
     const {
-        isAuthenticated, allCases, displayCases, activeCase, authorIntroContent, isCaseContentLoading,
+        allCases, displayCases, activeCase, authorIntroContent, isCaseContentLoading,
         currentPage, totalPages, setCurrentPage,
         selectedCategory, setSelectedCategory, selectedDayMaster, handleSelectDayMaster,
         searchTerm, setSearchTerm, selectedCaseId, handleSelectCase, handleSelectRandomCase,
@@ -89,9 +70,7 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
                                     试读
                                 </span>
                             )}
-                            {isAuthenticated && (
-                                <FavoriteButton articleId={activeCase.id} />
-                            )}
+                            <FavoriteButton articleId={activeCase.id} />
                         </div>
                         {isCaseContentLoading ? (
                             <ArticleContentLoading />
@@ -146,28 +125,26 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
                 </div>
             )}
 
-            {isAuthenticated && (
-                <div className="absolute right-4 bottom-4 z-10 flex flex-col items-center gap-3">
-                    <ReadingProgressButton
-                        progress={currentProgress}
-                        savedProgress={savedProgress}
-                        isFinished={currentProgress > 0 ? currentProgress >= 90 : savedProgress >= 90}
-                        onRestore={restoreProgress}
-                    />
-                    {activeCase && (
-                        <button
-                            type="button"
-                            onClick={handleSelectRandomCase}
-                            className="w-12 h-12 rounded-full bg-card border border-border text-foreground shadow-sm flex items-center justify-center hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                            aria-label="随机选择案例"
-                            title="随机选择案例"
-                        >
-                            <Dices className="w-5 h-5" />
-                        </button>
-                    )}
-                    <LearningPanelFAB onClick={() => setIsLearningPanelOpen(true)} />
-                </div>
-            )}
+            <div className="absolute right-4 bottom-4 z-10 flex flex-col items-center gap-3">
+                <ReadingProgressButton
+                    progress={currentProgress}
+                    savedProgress={savedProgress}
+                    isFinished={currentProgress > 0 ? currentProgress >= 90 : savedProgress >= 90}
+                    onRestore={restoreProgress}
+                />
+                {activeCase && (
+                    <button
+                        type="button"
+                        onClick={handleSelectRandomCase}
+                        className="w-12 h-12 rounded-full bg-card border border-border text-foreground shadow-sm flex items-center justify-center hover:bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        aria-label="随机选择案例"
+                        title="随机选择案例"
+                    >
+                        <Dices className="w-5 h-5" />
+                    </button>
+                )}
+                <LearningPanelFAB onClick={() => setIsLearningPanelOpen(true)} />
+            </div>
         </div>
     );
 

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useAuth } from '../../../../contexts/useAuth';
 import { SANYUAN_CASES_CHANGED_EVENT } from '../../../../data/caseConstants';
 import type { SanYuanInput } from '../../../../lib/sanyuan';
 import {
@@ -28,7 +27,6 @@ export default function SanYuanCaseList({
     onSelectCase,
     onClearSelectedCase,
 }: SanYuanCaseListProps) {
-    const { isAuthenticated, loading: authLoading } = useAuth();
     const [cases, setCases] = useState<SanYuanCase[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [search, setSearch] = useState('');
@@ -40,11 +38,6 @@ export default function SanYuanCaseList({
     const [isLibraryOpen, setIsLibraryOpen] = useState(false);
 
     const loadCases = useCallback(async () => {
-        if (!isAuthenticated) {
-            setCases([]);
-            return;
-        }
-
         setIsLoading(true);
         try {
             setCases(await sanyuanCaseService.getCases());
@@ -53,13 +46,11 @@ export default function SanYuanCaseList({
         } finally {
             setIsLoading(false);
         }
-    }, [isAuthenticated]);
+    }, []);
 
     useEffect(() => {
-        if (!authLoading) {
-            void loadCases();
-        }
-    }, [authLoading, loadCases]);
+        void loadCases();
+    }, [loadCases]);
 
     useEffect(() => {
         const handleCasesChanged = () => {
@@ -119,7 +110,6 @@ export default function SanYuanCaseList({
 
     return (
         <BaseCaseList
-            isAuthenticated={isAuthenticated}
             onOpenLibrary={() => setIsLibraryOpen(true)}
             renderFilter={
                 <CustomSelect
@@ -134,7 +124,7 @@ export default function SanYuanCaseList({
             onCreate={() => setIsCreateOpen(true)}
             isLoading={isLoading}
             isEmpty={filteredCases.length === 0}
-            emptyText={isAuthenticated ? '暂无案例，点击上方按钮新建' : '登录后可保存案例'}
+            emptyText="暂无案例，点击上方按钮新建"
             modals={
                 <>
                     <SanYuanCaseModal

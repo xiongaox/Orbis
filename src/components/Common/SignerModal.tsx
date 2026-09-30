@@ -1,18 +1,11 @@
 /**
- * SignerModal - 应用源码层
- *
  * 模块定位：
- * - 所在层级：应用源码层
  * - 主要目标：管理员版专用的应用内激活码签发面板
  *
  * 关键职责：
  * - 输入用户机器识别码 + 管理密码，调用 Rust 层解封私钥并签发激活码
  * - 展示激活码并支持一键复制
- *
- * 依赖关系：
- * - 上游依赖：外部依赖 `lucide-react`、`react`，内部模块 `publicCaseLibraryService`
- * - 下游影响：由 CaseStudyPage 在管理员版构建（admin-signing feature）中渲染入口
- */
+*/
 
 import { Check, Copy, KeyRound, Loader2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';

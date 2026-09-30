@@ -1,27 +1,9 @@
-/**
- * QimenAiPromptModal - 应用源码层
- *
- * 模块定位：
- * - 所在层级：应用源码层
- * - 主要目标：承载具体业务模块的前端功能
- *
- * 关键职责：
- * - 渲染 UI 视图并处理交互逻辑
- * - 处理用户输入与展示边界行为
- * - 向上层提供稳定可复用能力
- *
- * 主要导出：
- * - `default QimenAiPromptModal`
- *
- * 依赖关系：
- * - 上游依赖：外部依赖 `react`、内部模块 `qimenService`、内部模块 `QimenChart` 等 5 个模块
- * - 下游影响：由依赖方的业务逻辑或视图组装调用
- */
 import { useState, useMemo } from 'react';
 import type { QimenHeader } from '../../../lib/csp-qimen/qimenService';
 import type { QimenPalace } from './QimenChart';
 import type { GlobalPattern } from '../../../lib/csp-qimen/patternDetector';
 import BaseAiPromptModal, { type PromptOption } from '../../Common/BaseAiPromptModal';
+import { MA_XING_MAP, getXunKong } from './utils/qimenInfoUtils';
 
 import type { QimenCase } from '../../../services/qimenCaseService';
 
@@ -34,39 +16,6 @@ interface QimenAiPromptModalProps {
     selectedPalace?: number | null;
     methodLabel?: string;
     caseData?: QimenCase | null;
-}
-
-// 辅助计算：根据干支计算空亡
-function getKongWang(stem: string, branch: string): string {
-    const STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
-    const BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
-
-    if (!stem || !branch) return '';
-
-    const sIdx = STEMS.indexOf(stem);
-    const bIdx = BRANCHES.indexOf(branch);
-
-    if (sIdx === -1 || bIdx === -1) return '';
-
-    const xunShouBranchIdx = (bIdx - sIdx + 12) % 12;
-    const kw1 = (xunShouBranchIdx - 2 + 12) % 12;
-    const kw2 = (xunShouBranchIdx - 1 + 12) % 12;
-
-    return BRANCHES[kw1] + BRANCHES[kw2];
-}
-
-// 辅助计算：根据地支计算马星
-function getMaXing(branch: string): string {
-    const BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
-    const bIdx = BRANCHES.indexOf(branch);
-    if (bIdx === -1) return '';
-
-    if ([8, 0, 4].includes(bIdx)) return '寅';
-    if ([2, 6, 10].includes(bIdx)) return '申';
-    if ([5, 9, 1].includes(bIdx)) return '亥';
-    if ([11, 3, 7].includes(bIdx)) return '巳';
-
-    return '';
 }
 
 const LUOSHU_ORDER = [4, 9, 2, 3, 5, 7, 8, 1, 6];
@@ -106,17 +55,10 @@ export default function QimenAiPromptModal({
 
         text += `值符:${header.zhiFu}落${zhiFuLoc} 值使:${header.zhiShi}落${zhiShiLoc}。\n`;
 
-        const kwYear = getKongWang(sz.year[0], sz.year[1]);
-        const kwMonth = getKongWang(sz.month[0], sz.month[1]);
-        const kwDay = getKongWang(sz.day[0], sz.day[1]);
-        const kwHour = getKongWang(sz.hour[0], sz.hour[1]);
-        text += `空亡：年${kwYear} 月${kwMonth} 日${kwDay} 时${kwHour}。\n`;
-
-        const maYear = getMaXing(sz.year[1]);
-        const maMonth = getMaXing(sz.month[1]);
-        const maDay = getMaXing(sz.day[1]);
-        const maHour = getMaXing(sz.hour[1]);
-        text += `驿马星：年${maYear} 月${maMonth} 日${maDay} 时${maHour}。\n\n`;
+        const pillarLabels = ['年', '月', '日', '时'];
+        const pillars = [sz.year, sz.month, sz.day, sz.hour];
+        text += `空亡：${pillarLabels.map((label, i) => `${label}${getXunKong(pillars[i])}`).join(' ')}。\n`;
+        text += `驿马星：${pillarLabels.map((label, i) => `${label}${MA_XING_MAP[pillars[i][1]] ?? ''}`).join(' ')}。\n\n`;
 
         if (includeAllPalaces) {
             LUOSHU_ORDER.forEach(pos => {

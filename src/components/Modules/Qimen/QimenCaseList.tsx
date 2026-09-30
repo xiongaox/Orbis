@@ -1,26 +1,8 @@
-/**
- * QimenCaseList - 应用源码层
- *
- * 模块定位：
- * - 所在层级：应用源码层
- * - 主要目标：承载具体业务模块的前端功能
- *
- * 关键职责：
- * - 渲染 UI 视图并处理交互逻辑
- * - 处理用户输入与展示边界行为
- * - 向上层提供稳定可复用能力
- *
- * 主要导出：
- * - `default QimenCaseList`
- *
- * 依赖关系：
- * - 上游依赖：外部依赖 `react`、外部依赖 `lucide-react`、内部模块 `qimenCaseService` 等 7 个模块
- * - 下游影响：由依赖方的业务逻辑或视图组装调用
- */
 import { useState, useEffect } from 'react';
 import { ChevronDown, Pencil, Trash2 } from 'lucide-react';
 import { qimenCaseService, type QimenCase, QIMEN_CATEGORIES } from '../../../services/qimenCaseService';
-import QimenCaseLibraryModal, { QIMEN_CASES_CHANGED_EVENT } from './QimenCaseLibraryModal';
+import QimenCaseLibraryModal from './QimenCaseLibraryModal';
+import { QIMEN_CASES_CHANGED_EVENT } from '../../../data/caseConstants';
 import QimenImportModal from './QimenImportModal';
 import ExportCaseModal from '../../Common/ExportCaseModal';
 import BaseCaseList from '../../Common/BaseCaseList';
@@ -28,7 +10,6 @@ import BaseCaseList from '../../Common/BaseCaseList';
 interface QimenCaseListProps {
     selectedCaseId: string | null;
     onSelectCase: (id: string, k: QimenCase) => void;
-    onLoginClick?: () => void;
     onOpenDatePicker?: () => void;
     onDeleteCase?: (id: string) => void;
     onEditCase?: (caseItem: QimenCase) => void;
@@ -39,7 +20,6 @@ interface QimenCaseListProps {
 export default function QimenCaseList({
     selectedCaseId,
     onSelectCase,
-    onLoginClick,
     onOpenDatePicker,
     onDeleteCase,
     onEditCase,
@@ -92,8 +72,6 @@ export default function QimenCaseList({
     return (
         <BaseCaseList
             variant={variant}
-            isAuthenticated={true} // QimenCaseService 内部处理 Auth
-            onLoginClick={onLoginClick}
             onOpenLibrary={() => setShowLibraryModal(true)}
             renderFilter={
                 <div className="relative">
@@ -151,7 +129,6 @@ export default function QimenCaseList({
                         onSelectCase={(id, k) => {
                             if (id && k) onSelectCase(id, k);
                         }}
-                        onLoginClick={onLoginClick}
                     />
                     <QimenImportModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} onImported={fetchCases} />
                     <ExportCaseModal

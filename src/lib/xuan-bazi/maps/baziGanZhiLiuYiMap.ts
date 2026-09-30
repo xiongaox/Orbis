@@ -1,22 +1,3 @@
-/**
- * baziGanZhiLiuYiMap - 应用底层设施
- *
- * 模块定位：
- * - 所在层级：应用底层设施
- * - 主要目标：封装第三方库或核心底层能力
- *
- * 关键职责：
- * - 提供核心逻辑实现或数据处理能力
- * - 处理数据流转与异常边界
- * - 向上层提供稳定可复用能力
- *
- * 主要导出：
- * - `TIAN_GAN_XIANG_SHENG`, `TIAN_GAN_XIANG_HE`, `TIAN_GAN_XIANG_CHONG`, `TIAN_GAN_XIANG_KE`, `DI_ZHI_BAN_HE`, `DI_ZHI_GONG_HE`, `DI_ZHI_AN_HE`, `DI_ZHI_LIU_HE`, `DI_ZHI_XIANG_XING`, `DI_ZHI_XIANG_CHONG`, `DI_ZHI_XIANG_PO`, `DI_ZHI_XIANG_HAI`, `DI_ZHI_SAN_HE`, `DI_ZHI_SAN_HUI`, `BAN_HE_TO_SAN_HE`, `GONG_HE_TO_SAN_HE`
- *
- * 依赖关系：
- * - 上游依赖：无显式外部模块依赖
- * - 下游影响：由依赖方的业务逻辑或视图组装调用
- */
 
 /**
  * 天干相生（天干+天干为键）

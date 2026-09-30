@@ -1,11 +1,10 @@
 /**
- * AiChatHistoryModal - 对话历史管理中心
- *
  * 模块定位：
  * - 位于应用通用组件层，从头像菜单调起
  * - 提供树形结构组织：术数大类（八字、奇门、六爻、梅花等） -> 具体案例 -> 会话记录
  * - 关键能力：单条会话删除、全部删除/清空、导出 Markdown 文档、星标收藏与全文检索
- */
+ 
+*/
 
 import { useState, useMemo, useEffect, useRef, useSyncExternalStore } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';

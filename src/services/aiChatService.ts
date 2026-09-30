@@ -1,8 +1,5 @@
 /**
- * aiChatService - 服务层
- *
  * 模块定位：
- * - 所在层级：服务层
  * - 主要目标：精简为三种 API 协议（Anthropic Messages, Chat Completions, Responses），支持 SSE 流式与深度思考捕获，智能补齐 /v1 路径，基于原生 nativeSafeFetch 杜绝跨域拦截
  *
  * 关键职责：
@@ -11,7 +8,8 @@
  * - 使用 nativeSafeFetch（Tauri 环境由 Rust 原生网络栈直接发起），彻底消除 WebKit 的 Load failed 与 CORS 拦截
  * - 支持 stream 流式读取，捕获 reasoning_content 深度思考与 content 正文
  * - 提供心跳续期机制，防止推理过程中发生超时中断；详细透出服务端或模型的真实错误信息
- */
+ 
+*/
 
 import {
   aiModelService,

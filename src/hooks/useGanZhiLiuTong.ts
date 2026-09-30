@@ -1,22 +1,3 @@
-/**
- * useGanZhiLiuTong - 应用源码层
- *
- * 模块定位：
- * - 所在层级：应用源码层
- * - 主要目标：提供复用状态和副作用逻辑的自定义 Hook
- *
- * 关键职责：
- * - 提供核心逻辑实现或数据处理能力
- * - 处理数据流转与异常边界
- * - 向上层提供稳定可复用能力
- *
- * 主要导出：
- * - `LiuTongItem`, `RelationType`, `GanZhiLiuTongData`, `useGanZhiLiuTong`, `getNodeShiShenGroup`
- *
- * 依赖关系：
- * - 上游依赖：外部依赖 `react`、内部模块 `utils`、内部模块 `constants`
- * - 下游影响：由依赖方的业务逻辑或视图组装调用
- */
 import { useMemo } from 'react';
 import { getShiShen } from '../lib/xuan-bazi/utils';
 import { DI_ZHI_CANG_GAN } from '../lib/xuan-bazi/constants';
