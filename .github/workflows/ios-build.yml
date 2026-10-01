@@ -54,24 +54,25 @@ jobs:
           if [ -f src-tauri/gen/apple/Podfile ]; then
             (cd src-tauri/gen/apple && awk '/target .app_macOS./{exit} {print}' Podfile > Podfile.tmp && mv Podfile.tmp Podfile && pod install)
           fi
+          # xcode-script 阶段要从 {identifier}-server-addr 读取选项通道，手动 xcodebuild
+          # 没有官方 build 前置流程写入该文件，这里伪造一个选项服务使脚本阶段可用
+          pip3 install websockets --quiet
+          python3 scripts/fake-tauri-ios-server.py &
+          SERVER_PID=$!
+          sleep 2
+          printf '127.0.0.1:9876' > "$TMPDIR/com.orbis.app-server-addr"
           SCHEME=$(xcodebuild -list -project "$XCPROJ" | awk '/Schemes:/{flag=1; next} flag && NF {print; exit}' | xargs)
           echo "构建 scheme：$SCHEME"
-          if [ -d src-tauri/gen/apple/project.xcworkspace ]; then
-            xcodebuild -workspace "src-tauri/gen/apple/project.xcworkspace" -scheme "$SCHEME" \
-              -configuration Release -destination 'generic/platform=iOS' \
-              -archivePath "$PWD/build/orbis.xcarchive" archive \
-              CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
-          else
-            xcodebuild -project "$XCPROJ" -scheme "$SCHEME" \
-              -configuration Release -destination 'generic/platform=iOS' \
-              -archivePath "$PWD/build/orbis.xcarchive" archive \
-              CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
-          fi
+          xcodebuild -project "$XCPROJ" -scheme "$SCHEME" \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath "$PWD/build/orbis.xcarchive" archive \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
           mkdir -p build/Payload
           APP=$(find build/orbis.xcarchive/Products/Applications -maxdepth 1 -name "*.app" | head -1)
           cp -R "$APP" build/Payload/
           cd build
           zip -qry orbis-ios-user-unsigned.ipa Payload
+          kill $SERVER_PID || true
 
       - name: 上传未签名 ipa
         uses: actions/upload-artifact@v4
