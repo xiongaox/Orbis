@@ -56,8 +56,9 @@ jobs:
           fi
           # xcode-script 阶段要从 {identifier}-server-addr 读取选项通道，手动 xcodebuild
           # 没有官方 build 前置流程写入该文件，这里伪造一个选项服务使脚本阶段可用
-          pip3 install websockets --quiet
-          python3 scripts/fake-tauri-ios-server.py &
+          python3 -m venv /tmp/ws-venv
+          /tmp/ws-venv/bin/pip install websockets --quiet
+          /tmp/ws-venv/bin/python scripts/fake-tauri-ios-server.py &
           SERVER_PID=$!
           sleep 2
           printf '127.0.0.1:9876' > "$TMPDIR/com.orbis.app-server-addr"
