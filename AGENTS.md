@@ -67,11 +67,14 @@ Orbis/
 - **AI 的职责边界**：改完代码 → 通过静态自检（`npm run lint`、`npx tsc -b`）→ **把包构建出来** → 交付并说明构建产物路径。
 - **构建方式视目标端而定**，桌面端与移动端同一规则：
   - 移动端：**默认一律构建 debug 包**（用户没有明确点名 release 时不得构建 release）：
-    按 `orbis-build-env` skill 执行 `npx tauri android build --apk --debug --target aarch64`，
+    `npm run android:build:debug`（等价 `npx tauri android build --apk --debug --target aarch64`），
     产物 `app-universal-debug.apk`（包名 `com.orbis.app.debug`），`adb install -r` 覆盖安装、保留数据。
+  - 移动端管理员版 debug：`npm run android:build:debug:admin`（追加 `--features admin-signing`，
+    需本机 `keys/signing_blob.rs`；包名与普通版相同，覆盖安装）。移动端 release 的管理员版仅在
+    用户明确要求时构建，追加 `--features admin-signing` 即可。
   - 移动端 release（`npx tauri android build --target aarch64`，包名 `com.orbis.app`）**仅在用户明确要求
     release / 正式交付时构建**；与手机上已装的 debug 包并存为两个图标，属预期。
-  - 桌面端：`npm run tauri:build`。
+  - 桌面端：`npm run tauri:build`；管理员版 `npm run tauri:build:admin`；调试版两包一键 `npm run tauri:debug-apps`。
 - **例外（仅限这些情况才可做界面检查）**：用户明确要求截图/验证；或需要排查
   「构建是否成功」「资源是否加载」这类无法靠静态检查确认的链路问题时，最多确认一次，不要反复试。
 - 若确实需要给出视觉效果，优先产出 `design-demos/` 下的可交互 demo 让用户自己打开看，
