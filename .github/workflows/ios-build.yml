@@ -1,0 +1,80 @@
+# Orbis iOS 用户端云端构建（未签名 ipa，供爱思助手等工具用个人 Apple ID 签名后侧载）。
+# 本机无完整 Xcode，iOS 构建依赖 runner 自带的 Xcode/iOS SDK；禁用代码签名，
+# 从 xcarchive 取出 .app 打包为 Payload/*.ipa。
+# 注意：不构建管理员版——签发私钥材料（keys/）永不进入任何远端。
+name: ios-build
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/ios-build.yml'
+
+jobs:
+  build-unsigned-ipa:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 安装 Rust（iOS target）
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios
+
+      - name: Rust 构建缓存
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 生成 iOS 工程
+        run: |
+          brew install xcodegen
+          npx tauri ios init
+
+      - name: 构建前端产物
+        run: npm run build
+
+      - name: 归档（禁用代码签名）并打包未签名 ipa
+        env:
+          # xcodebuild 的 Run Script 阶段会调用 cargo，需要能找到它
+          PATH: /Users/runner/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+        run: |
+          set -euxo pipefail
+          XCPROJ=$(find gen/apple -maxdepth 1 -name "*.xcodeproj" | head -1)
+          echo "Xcode 工程：$XCPROJ"
+          if [ -f gen/apple/Podfile ]; then
+            pod install --project-directory gen/apple
+          fi
+          SCHEME=$(xcodebuild -list -project "$XCPROJ" | awk '/Schemes:/{flag=1; next} flag && NF {print; exit}')
+          echo "构建 scheme：$SCHEME"
+          if [ -d gen/apple/project.xcworkspace ]; then
+            xcodebuild -workspace "gen/apple/project.xcworkspace" -scheme "$SCHEME" \
+              -configuration Release -destination 'generic/platform=iOS' \
+              -archivePath "$PWD/build/orbis.xcarchive" archive \
+              CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+          else
+            xcodebuild -project "$XCPROJ" -scheme "$SCHEME" \
+              -configuration Release -destination 'generic/platform=iOS' \
+              -archivePath "$PWD/build/orbis.xcarchive" archive \
+              CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+          fi
+          mkdir -p build/Payload
+          APP=$(find build/orbis.xcarchive/Products/Applications -maxdepth 1 -name "*.app" | head -1)
+          cp -R "$APP" build/Payload/
+          cd build
+          zip -qry orbis-ios-user-unsigned.ipa Payload
+
+      - name: 上传未签名 ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbis-ios-user-unsigned
+          path: build/orbis-ios-user-unsigned.ipa
