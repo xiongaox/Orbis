@@ -53,7 +53,7 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                 <div ref={contentScrollRef} className="flex-1 overflow-y-auto p-6 lg:p-8">
                     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
                         <div className="space-y-2.5 pb-3 lg:pb-4 border-b border-border/40">
-                            <h1 className="text-center text-lg lg:text-2xl font-serif font-bold text-primary/90">{activeCase.title}</h1>
+                            <h1 className="text-center text-2xl font-serif font-bold text-primary/90">{activeCase.title}</h1>
                             <div className="flex items-center justify-center gap-2.5">
                                 <span className="text-xs text-muted-foreground">{activeCase.author}</span>
                                 {(activeCase.isPreview || activeCase.content.length > 0) && (
@@ -94,7 +94,7 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
             ) : selectedAuthor && authorIntroContent ? (
                 <div className="flex-1 overflow-y-auto p-6 lg:p-8">
                     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
-                        <h1 className="text-lg lg:text-2xl font-serif font-bold text-center text-primary/90 pb-3 lg:pb-4 border-b border-border/40">{selectedAuthor}</h1>
+                        <h1 className="text-2xl font-serif font-bold text-center text-primary/90 pb-3 lg:pb-4 border-b border-border/40">{selectedAuthor}</h1>
                         <div
                                     onContextMenu={(event) => event.preventDefault()}
                                     className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed text-[16px] lg:text-[18px]"

@@ -5,20 +5,20 @@ import type { Components } from 'react-markdown';
 export const duanfaHeadingStyles = {
     h1: {
         wrapper: 'not-prose mt-6 mb-4 lg:mt-10 lg:mb-6',
-        title: 'text-xl lg:text-3xl font-bold tracking-tight text-foreground',
+        title: 'text-xl font-bold tracking-tight text-foreground',
         underline: 'w-full h-0.5 lg:h-1 bg-gradient-to-r from-primary/70 via-primary/25 to-transparent mt-1.5 lg:mt-2 rounded-full',
     },
     h2: {
         wrapper: 'not-prose mt-5 mb-3 lg:mt-8 lg:mb-4',
         row: 'flex items-center gap-2 lg:gap-3',
         marker: 'h-4 w-1 lg:h-5 lg:w-1.5 bg-primary/60 rounded-full',
-        title: 'text-lg lg:text-2xl font-semibold tracking-tight text-foreground',
+        title: 'text-lg font-semibold tracking-tight text-foreground',
     },
     h3: {
         wrapper: 'not-prose mt-4 mb-2 lg:mt-6 lg:mb-3',
         row: 'flex items-center gap-1.5 lg:gap-2',
         marker: 'h-2.5 w-2.5 lg:h-3 lg:w-3 bg-primary/80 rotate-45',
-        title: 'text-base lg:text-xl font-semibold text-foreground/90',
+        title: 'text-base lg:text-lg font-semibold text-foreground/90',
     },
 } as const;
 
