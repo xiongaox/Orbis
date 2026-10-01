@@ -8,6 +8,7 @@ import { CATEGORIES } from '../../../../lib/caseStudy/constants';
 import CategoryTabs from '../components/CategoryTabs';
 import CaseListSidebar from '../components/CaseListSidebar';
 import { caseMarkdownComponents, authorMarkdownComponents } from '../components/MarkdownRenderers';
+import { filterContentForDisplay } from '../../../../lib/caseStudy/parsers';
 import CaseStudyBaziChart from '../components/CaseStudyBaziChart';
 import CaseStudyDayunPanel from '../components/CaseStudyDayunPanel';
 import CaseStudyQimenChart from '../components/CaseStudyQimenChart';
@@ -62,7 +63,7 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
                 <div ref={contentScrollRef} className="flex-1 overflow-y-auto p-6 lg:p-8">
                     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
                         <div className="flex items-center justify-center gap-3 pb-3 lg:pb-4 border-b border-border/40">
-                            <h1 className="text-lg lg:text-2xl font-serif font-bold text-primary/90">
+                            <h1 className="text-2xl font-serif font-bold text-primary/90">
                                 {activeCase.title}
                             </h1>
                             {activeCase.isPreview && (
@@ -84,7 +85,7 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
                                     remarkPlugins={[remarkGfm, remarkBreaks]}
                                     components={caseMarkdownComponents}
                                 >
-                                    {activeCase.content.replace(/^(命主生辰|性别|日主|格局|令地)[：:][^\n]*\n?/gm, '').replace(/^#\s+[^\n]+\n?/, '').replace(/^\n+/, '')}
+                                    {filterContentForDisplay(activeCase.content)}
                                 </ReactMarkdown>
                             </div>
                         )}
@@ -101,7 +102,7 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
             ) : selectedAuthor && authorIntroContent ? (
                 <div className="flex-1 overflow-y-auto p-6 lg:p-8">
                     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
-                        <h1 className="text-lg lg:text-2xl font-serif font-bold text-center text-primary/90 pb-3 lg:pb-4 border-b border-border/40">
+                        <h1 className="text-2xl font-serif font-bold text-center text-primary/90 pb-3 lg:pb-4 border-b border-border/40">
                             {selectedAuthor}
                         </h1>
                         <div
@@ -113,7 +114,7 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
                                 remarkPlugins={[remarkGfm, remarkBreaks]}
                                 components={authorMarkdownComponents}
                             >
-                                {authorIntroContent.replace(/^(命主生辰|性别|日主|格局|令地)[：:][^\n]*\n?/gm, '').replace(/^#\s+[^\n]+\n?/, '').replace(/^\n+/, '')}
+                                {filterContentForDisplay(authorIntroContent)}
                             </ReactMarkdown>
                         </div>
                     </div>

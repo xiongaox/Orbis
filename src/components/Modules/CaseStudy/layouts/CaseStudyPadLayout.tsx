@@ -9,6 +9,7 @@ import SideDrawer from '../../../UI/SideDrawer';
 import CategoryTabs from '../components/CategoryTabs';
 import CaseListSidebar from '../components/CaseListSidebar';
 import { caseMarkdownComponents, authorMarkdownComponents } from '../components/MarkdownRenderers';
+import { filterContentForDisplay } from '../../../../lib/caseStudy/parsers';
 import CaseStudyBaziChart from '../components/CaseStudyBaziChart';
 import CaseStudyDayunPanel from '../components/CaseStudyDayunPanel';
 import CaseStudyQimenChart from '../components/CaseStudyQimenChart';
@@ -59,7 +60,7 @@ export default function CaseStudyPadLayout(props: CaseStudyLayoutProps) {
                 <div ref={contentScrollRef} className="flex-1 overflow-y-auto p-6 lg:p-8">
                     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
                         <div className="flex items-center justify-center gap-3 pb-3 lg:pb-4 border-b border-border/40">
-                            <h1 className="text-lg lg:text-2xl font-serif font-bold text-primary/90">{activeCase.title}</h1>
+                            <h1 className="text-2xl font-serif font-bold text-primary/90">{activeCase.title}</h1>
                             {activeCase.isPreview && (
                                 <span className="shrink-0 text-[10px] leading-none px-1.5 py-1 rounded border border-primary/30 bg-primary/10 text-primary">试读</span>
                             )}
@@ -73,7 +74,7 @@ export default function CaseStudyPadLayout(props: CaseStudyLayoutProps) {
                                     className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed text-[16px] lg:text-[18px]"
                                 >
                                 <ReactMarkdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm, remarkBreaks]} components={caseMarkdownComponents}>
-                                    {activeCase.content.replace(/^(命主生辰|性别|日主|格局|令地)[：:][^\n]*\n?/gm, '').replace(/^#\s+[^\n]+\n?/, '').replace(/^\n+/, '')}
+                                    {filterContentForDisplay(activeCase.content)}
                                 </ReactMarkdown>
                             </div>
                         )}
@@ -90,13 +91,13 @@ export default function CaseStudyPadLayout(props: CaseStudyLayoutProps) {
             ) : selectedAuthor && authorIntroContent ? (
                 <div className="flex-1 overflow-y-auto p-6 lg:p-8">
                     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
-                        <h1 className="text-lg lg:text-2xl font-serif font-bold text-center text-primary/90 pb-3 lg:pb-4 border-b border-border/40">{selectedAuthor}</h1>
+                        <h1 className="text-2xl font-serif font-bold text-center text-primary/90 pb-3 lg:pb-4 border-b border-border/40">{selectedAuthor}</h1>
                         <div
                                     onContextMenu={(event) => event.preventDefault()}
                                     className="prose dark:prose-invert max-w-none text-foreground font-serif leading-relaxed text-[16px] lg:text-[18px]"
                                 >
                             <ReactMarkdown rehypePlugins={[rehypeRaw]} remarkPlugins={[remarkGfm, remarkBreaks]} components={authorMarkdownComponents}>
-                                {authorIntroContent.replace(/^(命主生辰|性别|日主|格局|令地)[：:][^\n]*\n?/gm, '').replace(/^#\s+[^\n]+\n?/, '').replace(/^\n+/, '')}
+                                {filterContentForDisplay(authorIntroContent)}
                             </ReactMarkdown>
                         </div>
                     </div>

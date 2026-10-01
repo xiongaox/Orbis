@@ -9,9 +9,10 @@
  * - 由用户显式触发（试读态的激活按钮），因此支持关闭；激活进行中不允许关闭
 */
 
-import { Check, Copy, KeyRound, Loader2, Lock, ShieldCheck, X } from 'lucide-react';
+import { Check, Copy, KeyRound, Loader2, Lock, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { CasePackProgress } from '../../../services/publicCaseLibraryService';
+import BaseModal from '../../UI/BaseModal';
 
 interface ActivationModalProps {
     machineId: string;
@@ -86,14 +87,10 @@ export default function ActivationModal({ machineId, isActivating, progress, err
     const [masterPassword, setMasterPassword] = useState('');
     const [authorMode, setAuthorMode] = useState(false);
 
-    // 激活进行中不允许关闭，避免中断解密导入
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape' && !isActivating) onClose();
-        };
-        document.addEventListener('keydown', handleKeyDown);
-        return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [isActivating, onClose]);
+    const handleRequestClose = () => {
+        // 激活进行中不允许关闭，避免中断解密导入（Escape 与点击遮罩都经此处拦截）
+        if (!isActivating) onClose();
+    };
 
     const handleSubmit = () => {
         if (isActivating) return;
@@ -107,30 +104,14 @@ export default function ActivationModal({ machineId, isActivating, progress, err
     };
 
     return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-            role="dialog"
-            aria-modal="true"
-            onClick={(event) => {
-                if (event.target === event.currentTarget && !isActivating) onClose();
-            }}
+        <BaseModal
+            isOpen
+            title="案例库激活"
+            titleIcon={<ShieldCheck className="w-5 h-5" />}
+            className="animate-in zoom-in-95 fade-in duration-200"
+            bodyClassName="p-5 space-y-4"
+            onClose={handleRequestClose}
         >
-            <div className="bg-card w-full max-w-md rounded-xl border border-border shadow-2xl animate-in zoom-in-95 fade-in duration-200">
-                <div className="relative flex items-center gap-2 p-5 border-b border-border">
-                    <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
-                    <h2 className="text-lg font-semibold text-foreground">案例库激活</h2>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        disabled={isActivating}
-                        aria-label="关闭"
-                        className="absolute top-4 right-4 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors focus-ring disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-
-                <div className="p-5 space-y-4">
                     {canActivate ? (
                         <div className="space-y-1.5">
                             <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
@@ -216,8 +197,6 @@ export default function ActivationModal({ machineId, isActivating, progress, err
                             激活后案例正文将以本机专属密钥加密保存，离线秒开、无需联网。
                         </p>
                     </div>
-                </div>
-            </div>
-        </div>
+        </BaseModal>
     );
 }
