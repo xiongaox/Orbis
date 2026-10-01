@@ -434,7 +434,7 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
           <div className="flex shrink-0 items-start justify-between border-b border-border px-5 py-4">
             <div className="flex items-center gap-2">
               <Cloud className="h-5 w-5 text-primary" />
-              <h2 id="private-data-title" className="font-serif text-lg font-semibold text-foreground">数据备份</h2>
+              <h2 id="private-data-title" className="text-lg font-semibold text-foreground">数据备份</h2>
             </div>
             <button type="button" onClick={onClose} className="rounded-lg p-2 text-muted-foreground hover:bg-secondary/50" aria-label="关闭"><X className="h-4 w-4" /></button>
           </div>
