@@ -116,11 +116,9 @@ export default function ActivationModal({ machineId, isActivating, progress, err
             }}
         >
             <div className="bg-card w-full max-w-md rounded-xl border border-border shadow-2xl animate-in zoom-in-95 fade-in duration-200">
-                <div className="relative flex items-center gap-2.5 p-5 border-b border-border">
-                    <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-                        <ShieldCheck className="w-5 h-5 text-primary" />
-                    </div>
-                    <h2 className="text-base font-bold font-serif text-foreground leading-tight">案例库激活</h2>
+                <div className="relative flex items-center gap-2 p-5 border-b border-border">
+                    <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
+                    <h2 className="text-lg font-semibold text-foreground">案例库激活</h2>
                     <button
                         type="button"
                         onClick={onClose}
