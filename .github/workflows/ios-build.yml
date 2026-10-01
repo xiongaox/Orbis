@@ -6,9 +6,7 @@ name: ios-build
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - '.github/workflows/ios-build.yml'
+  push: {}
 
 jobs:
   build-unsigned-ipa:
