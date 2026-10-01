@@ -54,7 +54,7 @@ jobs:
           if [ -f src-tauri/gen/apple/Podfile ]; then
             (cd src-tauri/gen/apple && awk '/target .app_macOS./{exit} {print}' Podfile > Podfile.tmp && mv Podfile.tmp Podfile && pod install)
           fi
-          SCHEME=$(xcodebuild -list -project "$XCPROJ" | awk '/Schemes:/{flag=1; next} flag && NF {print; exit}')
+          SCHEME=$(xcodebuild -list -project "$XCPROJ" | awk '/Schemes:/{flag=1; next} flag && NF {print; exit}' | xargs)
           echo "构建 scheme：$SCHEME"
           if [ -d src-tauri/gen/apple/project.xcworkspace ]; then
             xcodebuild -workspace "src-tauri/gen/apple/project.xcworkspace" -scheme "$SCHEME" \
