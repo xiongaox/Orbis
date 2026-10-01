@@ -1,13 +1,11 @@
 /**
  * 关键职责：
  * - 渲染案例库卡片：乾/坤 印章、四列迷你排盘、出生日期时辰、年龄
- * - 左滑露出 编辑 / 删除，展开后点击卡片以外任意位置经 useSwipeDismiss 全局收起；
- *   排序模式下显示拖拽手柄并由 dnd-kit 接管
+ * - 左滑露出 编辑 / 删除，展开后点击卡片以外任意位置经 useSwipeDismiss 全局收起
+ * - 拖拽手动排序已移除：案例顺序一律为数据源的新建顺序（创建时间）
 */
 import { useEffect, useRef, useState } from 'react';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../../utils/lunarUtil';
 import { getElementTextColor } from '../../../lib/xuan-bazi/maps';
 import type { BaziCase } from '../../../services/baziCaseService';
@@ -21,9 +19,6 @@ interface SortableCaseCardProps {
     onSelect: () => void;
     onEdit: () => void;
     onDelete: () => void;
-    isDragging?: boolean;
-    /** 排序模式：显示拖拽手柄，禁用左滑 */
-    sortMode?: boolean;
 }
 
 export default function SortableCaseCard({
@@ -32,17 +27,7 @@ export default function SortableCaseCard({
     onSelect,
     onEdit,
     onDelete,
-    sortMode = false,
 }: SortableCaseCardProps) {
-    const {
-        attributes,
-        listeners,
-        setNodeRef,
-        transform,
-        transition,
-        isDragging,
-    } = useSortable({ id: caseData.id });
-
     // 左滑位移（px，负值向左）
     const [swipeX, setSwipeX] = useState(0);
     const [isSwiping, setIsSwiping] = useState(false);
@@ -52,9 +37,9 @@ export default function SortableCaseCard({
     const suppressClick = useRef(false);
     // 长按守卫：按下后若在 350ms 内没有形成横向拖动，即判定为长按，本次手势不再触发左滑
     const longPressTimer = useRef<number | null>(null);
-    // 展开态下点击卡片以外任意位置（空白/其他卡片）全局收起；排序模式下无左滑不启用
+    // 展开态下点击卡片以外任意位置（空白/其他卡片）全局收起
     const rootRef = useRef<HTMLDivElement | null>(null);
-    useSwipeDismiss(rootRef, swipeX !== 0 && !sortMode, () => setSwipeX(0));
+    useSwipeDismiss(rootRef, swipeX !== 0, () => setSwipeX(0));
 
     const clearLongPress = () => {
         if (longPressTimer.current !== null) {
@@ -67,15 +52,7 @@ export default function SortableCaseCard({
         if (longPressTimer.current !== null) clearTimeout(longPressTimer.current);
     }, []);
 
-    // 进入排序模式时收起左滑，避免拖拽透出编辑/删除层（渲染期随 props 调整状态）
-    const [prevSortMode, setPrevSortMode] = useState(sortMode);
-    if (prevSortMode !== sortMode) {
-        setPrevSortMode(sortMode);
-        if (sortMode) setSwipeX(0);
-    }
-
     const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-        if (sortMode) return;
         setIsSwiping(true);
         dragStart.current = { x: e.clientX, y: e.clientY, offset: swipeX, locked: false, aborted: false };
         suppressClick.current = false;
@@ -90,7 +67,7 @@ export default function SortableCaseCard({
     };
 
     const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-        if (!isSwiping || sortMode) return;
+        if (!isSwiping) return;
         const s = dragStart.current;
         if (s.aborted) return;
         const dx = e.clientX - s.x;
@@ -163,28 +140,16 @@ export default function SortableCaseCard({
         : caseData.birth_date;
     const displayTime = hasValidBirth ? `${pad(birth.getHours())}:${pad(birth.getMinutes())}` : '';
 
-    const dndStyle = {
-        transform: CSS.Transform.toString(transform),
-        transition,
-        // 拖拽中保持不透明：半透明会透出底层操作层与列表内容，视觉上表现为闪烁
-        zIndex: isDragging ? 50 : 'auto',
-    };
-
     return (
         <div
-            ref={(node) => {
-                // dnd-kit 的节点登记与「点空白收起」的根元素判定共用同一外层节点
-                setNodeRef(node);
-                rootRef.current = node;
-            }}
-            style={dndStyle}
+            ref={rootRef}
             className={`relative select-none overflow-hidden rounded-xl border transition-colors ${isSelected
                 ? 'border-primary/40 shadow-[0_0_0_1px_hsl(var(--primary)/0.25)]'
                 : 'border-border/40'
-                } ${isDragging ? 'shadow-lg ring-2 ring-primary/30' : ''}`}
+                }`}
         >
             {/* 左滑露出的操作层：仅在拖动中或已展开时挂载，静止时不存在任何可透出的底层 */}
-            {(isSwiping || swipeX !== 0) && !sortMode && !isDragging && (
+            {(isSwiping || swipeX !== 0) && (
                 <div className="absolute inset-y-0 right-0 z-[1] flex">
                     <button
                         type="button"
@@ -226,19 +191,6 @@ export default function SortableCaseCard({
                 style={{ transform: `translateX(${swipeX}px)`, transition: isSwiping ? 'none' : 'transform .18s' }}
                 className={`relative z-[2] flex cursor-pointer touch-pan-y items-center gap-3 bg-card px-3.5 py-3 ${swipeX !== 0 ? '' : 'active:bg-secondary/40'}`}
             >
-                {sortMode && (
-                    <button
-                        type="button"
-                        {...attributes}
-                        {...listeners}
-                        onClick={(e) => e.stopPropagation()}
-                        className="-ml-1 shrink-0 cursor-grab touch-none p-0.5 text-muted-foreground active:cursor-grabbing"
-                        aria-label="拖拽排序"
-                    >
-                        <GripVertical className="h-4 w-4" />
-                    </button>
-                )}
-
                 {/* 左侧：姓名 / 性别 / 分类 / 出生日期时辰 */}
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">

@@ -27,7 +27,11 @@ const toCase = (payload: Record<string, unknown>) => payload as unknown as BaziC
 
 async function listCases() {
   const records = await localPrivateStore.list('bazi_case');
-  return records.map((record) => toCase(record.payload));
+  // store 默认按 sort_order/updated_at 排序；拖拽手动排序已移除，
+  // 列表契约统一为「最新新建在前」（与奇门一致）
+  return records
+    .map((record) => toCase(record.payload))
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0));
 }
 
 export const baziCaseService = {
@@ -60,7 +64,7 @@ export const baziCaseService = {
     const updated = await localPrivateStore.put('bazi_case', {
       ...current.payload, ...input, id,
       created_at: current.payload.created_at, updated_at: new Date().toISOString(),
-    }, id, typeof input.sort_order === 'number' ? input.sort_order : current.sortOrder);
+    }, id);
     return toCase(updated.payload);
   },
 
@@ -77,12 +81,5 @@ export const baziCaseService = {
     const normalized = query.trim().toLocaleLowerCase();
     const cases = await listCases();
     return normalized ? cases.filter((item) => item.name.toLocaleLowerCase().includes(normalized)) : cases;
-  },
-
-  async updateSortOrder(orderedIds: string[]): Promise<void> {
-    for (const [index, id] of orderedIds.entries()) {
-      const current = await localPrivateStore.get('bazi_case', id);
-      if (current) await localPrivateStore.put('bazi_case', { ...current.payload, sort_order: index + 1 }, id, index + 1);
-    }
   },
 };

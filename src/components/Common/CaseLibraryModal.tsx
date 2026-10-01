@@ -1,21 +1,6 @@
 
 import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
-import {
-    DndContext,
-    closestCenter,
-    KeyboardSensor,
-    PointerSensor,
-    useSensor,
-    useSensors,
-    type DragEndEvent,
-} from '@dnd-kit/core';
-import {
-    arrayMove,
-    SortableContext,
-    sortableKeyboardCoordinates,
-    verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { Search, Plus, Upload, Library, ArrowUpDown } from 'lucide-react';
+import { Search, Plus, Upload, Library } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import BaseModal from '../UI/BaseModal';
 import SubPage from '../UI/SubPage';
@@ -33,7 +18,6 @@ export interface CaseLibraryModalProps<T extends { id: string }> {
     onSelectCase?: (caseId: string | null, caseItem?: T) => void;
 
     fetchCases: () => Promise<T[]>;
-    updateSortOrder?: (ids: string[]) => Promise<void>;
     deleteCase: (id: string) => Promise<void>;
     refreshEventName: string;
 
@@ -47,8 +31,6 @@ export interface CaseLibraryModalProps<T extends { id: string }> {
         onSelect: () => void;
         onEdit: () => void;
         onDelete: () => void;
-        /** 排序模式状态：卡片据此显示拖拽手柄、禁用左滑 */
-        sortMode: boolean;
     }) => ReactNode;
 
     renderSubModals: (props: {
@@ -59,9 +41,14 @@ export interface CaseLibraryModalProps<T extends { id: string }> {
         closeImportModal: () => void;
         closeEditModal: () => void;
         refreshData: () => void;
+        /** 弹窗内已加载的全量案例（导出等子弹窗的数据源） */
+        cases: T[];
     }) => ReactNode;
 
     getItemName: (item: T) => string;
+
+    /** 操作栏自定义动作（如导出按钮），渲染在导入之后 */
+    extraActions?: ReactNode;
 }
 
 export default function CaseLibraryModal<T extends { id: string }>({
@@ -70,7 +57,6 @@ export default function CaseLibraryModal<T extends { id: string }>({
     selectedCaseId,
     onSelectCase,
     fetchCases,
-    updateSortOrder,
     deleteCase,
     refreshEventName,
     categories,
@@ -79,13 +65,12 @@ export default function CaseLibraryModal<T extends { id: string }>({
     renderCard,
     renderSubModals,
     getItemName,
+    extraActions,
 }: CaseLibraryModalProps<T>) {
     const [cases, setCases] = useState<T[]>([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string | null>(categories[0]?.id ?? null);
-    // 排序模式：常驻的拖拽手柄与底部提示改为按需开启，浏览时零占用
-    const [sortMode, setSortMode] = useState(false);
 
     // 子弹窗状态
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -97,19 +82,7 @@ export default function CaseLibraryModal<T extends { id: string }>({
     // 移动端检测：与全应用统一走 useLayoutMode
     const { isMobile } = useLayoutMode();
 
-    // 拖拽 sensors
-    const sensors = useSensors(
-        useSensor(PointerSensor, {
-            activationConstraint: {
-                distance: 5,
-            },
-        }),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
-    );
-
-    // 加载案例
+    // 加载案例（数据源默认序 = 新建顺序，见各 caseService.getCases）
     const loadCases = useCallback(async () => {
         setLoading(true);
         try {
@@ -138,33 +111,10 @@ export default function CaseLibraryModal<T extends { id: string }>({
         return () => window.removeEventListener(refreshEventName, handleCasesChanged);
     }, [isOpen, loadCases, refreshEventName]);
 
-    // 筛选后的案例
+    // 筛选后的案例（保持数据源顺序，不提供自定义排序）
     const filteredCases = useMemo(() => {
         return cases.filter(item => filterFn(item, search, selectedCategory));
     }, [cases, search, selectedCategory, filterFn]);
-
-    // 拖拽结束处理
-    const handleDragEnd = async (event: DragEndEvent) => {
-        const { active, over } = event;
-        if (!over || active.id === over.id) return;
-
-        const oldIndex = cases.findIndex(c => c.id === active.id);
-        const newIndex = cases.findIndex(c => c.id === over.id);
-
-        if (oldIndex !== -1 && newIndex !== -1) {
-            const newCases = arrayMove(cases, oldIndex, newIndex);
-            setCases(newCases);
-
-            if (updateSortOrder) {
-                try {
-                    await updateSortOrder(newCases.map(c => c.id));
-                    window.dispatchEvent(new CustomEvent(refreshEventName));
-                } catch (error) {
-                    console.error('保存排序失败:', error);
-                }
-            }
-        }
-    };
 
     // 删除案例
     const executeDelete = async () => {
@@ -192,18 +142,6 @@ export default function CaseLibraryModal<T extends { id: string }>({
             <span className="text-sm font-normal text-muted-foreground">
                 ({cases.length})
             </span>
-            <button
-                type="button"
-                onClick={() => setSortMode(v => !v)}
-                aria-pressed={sortMode}
-                title={sortMode ? '退出排序模式' : '排序模式'}
-                className={`ml-auto mr-1 flex h-8 w-8 items-center justify-center rounded-lg transition-colors focus-ring ${sortMode
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:text-foreground'
-                    }`}
-            >
-                <ArrowUpDown className="h-4 w-4" />
-            </button>
         </div>
     );
 
@@ -230,6 +168,7 @@ export default function CaseLibraryModal<T extends { id: string }>({
                         <Upload className="w-4 h-4" />
                         导入
                     </button>
+                    {extraActions}
                     <button
                         type="button"
                         onClick={() => setShowCreateModal(true)}
@@ -278,43 +217,24 @@ export default function CaseLibraryModal<T extends { id: string }>({
                                 {search || selectedCategory !== categories[0]?.id ? '没有匹配的案例' : '暂无案例，点击上方按钮新建'}
                             </div>
                         ) : (
-                            <DndContext
-                                sensors={sensors}
-                                collisionDetection={closestCenter}
-                                onDragEnd={handleDragEnd}
+                            <div
+                                className={`grid select-none ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}
+                                onContextMenu={(e) => e.preventDefault()}
                             >
-                                <SortableContext
-                                    items={filteredCases.map(c => c.id)}
-                                    strategy={verticalListSortingStrategy}
-                                >
-                                    <div
-                                        className={`grid select-none ${isMobile ? 'grid-cols-1' : 'grid-cols-2'} gap-2`}
-                                        onContextMenu={(e) => e.preventDefault()}
-                                    >
-                                        {filteredCases.map((caseData) => renderCard({
-                                            caseData,
-                                            isSelected: selectedCaseId === caseData.id,
-                                            onSelect: () => {
-                                                onSelectCase?.(caseData.id, caseData);
-                                                if (isMobile) onClose();
-                                            },
-                                            onEdit: () => setEditingCase(caseData),
-                                            onDelete: () => setCaseToDelete(caseData),
-                                            sortMode
-                                        }))}
-                                    </div>
-                                </SortableContext>
-                            </DndContext>
+                                {filteredCases.map((caseData) => renderCard({
+                                    caseData,
+                                    isSelected: selectedCaseId === caseData.id,
+                                    onSelect: () => {
+                                        onSelectCase?.(caseData.id, caseData);
+                                        if (isMobile) onClose();
+                                    },
+                                    onEdit: () => setEditingCase(caseData),
+                                    onDelete: () => setCaseToDelete(caseData),
+                                }))}
+                            </div>
                         )}
                     </div>
                 </div>
-
-                {/* 底部提示：仅在排序模式下出现，浏览时不再常驻占位 */}
-                {sortMode && filteredCases.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground text-center shrink-0">
-                        拖动卡片左侧手柄调整顺序，完成后点击页头按钮退出
-                    </div>
-                )}
         </>
     );
 
@@ -329,7 +249,8 @@ export default function CaseLibraryModal<T extends { id: string }>({
                 closeCreateModal: () => setShowCreateModal(false),
                 closeImportModal: () => setShowImportModal(false),
                 closeEditModal: () => setEditingCase(null),
-                refreshData: loadCases
+                refreshData: loadCases,
+                cases
             })}
 
             <ConfirmModal

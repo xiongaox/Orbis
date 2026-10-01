@@ -1,4 +1,5 @@
 import { localPrivateStore } from './localPrivateStore';
+import type { PaiPanMethod } from '../lib/csp-qimen/qimenService';
 
 export const QIMEN_CATEGORIES = [
   { id: 'work', name: '工作事业' }, { id: 'study', name: '求学考试' },
@@ -18,6 +19,8 @@ export interface QimenCase {
   feedback?: string;
   analysis?: string;
   qimen_data?: Record<string, unknown>;
+  /** 保存案例时使用的排盘方式（旧数据可能缺失） */
+  pai_pan_method?: PaiPanMethod;
   created_at: string;
   updated_at: string;
 }
@@ -30,7 +33,10 @@ const toCase = (payload: Record<string, unknown>) => payload as unknown as Qimen
 export const qimenCaseService = {
   async getCases(): Promise<QimenCase[]> {
     const records = await localPrivateStore.list('qimen_case');
-    return records.map((record) => toCase(record.payload));
+    // store 默认按 updated_at 排序；列表契约是「最新创建在前」
+    return records
+      .map((record) => toCase(record.payload))
+      .sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0));
   },
 
   async createCase(input: CreateQimenCaseInput): Promise<QimenCase> {

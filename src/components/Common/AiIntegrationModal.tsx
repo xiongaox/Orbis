@@ -11,7 +11,6 @@ import {
   Plus,
   Server,
   Trash2,
-  X,
   XCircle,
 } from 'lucide-react';
 import BaseModal from '../UI/BaseModal';
@@ -839,18 +838,7 @@ function ProtocolSelect({ value, onChange, isMobile }: { value: AiProtocol; onCh
             style={{ paddingBottom: 'calc(10px + var(--safe-area-inset-bottom, 0px))' }}
           >
             <div className="w-9 h-1 rounded-full bg-border mx-auto mt-2.5" />
-            <div className="flex items-center justify-between px-4 pt-2 pb-1">
-              <span className="text-sm font-semibold text-foreground">API 协议</span>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted cursor-pointer"
-                aria-label="关闭"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="max-h-[46vh] overflow-y-auto px-2 pb-1" role="listbox">
+            <div className="max-h-[46vh] overflow-y-auto px-2 pt-2 pb-1" role="listbox">
               {AI_PROTOCOLS.map((item) => {
                 const isCurrent = item.value === value;
                 return (

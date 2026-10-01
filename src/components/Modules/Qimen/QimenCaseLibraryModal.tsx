@@ -1,15 +1,21 @@
+import { useState } from 'react';
+import { ArrowUpFromLine } from 'lucide-react';
 import { qimenCaseService, type QimenCase, QIMEN_CATEGORIES } from '../../../services/qimenCaseService';
 import { QIMEN_CASES_CHANGED_EVENT } from '../../../data/caseConstants';
-import QimenSortableCaseCard from './QimenSortableCaseCard';
+import QimenCaseCard from './QimenCaseCard';
 import QimenNewCaseModal from './QimenNewCaseModal';
 import QimenImportModal from './QimenImportModal';
 import CaseLibraryModal from '../../Common/CaseLibraryModal';
+import ExportCaseModal from '../../Common/ExportCaseModal';
+import type { PaiPanMethod } from '../../../lib/csp-qimen/qimenService';
 
 interface QimenCaseLibraryModalProps {
     isOpen: boolean;
     onClose: () => void;
     selectedCaseId?: string | null;
     onSelectCase?: (caseId: string | null, caseItem?: QimenCase) => void;
+    /** 当前页面排盘方法：旧案例盘状态的兜底计算依据 */
+    paiPanMethod?: PaiPanMethod;
 }
 
 export default function QimenCaseLibraryModal({
@@ -17,8 +23,10 @@ export default function QimenCaseLibraryModal({
     onClose,
     selectedCaseId,
     onSelectCase,
+    paiPanMethod,
 }: QimenCaseLibraryModalProps) {
     const categories = [{ id: 'all', name: '全部' }, ...QIMEN_CATEGORIES];
+    const [showExportModal, setShowExportModal] = useState(false);
 
     return (
         <CaseLibraryModal<QimenCase>
@@ -40,17 +48,28 @@ export default function QimenCaseLibraryModal({
                 return matchesSearch && matchesCategory;
             }}
             getItemName={(item) => item.title}
+            extraActions={
+                <button
+                    type="button"
+                    onClick={() => setShowExportModal(true)}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-secondary hover:bg-secondary/80 text-foreground hover:text-foreground/90 rounded-lg text-sm font-medium transition-colors border border-border cursor-pointer shadow-sm focus-ring"
+                >
+                    <ArrowUpFromLine className="w-4 h-4" />
+                    导出
+                </button>
+            }
             renderCard={({ caseData, isSelected, onSelect, onEdit, onDelete }) => (
-                <QimenSortableCaseCard
+                <QimenCaseCard
                     key={caseData.id}
-                    caseData={caseData}
+                    caseItem={caseData}
                     isSelected={isSelected}
-                    onSelect={() => { onSelect(); onClose(); }}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
+                    paiPanMethod={paiPanMethod}
+                    onSelectCase={() => { onSelect(); onClose(); }}
+                    onEdit={() => onEdit()}
+                    onDelete={() => onDelete()}
                 />
             )}
-            renderSubModals={({ showCreateModal, showImportModal, editingCase, closeCreateModal, closeImportModal, closeEditModal, refreshData }) => (
+            renderSubModals={({ showCreateModal, showImportModal, editingCase, closeCreateModal, closeImportModal, closeEditModal, refreshData, cases }) => (
                 <>
                     <QimenNewCaseModal
                         isOpen={showCreateModal || !!editingCase}
@@ -67,6 +86,26 @@ export default function QimenCaseLibraryModal({
                         isOpen={showImportModal}
                         onClose={closeImportModal}
                         onImported={refreshData}
+                    />
+                    <ExportCaseModal
+                        isOpen={showExportModal}
+                        onClose={() => setShowExportModal(false)}
+                        title="导出奇门案例"
+                        options={QIMEN_CATEGORIES.map((cat) => ({ id: cat.id, name: cat.name }))}
+                        cases={cases}
+                        getCaseFilter={(c) => c.category}
+                        formatCase={(c) => {
+                            const categoryName = QIMEN_CATEGORIES.find(cat => cat.id === c.category)?.name || c.category;
+                            return {
+                                '标题': c.title,
+                                '占测时间': c.test_date ? c.test_date.replace('T', ' ').slice(0, 16) : '',
+                                '分类': categoryName,
+                                '事情描述': c.description || '',
+                                '事件反馈': c.feedback || '',
+                                '案例断法': c.analysis || '',
+                            };
+                        }}
+                        filename="qimen_cases"
                     />
                 </>
             )}

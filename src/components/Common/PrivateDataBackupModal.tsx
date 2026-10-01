@@ -325,11 +325,7 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
                 style={{ paddingBottom: 'calc(10px + var(--safe-area-inset-bottom, 0px))' }}
               >
                 <div className="w-9 h-1 rounded-full bg-border mx-auto mt-2.5" />
-                <div className="flex items-center justify-between px-4 pt-2 pb-1">
-                  <span className="text-sm font-semibold text-foreground">备份频率</span>
-                  <button type="button" onClick={() => setFrequencyMenuOpen(false)} className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted cursor-pointer" aria-label="关闭"><X className="h-4 w-4" /></button>
-                </div>
-                <div className="max-h-[46vh] overflow-y-auto px-2 pb-1" role="listbox" aria-label="自动备份频率">
+                <div className="max-h-[46vh] overflow-y-auto px-2 pt-2 pb-1" role="listbox" aria-label="自动备份频率">
                   {AUTO_BACKUP_INTERVAL_MINUTES.map((minutes) => {
                     const selected = activeConfig.autoBackupIntervalMinutes === minutes;
                     return (

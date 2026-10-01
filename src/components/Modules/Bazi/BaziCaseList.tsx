@@ -1,16 +1,15 @@
 import { useMemo, useState, useEffect, useCallback, useSyncExternalStore } from 'react';
-import { getBaziPillarsFromDateString } from '../../../utils/lunarUtil';
-import { baziCaseService, CASE_TAGS, type BaziCase, type CaseTag, type CreateCaseInput } from '../../../services/baziCaseService';
+import { baziCaseService, type BaziCase, type CaseTag, type CreateCaseInput } from '../../../services/baziCaseService';
 import type { Case } from '../../../types';
 import ConfirmModal from '../../Common/ConfirmModal';
 import CreateCaseModal from './CreateCaseModal';
-import ImportCaseModal from './ImportCaseModal';
 import { BAZI_CASES_CHANGED_EVENT } from '../../../data/caseConstants';
 import EditCaseModal from './EditCaseModal';
-import ExportCaseModal from '../../Common/ExportCaseModal';
 import CaseCard from './components/CaseList/CaseCard';
 import CaseTagFilter from './components/CaseList/CaseTagFilter';
 import BaseCaseList from '../../Common/BaseCaseList';
+import SortFieldButton, { type SortState } from '../../Common/SortFieldButton';
+import { BAZI_SORT_OPTIONS, compareBaziCase } from './caseSort';
 import {
   OPEN_AI_CHAT_EVENT,
   getAiResearchStatuses,
@@ -49,12 +48,12 @@ export default function CaseList({
   const [cases, setCases] = useState<BaziCase[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
   const [editingCase, setEditingCase] = useState<BaziCase | null>(null);
   const [deletingCaseId, setDeletingCaseId] = useState<string | null>(null);
   const [caseToDelete, setCaseToDelete] = useState<BaziCase | null>(null);
   const [selectedTag, setSelectedTag] = useState<CaseTag | null>(null);
+  // 字段排序（年龄/分组/性别）：field 为 null 表示默认
+  const [sort, setSort] = useState<SortState>({ field: null, dir: 'desc' });
 
   // 加载案例
   const loadCases = useCallback(async () => {
@@ -106,15 +105,19 @@ export default function CaseList({
     setShowCreateModal(false);
   };
 
-  // 转换为显示格式
+  // 转换为显示格式（筛选 → 字段排序 → 映射显示）
   const displayCases = useMemo(() => {
-    return cases.filter(item => {
+    const filtered = cases.filter(item => {
       const matchesSearch =
         item.name.includes(search) ||
         item.birth_date.includes(search);
       const matchesTag = !selectedTag || (item.tags && item.tags.includes(selectedTag));
       return matchesSearch && matchesTag;
-    }).map(c => {
+    });
+    const sorted = sort.field
+      ? [...filtered].sort((a, b) => compareBaziCase(a, b, sort.field as string) * (sort.dir === 'asc' ? 1 : -1))
+      : filtered;
+    return sorted.map(c => {
       // 出生日期带时辰：时柱本身由时辰决定，列表里必须可见
       const birth = new Date(c.birth_date);
       const hasBirth = !Number.isNaN(birth.getTime());
@@ -131,7 +134,7 @@ export default function CaseList({
         tags: c.tags,
       };
     });
-  }, [cases, search, selectedTag]);
+  }, [cases, search, selectedTag, sort]);
 
   const handleDeleteCase = (id: string) => {
     const target = cases.find(c => c.id === id);
@@ -188,8 +191,9 @@ export default function CaseList({
       }
       search={search}
       onSearchChange={setSearch}
-      onExport={() => setShowExportModal(true)}
-      onImport={() => setShowImportModal(true)}
+      extraActions={
+        <SortFieldButton options={BAZI_SORT_OPTIONS} value={sort} onChange={setSort} />
+      }
       onCreate={() => setShowCreateModal(true)}
       isLoading={loading}
       isEmpty={displayCases.length === 0}
@@ -197,35 +201,6 @@ export default function CaseList({
       modals={
         <>
           <CreateCaseModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} onCreated={handleCaseCreated} onPreview={onPreviewCase ? handlePreviewCase : undefined} />
-          <ImportCaseModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} onImported={handleCaseCreated} />
-          <ExportCaseModal
-            isOpen={showExportModal}
-            onClose={() => setShowExportModal(false)}
-            title="导出八字案例"
-            options={CASE_TAGS.map((tag) => ({ id: tag, name: tag }))}
-            cases={cases}
-            getCaseFilter={(c) => c.tags}
-            formatCase={(c) => {
-              const pillars = getBaziPillarsFromDateString(c.birth_date);
-              const displayPillars = pillars.length === 8
-                ? [pillars[0] + pillars[1], pillars[2] + pillars[3], pillars[4] + pillars[5], pillars[6] + pillars[7]]
-                : [];
-              const d = new Date(c.birth_date);
-              const pad = (n: number) => String(n).padStart(2, '0');
-              const localBirthDateStr = isNaN(d.getTime())
-                ? c.birth_date
-                : `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-              return {
-                '姓名': c.name,
-                '性别': c.gender === 'male' ? '男' : '女',
-                '出生时间': localBirthDateStr,
-                '天干地支': displayPillars.join(' '),
-                '标签': c.tags?.join('、') || '',
-                '备注': c.notes || '',
-              };
-            }}
-            filename="bazi_cases"
-          />
           {editingCase && <EditCaseModal isOpen caseData={editingCase} onClose={() => setEditingCase(null)} onSaved={() => setEditingCase(null)} />}
           <ConfirmModal
             isOpen={!!caseToDelete}

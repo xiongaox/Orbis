@@ -21,7 +21,6 @@ import {
   Square,
   Cpu,
   BookOpen,
-  X,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -401,18 +400,7 @@ export default function WangShuaiAiPanel({
         style={{ paddingBottom: 'calc(10px + var(--safe-area-inset-bottom, 0px))' }}
       >
         <div className="w-9 h-1 rounded-full bg-border mx-auto mt-2.5" />
-        <div className="flex items-center justify-between px-4 pt-2 pb-1">
-          <span className="text-sm font-semibold text-foreground">{pickerSheet === 'svc' ? '选择服务' : '选择模型'}</span>
-          <button
-            type="button"
-            onClick={() => setPickerSheet(null)}
-            className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted cursor-pointer"
-            aria-label="关闭"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="max-h-[46vh] overflow-y-auto px-2 pb-1">
+        <div className="max-h-[46vh] overflow-y-auto px-2 pt-2 pb-1">
           {(pickerSheet === 'svc' ? serviceOptions : modelOptions).map((opt) => {
             const isCurrent = pickerSheet === 'svc' ? opt.value === selectedServiceId : opt.value === selectedModel;
             return (

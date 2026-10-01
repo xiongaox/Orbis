@@ -16,6 +16,8 @@ interface BaseCaseListProps {
     onExport?: () => void;
     onImport?: () => void;
     onCreate?: () => void;
+    /** 操作按钮行的自定义动作（如排序按钮），渲染在新建按钮之前 */
+    extraActions?: ReactNode;
 
     // Main Content
     isLoading: boolean;
@@ -36,6 +38,7 @@ export default function BaseCaseList({
     onExport,
     onImport,
     onCreate,
+    extraActions,
     isLoading,
     isEmpty,
     emptyText,
@@ -96,6 +99,7 @@ export default function BaseCaseList({
                                 <ArrowDownToLine className="w-3.5 h-3.5" />
                             </button>
                         )}
+                        {extraActions}
                         {onCreate && (
                             <button
                                 type="button"

@@ -3,6 +3,7 @@ import { Calendar, Loader2, Plus, Pencil } from 'lucide-react';
 import BaseModal from '../../UI/BaseModal';
 import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
 import { qimenCaseService, type CreateQimenCaseInput, type UpdateQimenCaseInput, type QimenCategory, type QimenCase } from '../../../services/qimenCaseService';
+import type { PaiPanMethod } from '../../../lib/csp-qimen/qimenService';
 
 // 奇门案例分类（复用 CaseList 的定义，或统一定义）
 const CATEGORIES = [
@@ -28,9 +29,11 @@ interface QimenNewCaseModalProps {
         analysis?: string;
     }) => void;
     initialData?: QimenCase | null; // Added prop for edit mode
+    /** 当前页面的排盘方式，随案例一起保存（列表「盘式」标签的数据来源） */
+    paiPanMethod?: PaiPanMethod;
 }
 
-export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialData }: QimenNewCaseModalProps) {
+export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialData, paiPanMethod }: QimenNewCaseModalProps) {
     const [title, setTitle] = useState(initialData?.title || '');
     const [date, setDate] = useState<Date>(initialData ? new Date(initialData.test_date) : new Date());
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
@@ -61,6 +64,7 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
                     description,
                     feedback,
                     analysis,
+                    ...(paiPanMethod ? { pai_pan_method: paiPanMethod } : {}),
                 };
                 await qimenCaseService.updateCase(initialData.id, updateInput);
             } else {
@@ -71,6 +75,7 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
                     description,
                     feedback,
                     analysis,
+                    ...(paiPanMethod ? { pai_pan_method: paiPanMethod } : {}),
                 };
                 await qimenCaseService.createCase(createInput);
             }
