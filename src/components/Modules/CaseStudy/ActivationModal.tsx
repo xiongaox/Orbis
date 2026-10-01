@@ -120,10 +120,7 @@ export default function ActivationModal({ machineId, isActivating, progress, err
                     <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
                         <ShieldCheck className="w-5 h-5 text-primary" />
                     </div>
-                    <div>
-                        <h2 className="text-base font-bold font-serif text-foreground leading-tight">案例库激活</h2>
-                        <p className="text-xs text-muted-foreground">离线加密案例库 · 一机一码专属授权</p>
-                    </div>
+                    <h2 className="text-base font-bold font-serif text-foreground leading-tight">案例库激活</h2>
                     <button
                         type="button"
                         onClick={onClose}
