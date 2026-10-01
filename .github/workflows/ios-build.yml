@@ -6,7 +6,10 @@ name: ios-build
 
 on:
   workflow_dispatch:
-  push: {}
+  push:
+    paths:
+      - '.github/workflows/ios-build.yml'
+      - 'scripts/fake-tauri-ios-server.py'
 
 jobs:
   build-unsigned-ipa:

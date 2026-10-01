@@ -65,6 +65,7 @@ export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-t
 | 安卓构建（release：**仅**用户明确要求 release / 正式交付时） | 先执行第 0 节 export 块，再 `npx tauri android build --target aarch64`（release 产物已自动正式签名，包名 `com.orbis.app`，与 debug 包并存两个图标属预期） |
 | Rust 安全层测试 | `cd src-tauri && cargo test`（无需 Java） |
 | 安卓图标重生成 | `npm run android:icons`（tauri icon 之后必须重跑，见根 AGENTS.md） |
+| iOS 用户端未签名 ipa（本机无完整 Xcode，走云构建） | 改 `.github/workflows/ios-build.yml` 后 push 自动触发，或 Actions 页手动跑 `ios-build`；产物 artifact `orbis-ios-user-unsigned`，需代理（`export HTTPS_PROXY=http://127.0.0.1:7897`）。流程要点：`tauri ios init` 生成 `src-tauri/gen/apple`，跳过零依赖 pod install，需伪造选项服务（`scripts/fake-tauri-ios-server.py`）供 xcode-script 阶段读取，Xcode 用 16.4（26 的构建系统会 builtin-create-build-directory 静默失败）。管理员版 ipa 因签发私钥不能上 CI，只能本机装 Xcode 后构建 |
 
 ## 4. 环境自检（怀疑环境坏了再跑，平时跳过）
 
