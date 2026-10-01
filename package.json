@@ -29,7 +29,8 @@
     "worktree:build": ".agents/skills/worktree/scripts/build-worktree.sh",
     "worktree:remove": ".agents/skills/worktree/scripts/remove-worktree.sh",
     "cases:unpack": "tsx scripts/pack-cases.ts --unpack ../orbis-lore/dist/cases_v1.enc",
-    "cases:publish": "npm run cases:pack && mkdir -p ../orbis-lore/dist && cp dist-cases/cases_v1.enc dist-cases/report.json ../orbis-lore/dist/ && git -C ../orbis-lore add dist/ && git -C ../orbis-lore commit -m 'dist: 同步最新案例加密包' && git -C ../orbis-lore push"
+    "cases:publish": "npm run cases:pack && mkdir -p ../orbis-lore/dist && cp dist-cases/cases_v1.enc dist-cases/report.json ../orbis-lore/dist/ && git -C ../orbis-lore add dist/ && git -C ../orbis-lore commit -m 'dist: 同步最新案例加密包' && git -C ../orbis-lore push",
+    "tauri:debug-apps": "bash scripts/build-debug-apps.sh"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
