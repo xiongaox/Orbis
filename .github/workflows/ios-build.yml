@@ -49,15 +49,15 @@ jobs:
           PATH: /Users/runner/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
         run: |
           set -euxo pipefail
-          XCPROJ=$(find gen/apple -maxdepth 1 -name "*.xcodeproj" | head -1)
+          XCPROJ=$(find src-tauri/gen/apple -maxdepth 1 -name "*.xcodeproj" | head -1)
           echo "Xcode 工程：$XCPROJ"
-          if [ -f gen/apple/Podfile ]; then
+          if [ -f src-tauri/gen/apple/Podfile ]; then
             pod install --project-directory gen/apple
           fi
           SCHEME=$(xcodebuild -list -project "$XCPROJ" | awk '/Schemes:/{flag=1; next} flag && NF {print; exit}')
           echo "构建 scheme：$SCHEME"
-          if [ -d gen/apple/project.xcworkspace ]; then
-            xcodebuild -workspace "gen/apple/project.xcworkspace" -scheme "$SCHEME" \
+          if [ -d src-tauri/gen/apple/project.xcworkspace ]; then
+            xcodebuild -workspace "src-tauri/gen/apple/project.xcworkspace" -scheme "$SCHEME" \
               -configuration Release -destination 'generic/platform=iOS' \
               -archivePath "$PWD/build/orbis.xcarchive" archive \
               CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
