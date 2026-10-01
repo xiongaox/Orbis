@@ -52,7 +52,7 @@ jobs:
           XCPROJ=$(find src-tauri/gen/apple -maxdepth 1 -name "*.xcodeproj" | head -1)
           echo "Xcode 工程：$XCPROJ"
           if [ -f src-tauri/gen/apple/Podfile ]; then
-            pod install --project-directory gen/apple
+            pod install --project-directory src-tauri/gen/apple
           fi
           SCHEME=$(xcodebuild -list -project "$XCPROJ" | awk '/Schemes:/{flag=1; next} flag && NF {print; exit}')
           echo "构建 scheme：$SCHEME"
