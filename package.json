@@ -27,7 +27,8 @@
     "tauri:build:admin": "tauri build --features admin-signing",
     "worktree:create": ".agents/skills/worktree/scripts/create-worktree.sh",
     "worktree:build": ".agents/skills/worktree/scripts/build-worktree.sh",
-    "worktree:remove": ".agents/skills/worktree/scripts/remove-worktree.sh"
+    "worktree:remove": ".agents/skills/worktree/scripts/remove-worktree.sh",
+    "cases:unpack": "tsx scripts/pack-cases.ts --unpack ../orbis-lore/dist/cases_v1.enc"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
