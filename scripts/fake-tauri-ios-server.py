@@ -17,7 +17,7 @@ RESPONSE = {
     "dev": False,
     "features": [],
     "args": ["--lib"],
-    "noise_level": "normal",
+    "noise_level": "Polite",
     "vars": {},
     "config": [],
     "target_device": None,
