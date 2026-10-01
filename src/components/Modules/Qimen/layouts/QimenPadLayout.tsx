@@ -149,6 +149,7 @@ export default function QimenPadLayout(props: QimenLayoutProps) {
             >
                 <QimenCaseList
                     selectedCaseId={selectedCaseId}
+                    paiPanMethod={paiPanMethod}
                     onSelectCase={(id, caseItem) => {
                         setSelectedCaseId(id);
                         setCurrentCase(caseItem);

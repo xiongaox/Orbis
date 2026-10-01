@@ -1243,21 +1243,7 @@ export default function AiChatDrawer({
         style={{ paddingBottom: 'var(--safe-area-inset-bottom, 0px)' }}
       >
         <div className="w-9 h-1 rounded-full bg-border mx-auto mt-2.5 shrink-0" />
-        <div className="flex items-center justify-between px-4 pt-2 pb-1 shrink-0">
-          <div className="flex items-baseline gap-2">
-            <span className="text-sm font-semibold text-foreground">会话历史</span>
-            <span className="text-[10px] text-muted-foreground">共 {caseSessions.length} 次研判</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowHistorySheet(false)}
-            className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted cursor-pointer"
-            aria-label="关闭"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="flex-1 min-h-0 overflow-y-auto px-4">
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-2">
           {caseSessions.length === 0 ? (
             <div className="py-10 text-center text-xs text-muted-foreground">当前命主暂无历史对话</div>
           ) : (
@@ -1328,18 +1314,7 @@ export default function AiChatDrawer({
         style={{ paddingBottom: 'calc(10px + var(--safe-area-inset-bottom, 0px))' }}
       >
         <div className="w-9 h-1 rounded-full bg-border mx-auto mt-2.5" />
-        <div className="flex items-center justify-between px-4 pt-2 pb-1">
-          <span className="text-sm font-semibold text-foreground">{pickerSheet === 'svc' ? '选择服务' : '选择模型'}</span>
-          <button
-            type="button"
-            onClick={() => setPickerSheet(null)}
-            className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted cursor-pointer"
-            aria-label="关闭"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="max-h-[46vh] overflow-y-auto px-2">
+        <div className="max-h-[46vh] overflow-y-auto px-2 pt-2 pb-1">
           {(pickerSheet === 'svc' ? serviceOptions : modelOptions).map((opt) => {
             const isCurrent = pickerSheet === 'svc' ? opt.value === selectedServiceId : opt.value === selectedModel;
             return (

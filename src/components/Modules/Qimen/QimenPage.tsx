@@ -69,6 +69,7 @@ export default function QimenPage({ lockedSnapshot, onSnapshotChange }: QimenPag
                     key={editingCase ? `edit-${editingCase.id}` : 'new'}
                     isOpen={isNewCaseModalOpen}
                     initialData={editingCase}
+                    paiPanMethod={paiPanMethod}
                     onClose={() => {
                         setIsNewCaseModalOpen(false);
                         setEditingCase(null);

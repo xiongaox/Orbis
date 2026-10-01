@@ -79,6 +79,7 @@ export default function QimenDesktopLayout(props: QimenLayoutProps) {
             <div className="w-72 xl:w-80 2xl:w-96 h-full flex-shrink-0 overflow-hidden">
                 <QimenCaseList
                     selectedCaseId={selectedCaseId}
+                    paiPanMethod={paiPanMethod}
                     onSelectCase={(id, caseItem) => {
                         setSelectedCaseId(id);
                         setCurrentCase(caseItem); // Save full case object for info panel
