@@ -7,9 +7,10 @@
  * - 展示激活码并支持一键复制
 */
 
-import { Check, Copy, KeyRound, Loader2, X } from 'lucide-react';
+import { Check, Copy, KeyRound, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { publicCaseLibraryService } from '../../services/publicCaseLibraryService';
+import BaseModal from '../UI/BaseModal';
 
 interface SignerModalProps {
     isOpen: boolean;
@@ -73,19 +74,14 @@ export default function SignerModal({ isOpen, onClose }: SignerModalProps) {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
-            <div className="bg-card w-full max-w-md rounded-xl border border-border shadow-2xl animate-in zoom-in-95 fade-in duration-200">
-                <div className="flex items-center justify-between p-5 border-b border-border">
-                    <div className="flex items-center gap-2">
-                        <KeyRound className="w-5 h-5 text-primary shrink-0" />
-                        <h2 className="text-lg font-semibold text-foreground">签发激活码</h2>
-                    </div>
-                    <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors" aria-label="关闭">
-                        <X className="w-5 h-5" />
-                    </button>
-                </div>
-
-                <div className="p-5 space-y-4">
+        <BaseModal
+            isOpen
+            onClose={onClose}
+            title="签发激活码"
+            titleIcon={<KeyRound className="w-5 h-5" />}
+            className="animate-in zoom-in-95 fade-in duration-200"
+            bodyClassName="p-5 space-y-4"
+        >
                     <div className="space-y-1.5">
                         <label htmlFor="signer-machine-id" className="text-xs font-medium text-muted-foreground">用户机器识别码</label>
                         <input
@@ -143,8 +139,6 @@ export default function SignerModal({ isOpen, onClose }: SignerModalProps) {
                             {isSigning ? '正在签发...' : '签发激活码'}
                         </button>
                     )}
-                </div>
-            </div>
-        </div>
+        </BaseModal>
     );
 }
