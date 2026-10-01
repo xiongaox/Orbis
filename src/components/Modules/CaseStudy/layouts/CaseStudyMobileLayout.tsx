@@ -54,9 +54,17 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                     <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in duration-300">
                         <div className="space-y-2.5 pb-3 lg:pb-4 border-b border-border/40">
                             <h1 className="text-center text-lg lg:text-2xl font-serif font-bold text-primary/90">{activeCase.title}</h1>
-                            <div className="flex items-center justify-center gap-3">
-                                {activeCase.isPreview && (
+                            <div className="flex items-center justify-center gap-2.5">
+                                <span className="text-xs text-muted-foreground">{activeCase.author}</span>
+                                {(activeCase.isPreview || activeCase.content.length > 0) && (
+                                    <span className="text-xs text-muted-foreground/40">·</span>
+                                )}
+                                {activeCase.isPreview ? (
                                     <span className="shrink-0 text-[10px] leading-none px-1.5 py-1 rounded border border-primary/30 bg-primary/10 text-primary">试读</span>
+                                ) : (
+                                    activeCase.content.length > 0 && (
+                                        <span className="text-xs text-muted-foreground">全文约 {activeCase.content.replace(/\s/g, '').length} 字</span>
+                                    )
                                 )}
                                 <FavoriteButton articleId={activeCase.id} />
                             </div>
