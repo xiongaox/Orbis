@@ -138,7 +138,8 @@ export function YunPillar({
     hideDetails = false,
 }: YunPillarProps) {
     return (
-        <div className={`flex-1 ${isMobileLayout ? 'min-w-[44px]' : 'min-w-[56px]'} border-r border-border last:border-r-0 flex flex-col ${isAccent ? 'bg-accent/5' : ''}`}>
+        // min-w-0：与四柱同规则，任何宽度下由 flex-1 严格等分，勿改回固定 min-w 下限
+        <div className={`flex-1 min-w-0 border-r border-border last:border-r-0 flex flex-col ${isAccent ? 'bg-accent/5' : ''}`}>
             <div className="h-8 flex items-center justify-center border-b border-border bg-secondary/30">
                 <span className={`text-xs ${isAccent ? 'text-foreground/70 font-medium' : 'text-muted-foreground'}`}>{label}</span>
             </div>

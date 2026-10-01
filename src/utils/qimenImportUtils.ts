@@ -156,3 +156,15 @@ export function parseQimenImportData(jsonData: unknown[] | unknown): CreateQimen
 
     return validCases;
 }
+
+/**
+ * 将案例时间渲染为本地墙钟 "YYYY-MM-DD HH:MM"（用于导出与预览）。
+ * 必须经过 Date 解析后取本地分量——禁止直接切 UTC 字符串，
+ * 否则导出的"占测时间"会比真实时间早 8 小时（2026-10 案例时间事故的根源）。
+ */
+export function formatCaseLocalTime(value: string): string {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}

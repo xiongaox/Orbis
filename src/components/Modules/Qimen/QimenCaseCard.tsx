@@ -1,8 +1,8 @@
 /**
  * 关键职责：
  * - 奇门案例卡片（侧栏与案例库弹窗共用同一排版）：上区左列「标题 + 事件描述」
- *   与右侧四柱顶对齐，底行左侧为标签（分类/盘式/盘状态，线框样式、常规状态不显示），
- *   底行右侧为求测日期时间；编辑 / 删除由常驻改为左滑露出，
+ *   与右侧四柱顶对齐，底行左侧为标签（分类/盘式/盘状态，线框样式、常规状态不显示；
+ *   手机端只保留分类标签避免挤压换行），底行右侧为求测日期时间；编辑 / 删除由常驻改为左滑露出，
  *   展开后点击卡片以外任意位置经 useSwipeDismiss 全局收起
  * - 四柱来自 lunarUtil 的 getEightCharFromDate（与盘面同一来源）；
  *   盘状态（伏吟/反吟/常规）在组件内经 useQimenCasePanStatus 按「排盘方式 +
@@ -23,6 +23,7 @@ import { type QimenCase, QIMEN_CATEGORIES } from '../../../services/qimenCaseSer
 import { getEightCharFromDate } from '../../../utils/lunarUtil';
 import { getElementTextColor } from '../../../lib/xuan-bazi/maps';
 import { useSwipeDismiss } from '../../../hooks/useSwipeDismiss';
+import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { useQimenCasePanStatus } from './hooks/useQimenCasePanStatus';
 import type { PaiPanMethod } from '../../../lib/csp-qimen/qimenService';
 
@@ -59,8 +60,10 @@ export default function QimenCaseCard({
 }: QimenCaseCardProps) {
     // 盘状态：组件内共享缓存计算（useMemo 固定入参引用，避免 effect 反复重跑）；
     // 与页头 QimenHeader 同源同文字的全局格局徽标原样渲染（有几个显示几个，
-    // 常规局为空数组不渲染），旧案例按当前页面排盘方法兜底计算
-    const panList = useMemo(() => [caseItem], [caseItem]);
+    // 常规局为空数组不渲染），旧案例按当前页面排盘方法兜底计算。
+    // 手机端标签只保留分类（避免挤压换行），盘状态不展示也无需计算
+    const { isMobile } = useLayoutMode();
+    const panList = useMemo(() => (isMobile ? [] : [caseItem]), [caseItem, isMobile]);
     const panStatuses = useQimenCasePanStatus(panList, paiPanMethod)[caseItem.id] ?? [];
     // 四柱：年 月 日 时（每柱天干 + 地支）
     const testDate = new Date(caseItem.test_date);
@@ -214,14 +217,14 @@ export default function QimenCaseCard({
                     )}
                 </div>
 
-                {/* 底行：左标签（常规状态不显示），右日期时间 */}
+                {/* 底行：左标签（手机端只保留分类，避免挤压换行），右日期时间 */}
                 <div className="mt-[4px] flex min-w-0 items-center justify-between gap-[6px]">
                     <div className="flex min-w-0 flex-wrap items-center gap-[3px]">
                         {categoryName && (
                             <span className={`${chipClass} border-transparent bg-primary/10 text-primary`}>{categoryName}</span>
                         )}
-                        <span className={chipClass}>{methodShort}</span>
-                        {panStatuses.map((pattern, idx) => (
+                        {!isMobile && <span className={chipClass}>{methodShort}</span>}
+                        {!isMobile && panStatuses.map((pattern, idx) => (
                             <span key={idx} className={chipClass} title={pattern.fullLabel}>{pattern.label}</span>
                         ))}
                     </div>
