@@ -22,6 +22,6 @@ npm run cases:unpack    # 默认还原 ../orbis-lore/dist/cases_v1.enc 到本目
 
 ## 同步纪律
 
-- 在本目录修改语料后,必须把变更同步回 orbis-lore 的 `corpus/`,并重跑
-  `npm run cases:pack` 将新的 `cases_v1.enc`、`report.json` 拷入其 `dist/` 后提交;
+- 在本目录修改语料后,必须把变更同步回 orbis-lore 的 `corpus/`,然后执行
+  `npm run cases:publish` 一键完成「重打包 → 拷入 lore/dist → 提交推送」;
 - 本目录内容(除 README/AGENTS 外)不进入 git,提交前无需处理语料变更。
