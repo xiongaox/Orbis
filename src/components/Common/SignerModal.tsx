@@ -80,10 +80,7 @@ export default function SignerModal({ isOpen, onClose }: SignerModalProps) {
                         <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
                             <KeyRound className="w-5 h-5 text-primary" />
                         </div>
-                        <div>
-                            <h2 className="text-base font-bold font-serif text-foreground leading-tight">签发激活码</h2>
-                            <p className="text-xs text-muted-foreground">管理员版 · 输入用户机器识别码出码</p>
-                        </div>
+                        <h2 className="text-base font-bold font-serif text-foreground leading-tight">签发激活码</h2>
                     </div>
                     <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors" aria-label="关闭">
                         <X className="w-5 h-5" />
