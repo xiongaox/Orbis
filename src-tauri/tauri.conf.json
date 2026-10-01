@@ -22,8 +22,7 @@
         "preventOverflow": true,
         "resizable": true,
         "fullscreen": false,
-        "maximized": true,
-        "devtools": false
+        "maximized": true
       }
     ],
     "security": {
