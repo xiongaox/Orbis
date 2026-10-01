@@ -60,7 +60,8 @@ export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-t
 | 前端自检 | `npm run lint && npx tsc -b`（无需 Java/Android） |
 | 桌面构建（普通版） | `npm run tauri:build` |
 | 桌面构建（管理员版） | `npm run tauri:build:admin`（仅作者本机，需 keys/） |
-| 安卓构建（**默认**：日常装机验证，用户未点名 release 时一律用这个） | 先执行第 0 节 export 块，再 `npx tauri android build --apk --debug --target aarch64`，产物 `app-universal-debug.apk`（包名 `com.orbis.app.debug`），`adb install -r` 覆盖装保留数据 |
+| 安卓构建（**默认**：日常装机验证，用户未点名 release 时一律用这个） | 先执行第 0 节 export 块，再 `npm run android:build:debug`（等价 `npx tauri android build --apk --debug --target aarch64`），产物 `app-universal-debug.apk`（包名 `com.orbis.app.debug`），`adb install -r` 覆盖装保留数据 |
+| 安卓构建（管理员版 debug：应用内签发激活码） | 先执行第 0 节 export 块，再 `npm run android:build:debug:admin`（追加 `--features admin-signing`，需本机 `keys/signing_blob.rs`）。包名与普通版相同，**会覆盖安装普通 debug 包**；产物与普通版同路径同名，注意先拷出改名留存 |
 | 安卓构建（release：**仅**用户明确要求 release / 正式交付时） | 先执行第 0 节 export 块，再 `npx tauri android build --target aarch64`（release 产物已自动正式签名，包名 `com.orbis.app`，与 debug 包并存两个图标属预期） |
 | Rust 安全层测试 | `cd src-tauri && cargo test`（无需 Java） |
 | 安卓图标重生成 | `npm run android:icons`（tauri icon 之后必须重跑，见根 AGENTS.md） |
