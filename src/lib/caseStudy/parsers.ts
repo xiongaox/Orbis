@@ -74,7 +74,7 @@ export const parseBirthFromMetadata = (birthDateTime: string): { year: number; m
  * 过滤掉头部元数据，只保留正文内容用于显示
  */
 export const filterContentForDisplay = (content: string): string => {
-    const metadataPattern = /^(命主生辰|性别|日主|格局|令地)[：:][^\n]*\n?/gm;
+    const metadataPattern = /^(命主生辰|性别|日主|格局|令地|神煞)[：:][^\n]*\n?/gm;
     let filtered = content.replace(metadataPattern, '');
     filtered = filtered.replace(/^#\s+[^\n]+\n?/, '');
     return filtered.replace(/^\n+/, '');
