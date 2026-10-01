@@ -12,9 +12,10 @@ import json
 import websockets
 
 # 对应 crates/tauri-cli/src/mobile/mod.rs 的 CliOptions(Default)
+# 注意：features 必须为数组（CLI 反序列化不接受 null）
 RESPONSE = {
     "dev": False,
-    "features": None,
+    "features": [],
     "args": ["--lib"],
     "noise_level": "normal",
     "vars": {},
