@@ -178,6 +178,19 @@ if [[ -d "$SRC_KEYS" ]]; then
   print_success "已建立 keys/ 软链接。"
 fi
 
+# 7a. 项目专属优化 2b: 案例语料目录 (src/data/cases/ 已迁至 orbis-lore,主仓不入库)
+# worktree checkout 只含 README/AGENTS(被跟踪文件),语料本体按子目录软链主仓还原产物
+for CORPUS_SUB in bazi qimen; do
+  SRC_CORPUS="$REPO_ROOT/src/data/cases/$CORPUS_SUB"
+  DST_CORPUS="$TARGET_WORKTREE_PATH/src/data/cases/$CORPUS_SUB"
+  if [[ -d "$SRC_CORPUS" && ! -e "$DST_CORPUS" ]]; then
+    ln -s "$SRC_CORPUS" "$DST_CORPUS"
+    print_success "已建立 src/data/cases/$CORPUS_SUB/ 语料软链接。"
+  elif [[ ! -d "$SRC_CORPUS" ]]; then
+    print_warn "主仓库未找到 src/data/cases/$CORPUS_SUB/，先在主仓执行 npm run cases:unpack 还原语料。"
+  fi
+done
+
 # 8. 项目专属优化 3: 同步 .env 环境变量
 SRC_ENV="$REPO_ROOT/.env"
 DST_ENV="$TARGET_WORKTREE_PATH/.env"

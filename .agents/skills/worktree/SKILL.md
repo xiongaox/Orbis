@@ -27,7 +27,7 @@ description: >-
    - ⚠️ **严格禁止在分支名中使用斜杠 `/`**（如 `feature/xxx`、`codex/xxx`）。分支中的斜杠会导致 Git refs 形成层级目录，容易在多分支合并及工具链中引发路径冲突与潜在缺陷。
 3. **环境与核心资产秒级继承（Orbis 专属优化）**：
    - **`node_modules` 毫秒级软链接共享**：新工作树直接软链接主仓库的 `node_modules`，无需重新运行耗时且占空间的 `npm install`。
-   - **离线案例包 (`dist-cases/`) 与作者密钥 (`keys/`) 自动就绪**：若主仓库存在被 `.gitignore` 保护的 `dist-cases/cases_v1.enc` 和 `keys/`，自动建立软链接，确保 Tauri 构建时不缺失核心案例语料和管理员签发功能。
+   - **离线案例包 (`dist-cases/`)、作者密钥 (`keys/`) 与案例语料 (`src/data/cases/{bazi,qimen}`) 自动就绪**：若主仓库存在被 `.gitignore` 保护的 `dist-cases/cases_v1.enc`、`keys/` 与语料还原目录（`npm run cases:unpack` 还原自 orbis-lore），自动建立软链接，确保 Tauri 构建时不缺失核心案例语料和管理员签发功能。
    - **环境配置 (`.env`) 自动同步**：继承本地私有存储、WebDAV 与环境密钥。
    - **Rust 编译缓存共享**：支持通过 `--share-rust-target` 软链接复用 `src-tauri/target`，节省 15GB 空间并避免重复编译几百个 Rust crate。
 4. **端口隔离规范**：
@@ -67,7 +67,7 @@ git status --porcelain
 1. 校验工作区纯净性。
 2. 提取当前 HEAD 的 8 位提交号，生成无斜杠规范分支名（如 `dev-1c6a87b9`）。
 3. 执行 `git worktree add` 创建独立目录。
-4. 软链接共享 `node_modules`、`dist-cases`、`keys`，并同步 `.env`。
+4. 软链接共享 `node_modules`、`dist-cases`、`keys`、`src/data/cases/{bazi,qimen}`（语料），并同步 `.env`。
 5. 写入 `.worktree-meta.json` 记录元数据。
 
 ---
