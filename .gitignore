@@ -70,3 +70,8 @@ notes/sanyuan
 
 # Git worktree metadata
 .worktree-meta.json
+
+# Case corpus lives in the private orbis-lore repo; restore via: npm run cases:unpack
+/src/data/cases/*
+!/src/data/cases/README.md
+!/src/data/cases/AGENTS.md

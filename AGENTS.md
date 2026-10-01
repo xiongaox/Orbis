@@ -15,7 +15,7 @@ Orbis/
 │   ├── lib/                  # 领域计算与算法实现
 │   ├── services/             # 本地存储、备份与案例业务 IO
 │   ├── hooks/                # 跨组件状态聚合与逻辑编排
-│   └── data/cases/           # 大规模 Markdown 案例语料
+│   └── data/cases/           # 案例语料还原目录（源库为私有仓 orbis-lore，不入库）
 ├── .agent/rules/             # 代理规则（中文输出等）
 ├── docs/
 └── AGENTS.md
@@ -30,7 +30,7 @@ Orbis/
 | 奇门领域算法 | `src/lib/csp-qimen` | 含 WASM 初始化与结果转换 |
 | 服务层行为 | `src/services` | 本地业务服务与 WebDAV 备份 |
 | 大型业务模块 UI | `src/components/Modules` | Bazi/Qimen/Wannianli/CaseStudy |
-| 案例静态语料 | `src/data/cases` | 以 Markdown 为主，体量大 |
+| 案例静态语料 | orbis-lore 私有仓 → `src/data/cases` | 明文源已迁出主仓，`npm run cases:unpack` 还原 |
 | 案例加密包签发/打包 | `scripts/cases-keygen.ts` `scripts/pack-cases.ts` | 作者端工具：Ed25519 密钥、激活码、AES-256-GCM 加密包 |
 | 案例离线安全层 | `src-tauri/src/cases/` | 机器码、验签、内置包内存解密（build.rs 嵌入，无需云端）、一机一密落盘 |
 
@@ -79,6 +79,7 @@ Orbis/
 
 ## ANTI-PATTERNS (THIS PROJECT)
 - 不要提交 `.env`、`keys/`、`dist-cases/`。
+- 不要把 `src/data/cases` 语料（除 README/AGENTS）提交到主仓或公开远端；语料源库为私有仓 orbis-lore。
 - 不要在 UI 层复制算法常量或映射表，优先复用领域层导出。
 - 案例服务直接抛出业务错误，调用方负责展示可理解的提示。
 - 案例正文明文只允许存在于内存；不得写入 localStorage/日志/明文文件。
@@ -102,6 +103,7 @@ npm run cases:keygen -- export-signing      # 作者端：封印私钥供管理�
 npm run tauri:build                          # 构建普通版（无私钥材料，可在 GitHub Actions 跑）
 npm run tauri:build:admin                    # 构建管理员版（--features admin-signing，仅作者本机）
 npm run cases:pack                          # 作者端：打包加密案例包 → dist-cases/cases_v1.enc（构建时嵌入客户端）
+npm run cases:unpack                        # 开发机：解密 orbis-lore 加密包 → 还原 src/data/cases 语料目录
 npm run cases:previews                      # 作者端：生成每分类 2 篇试读样章 → src/lib/caseStudy/casePreviews.generated.ts
 npm run android:icons                       # 安卓端：重生成自适应图标前景（tauri icon 会把图案铺满画布，跑过它之后必须重跑）
 cargo test                                  # 在 src-tauri 内运行 Rust 安全层测试

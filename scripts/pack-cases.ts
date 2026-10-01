@@ -4,6 +4,8 @@
  * 用法：
  *   npx tsx scripts/pack-cases.ts [--out <path>] [--bundle-version <v>]
  *       [--rust-secret-out <path>] [--no-rust-secret] [--verify-only <path>]
+ *   npx tsx scripts/pack-cases.ts --unpack <encPath> [--out <dir>] [--force]
+ *       （开发机还原：把加密包解密为语料目录，语料源库存放在 orbis-lore 私有仓）
  *
  * 处理流：扫描 src/data/cases 下全部 .md（含子目录）→ 组装 JSON → Gzip 压缩 →
  *         AES-256-GCM 加密 → 输出 dist-cases/cases_v1.enc
@@ -168,11 +170,63 @@ async function verifyBundleFile(path: string, masterKey: Buffer): Promise<Packag
     return bundle;
 }
 
+/** 还原条目路径：拒绝绝对路径与目录穿越，保证输出不越出目标根目录。 */
+function safeJoin(root: string, id: string): string {
+    if (id.startsWith('/') || id.split(/[\\/]/).includes('..')) {
+        throw new Error('加密包内出现非法条目路径：' + id);
+    }
+    return resolve(root, id);
+}
+
+async function unpackBundle(bundlePath: string, outputRoot: string, force: boolean): Promise<void> {
+    const masterKey = loadMasterKey();
+    const bundle = await verifyBundleFile(bundlePath, masterKey);
+
+    const existing = await readdir(outputRoot).catch(() => null);
+    if (existing && existing.length > 0 && !force) {
+        throw new Error('目标目录非空（' + outputRoot + '），确认覆盖请追加 --force');
+    }
+    await mkdir(outputRoot, { recursive: true });
+
+    // 作者简介文件与作者案例同域存放：按 authorKey 在包内出现的 domain 还原
+    const authorDomains = new Map<string, Set<string>>();
+    let written = 0;
+    for (const item of bundle.cases) {
+        const parts = item.id.split('/');
+        if (parts.length < 3) throw new Error('加密包内条目 id 不符合 domain/author/文件 约定：' + item.id);
+        const target = safeJoin(outputRoot, item.id);
+        await mkdir(resolve(target, '..'), { recursive: true });
+        await writeFile(target, item.content, 'utf8');
+        written++;
+        const domains = authorDomains.get(item.author_key) ?? new Set<string>();
+        domains.add(parts[0]);
+        authorDomains.set(item.author_key, domains);
+    }
+    for (const [authorKey, domains] of authorDomains) {
+        const profile = bundle.authorProfiles[authorKey];
+        if (!profile) continue;
+        const authorName = bundle.cases.find((item) => item.author_key === authorKey)?.author_name ?? authorKey;
+        for (const domain of domains) {
+            const target = safeJoin(outputRoot, domain + '/' + authorKey + '/' + authorName + '.md');
+            await mkdir(resolve(target, '..'), { recursive: true });
+            await writeFile(target, profile, 'utf8');
+            written++;
+        }
+    }
+    console.log('✓ 还原完成：' + relative(workspace, resolve(outputRoot)) + '，共写出 ' + written + ' 个文件（案例 ' + bundle.cases.length + ' 篇 + 作者简介）。');
+}
+
 async function main(): Promise<void> {
     const verifyOnlyPath = option('--verify-only');
+    const unpackPath = option('--unpack');
     const masterKey = loadMasterKey();
     if (verifyOnlyPath) {
         await verifyBundleFile(resolve(workspace, verifyOnlyPath), masterKey);
+        return;
+    }
+    if (unpackPath) {
+        const outputRoot = resolve(workspace, option('--out') ?? 'src/data/cases');
+        await unpackBundle(resolve(workspace, unpackPath), outputRoot, process.argv.includes('--force'));
         return;
     }
 
