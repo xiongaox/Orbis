@@ -126,11 +126,13 @@ export default function BaziChart({
   return (
     <div className={isMobileLayout ? 'min-w-0' : 'min-h-0 min-w-0 overflow-y-auto'}>
       {/* 主排盘表格 */}
-      {/* 窄屏列数多时横向滚动兜底，避免最右侧柱被裁切 */}
+      {/* 各柱必须能收缩到任意宽度（min-w-0，勿改回固定 min-w 与 min-w-max）：
+          柱宽下限会在窗口缩到 440px（48+7×56）后钉死柱宽、把最右侧时柱挤出可视区；
+          min-w-0 保证 7 柱在任何宽度下 flex-1 严格等分，内容由列内换行兜底 */}
       <div className={`bg-card rounded-xl border border-border overflow-x-auto ${isMobileLayout ? 'mb-0' : 'mb-4'} w-full`}>
 
 
-        <div className="flex w-full min-w-max">
+        <div className="flex w-full">
           {/* 行标题 */}
           <div className={`${isMobileLayout ? 'w-12' : isPadLandscape ? 'w-[40px]' : 'w-12'} flex-shrink-0 border-r border-border flex flex-col`}>
             {['日期', '主星', '天干', '地支'].map((label, i) => {
@@ -186,7 +188,7 @@ export default function BaziChart({
               index === 0 ? pillarShenSha.year : index === 1 ? pillarShenSha.month : index === 2 ? pillarShenSha.day : pillarShenSha.hour
             ).map(s => s.name) : [];
             return (
-              <div key={pillar.label} className={`flex-1 ${isMobileLayout ? 'min-w-[44px]' : 'min-w-[56px]'} border-r border-border last:border-r-0`}>
+              <div key={pillar.label} className={`flex-1 min-w-0 border-r border-border last:border-r-0`}>
                 <DetailedPillarCard pillar={pillar} isDayMaster={index === 2} shensha={shenshaList} genderLabel={index === 2 ? genderLabel : undefined} isMobileLayout={isMobileLayout} hideDetails={hideDetails} onShiftHour={index === 3 && showHourShift ? onShiftHour : undefined} />
               </div>
             );

@@ -6,6 +6,7 @@ import {
     type CreateQimenCaseInput,
     QIMEN_CATEGORIES,
 } from '../../../services/qimenCaseService';
+import { formatCaseLocalTime } from '../../../utils/qimenImportUtils';
 import { parseQimenImportData } from '../../../utils/qimenImportUtils';
 
 interface QimenImportModalProps {
@@ -17,7 +18,7 @@ interface QimenImportModalProps {
 const TEMPLATE_DATA = [
     {
         "title": "工作调动预测",
-        "test_date": "2024-03-20T10:30:00.000Z",
+        "test_date": "2024-03-20 10:30:00",
         "category": "work",
         "description": "想问一下下个月能否顺利调动到总公司？",
         "feedback": "已成功调动",
@@ -25,7 +26,7 @@ const TEMPLATE_DATA = [
     },
     {
         "title": "丢手机",
-        "test_date": "2024-03-21T15:20:00.000Z",
+        "test_date": "2024-03-21 15:20:00",
         "category": "lost",
         "description": "在商场丢失 iPhone 15",
         "feedback": "没找到",
@@ -66,7 +67,7 @@ export default function QimenImportModal({ isOpen, onClose, onImported }: QimenI
                 {/* Date */}
                 <div className="text-xs text-muted-foreground font-mono mb-2 flex items-center gap-1.5">
                     <span className="w-1 h-1 rounded-full bg-muted-foreground/50"></span>
-                    {item.test_date.replace('T', ' ').substring(0, 16)}
+                    {formatCaseLocalTime(item.test_date)}
                 </div>
 
                 {/* Footer: Category */}

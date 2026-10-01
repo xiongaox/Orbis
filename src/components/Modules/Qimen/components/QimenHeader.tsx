@@ -2,12 +2,21 @@ import { useState } from 'react';
 import type { PaiPanMethod } from '../../../../lib/csp-qimen/qimenService';
 import type { GlobalPattern } from '../../../../lib/csp-qimen/patternDetector';
 
+// 茅山法上游内核存在定元 bug（恒输出下元局），修复合入前暂时下架，
+// 回加条件与验收见 docs/qimen-panmethod-fix-plan.md P4/P5
 const METHODS: { value: PaiPanMethod; label: string }[] = [
     { value: 'zhirun', label: '时家转盘置润' },
     { value: 'yinpan', label: '时家转盘阴盘' },
     { value: 'chaibu', label: '时家转盘拆补' },
-    { value: 'maoshan', label: '时家茅山' },
 ];
+
+// 当前盘式名称用全量映射：历史锁盘快照可能仍是 maoshan，需正常显示名称
+const METHOD_LABELS: Record<PaiPanMethod, string> = {
+    zhirun: '时家转盘置润',
+    yinpan: '时家转盘阴盘',
+    chaibu: '时家转盘拆补',
+    maoshan: '时家茅山',
+};
 
 interface QimenHeaderProps {
     header: {
@@ -20,6 +29,7 @@ interface QimenHeaderProps {
         zhiShi: string;
         maXing: string;
         kongWang: string;
+        yueJiang?: string;
         siZhu: { year: string; month: string; day: string; hour: string };
     };
     method: PaiPanMethod;
@@ -104,7 +114,13 @@ export default function QimenHeader({
                         ] : [
                             { label: header.ju.substring(0, 2), value: header.ju.substring(2), bold: true, clickable: true },
                             { label: '旬首', value: header.xunShou, bold: false, clickable: false },
-                            { label: '马星', value: header.maXing, bold: false, clickable: false },
+                            // 阴盘用月将替换马星位（月将为阴盘特有概念，其余盘式照常显示马星）
+                            {
+                                label: method === 'yinpan' && header.yueJiang ? '月将' : '马星',
+                                value: method === 'yinpan' && header.yueJiang ? header.yueJiang : header.maXing,
+                                bold: false,
+                                clickable: false
+                            },
                             { label: '值符', value: header.zhiFu, bold: false, clickable: false },
                             { label: '值使', value: header.zhiShi, bold: false, clickable: false },
                             { label: '空亡', value: header.kongWang, bold: false, clickable: false },
@@ -133,7 +149,7 @@ export default function QimenHeader({
                 <div className="flex items-center gap-1 2xl:gap-2">
                     <div className="relative">
                         <button type="button" onClick={() => setIsMethodOpen(!isMethodOpen)} className="flex items-center gap-1 pl-3 pr-2 py-1 rounded-lg border border-border text-muted-foreground text-xs 2xl:text-sm font-serif hover:bg-muted/10 transition-colors">
-                            <span>{METHODS.find(m => m.value === method)?.label}</span>
+                            <span>{METHOD_LABELS[method]}</span>
                             <svg className={`h-3 w-3 fill-current text-muted-foreground transition-transform ${isMethodOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
                         </button>
                         {isMethodOpen && (

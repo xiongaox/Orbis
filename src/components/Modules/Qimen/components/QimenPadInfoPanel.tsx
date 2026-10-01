@@ -2,11 +2,12 @@
 import type { PaiPanMethod } from '../../../../lib/csp-qimen/qimenService';
 import type { GlobalPattern } from '../../../../lib/csp-qimen/patternDetector';
 
+// 茅山法上游内核存在定元 bug（恒输出下元局），修复合入前暂时下架，
+// 回加条件与验收见 docs/qimen-panmethod-fix-plan.md P4/P5
 const METHODS: { value: PaiPanMethod; label: string }[] = [
     { value: 'zhirun', label: '置润法' },
     { value: 'yinpan', label: '阴盘法' },
     { value: 'chaibu', label: '拆补法' },
-    { value: 'maoshan', label: '茅山法' },
 ];
 
 interface PadInfoPanelProps {
@@ -20,6 +21,7 @@ interface PadInfoPanelProps {
         zhiShi: string;
         maXing: string;
         kongWang: string;
+        yueJiang?: string;
         siZhu: { year: string; month: string; day: string; hour: string };
     };
     method: PaiPanMethod;
@@ -160,7 +162,12 @@ export default function QimenPadInfoPanel({
                         { label: '旬首', value: header.xunShou, clickable: false },
                         { label: '值符', value: header.zhiFu, clickable: false },
                         { label: '值使', value: header.zhiShi, clickable: false },
-                        { label: '马星', value: header.maXing, clickable: false },
+                        // 阴盘用月将替换马星位（月将为阴盘特有概念，其余盘式照常显示马星）
+                        {
+                            label: method === 'yinpan' && header.yueJiang ? '月将' : '马星',
+                            value: method === 'yinpan' && header.yueJiang ? header.yueJiang : header.maXing,
+                            clickable: false
+                        },
                         { label: '空亡', value: header.kongWang, clickable: false },
                     ].map((item, i) => (
                         <div key={i} className="flex items-center gap-1.5">

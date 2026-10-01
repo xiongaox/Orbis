@@ -7,6 +7,7 @@ import QimenNewCaseModal from './QimenNewCaseModal';
 import QimenImportModal from './QimenImportModal';
 import CaseLibraryModal from '../../Common/CaseLibraryModal';
 import ExportCaseModal from '../../Common/ExportCaseModal';
+import { formatCaseLocalTime } from '../../../utils/qimenImportUtils';
 import type { PaiPanMethod } from '../../../lib/csp-qimen/qimenService';
 
 interface QimenCaseLibraryModalProps {
@@ -98,7 +99,7 @@ export default function QimenCaseLibraryModal({
                             const categoryName = QIMEN_CATEGORIES.find(cat => cat.id === c.category)?.name || c.category;
                             return {
                                 '标题': c.title,
-                                '占测时间': c.test_date ? c.test_date.replace('T', ' ').slice(0, 16) : '',
+                                '占测时间': c.test_date ? formatCaseLocalTime(c.test_date) : '',
                                 '分类': categoryName,
                                 '事情描述': c.description || '',
                                 '事件反馈': c.feedback || '',
