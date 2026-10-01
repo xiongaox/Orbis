@@ -205,18 +205,21 @@ export default function ActivationModal({ machineId, isActivating, progress, err
                         </button>
                     )}
 
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="border-t border-border/70 pt-3 space-y-1.5">
                         <p className="text-[11px] leading-relaxed text-muted-foreground/80">
                             激活后案例正文将以本机专属密钥加密保存，离线秒开、无需联网。
                         </p>
-                        <button
-                            type="button"
-                            onClick={() => { setAuthorMode((previous) => !previous); setLicenseCode(''); setMasterPassword(''); }}
-                            disabled={isActivating}
-                            className="shrink-0 self-end text-[11px] text-muted-foreground/70 hover:text-primary transition-colors disabled:opacity-50"
-                        >
-                            {authorMode ? '返回激活码激活' : '作者激活'}
-                        </button>
+                        <div className="flex justify-end">
+                            <button
+                                type="button"
+                                onClick={() => { setAuthorMode((previous) => !previous); setLicenseCode(''); setMasterPassword(''); }}
+                                disabled={isActivating}
+                                className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70 hover:text-primary transition-colors disabled:opacity-50"
+                            >
+                                <KeyRound className="w-3 h-3" />
+                                {authorMode ? '返回激活码激活' : '作者激活'}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
