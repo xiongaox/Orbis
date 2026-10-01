@@ -12,7 +12,7 @@ on:
 
 jobs:
   build-unsigned-ipa:
-    runs-on: macos-latest
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
@@ -47,8 +47,15 @@ jobs:
         env:
           # xcodebuild 的 Run Script 阶段会调用 cargo，需要能找到它
           PATH: /Users/runner/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_16.4.app
         run: |
           set -euxo pipefail
+          if [ ! -d "$DEVELOPER_DIR" ]; then
+            DEVELOPER_DIR=$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -1)
+            export DEVELOPER_DIR
+          fi
+          echo "使用 Xcode：$DEVELOPER_DIR"
           XCPROJ=$(find src-tauri/gen/apple -maxdepth 1 -name "*.xcodeproj" | head -1)
           echo "Xcode 工程：$XCPROJ"
           if [ -f src-tauri/gen/apple/Podfile ]; then
@@ -64,6 +71,7 @@ jobs:
           printf '127.0.0.1:9876' > "$TMPDIR/com.orbis.app-server-addr"
           SCHEME=$(xcodebuild -list -project "$XCPROJ" | awk '/Schemes:/{flag=1; next} flag && NF {print; exit}' | xargs)
           echo "构建 scheme：$SCHEME"
+          find "$XCPROJ/xcshareddata/xcschemes" -name "*.xcscheme" -exec sed -i '' 's/buildConfiguration="Debug"/buildConfiguration="Release"/g' {} +
           xcodebuild -project "$XCPROJ" -scheme "$SCHEME" \
             -configuration Release -destination 'generic/platform=iOS' \
             -archivePath "$PWD/build/orbis.xcarchive" archive \
