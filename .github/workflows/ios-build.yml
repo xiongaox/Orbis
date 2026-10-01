@@ -55,9 +55,10 @@ jobs:
           echo "使用 Xcode：$DEVELOPER_DIR"
           XCPROJ=$(find src-tauri/gen/apple -maxdepth 1 -name "*.xcodeproj" | head -1)
           echo "Xcode 工程：$XCPROJ"
-          if [ -f src-tauri/gen/apple/Podfile ]; then
-            (cd src-tauri/gen/apple && awk '/target .app_macOS./{exit} {print}' Podfile > Podfile.tmp && mv Podfile.tmp Podfile && pod install)
-          fi
+          # 本项目 iOS 无任何 pod 依赖：跳过 pod install，避免空的 Pods 集成
+          # 注入 libPods-app_iOS 链接引用后反而导致链接失败
+          echo "pbxproj 中的 Pods 引用："
+          (grep -c "Pods" "$XCPROJ/project.pbxproj" || true)
           # xcode-script 阶段要从 {identifier}-server-addr 读取选项通道，手动 xcodebuild
           # 没有官方 build 前置流程写入该文件，这里伪造一个选项服务使脚本阶段可用
           python3 -m venv /tmp/ws-venv
