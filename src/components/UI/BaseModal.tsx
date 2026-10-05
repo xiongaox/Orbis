@@ -6,6 +6,14 @@ import { pushBackHandler, popBackHandler } from '../../utils/androidBackButton';
 let openModalCount = 0;
 let previousBodyOverflow = '';
 
+/**
+ * 紧凑弹层标题：底部弹层等小头部场景使用（text-sm medium），
+ * 区别于表单弹窗默认的 text-lg semibold 头部（如设置生日）。
+ */
+export function CompactModalTitle({ children }: { children: React.ReactNode }) {
+    return <span className="text-sm font-medium text-foreground">{children}</span>;
+}
+
 interface BaseModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -28,6 +36,7 @@ interface BaseModalProps {
     fullScreen?: boolean; // 全屏模式（移动端适配）
     responsiveDrawer?: boolean; // 桌面端右侧抽屉，移动端保持居中弹窗
     drawerWidth?: string; // 桌面端抽屉宽度样式
+    bottomSheet?: boolean; // 移动端底部滑出弹层（桌面端仍为居中弹窗）
 }
 
 export default function BaseModal({
@@ -45,6 +54,7 @@ export default function BaseModal({
     fullScreen = false,
     responsiveDrawer = false,
     drawerWidth,
+    bottomSheet = false,
 }: BaseModalProps) {
     const onCloseRef = useRef(onClose);
 
@@ -113,9 +123,11 @@ export default function BaseModal({
     return (
         <div
             className={`fixed inset-0 z-[100] isolate flex ${
-                responsiveDrawer
-                    ? 'items-center justify-center p-4 bg-black/50 md:items-stretch md:justify-end md:p-0 md:bg-black/20 dark:md:bg-black/35 transition-colors duration-200'
-                    : `items-center justify-center ${fullScreen ? 'p-0' : 'p-4'} bg-black/50`
+                bottomSheet
+                    ? 'items-end justify-center bg-black/50 md:items-center md:p-4'
+                    : responsiveDrawer
+                        ? 'items-center justify-center p-4 bg-black/50 md:items-stretch md:justify-end md:p-0 md:bg-black/20 dark:md:bg-black/35 transition-colors duration-200'
+                        : `items-center justify-center ${fullScreen ? 'p-0' : 'p-4'} bg-black/50`
             }`}
             role="dialog"
             aria-modal="true"
@@ -129,21 +141,26 @@ export default function BaseModal({
             <div
                 className={`
                     relative z-10 bg-background shadow-2xl flex flex-col
-                    ${responsiveDrawer
-                        ? `w-full ${maxWidth} max-h-[85vh] rounded-xl border border-border ${drawerWidth || 'md:w-[500px] lg:w-[580px] xl:w-[640px] md:max-w-[85vw] lg:max-w-[50vw]'} md:h-full md:max-h-screen md:rounded-none md:border-l md:border-y-0 md:border-r-0 md:border-border md:animate-slide-in-right`
-                        : `${fullScreen ? '' : 'border border-border rounded-xl'} w-full ${maxWidth} ${fullScreen ? 'h-full' : 'max-h-[85vh]'}`
+                    ${bottomSheet
+                        ? `w-full ${maxWidth} max-h-[85vh] rounded-t-2xl border-t border-x-0 border-b-0 border-border animate-slide-up md:rounded-xl md:border md:animate-none`
+                        : responsiveDrawer
+                            ? `w-full ${maxWidth} max-h-[85vh] rounded-xl border border-border ${drawerWidth || 'md:w-[500px] lg:w-[580px] xl:w-[640px] md:max-w-[85vw] lg:max-w-[50vw]'} md:h-full md:max-h-screen md:rounded-none md:border-l md:border-y-0 md:border-r-0 md:border-border md:animate-slide-in-right`
+                            : `${fullScreen ? '' : 'border border-border rounded-xl'} w-full ${maxWidth} ${fullScreen ? 'h-full' : 'max-h-[85vh]'}`
                     }
                     ${className}
                 `}
                 // 全屏弹层铺满屏幕，需自行避开系统栏；背景仍延伸到状态栏下方，
                 // 只把内容顶下来。非全屏弹层居中且留有 p-4，无需处理。
+                // 底部弹层贴底，底部同样需要避让系统手势条。
                 style={
                     fullScreen
                         ? {
                             paddingTop: 'var(--safe-area-inset-top, 0px)',
                             paddingBottom: 'var(--safe-area-inset-bottom, 0px)',
                         }
-                        : undefined
+                        : bottomSheet
+                            ? { paddingBottom: 'var(--safe-area-inset-bottom, 0px)' }
+                            : undefined
                 }
                 onClick={(e) => e.stopPropagation()}
             >

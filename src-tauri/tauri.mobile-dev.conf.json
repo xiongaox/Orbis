@@ -1,0 +1,23 @@
+{
+  "build": {
+    "beforeDevCommand": "npm run dev -- --host 0.0.0.0 --port 9899",
+    "devUrl": "http://localhost:9899"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "玄枢录 · 移动预览 9899",
+        "width": 410,
+        "height": 860,
+        "minWidth": 390,
+        "minHeight": 810,
+        "center": true,
+        "preventOverflow": true,
+        "resizable": true,
+        "fullscreen": false,
+        "maximized": false
+      }
+    ]
+  }
+}

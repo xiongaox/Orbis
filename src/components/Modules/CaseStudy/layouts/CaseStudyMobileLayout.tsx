@@ -23,6 +23,7 @@ import FavoriteButton from '../components/FavoriteButton';
 import ReadingProgressButton from '../components/ReadingProgressButton';
 import ArticleContentLoading from '../components/ArticleContentLoading';
 import { type CaseStudyLayoutProps } from './CaseStudyLayoutProps';
+import { useRegisterMobileDrawers } from '../../../../contexts/MobileNavContext';
 
 const toChineseNum = (num: number) => {
     const chineseRaw = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
@@ -46,6 +47,12 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
         duanFa, duanFaContentRef, duanFaSavedProgress, duanFaCurrentProgress, duanFaRestoreProgress,
         isPreviewMode, libraryTotal, libraryGroupTotals, previewsPerGroup, openActivation,
     } = props;
+
+    // 移动端底栏注册：目录（左抽屉）与 排盘信息/大纲（右抽屉）由底部导航槽位打开
+    useRegisterMobileDrawers('xiaoliuren', {
+        openCase: () => setIsLeftPanelOpen(true),
+        openPanel: () => setIsChartPanelOpen(true),
+    });
 
     const contentColumn = (
         <div className="flex-1 flex flex-col bg-background/50 relative overflow-hidden">

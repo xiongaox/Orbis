@@ -62,8 +62,8 @@ export default {
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
         "slide-up": {
-          "0%": { transform: "translateX(100%)" },
-          "100%": { transform: "translateX(0)" },
+          "0%": { transform: "translateY(100%)" },
+          "100%": { transform: "translateY(0)" },
         },
         "slide-in-right": {
           "0%": { transform: "translateX(100%)" },
