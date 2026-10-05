@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../../utils/lunarUtil';
 import { getElementTextColor } from '../../../lib/xuan-bazi/maps';
-import type { BaziCase } from '../../../services/baziCaseService';
+import type { BaziCase, CaseTag } from '../../../services/baziCaseService';
 import { useSwipeDismiss } from '../../../hooks/useSwipeDismiss';
 
 const REVEAL_PX = 140;
@@ -19,6 +19,8 @@ interface SortableCaseCardProps {
     onSelect: () => void;
     onEdit: () => void;
     onDelete: () => void;
+    /** 当前浏览分组：案例含该标签时优先展示它，而非第一个标签 */
+    preferredTag?: CaseTag | null;
 }
 
 export default function SortableCaseCard({
@@ -27,6 +29,7 @@ export default function SortableCaseCard({
     onSelect,
     onEdit,
     onDelete,
+    preferredTag,
 }: SortableCaseCardProps) {
     // 左滑位移（px，负值向左）
     const [swipeX, setSwipeX] = useState(0);
@@ -132,6 +135,10 @@ export default function SortableCaseCard({
     const dayGan = pillarPairs[2]?.[0] ?? '';
     const dayGanColor = getElementTextColor(dayGan);
 
+    // 标签：正浏览某分组且案例属于该分组时，优先展示该分组标签
+    const tags = caseData.tags ?? [];
+    const displayTag = preferredTag && tags.includes(preferredTag) ? preferredTag : tags[0];
+
     const birth = new Date(caseData.birth_date);
     const hasValidBirth = !Number.isNaN(birth.getTime());
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -202,9 +209,9 @@ export default function SortableCaseCard({
                             }`}>
                             {caseData.gender === 'male' ? '乾' : '坤'}
                         </span>
-                        {caseData.tags && caseData.tags.length > 0 && (
+                        {tags.length > 0 && (
                             <span className="inline-flex h-5 shrink-0 items-center rounded-[5px] bg-primary/10 px-1.5 text-[13px] leading-none text-primary">
-                                {caseData.tags[0]}
+                                {displayTag}
                             </span>
                         )}
                     </div>

@@ -61,10 +61,11 @@ export default function BaziCaseLibraryModal({
                     导出
                 </button>
             }
-            renderCard={({ caseData, isSelected, onSelect, onEdit, onDelete }) => (
+            renderCard={({ caseData, isSelected, onSelect, onEdit, onDelete, activeCategoryId }) => (
                 <SortableCaseCard
                     key={caseData.id}
                     caseData={caseData}
+                    preferredTag={(activeCategoryId as CaseTag | null)}
                     isSelected={isSelected}
                     onSelect={onSelect}
                     onEdit={onEdit}

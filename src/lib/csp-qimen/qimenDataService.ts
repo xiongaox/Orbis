@@ -147,6 +147,7 @@ export interface GanDesc {
 
 export interface GanComboDesc {
     格局名称?: string;
+    吉凶?: string;
     详解?: string;
     象意联想?: string;
     测疾病?: string;

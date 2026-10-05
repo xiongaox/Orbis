@@ -31,6 +31,8 @@ export interface CaseLibraryModalProps<T extends { id: string }> {
         onSelect: () => void;
         onEdit: () => void;
         onDelete: () => void;
+        /** 当前选中分组 id（「全部」时为 null），卡片可用于优先展示所属分组标签 */
+        activeCategoryId: string | null;
     }) => ReactNode;
 
     renderSubModals: (props: {
@@ -224,6 +226,7 @@ export default function CaseLibraryModal<T extends { id: string }>({
                                 {filteredCases.map((caseData) => renderCard({
                                     caseData,
                                     isSelected: selectedCaseId === caseData.id,
+                                    activeCategoryId: selectedCategory,
                                     onSelect: () => {
                                         onSelectCase?.(caseData.id, caseData);
                                         if (isMobile) onClose();

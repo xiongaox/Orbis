@@ -78,11 +78,15 @@ function getPalaceStatusNotices(
         return notices;
     }
 
-    if (item.type !== '天盘干' && item.type !== '地盘干') {
+    if (item.type !== '天盘干' && item.type !== '地盘干' && item.type !== '天盘寄干' && item.type !== '地盘寄干') {
         return [];
     }
 
-    const stem = item.type === '天盘干' ? palace.tianPan : palace.diPan;
+    // 中宫寄干在寄宫同样参与击刑/入墓判定
+    const stem = item.type === '天盘干' ? palace.tianPan
+        : item.type === '地盘干' ? palace.diPan
+        : item.type === '天盘寄干' ? (palace.jiGongTianPan || '')
+        : (palace.jiGongDiPan || '');
     const status = getTianPanStatus(stem, palace.position).status;
     switch (status) {
         case 'jiXing':
@@ -218,8 +222,19 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
                                         <span className="px-2 py-0.5 rounded text-xs bg-primary/10 text-primary border border-primary/20">{detailData.subTitle}</span>
                                     )}
                                     {detailData.tags?.map((tag, i) => (
-                                        <span key={i} className="px-2 py-0.5 rounded text-xs bg-primary/10 text-primary border border-primary/20">
-                                            {tag}
+                                        <span
+                                            key={i}
+                                            className={
+                                                tag.tone === 'ji'
+                                                    ? 'inline-flex w-6 h-6 items-center justify-center rounded text-xs bg-emerald-500/10 text-emerald-500 border border-emerald-500/30'
+                                                    : tag.tone === 'xiong'
+                                                      ? 'inline-flex w-6 h-6 items-center justify-center rounded text-xs bg-red-500/10 text-red-500 border border-red-500/30'
+                                                      : tag.tone === 'ping'
+                                                        ? 'inline-flex w-6 h-6 items-center justify-center rounded text-xs bg-muted text-muted-foreground border border-border'
+                                                        : 'px-2 py-0.5 rounded text-xs bg-primary/10 text-primary border border-primary/20'
+                                            }
+                                        >
+                                            {tag.label}
                                         </span>
                                     ))}
                                 </div>

@@ -18,10 +18,16 @@ export function extractGan(str: string): string {
     return match ? match[0] : '';
 }
 
+export interface DetailTag {
+    label: string;
+    /** 吉凶色调：ji=吉（绿）xiong=凶（红）ping=平（中性），缺省用主题色 */
+    tone?: 'ji' | 'xiong' | 'ping';
+}
+
 export interface DetailDisplayData {
     title: string;
     subTitle: string;
-    tags: string[];
+    tags: DetailTag[];
     content: string;
 }
 
@@ -53,7 +59,7 @@ export function getDetailDisplayData(
 
     let title = cleanLabel;
     let subTitle = '';
-    const tags: string[] = [];
+    const tags: DetailTag[] = [];
     let content = '';
 
     switch (type) {
@@ -212,7 +218,11 @@ export function getDetailDisplayData(
                 const d = QimenDataService.getGanCombo(tian, di);
                 if (d) {
                     title = label;
-                    if (d.格局名称) tags.push(d.格局名称);
+                    if (d.格局名称) tags.push({ label: d.格局名称 });
+                    if (d.吉凶) {
+                        const tone = d.吉凶 === '吉' ? 'ji' : d.吉凶 === '凶' ? 'xiong' : 'ping';
+                        tags.push({ label: d.吉凶, tone });
+                    }
                     content = [
                         d.详解 && `【详解】\n${d.详解}`,
                         d.象意联想 && `【象意】\n${d.象意联想}`,

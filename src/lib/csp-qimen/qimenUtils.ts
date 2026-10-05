@@ -57,7 +57,7 @@ const SHIER_CS_ABBR: Record<string, string> = {
     '长生': '生',
     '沐浴': '沐',
     '冠带': '冠',
-    '临官': '临',
+    '临官': '官',
     '帝旺': '旺',
     '衰': '衰',
     '病': '病',
@@ -67,48 +67,6 @@ const SHIER_CS_ABBR: Record<string, string> = {
     '胎': '胎',
     '养': '养',
 };
-
-// ============ 落宫旺衰（基于宫位五行） ============
-
-/**
- * 计算五行与另一五行的关系状态
- * 旺相休囚废规则（自我视角）：
- * - 旺：对方生我
- * - 相：对方与我同行
- * - 休：我生对方
- * - 囚：对方克我
- * - 废：我克对方
- */
-function getWuxingRelation(myWuxing: string, targetWuxing: string): string {
-    if (!myWuxing || !targetWuxing) return '';
-
-    // 同行 => 相
-    if (myWuxing === targetWuxing) {
-        return '相';
-    }
-
-    // 对方生我 => 旺
-    if (WUXING_BEISHENG[myWuxing] === targetWuxing) {
-        return '旺';
-    }
-
-    // 我生对方 => 休
-    if (WUXING_SHENG[myWuxing] === targetWuxing) {
-        return '休';
-    }
-
-    // 对方克我 => 囚
-    if (WUXING_BEIKE[myWuxing] === targetWuxing) {
-        return '囚';
-    }
-
-    // 我克对方 => 废
-    if (WUXING_KE[myWuxing] === targetWuxing) {
-        return '废';
-    }
-
-    return '';
-}
 
 // ============ 八门旺衰（旺相休囚死） ============
 
@@ -138,7 +96,8 @@ export function getMenWangYueLing(men: string, monthZhi: string): string {
 
 /**
  * 获取八门落宫旺衰（旺相休囚死）
- * PDF 规则：同我者为旺、我生者为相、生我者为休、克我者为囚、我克者为死
+ * 对齐真奇门：同我者为旺、生我者为相、我生者为休、我克者为囚、克我者为死
+ * 注：我克宫即门迫，仅由 UI 红色门名标识，旺衰文案按旺衰本名显示「囚」
  */
 function getMenLuoGong(menWuxing: string, gongWuxing: string): string {
     if (!menWuxing || !gongWuxing) return '';
@@ -148,23 +107,23 @@ function getMenLuoGong(menWuxing: string, gongWuxing: string): string {
         return '旺';
     }
 
-    // 我生者（食伤）=> 相
-    if (WUXING_SHENG[menWuxing] === gongWuxing) {
+    // 生我者（印）=> 相
+    if (WUXING_BEISHENG[menWuxing] === gongWuxing) {
         return '相';
     }
 
-    // 生我者（印）=> 休
-    if (WUXING_BEISHENG[menWuxing] === gongWuxing) {
+    // 我生者（食伤）=> 休
+    if (WUXING_SHENG[menWuxing] === gongWuxing) {
         return '休';
     }
 
-    // 克我者（官鬼）=> 囚
-    if (WUXING_BEIKE[menWuxing] === gongWuxing) {
+    // 我克者（财）=> 囚（此即门迫，UI 以红色门名标识）
+    if (WUXING_KE[menWuxing] === gongWuxing) {
         return '囚';
     }
 
-    // 我克者（财）=> 死
-    if (WUXING_KE[menWuxing] === gongWuxing) {
+    // 克我者（官鬼）=> 死
+    if (WUXING_BEIKE[menWuxing] === gongWuxing) {
         return '死';
     }
 
@@ -195,15 +154,49 @@ export function getMenWang(men: string, gongPosition: number, monthZhi: string):
 // ============ 九星旺衰（旺相休囚废） ============
 
 /**
- * 获取九星月令旺衰（旺相休囚废）
- * 《烟波钓叟歌》：与我同行即为相，我生之月诚为旺，废于父母休于财，囚于鬼兮真不旺
- * 
+ * 九星旺衰（旺相休囚废），《烟波钓叟歌》规则对照目标五行（月令或落宫通用）：
+ * 与我同行即为相，我生之月诚为旺，废于父母休于财，囚于鬼兮真不旺
+ *
  * 正确理解：
- * - 相：月令与我同行（比劫）
- * - 旺：我生月令（食伤）
- * - 休：我克月令（财）
- * - 废：月令生我（印）
- * - 囚：月令克我（官鬼）
+ * - 相：对方与我同行（比劫）
+ * - 旺：我生对方（食伤）
+ * - 休：我克对方（财）
+ * - 废：对方生我（印）
+ * - 囚：对方克我（官鬼）
+ */
+function getXingWangByWuxing(xingWuxing: string, targetWuxing: string): string {
+    if (!xingWuxing || !targetWuxing) return '';
+
+    // 对方与我同行（比劫）=> 相
+    if (targetWuxing === xingWuxing) {
+        return '相';
+    }
+
+    // 我生对方（食伤）=> 旺
+    if (WUXING_SHENG[xingWuxing] === targetWuxing) {
+        return '旺';
+    }
+
+    // 我克对方（财）=> 休
+    if (WUXING_KE[xingWuxing] === targetWuxing) {
+        return '休';
+    }
+
+    // 对方生我（印）=> 废
+    if (WUXING_BEISHENG[xingWuxing] === targetWuxing) {
+        return '废';
+    }
+
+    // 对方克我（官鬼）=> 囚
+    if (WUXING_BEIKE[xingWuxing] === targetWuxing) {
+        return '囚';
+    }
+
+    return '';
+}
+
+/**
+ * 获取九星月令旺衰（旺相休囚废），规则见 getXingWangByWuxing
  */
 export function getXingWangYueLing(xing: string, monthZhi: string): string {
     const xingWuxing = XING_WUXING[xing];
@@ -212,36 +205,12 @@ export function getXingWangYueLing(xing: string, monthZhi: string): string {
     const monthWuxing = ZHI_WUXING[monthZhi];
     if (!monthWuxing) return '';
 
-    // 月令与我同行（比劫）=> 相
-    if (monthWuxing === xingWuxing) {
-        return '相';
-    }
-
-    // 我生月令（食伤）=> 旺
-    if (WUXING_SHENG[xingWuxing] === monthWuxing) {
-        return '旺';
-    }
-
-    // 我克月令（财）=> 休
-    if (WUXING_KE[xingWuxing] === monthWuxing) {
-        return '休';
-    }
-
-    // 月令生我（印）=> 废
-    if (WUXING_BEISHENG[xingWuxing] === monthWuxing) {
-        return '废';
-    }
-
-    // 月令克我（官鬼）=> 囚
-    if (WUXING_BEIKE[xingWuxing] === monthWuxing) {
-        return '囚';
-    }
-
-    return '';
+    return getXingWangByWuxing(xingWuxing, monthWuxing);
 }
 
 /**
  * 获取九星完整旺衰：落宫丨月令
+ * 落宫与月令同用《烟波钓叟歌》九星规则（对齐真奇门）
  * @param xing 九星名称
  * @param gongPosition 所落宫位
  * @param monthZhi 月支
@@ -252,7 +221,7 @@ export function getXingWang(xing: string, gongPosition: number, monthZhi: string
     if (!xingWuxing) return '';
 
     const gongWuxing = GONG_WUXING[gongPosition];
-    const luoGong = getWuxingRelation(xingWuxing, gongWuxing);
+    const luoGong = getXingWangByWuxing(xingWuxing, gongWuxing);
     const yueLing = getXingWangYueLing(xing, monthZhi);
 
     if (luoGong && yueLing) {

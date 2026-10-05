@@ -87,6 +87,9 @@ export default function CaseStudyPalaceCell({
     const tianPanStatus = getTianPanStatus(palace.tianPan, palace.position);
     const menPoStatus = getMenPoStatus(palace.men, palace.position);
     const diPanStatus = getTianPanStatus(palace.diPan, palace.position);
+    // 中宫寄干在寄宫同样参与击刑/入墓判定（如中宫己寄坤宫为六仪击刑）
+    const jiGongTianPanStatus = getTianPanStatus(palace.jiGongTianPan || '', palace.position);
+    const jiGongDiPanStatus = getTianPanStatus(palace.jiGongDiPan || '', palace.position);
 
     const jiGongClass = `${isMobile ? 'text-sm' : 'text-base'} font-serif ${isJiGongDayStem || isJiGongHourStem ? 'text-primary font-bold' : 'text-foreground'}`;
 
@@ -103,7 +106,11 @@ export default function CaseStudyPalaceCell({
                 {/* 第二行：寄宫天盘 + 九星 + 天盘干 */}
                 <div className="grid grid-cols-3 w-full items-end">
                     <div className="flex flex-col items-center justify-end leading-none">
-                        <span className={jiGongClass}>{palace.jiGongTianPan}</span>
+                        {jiGongTianPanStatus.status === 'normal' ? (
+                            <span className={jiGongClass}>{palace.jiGongTianPan}</span>
+                        ) : (
+                            <QimenStatusStem status={jiGongTianPanStatus.status} value={palace.jiGongTianPan || ''} isMobile={isMobile} mobileAsBadge mobileClassName="w-4 h-4 text-xs" desktopClassName="w-5 h-5 text-sm" />
+                        )}
                         {showShiShen && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap`}>{palace.jiGongTianPanShiShen}</span>}
                         {showChangSheng && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap`}>{palace.jiGongTianPanCS}</span>}
                     </div>
@@ -130,7 +137,11 @@ export default function CaseStudyPalaceCell({
                 {/* 第三行：寄宫地盘 + 八门 + 地盘干 */}
                 <div className="grid grid-cols-3 w-full items-end">
                     <div className="flex flex-col items-center justify-end leading-none">
-                        <span className={`${isMobile ? 'text-sm' : 'text-base'} font-serif text-foreground`}>{palace.jiGongDiPan}</span>
+                        {jiGongDiPanStatus.status === 'normal' ? (
+                            <span className={`${isMobile ? 'text-sm' : 'text-base'} font-serif text-foreground`}>{palace.jiGongDiPan}</span>
+                        ) : (
+                            <QimenStatusStem status={jiGongDiPanStatus.status} value={palace.jiGongDiPan || ''} isMobile={isMobile} mobileAsBadge mobileClassName="w-4 h-4 text-xs" desktopClassName="w-5 h-5 text-sm" />
+                        )}
                         {showShiShen && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap`}>{palace.jiGongDiPanShiShen}</span>}
                         {showChangSheng && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap`}>{palace.jiGongDiPanCS}</span>}
                     </div>

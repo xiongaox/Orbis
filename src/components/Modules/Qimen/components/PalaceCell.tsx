@@ -157,6 +157,9 @@ export default function PalaceCell({
     const tianPanStatus = getTianPanStatus(palace.tianPan, palace.position);
     const menPoStatus = getMenPoStatus(palace.men, palace.position);
     const diPanStatus = getTianPanStatus(palace.diPan, palace.position);
+    // 中宫寄干在寄宫同样参与击刑/入墓判定（如中宫己寄坤宫为六仪击刑）
+    const jiGongTianPanStatus = getTianPanStatus(palace.jiGongTianPan || '', palace.position);
+    const jiGongDiPanStatus = getTianPanStatus(palace.jiGongDiPan || '', palace.position);
 
     const jiGongClass = `text-base 2xl:text-xl font-serif ${isJiGongDayStem || isJiGongHourStem ? 'text-primary font-bold' : 'text-foreground'}`;
 
@@ -185,7 +188,11 @@ export default function PalaceCell({
                 <div className="grid grid-cols-3 w-full">
                     <div className="flex flex-col items-center justify-end leading-none">
                         <div className={`flex items-center justify-center ${isMobileLayout ? '' : 'min-h-6 2xl:min-h-7'}`}>
-                            <span className={jiGongClass}>{palace.jiGongTianPan}</span>
+                            {jiGongTianPanStatus.status === 'normal' ? (
+                                <span className={jiGongClass}>{palace.jiGongTianPan}</span>
+                            ) : (
+                                <QimenStatusStem status={jiGongTianPanStatus.status} value={palace.jiGongTianPan || ''} isMobile={isMobileLayout} mobileClassName="text-base" desktopClassName="w-6 h-6 2xl:w-7 2xl:h-7 text-base 2xl:text-lg" />
+                            )}
                         </div>
                         {showShiShen && <span className={extraInfoClass}>{palace.jiGongTianPanShiShen}</span>}
                         {showChangSheng && <span className={extraInfoClass}>{palace.jiGongTianPanCS}</span>}
@@ -218,7 +225,11 @@ export default function PalaceCell({
                 <div className="grid grid-cols-3 w-full">
                     <div className="flex flex-col items-center justify-end leading-none">
                         <div className={`flex items-center justify-center ${isMobileLayout ? '' : 'min-h-6 2xl:min-h-7'}`}>
-                            <span className="text-base 2xl:text-xl font-serif text-foreground">{palace.jiGongDiPan}</span>
+                            {jiGongDiPanStatus.status === 'normal' ? (
+                                <span className="text-base 2xl:text-xl font-serif text-foreground">{palace.jiGongDiPan}</span>
+                            ) : (
+                                <QimenStatusStem status={jiGongDiPanStatus.status} value={palace.jiGongDiPan || ''} isMobile={isMobileLayout} mobileClassName="text-base" desktopClassName="w-6 h-6 2xl:w-7 2xl:h-7 text-base 2xl:text-lg" />
+                            )}
                         </div>
                         {showShiShen && <span className={extraInfoClass}>{palace.jiGongDiPanShiShen}</span>}
                         {showChangSheng && <span className={extraInfoClass}>{palace.jiGongDiPanCS}</span>}

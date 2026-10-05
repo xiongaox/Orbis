@@ -222,7 +222,7 @@ export default function CaseCard({
                                 </button>
                             )}
                         </div>
-                        <div className="mt-[4px] flex min-w-0 items-center gap-[4px]">
+                        <div className="mt-[4px] flex min-w-0 flex-wrap items-center gap-[4px]">
                             {/* 性别印章：第二行行首 */}
                             <span className={`inline-flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-[4px] text-[10.5px] leading-none ${isMale
                                 ? 'bg-[var(--gender-male-bg)] text-[var(--gender-male)]'
@@ -230,11 +230,15 @@ export default function CaseCard({
                                 }`}>
                                 {isMale ? '乾' : '坤'}
                             </span>
-                            {item.tags && item.tags.length > 0 && (
-                                <span className="inline-flex h-[17px] shrink-0 items-center rounded-[4px] bg-primary/10 px-[3px] text-[10.5px] leading-none text-primary">
-                                    {item.tags[0]}
+                            {/* 标签全量展示，多标签依次排列 */}
+                            {item.tags && item.tags.length > 0 && item.tags.map((tag) => (
+                                <span
+                                    key={tag}
+                                    className="inline-flex h-[17px] shrink-0 items-center rounded-[4px] bg-primary/10 px-[3px] text-[10.5px] leading-none text-primary"
+                                >
+                                    {tag}
                                 </span>
-                            )}
+                            ))}
                         </div>
                     </div>
                     {/* 右侧：四柱迷你排盘（干上支下 4 列）。
