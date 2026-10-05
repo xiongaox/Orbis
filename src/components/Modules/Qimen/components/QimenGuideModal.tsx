@@ -12,6 +12,7 @@ import { BookOpen } from 'lucide-react';
 import BaseModal from '../../../UI/BaseModal';
 import PalaceCell from './PalaceCell';
 import { getJiaDunStem } from '../../../../lib/csp-qimen/qimenUtils';
+import { MEN_YINYANG, XING_YINYANG } from '../../../../lib/csp-qimen/constants';
 import type { QimenPalace } from '../QimenChart';
 
 interface QimenGuideModalProps {
@@ -108,6 +109,15 @@ export default function QimenGuideModal({
         const p = display;
         const path = p.menPoPath;
         const hasJiGong = !!(p.jiGongTianPan || p.jiGongDiPan);
+        // 八门/九星阴阳注记：门之阴阳随宫卦（阳门开休生伤、阴门杜景死惊）；禽芮为合星单独说明
+        const menYinyangNote = MEN_YINYANG[p.men]
+            ? `；${p.men}为${MEN_YINYANG[p.men]}门（阳门：开、休、生、伤；阴门：杜、景、死、惊）`
+            : '';
+        const xingYinyangNote = p.xing === '禽芮'
+            ? '；禽芮为天禽（阳星）与天芮（阴星）之合星'
+            : XING_YINYANG[p.xing]
+                ? `；${p.xing}为${XING_YINYANG[p.xing]}星（阳星：蓬、冲、禽、心、任；阴星：芮、辅、柱、英）`
+                : '';
         const items: (Omit<GuideItem, 'n'> | null)[] = [
             path ? {
                 id: 'sangua', zone: 'top' as const,
@@ -137,7 +147,7 @@ export default function QimenGuideModal({
             p.xing ? {
                 id: 'xing', zone: 'left' as const,
                 title: `九星（${p.xing}）与小字「${p.xingWang || '—'}」`,
-                desc: `「${(p.xingWang || '丨').split('丨')[0]}」是星五行对落宫五行的旺衰，出自《烟波钓叟歌》：与我同行即为相，我生之月诚为旺，废于父母休于财，囚于鬼兮真不旺；「月X」是同一规则对${monthBranch || '月'}令`,
+                desc: `「${(p.xingWang || '丨').split('丨')[0]}」是星五行对落宫五行的旺衰，出自《烟波钓叟歌》：与我同行即为相，我生之月诚为旺，废于父母休于财，囚于鬼兮真不旺；「月X」是同一规则对${monthBranch || '月'}令${xingYinyangNote}`,
             } : null,
             p.tianPan ? {
                 id: 'tianPan', zone: 'right' as const,
@@ -147,7 +157,7 @@ export default function QimenGuideModal({
             p.men ? {
                 id: 'men', zone: 'right' as const,
                 title: `八门（${p.men}）与小字「${p.menWang || '—'}」`,
-                desc: `「${(p.menWang || '丨').split('丨')[0]}」是门五行对落宫五行的旺相休囚死（同我旺、生我相、我生休、我克囚即门迫、克我死）；「月X」是同一规则对${monthBranch || '月'}令；门克落宫即为门迫，界面以红色门名标识`,
+                desc: `「${(p.menWang || '丨').split('丨')[0]}」是门五行对落宫五行的旺相休囚死（同我旺、生我相、我生休、我克囚即门迫、克我死）；「月X」是同一规则对${monthBranch || '月'}令；门克落宫即为门迫，界面以红色门名标识${menYinyangNote}`,
             } : null,
             p.diPan ? {
                 id: 'diPan', zone: 'right' as const,
