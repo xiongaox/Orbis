@@ -327,13 +327,13 @@ export default function WannianliLayout(props: WannianliLayoutProps) {
                                         </>
                                     )}
                                     <div className="flex flex-col items-center justify-center z-10 w-full gap-0.5">
-                                        <span className={cn('font-mono transition-all leading-none mb-0.5', isMobileLayout ? 'text-lg' : 'text-2xl md:text-3xl', day.isToday ? "text-primary drop-shadow-[0_2px_8px_rgba(var(--primary),0.3)]" : day.isSelected ? "text-primary" : (day.isHoliday || (day.isWeekend && !day.isWork)) ? "text-red-500/80" : "text-foreground group-hover:text-primary", !day.isCurrentMonth && !day.isToday && !day.isSelected && "text-muted-foreground/30")}>
+                                        <span className={cn('font-mono transition-all mb-0.5', isMobileLayout ? 'text-lg leading-none' : 'text-2xl md:text-3xl leading-none', day.isToday ? "text-primary drop-shadow-[0_2px_8px_rgba(var(--primary),0.3)]" : day.isSelected ? "text-primary" : (day.isHoliday || (day.isWeekend && !day.isWork)) ? "text-red-500/80" : "text-foreground group-hover:text-primary", !day.isCurrentMonth && !day.isToday && !day.isSelected && "text-muted-foreground/30")}>
                                             {day.solar.getDay()}
                                         </span>
-                                        <span className={cn('font-bold truncate leading-none', isMobileLayout ? 'text-[11px] px-1' : 'text-[16px] px-2', day.isSelected || day.isJieQi ? "text-primary/100" : day.isHoliday ? "text-red-500/60" : "text-muted-foreground/60")}>
+                                        <span className={cn('font-bold truncate', isMobileLayout ? 'text-[11px] leading-none px-1' : 'text-[16px] leading-none px-2', day.isSelected || day.isJieQi ? "text-primary/100" : day.isHoliday ? "text-red-500/60" : "text-muted-foreground/60")}>
                                             {day.bottomText}
                                         </span>
-                                        <span className={cn('font-serif leading-none mt-1', isMobileLayout ? 'text-[10px]' : 'text-[14.4px]', day.isSelected ? "text-primary/80" : "text-muted-foreground/60")}>
+                                        <span className={cn('font-serif mt-1', isMobileLayout ? 'text-[10px] leading-none' : 'text-[14.4px] leading-none', day.isSelected ? "text-primary/80" : "text-muted-foreground/60")}>
                                             {day.ganZhi}
                                         </span>
                                     </div>

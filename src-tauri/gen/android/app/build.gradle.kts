@@ -44,7 +44,7 @@ android {
     }
     buildTypes {
         getByName("debug") {
-            applicationIdSuffix = ".debug"
+            applicationIdSuffix = ".debug.admin"
             manifestPlaceholders["usesCleartextTraffic"] = "true"
             isDebuggable = true
             isJniDebuggable = true

@@ -75,3 +75,6 @@ notes/sanyuan
 /src/data/cases/*
 !/src/data/cases/README.md
 !/src/data/cases/AGENTS.md
+
+# iOS build artifacts
+*.ipa
