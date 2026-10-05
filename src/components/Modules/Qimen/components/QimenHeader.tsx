@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { PaiPanMethod } from '../../../../lib/csp-qimen/qimenService';
 import type { GlobalPattern } from '../../../../lib/csp-qimen/patternDetector';
 
@@ -17,6 +17,13 @@ const METHOD_LABELS: Record<PaiPanMethod, string> = {
     chaibu: '时家转盘拆补',
     maoshan: '时家茅山',
 };
+
+interface InfoItem {
+    label: string;
+    value: string;
+    bold?: boolean;
+    clickable?: boolean;
+}
 
 interface QimenHeaderProps {
     header: {
@@ -62,6 +69,70 @@ export default function QimenHeader({
     const [isMethodOpen, setIsMethodOpen] = useState(false);
     // isSettingsOpen 状态已提升到父组件
 
+    // 移动端信息条：2 行 × 3 列的连续横条，每次滑动一列——
+    // 阴遁/值符滑出左侧隐藏，旬首/值使顺势移到左侧常驻，马星/空亡从右侧滑入
+    const [infoPage, setInfoPage] = useState(0);
+    const infoScrollRef = useRef<HTMLDivElement>(null);
+
+    const handleInfoScroll = (e: React.UIEvent<HTMLDivElement>) => {
+        const el = e.currentTarget;
+        const maxScroll = el.scrollWidth - el.clientWidth;
+        setInfoPage(maxScroll > 0 && el.scrollLeft > maxScroll / 2 ? 1 : 0);
+    };
+
+    const handleInfoPageClick = (page: number) => {
+        const el = infoScrollRef.current;
+        if (!el) return;
+        const maxScroll = el.scrollWidth - el.clientWidth;
+        el.scrollTo({ left: maxScroll * page, behavior: 'smooth' });
+    };
+
+    const juItem: InfoItem = { label: header.ju.substring(0, 2), value: header.ju.substring(2), bold: true, clickable: true };
+    // 阴盘用月将替换马星位（月将为阴盘特有概念，其余盘式照常显示马星）
+    const maXingItem: InfoItem = {
+        label: method === 'yinpan' && header.yueJiang ? '月将' : '马星',
+        value: method === 'yinpan' && header.yueJiang ? header.yueJiang : header.maXing,
+    };
+    const infoItems = {
+        ju: juItem,
+        xunShou: { label: '旬首', value: header.xunShou } as InfoItem,
+        maXing: maXingItem,
+        zhiFu: { label: '值符', value: header.zhiFu } as InfoItem,
+        zhiShi: { label: '值使', value: header.zhiShi } as InfoItem,
+        kongWang: { label: '空亡', value: header.kongWang } as InfoItem,
+    };
+    const desktopInfoItems: InfoItem[] = [
+        infoItems.ju,
+        infoItems.xunShou,
+        infoItems.maXing,
+        infoItems.zhiFu,
+        infoItems.zhiShi,
+        infoItems.kongWang,
+    ];
+    // 列优先排布：第 1 列 阴遁/值符，第 2 列 旬首/值使（两页常驻），第 3 列 马星(月将)/空亡
+    const mobileInfoColumns: InfoItem[][] = [
+        [infoItems.ju, infoItems.zhiFu],
+        [infoItems.xunShou, infoItems.zhiShi],
+        [infoItems.maXing, infoItems.kongWang],
+    ];
+
+    const renderInfoItem = (item: InfoItem, index: number) => (
+        <div key={index} className="flex items-center gap-1 2xl:gap-2">
+            <span className="text-muted-foreground font-light">{item.label}:</span>
+            {item.clickable ? (
+                <button
+                    onClick={onJuClick}
+                    className="text-primary font-serif font-bold hover:underline underline-offset-2 transition-colors cursor-pointer"
+                    title="点击自定义局数"
+                >
+                    {item.value}
+                </button>
+            ) : (
+                <span className={`text-foreground font-serif ${item.bold ? 'font-bold' : ''}`}>{item.value}</span>
+            )}
+        </div>
+    );
+
     return (
         <div className={`w-full bg-card flex flex-col ${isMobileLayout ? 'p-4 gap-3' : 'rounded-xl border border-border p-3 2xl:p-5 gap-2 2xl:gap-4'}`}>
             {/* 第一行：日期时间 + 操作按钮 */}
@@ -105,42 +176,43 @@ export default function QimenHeader({
                         })}
                     </div>
                     <div className="h-6 2xl:h-10 w-px bg-border/60 ml-4 2xl:ml-8 mr-4 2xl:mr-10" />
-                    <div className={`grid ${isMobileLayout ? 'grid-cols-2 gap-y-1 gap-x-3' : 'grid-cols-3 gap-y-0.5 2xl:gap-y-1 gap-x-3 2xl:gap-x-8'} text-xs 2xl:text-base flex-1`}>
-                        {(isMobileLayout ? [
-                            { label: header.ju.substring(0, 2), value: header.ju.substring(2), bold: true, clickable: true },
-                            { label: '旬首', value: header.xunShou, bold: false, clickable: false },
-                            { label: '值符', value: header.zhiFu, bold: false, clickable: false },
-                            { label: '值使', value: header.zhiShi, bold: false, clickable: false },
-                        ] : [
-                            { label: header.ju.substring(0, 2), value: header.ju.substring(2), bold: true, clickable: true },
-                            { label: '旬首', value: header.xunShou, bold: false, clickable: false },
-                            // 阴盘用月将替换马星位（月将为阴盘特有概念，其余盘式照常显示马星）
-                            {
-                                label: method === 'yinpan' && header.yueJiang ? '月将' : '马星',
-                                value: method === 'yinpan' && header.yueJiang ? header.yueJiang : header.maXing,
-                                bold: false,
-                                clickable: false
-                            },
-                            { label: '值符', value: header.zhiFu, bold: false, clickable: false },
-                            { label: '值使', value: header.zhiShi, bold: false, clickable: false },
-                            { label: '空亡', value: header.kongWang, bold: false, clickable: false },
-                        ]).map((item, i) => (
-                            <div key={i} className="flex items-center gap-1 2xl:gap-2">
-                                <span className="text-muted-foreground font-light">{item.label}:</span>
-                                {item.clickable ? (
-                                    <button
-                                        onClick={onJuClick}
-                                        className="text-primary font-serif font-bold hover:underline underline-offset-2 transition-colors cursor-pointer"
-                                        title="点击自定义局数"
-                                    >
-                                        {item.value}
-                                    </button>
-                                ) : (
-                                    <span className={`text-foreground font-serif ${item.bold ? 'font-bold' : ''}`}>{item.value}</span>
-                                )}
+                    {isMobileLayout ? (
+                        <div className="flex-1 min-w-0">
+                            <div
+                                ref={infoScrollRef}
+                                className="text-xs overflow-x-auto snap-x snap-mandatory overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                                onScroll={handleInfoScroll}
+                            >
+                                <div className="flex w-[150%]">
+                                    {mobileInfoColumns.map((columnItems, columnIndex) => (
+                                        <div
+                                            key={columnIndex}
+                                            className="w-1/3 pr-3 snap-start grid grid-rows-2 gap-y-1"
+                                        >
+                                            {columnItems.map(renderInfoItem)}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        ))}
-                    </div>
+                            <div className="flex justify-center gap-1 mt-1">
+                                {[0, 1].map(pageIndex => (
+                                    <button
+                                        key={pageIndex}
+                                        type="button"
+                                        aria-label={`信息第${pageIndex + 1}页`}
+                                        onClick={() => handleInfoPageClick(pageIndex)}
+                                        className="p-1 -m-0.5"
+                                    >
+                                        <span className={`block h-1 w-1 rounded-full transition-colors ${infoPage === pageIndex ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-3 gap-y-0.5 2xl:gap-y-1 gap-x-3 2xl:gap-x-8 text-xs 2xl:text-base flex-1">
+                            {desktopInfoItems.map(renderInfoItem)}
+                        </div>
+                    )}
                 </div>
             )}
 

@@ -1,8 +1,10 @@
 
+import { useState } from 'react';
 import QimenCaseList from '../QimenCaseList';
 import QimenChart from '../QimenChart';
 import QimenPalaceDetail from '../QimenPalaceDetail';
 import QimenJuInfo from '../QimenJuInfo';
+import QimenGuideModal from '../components/QimenGuideModal';
 import SideDrawer from '../../../UI/SideDrawer';
 import { type QimenLayoutProps } from './QimenLayoutProps';
 
@@ -24,6 +26,9 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
         mobileShowChangSheng, mobileShowShiShen, mobileShowPalaceMeta,
         handleMobileToggleCS, handleMobileToggleSS, handleMobileTogglePM
     } = props;
+
+    // 盘面元素说明弹窗
+    const [guideOpen, setGuideOpen] = useState(false);
 
     // 获取选中的宫位数据
     const selectedPalaceData = selectedPalace
@@ -60,7 +65,7 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
         <>
             <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
                 <div className="p-2 border-b border-border/40 bg-background/70 backdrop-blur-sm">
-                    <div className="grid grid-cols-4 gap-1.5">
+                    <div className="grid grid-cols-5 gap-1.5">
                         <button
                             type="button"
                             onClick={() => setIsAiModalOpen(true)}
@@ -89,6 +94,13 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
                             className={`py-1.5 rounded-lg border text-xs transition-colors ${mobileShowPalaceMeta ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card/60 text-muted-foreground'}`}
                         >
                             宫位
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setGuideOpen(true)}
+                            className="py-1.5 rounded-lg border border-border bg-card/60 text-xs text-muted-foreground transition-colors"
+                        >
+                            说明
                         </button>
                     </div>
                 </div>
@@ -221,6 +233,20 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
                     {rightPanelContent}
                 </div>
             </SideDrawer>
+
+            {/* 盘面元素说明弹窗：渲染当前选中宫位实时数据 */}
+            <QimenGuideModal
+                open={guideOpen}
+                onClose={() => setGuideOpen(false)}
+                palace={selectedPalaceData}
+                zhiFu={header?.zhiFu}
+                zhiShi={header?.zhiShi}
+                siZhu={header?.siZhu}
+                dynamicMaKong={dynamicMaKong}
+                showChangSheng={mobileShowChangSheng}
+                showShiShen={mobileShowShiShen}
+                showPalaceMeta={mobileShowPalaceMeta}
+            />
         </>
     );
 }

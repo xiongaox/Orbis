@@ -4,6 +4,7 @@ import QimenCaseList from '../QimenCaseList';
 import QimenChart from '../QimenChart';
 import QimenPalaceDetail from '../QimenPalaceDetail';
 import QimenJuInfo from '../QimenJuInfo';
+import QimenGuideModal from '../components/QimenGuideModal';
 import { type QimenLayoutProps } from './QimenLayoutProps';
 
 export default function QimenDesktopLayout(props: QimenLayoutProps) {
@@ -42,14 +43,25 @@ export default function QimenDesktopLayout(props: QimenLayoutProps) {
         ? palaces.find(p => p.position === selectedPalace) || null
         : null;
 
-    const rightPanelContent = selectedPalaceData ? (
+    // 盘面元素说明弹窗（布局层持有）：单击选中宫位后点局信息「说明」→ 实时渲染并解释该宫
+    const [guideOpen, setGuideOpen] = useState(false);
+    const openGuide = () => setGuideOpen(true);
+
+    // 右栏视图：默认局信息；双击宫位才切到宫位详情（单击只选中，不切走右栏）
+    const [detailPalacePos, setDetailPalacePos] = useState<number | null>(null);
+    const detailPalaceData = detailPalacePos
+        ? palaces.find(p => p.position === detailPalacePos) || null
+        : null;
+
+    const rightPanelContent = detailPalaceData ? (
         <QimenPalaceDetail
-            palace={selectedPalaceData}
+            palace={detailPalaceData}
             timeZhi={header?.siZhu?.hour?.slice(1, 2)}
             zhiShiMen={header?.zhiShi ? header.zhiShi + '门' : ''}
             zhiFuXing={header?.zhiFu}
             siZhu={header?.siZhu}
             xunShou={header?.xunShou}
+            onOpenGuide={openGuide}
         />
     ) : (
         <QimenJuInfo
@@ -70,6 +82,7 @@ export default function QimenDesktopLayout(props: QimenLayoutProps) {
             onToggleChangSheng={toggleChangSheng}
             onToggleShiShen={toggleShiShen}
             onTogglePalaceMeta={togglePalaceMeta}
+            onOpenGuide={openGuide}
         />
     );
 
@@ -114,7 +127,16 @@ export default function QimenDesktopLayout(props: QimenLayoutProps) {
                     palaces={palaces}
                     header={header}
                     selectedPalace={selectedPalace}
-                    onSelectPalace={(position) => setSelectedPalace(position === selectedPalace ? null : position)}
+                    onSelectPalace={(position) => {
+                        // 单击仅切换选中（高亮+说明数据源），右栏收回局信息
+                        setDetailPalacePos(null);
+                        setSelectedPalace(position === selectedPalace ? null : position);
+                    }}
+                    onLongPressPalace={(position) => {
+                        // 双击：选中并打开右栏宫位详情
+                        setSelectedPalace(position);
+                        setDetailPalacePos(position);
+                    }}
                     onPrevHour={handlePrevHour}
                     onNextHour={handleNextHour}
                     method={paiPanMethod}
@@ -136,6 +158,20 @@ export default function QimenDesktopLayout(props: QimenLayoutProps) {
             <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 min-h-0 overflow-hidden flex flex-col border-l border-border/50 bg-card/10">
                 {rightPanelContent}
             </div>
+
+            {/* 盘面元素说明弹窗：渲染当前选中宫位实时数据 */}
+            <QimenGuideModal
+                open={guideOpen}
+                onClose={() => setGuideOpen(false)}
+                palace={selectedPalaceData}
+                zhiFu={header?.zhiFu}
+                zhiShi={header?.zhiShi}
+                siZhu={header?.siZhu}
+                dynamicMaKong={dynamicMaKong}
+                showChangSheng={showChangSheng}
+                showShiShen={showShiShen}
+                showPalaceMeta={showPalaceMeta}
+            />
         </>
     );
 }

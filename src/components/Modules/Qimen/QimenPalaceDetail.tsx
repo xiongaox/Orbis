@@ -13,6 +13,8 @@ interface QimenPalaceDetailProps {
     zhiFuXing?: string;
     siZhu?: { year: string; month: string; day: string; hour: string };
     xunShou?: string;
+    /** 打开盘面元素说明弹窗（弹窗实例由布局层持有，可携带实时宫位数据） */
+    onOpenGuide?: () => void;
 }
 
 interface PalaceStatusNotice {
@@ -100,7 +102,7 @@ function getPalaceStatusNotices(
     }
 }
 
-export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXing, siZhu, xunShou }: QimenPalaceDetailProps) {
+export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXing, siZhu, xunShou, onOpenGuide }: QimenPalaceDetailProps) {
     const [selectedTab, setSelectedTab] = useState<string>('');
 
     if (!palace) {
@@ -187,6 +189,16 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
             <div className="w-[100px] flex-shrink-0 flex flex-col border-r border-border bg-muted/20 min-h-0">
                 <div className="p-3 text-center border-b border-border shrink-0">
                     <div className="font-serif text-lg text-foreground font-bold">{palace.gongName}宫</div>
+                    {onOpenGuide && (
+                        <button
+                            type="button"
+                            onClick={onOpenGuide}
+                            className="mt-2 w-full py-1 rounded-md text-xs font-serif text-muted-foreground hover:bg-muted/50 hover:text-primary transition-colors flex items-center justify-center gap-1"
+                        >
+                            <BookOpen className="w-3.5 h-3.5" />
+                            盘面说明
+                        </button>
+                    )}
                 </div>
                 <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col">
                     {menuItems.map((item) => {

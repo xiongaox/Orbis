@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { LunarUtil } from 'lunar-typescript';
 import type { PaiPanMethod } from '../../../../lib/csp-qimen/qimenService';
 import type { GlobalPattern } from '../../../../lib/csp-qimen/patternDetector';
+import { getJiaDunStem } from '../../../../lib/csp-qimen/qimenUtils';
 
 // 导入子组件
 import CaseStudyQimenHeader from './CaseStudyQimenHeader';
@@ -65,13 +66,6 @@ interface CaseStudyQimenChartProps {
 // 洛书九宫布局顺序
 const LUOSHU_ORDER = [4, 9, 2, 3, 5, 7, 8, 1, 6];
 
-// 获取真实天干（甲遁六仪）
-function getRealStem(stem: string, branch: string): string {
-    if (stem !== '甲') return stem;
-    const map: Record<string, string> = { '子': '戊', '戌': '己', '申': '庚', '午': '辛', '辰': '壬', '寅': '癸' };
-    return map[branch] || stem;
-}
-
 export default function CaseStudyQimenChart({
     palaces,
     selectedPalace,
@@ -108,8 +102,8 @@ export default function CaseStudyQimenChart({
     };
 
     // 高亮计算
-    const targetDayStem = getRealStem(header.siZhu.day[0], header.siZhu.day[1]);
-    const targetHourStem = getRealStem(header.siZhu.hour[0], header.siZhu.hour[1]);
+    const targetDayStem = getJiaDunStem(header.siZhu.day[0], header.siZhu.day[1]);
+    const targetHourStem = getJiaDunStem(header.siZhu.hour[0], header.siZhu.hour[1]);
 
 
 

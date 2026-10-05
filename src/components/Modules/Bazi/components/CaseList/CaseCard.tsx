@@ -112,6 +112,8 @@ export default function CaseCard({
     };
 
     const handlePointerMove = (event: ReactPointerEvent) => {
+        // 鼠标悬停（未按下任何按键）同样会派发 pointermove：直接忽略，避免卡片粘着光标滑走
+        if (event.buttons === 0) return;
         const g = gesture.current;
         if (g.lock === null) {
             const dx = event.clientX - g.x;

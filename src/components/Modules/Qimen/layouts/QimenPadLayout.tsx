@@ -1,9 +1,11 @@
 
+import { useState } from 'react';
 import QimenCaseList from '../QimenCaseList';
 import QimenChart from '../QimenChart';
 import QimenPalaceDetail from '../QimenPalaceDetail';
 import QimenPadInfoPanel from '../components/QimenPadInfoPanel';
 import QimenJuInfo from '../QimenJuInfo';
+import QimenGuideModal from '../components/QimenGuideModal';
 import SideDrawer from '../../../UI/SideDrawer';
 import BaseModal from '../../../UI/BaseModal';
 import { type QimenLayoutProps } from './QimenLayoutProps';
@@ -30,6 +32,10 @@ export default function QimenPadLayout(props: QimenLayoutProps) {
     const selectedPalaceData = selectedPalace
         ? palaces.find(p => p.position === selectedPalace) || null
         : null;
+
+    // 盘面元素说明弹窗（布局层持有，携带选中宫位实时数据）
+    const [guideOpen, setGuideOpen] = useState(false);
+    const openGuide = () => setGuideOpen(true);
 
     return (
         <>
@@ -69,6 +75,7 @@ export default function QimenPadLayout(props: QimenLayoutProps) {
                     onToggleChangSheng={handleMobileToggleCS}
                     onToggleShiShen={handleMobileToggleSS}
                     onTogglePalaceMeta={handleMobileTogglePM}
+                    onOpenGuide={openGuide}
                 />
             </div>
 
@@ -187,10 +194,25 @@ export default function QimenPadLayout(props: QimenLayoutProps) {
                             zhiFuXing={header?.zhiFu}
                             siZhu={header?.siZhu}
                             xunShou={header?.xunShou}
+                            onOpenGuide={openGuide}
                         />
                     </div>
                 )}
             </BaseModal>
+
+            {/* 盘面元素说明弹窗：渲染当前选中宫位实时数据 */}
+            <QimenGuideModal
+                open={guideOpen}
+                onClose={() => setGuideOpen(false)}
+                palace={selectedPalaceData}
+                zhiFu={header?.zhiFu}
+                zhiShi={header?.zhiShi}
+                siZhu={header?.siZhu}
+                dynamicMaKong={dynamicMaKong}
+                showChangSheng={mobileShowChangSheng}
+                showShiShen={mobileShowShiShen}
+                showPalaceMeta={mobileShowPalaceMeta}
+            />
         </>
     );
 }

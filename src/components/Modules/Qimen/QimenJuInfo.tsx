@@ -27,13 +27,15 @@ interface QimenJuInfoProps {
     onToggleShiShen?: () => void;
     onTogglePalaceMeta?: () => void;
     compact?: boolean;
+    /** 打开盘面元素说明弹窗（弹窗实例由布局层持有，可携带实时宫位数据） */
+    onOpenGuide?: () => void;
 }
 
 export default function QimenJuInfo({
     date, header, caseData, onCaseUpdated,
     selectedKongWangKey, selectedMaXingKey, onKongWangKeyChange, onMaXingKeyChange,
     showChangSheng, showShiShen, showPalaceMeta,
-    onToggleChangSheng, onToggleShiShen, onTogglePalaceMeta, compact = false
+    onToggleChangSheng, onToggleShiShen, onTogglePalaceMeta, compact = false, onOpenGuide
 }: QimenJuInfoProps) {
     // 局基本信息计算
     const info = useMemo(() => {
@@ -99,6 +101,7 @@ export default function QimenJuInfo({
                 onToggleShiShen={onToggleShiShen}
                 onTogglePalaceMeta={onTogglePalaceMeta}
                 compact={compact}
+                onOpenGuide={onOpenGuide}
             />
 
             <div className="h-2 bg-muted/20 border-t border-b border-border/10 flex-shrink-0" />

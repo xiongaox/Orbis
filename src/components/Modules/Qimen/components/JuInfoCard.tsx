@@ -22,12 +22,14 @@ interface JuInfoCardProps {
     onToggleShiShen?: () => void;
     onTogglePalaceMeta?: () => void;
     compact?: boolean;
+    /** 打开盘面元素说明弹窗（弹窗实例由布局层持有，可携带实时宫位数据） */
+    onOpenGuide?: () => void;
 }
 
 export default function JuInfoCard({
     header, info, selectedKongWangKey, selectedMaXingKey, onKongWangKeyChange, onMaXingKeyChange,
     showChangSheng = false, showShiShen = false, showPalaceMeta = false,
-    onToggleChangSheng, onToggleShiShen, onTogglePalaceMeta, compact = false
+    onToggleChangSheng, onToggleShiShen, onTogglePalaceMeta, compact = false, onOpenGuide
 }: JuInfoCardProps) {
     return (
         <div className={compact ? 'p-3 space-y-3' : 'p-4 lg:p-6 space-y-4 lg:space-y-5'}>
@@ -82,6 +84,7 @@ export default function JuInfoCard({
                         onToggleShiShen={onToggleShiShen}
                         onTogglePalaceMeta={onTogglePalaceMeta}
                         compact={compact}
+                        onOpenGuide={onOpenGuide}
                     />
                 </>
             )}

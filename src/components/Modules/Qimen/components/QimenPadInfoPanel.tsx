@@ -40,6 +40,8 @@ interface PadInfoPanelProps {
     onToggleChangSheng?: () => void;
     onToggleShiShen?: () => void;
     onTogglePalaceMeta?: () => void;
+    /** 打开盘面元素说明弹窗（弹窗实例由布局层持有，可携带实时宫位数据） */
+    onOpenGuide?: () => void;
     caseTitle?: string;
 }
 
@@ -61,6 +63,7 @@ export default function QimenPadInfoPanel({
     onToggleChangSheng,
     onToggleShiShen,
     onTogglePalaceMeta,
+    onOpenGuide,
     caseTitle,
 }: PadInfoPanelProps) {
 
@@ -108,9 +111,9 @@ export default function QimenPadInfoPanel({
                 AI 提示词
             </button>
 
-            {/* 宫位显示开关 - 3列高亮按钮 */}
+            {/* 宫位显示开关 - 高亮按钮（有说明入口时四等分） */}
             <div className="h-px bg-border/50" />
-            <div className="grid grid-cols-3 gap-2">
+            <div className={`grid gap-2 ${onOpenGuide ? 'grid-cols-4' : 'grid-cols-3'}`}>
                 {([
                     { label: '长生', active: showChangSheng, onToggle: onToggleChangSheng },
                     { label: '十神', active: showShiShen, onToggle: onToggleShiShen },
@@ -128,6 +131,15 @@ export default function QimenPadInfoPanel({
                         {item.label}
                     </button>
                 ))}
+                {onOpenGuide && (
+                    <button
+                        type="button"
+                        onClick={onOpenGuide}
+                        className="py-1.5 rounded-lg text-sm font-serif text-center transition-all border bg-secondary/50 text-muted-foreground border-border hover:bg-muted/30 hover:text-foreground"
+                    >
+                        说明
+                    </button>
+                )}
             </div>
 
             <div className="h-px bg-border/50" />

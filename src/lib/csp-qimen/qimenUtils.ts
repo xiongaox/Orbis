@@ -275,3 +275,16 @@ export function getPalaceWangShuai(gongPosition: number, monthZhi: string): stri
 
     return SEASON_WANGSHUAI[season]?.[gongWuxing] || '';
 }
+
+// ============ 甲遁六仪 ============
+
+/**
+ * 获取真实天干（甲遁六仪）
+ * 盘面无明甲，六甲旬首遁于六仪之下（甲子戊、甲戌己、甲申庚、甲午辛、甲辰壬、甲寅癸），
+ * 四柱干为甲时按其支位映射为对应六仪，供日干/时干与盘面干支比对高亮。
+ */
+export function getJiaDunStem(stem: string, branch: string): string {
+    if (stem !== '甲') return stem;
+    const map: Record<string, string> = { '子': '戊', '戌': '己', '申': '庚', '午': '辛', '辰': '壬', '寅': '癸' };
+    return map[branch] || stem;
+}
