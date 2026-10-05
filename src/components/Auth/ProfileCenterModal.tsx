@@ -1,8 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { CalendarDays, Check, Loader2 } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import { profileService } from '../../services/profileService';
 import AdvancedDatePicker from '../Common/AdvancedDatePicker';
-import BaseModal from '../UI/BaseModal';
+import BaseModal, { CompactModalTitle } from '../UI/BaseModal';
 
 interface ProfileCenterModalProps {
   isOpen: boolean;
@@ -44,11 +44,10 @@ export default function ProfileCenterModal({ isOpen, onClose, birthDate, onBirth
   };
 
   return (
-    <BaseModal isOpen={isOpen} onClose={onClose} title="设置生日" titleIcon={<CalendarDays className="h-5 w-5" />} maxWidth="max-w-lg" bodyClassName="p-5 sm:p-6">
+    <BaseModal isOpen={isOpen} onClose={onClose} title={<CompactModalTitle>设置生日</CompactModalTitle>} maxWidth="max-w-lg" bodyClassName="p-5 sm:p-6" bottomSheet>
       <form onSubmit={save} className="space-y-5">
         <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-foreground"><CalendarDays className="h-4 w-4" />生日</label>
-          <button type="button" onClick={() => setShowPicker((current) => !current)} className="focus-ring h-11 w-full rounded-lg border border-border bg-background px-3 text-left text-foreground">
+          <button type="button" onClick={() => setShowPicker((current) => !current)} className="focus-ring h-11 w-full rounded-lg border border-border bg-background px-3 text-left text-sm text-foreground">
             {selectedBirthDate ? `${selectedBirthDate.getFullYear()}年${selectedBirthDate.getMonth() + 1}月${selectedBirthDate.getDate()}日` : '请选择生日'}
           </button>
           {showPicker && <AdvancedDatePicker value={selectedBirthDate} isOpen onClose={() => setShowPicker(false)} onConfirm={(date: Date) => { setSelectedBirthDate(date); setShowPicker(false); }} hideBazi />}

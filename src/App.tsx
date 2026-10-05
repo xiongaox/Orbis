@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { BaziProvider, useBaziContext } from './contexts/BaziContext';
+import { MobileNavProvider, useMobileNavRegistry } from './contexts/MobileNavContext';
 import Navbar from './components/Layout/Navbar';
 import MainLayout from './components/Layout/MainLayout';
+import MobileTabBar from './components/Layout/MobileTabBar';
+import MobileProfileCenter from './components/Layout/MobileProfileCenter';
 import BaziCaseList from './components/Modules/Bazi/BaziCaseList';
 import InsightPanel from './components/Modules/Bazi/InsightPanel';
 import GanZhiLiuYiPanel from './components/Modules/Bazi/GanZhiLiuYiPanel';
@@ -12,10 +15,12 @@ import WannianliPage from './components/Modules/Wannianli/WannianliPage';
 import SanYuanPage from './components/Modules/SanYuan/SanYuanPage';
 import CaseStudyPage from './components/Modules/CaseStudy/CaseStudyPage';
 import BaziCaseLibraryModal from './components/Modules/Bazi/BaziCaseLibraryModal';
+import { useLayoutMode } from './hooks/useLayoutMode';
 import { useInsightContent } from './hooks/useInsightContent';
 import { useGanZhiLiuYi } from './hooks/useGanZhiLiuYi';
 import type { ChartType } from './types';
 import { INSIGHT_BOOKS, DEFAULT_BOOK_ID } from './data/booksConfig';
+import { MOBILE_NAV_HOME_CHART, readMobileNavSlots, writeMobileNavSlots } from './lib/mobileNavStorage';
 import {
   LOCKED_CHARTS_STORAGE_KEY,
   LOCKED_CHART_SNAPSHOTS_STORAGE_KEY,
@@ -27,12 +32,29 @@ import {
   type QimenLockedSnapshot,
 } from './lib/lockedChartStorage';
 
-function AppContent() {
+function AppShell() {
   const [activeChart, setActiveChart] = useState<ChartType>('wannianli');
   const [lockedCharts, setLockedCharts] = useState<ChartType[]>(readLockedCharts);
   const [lockedSnapshots, setLockedSnapshots] = useState<LockedChartSnapshots>(readLockedChartSnapshots);
   const [qimenLiveSnapshot, setQimenLiveSnapshot] = useState<QimenLockedSnapshot | null>(null);
   const [showCaseLibraryModal, setShowCaseLibraryModal] = useState(false);
+  // 移动端底部导航：可换槽位（首页万年通历固定）与个人中心页开关
+  const { isMobile } = useLayoutMode();
+  const [navSlots, setNavSlots] = useState<ChartType[]>(readMobileNavSlots);
+  const [showMobileProfile, setShowMobileProfile] = useState(false);
+  // 案例学习分类直达意图（个人中心「案例 / 断法」入口）；seq 供重复触发同一分类
+  const [caseStudyIntent, setCaseStudyIntent] = useState<{ category: string; seq: number } | null>(null);
+  // 案例学习是否从个人中心进入：案例分类弹层的返回按钮据此回个人中心
+  const [caseStudyFromProfile, setCaseStudyFromProfile] = useState(false);
+  const mobileDrawerRegistry = useMobileNavRegistry();
+  const activeDrawers = mobileDrawerRegistry[activeChart];
+
+  const handleOpenCaseStudyCategory = useCallback((category?: string) => {
+    if (category) setCaseStudyIntent({ category, seq: Date.now() });
+    setCaseStudyFromProfile(true);
+    setShowMobileProfile(false);
+    setActiveChart('xiaoliuren');
+  }, []);
   // 默认选中的经典书籍 ID
   const [activeBookId, setActiveBookId] = useState<string>(DEFAULT_BOOK_ID);
   // 使用 Context 获取八字状态
@@ -62,6 +84,10 @@ function AppContent() {
   useEffect(() => {
     writeLockedCharts(lockedCharts);
   }, [lockedCharts]);
+
+  useEffect(() => {
+    writeMobileNavSlots(navSlots);
+  }, [navSlots]);
 
   useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
@@ -167,7 +193,7 @@ function AppContent() {
           />
         );
       case 'xiaoliuren':
-        return <CaseStudyPage />;
+        return <CaseStudyPage categoryIntent={caseStudyIntent} />;
       case 'wannianli':
         return <WannianliPage onGoPaiPan={handleWannianliGoPaiPan} />;
       case 'sanyuan':
@@ -175,6 +201,7 @@ function AppContent() {
       case 'bazi':
         return (
           <MainLayout
+            chart="bazi"
             sidebar={(
               <BaziCaseList
                 selectedCaseId={bazi.selectedCaseId}
@@ -236,7 +263,41 @@ function AppContent() {
             {renderContent(chart)}
           </div>
         ))}
+
+        {/* 移动端个人中心：覆盖内容区，底栏保持可见（L1 主菜单层，个人中心高亮） */}
+        {isMobile && showMobileProfile && (
+          <div className="absolute inset-0 z-40 bg-background">
+            <MobileProfileCenter
+              slots={navSlots}
+              onSlotsChange={setNavSlots}
+              onOpenCaseStudy={handleOpenCaseStudyCategory}
+              onGoHome={() => {
+                setShowMobileProfile(false);
+                setActiveChart(MOBILE_NAV_HOME_CHART);
+              }}
+            />
+          </div>
+        )}
       </div>
+
+      {/* 移动端底部导航（方案 C · 极简文字墨栏）：主菜单层 / 模块上下文层 */}
+      {isMobile && (
+        <MobileTabBar
+          activeChart={activeChart}
+          profileOpen={showMobileProfile}
+          slots={navSlots}
+          drawers={activeDrawers}
+          onSelectChart={(chart) => {
+            // 从重选菜单网格进入的案例学习不属于个人中心来源
+            setCaseStudyFromProfile(false);
+            setShowMobileProfile(false);
+            setActiveChart(chart);
+          }}
+          onOpenProfile={() => setShowMobileProfile(true)}
+          onSelectCaseStudyCategory={handleOpenCaseStudyCategory}
+          caseStudyFromProfile={caseStudyFromProfile}
+        />
+      )}
 
       {/* 案例库弹窗 (仅在 MainLayout 模式下使用，虽在此处全局渲染但仅由 CaseList 触发) */}
       <BaziCaseLibraryModal
@@ -246,6 +307,14 @@ function AppContent() {
         onSelectCase={bazi.handleSelectCase}
       />
     </div>
+  );
+}
+
+function AppContent() {
+  return (
+    <MobileNavProvider>
+      <AppShell />
+    </MobileNavProvider>
   );
 }
 

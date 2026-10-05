@@ -3,16 +3,14 @@
  * - 主要目标：提供应用的基础布局框架
 */
 import { useState, useEffect } from 'react';
-import { Calendar, Compass, Grid3X3, Sun, Moon, Menu, Star } from 'lucide-react';
+import { Calendar, Compass, Grid3X3, Sun, Moon, Star } from 'lucide-react';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { openExternalUrl } from '../../utils/browserUtil';
 import BaseModal from '../UI/BaseModal';
-import SideDrawer from '../UI/SideDrawer';
 import { profileService } from '../../services/profileService';
 import UserMenu from './UserMenu';
-import { NavButton, DrawerNavButton, type NavItemType } from './NavButton';
+import { NavButton, type NavItemType } from './NavButton';
 import AiIntegrationModal from '../Common/AiIntegrationModal';
-import MobileLockedChartSwitcher from './MobileLockedChartSwitcher';
 import PrivateDataBackupModal from '../Common/PrivateDataBackupModal';
 import { startRemoteAutoBackup } from '../../services/remoteBackupService';
 import ProfileCenterModal from '../Auth/ProfileCenterModal';
@@ -50,8 +48,7 @@ export default function Navbar({
   lockedCharts,
   onToggleChartLock,
 }: NavbarProps) {
-  const { isPadLandscape, useDesktopLayout } = useLayoutMode();
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { isPadLandscape, useDesktopLayout, isMobile } = useLayoutMode();
   const [showProfileCenter, setShowProfileCenter] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showAiIntegrationModal, setShowAiIntegrationModal] = useState(false);
@@ -88,21 +85,16 @@ export default function Navbar({
     setShowAiIntegrationModal(true);
   };
 
+  // 移动端顶栏整体移除（定稿：内容直接顶满，为奇门九宫等高密度盘面让出纵向空间）。
+  // 模块切换 / 个人中心 / 主题由底部导航（MobileTabBar）与个人中心页接管；
+  // 钩子仍在此执行，保证远端自动备份调度等副作用与布局断点无关地运行。
+  if (isMobile) return null;
+
   return (
     <>
       <header className="glass-header sticky top-0 z-50 relative">
         <div className="px-3 md:px-0">
           <div className="h-16 flex items-center justify-between md:justify-center relative">
-            <button
-              type="button"
-              onClick={() => setMobileNavOpen(true)}
-              className="md:hidden inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-border/70 bg-card/70 text-sm font-medium text-foreground/85 shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:text-foreground hover:bg-secondary/45 transition-colors z-10"
-              aria-label="打开模块菜单"
-            >
-              <Menu className="w-3.5 h-3.5" />
-              <span className="tracking-wide">菜单</span>
-            </button>
-
             <div className="hidden md:flex items-center md:gap-4 lg:gap-8 md:absolute md:left-2 lg:left-4 md:top-1/2 md:-translate-y-1/2">
               <div className="w-24 h-24 flex items-center justify-center">
                 <img
@@ -206,38 +198,6 @@ export default function Navbar({
           </div>
         </div>
       </header>
-
-      <SideDrawer
-        open={mobileNavOpen}
-        title="功能模块"
-        side="left"
-        size="xxs"
-        onClose={() => setMobileNavOpen(false)}
-      >
-        <div className="h-full min-h-0 bg-muted/5 p-3 space-y-2">
-          {navItems.map((item) => (
-            <DrawerNavButton
-              key={item.id}
-              item={item}
-              isActive={activeChart === item.id}
-              isLocked={lockedCharts.includes(item.id as ChartType)}
-              isLockable={item.lockable === true}
-              onClick={() => {
-                onChartChange(item.id as ChartType);
-                setMobileNavOpen(false);
-              }}
-              onToggleLock={() => onToggleChartLock(item.id as ChartType)}
-            />
-          ))}
-        </div>
-      </SideDrawer>
-
-      <MobileLockedChartSwitcher
-        activeChart={activeChart}
-        lockedCharts={lockedCharts}
-        items={navItems}
-        onChartChange={(chart) => onChartChange(chart as ChartType)}
-      />
 
       {/* 联系作者弹窗 */}
       <BaseModal

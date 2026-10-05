@@ -15,12 +15,25 @@ import CaseStudyPadLayout from './layouts/CaseStudyPadLayout';
 import CaseStudyMobileLayout from './layouts/CaseStudyMobileLayout';
 import { type CaseStudyLayoutProps } from './layouts/CaseStudyLayoutProps';
 
-export default function CaseStudyPage() {
+export interface CaseStudyCategoryIntent {
+    /** 目标分类 id（见 lib/caseStudy/constants CATEGORIES，如 'duanfa'） */
+    category: string;
+    /** 递增序号：外部重复触发同一分类时也能再次生效 */
+    seq: number;
+}
+
+interface CaseStudyPageProps {
+    /** 外部入口（移动端个人中心「案例 / 断法」）指定的分类；seq 变化时应用 */
+    categoryIntent?: CaseStudyCategoryIntent | null;
+}
+
+export default function CaseStudyPage({ categoryIntent }: CaseStudyPageProps) {
     const { isPadLandscape, useDesktopLayout } = useLayoutMode();
     const isMobile = !useDesktopLayout && !isPadLandscape;
 
     // Core state hooks
     const caseStudyState = useCaseStudy();
+    const { setSelectedCategory } = caseStudyState;
     const duanFa = useDuanFa();
     // 试读片段不参与排盘：盘面在激活前不对试读条目开放
     const baziData = useCaseStudyBaziData(caseStudyState.isPreviewMode ? null : caseStudyState.activeCase, caseStudyState.activeChartIndex);
@@ -32,6 +45,14 @@ export default function CaseStudyPage() {
     const [isChartPanelOpen, setIsChartPanelOpen] = useState(false);
 
     const openActivation = useCallback(() => setIsActivationModalOpen(true), []);
+
+    // 应用外部分类直达意图（移动端个人中心「案例 / 断法」入口）：按 seq 去重，重复触发同一分类仍可再次生效
+    const appliedIntentSeqRef = useRef(0);
+    useEffect(() => {
+        if (!categoryIntent || categoryIntent.seq === appliedIntentSeqRef.current) return;
+        appliedIntentSeqRef.current = categoryIntent.seq;
+        setSelectedCategory(categoryIntent.category);
+    }, [categoryIntent, setSelectedCategory]);
 
     // Reading progress refs
     const contentScrollRef = useRef<HTMLDivElement>(null);

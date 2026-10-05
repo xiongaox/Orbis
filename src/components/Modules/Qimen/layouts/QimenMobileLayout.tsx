@@ -6,6 +6,7 @@ import QimenPalaceDetail from '../QimenPalaceDetail';
 import QimenJuInfo from '../QimenJuInfo';
 import QimenGuideModal from '../components/QimenGuideModal';
 import SideDrawer from '../../../UI/SideDrawer';
+import { useRegisterMobileDrawers } from '../../../../contexts/MobileNavContext';
 import { type QimenLayoutProps } from './QimenLayoutProps';
 
 export default function QimenMobileLayout(props: QimenLayoutProps) {
@@ -29,6 +30,12 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
 
     // 盘面元素说明弹窗
     const [guideOpen, setGuideOpen] = useState(false);
+
+    // 移动端底栏注册：案例（左抽屉）与 局信息/宫位详情（右抽屉）由底部导航槽位打开
+    useRegisterMobileDrawers('qimen', {
+        openCase: () => setIsCaseListOpen(true),
+        openPanel: () => setIsInfoOpen(true),
+    });
 
     // 获取选中的宫位数据
     const selectedPalaceData = selectedPalace

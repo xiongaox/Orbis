@@ -8,11 +8,15 @@ import type { ReactNode } from 'react';
 
 import SideDrawer from '../UI/SideDrawer';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { useRegisterMobileDrawers } from '../../contexts/MobileNavContext';
+import type { ChartType } from '../../types';
 
 interface MainLayoutProps {
     sidebar?: ReactNode;
     insightPanel?: ReactNode;
     liuYiPanel?: ReactNode;
+    /** 所属模块 id：移动端底栏据此注册「案例 / 参考面板」抽屉回调 */
+    chart?: ChartType;
     children: ReactNode;
 }
 
@@ -20,12 +24,18 @@ interface MainLayoutProps {
  * 统一布局结构组件
  * 左侧栏 + 中间内容 + 右侧栏（干支留意 + 智能咨询参考）
  */
-export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children }: MainLayoutProps) {
-    const { isPadLandscape, useDesktopLayout } = useLayoutMode();
+export default function MainLayout({ sidebar, insightPanel, liuYiPanel, chart, children }: MainLayoutProps) {
+    const { isPadLandscape, useDesktopLayout, isMobile } = useLayoutMode();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isRightPanelOpen, setIsRightPanelOpen] = useState(false);
 
     const hasRightPanel = useMemo(() => Boolean(liuYiPanel || insightPanel), [liuYiPanel, insightPanel]);
+
+    // 移动端底栏注册：手机上「案例 / 参考面板」入口由底部导航接管
+    useRegisterMobileDrawers(chart ?? null, {
+        openCase: sidebar ? () => setIsSidebarOpen(true) : undefined,
+        openPanel: hasRightPanel ? () => setIsRightPanelOpen(true) : undefined,
+    });
 
     const sidebarNode = useMemo(() => {
         if (!sidebar) return null;
@@ -102,8 +112,8 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children
                 <div className="flex-1 min-h-0 overflow-hidden flex flex-col relative">
                     {children}
 
-                    {/* Pad 横屏：隐藏式边缘“把手”（视觉占用小，但触摸面积大） */}
-                    {sidebar && (
+                    {/* Pad 端：隐藏式边缘“把手”（手机端由底部导航接管，不再显示） */}
+                    {!isMobile && sidebar && (
                         <button
                             type="button"
                             onClick={() => setIsSidebarOpen(true)}
@@ -122,7 +132,7 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, children
                         </button>
                     )}
 
-                    {hasRightPanel && (
+                    {!isMobile && hasRightPanel && (
                         <button
                             type="button"
                             onClick={() => setIsRightPanelOpen(true)}
