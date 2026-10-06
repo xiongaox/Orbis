@@ -1,8 +1,16 @@
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Search, ArrowUpFromLine, ArrowDownToLine } from 'lucide-react';
 
+// 案例列表在移动端 / Pad 端装在 SideDrawer 里，抽屉关闭即整体卸载，重开后滚动位置归零。
+// 这里按 scrollKey 在模块级缓存各列表的滚动位置，跨卸载/重挂载保留。
+const scrollTopCache = new Map<string, number>();
+
 interface BaseCaseListProps {
     variant?: 'sidebar' | 'drawer';
+    /** 滚动位置缓存键（如 'bazi' / 'qimen'）：传入后关闭抽屉再打开可回到原滚动位置；
+     *  列表项选中态需在卡片根节点标注 data-case-selected="true"，作为无缓存时的定位锚点 */
+    scrollKey?: string;
 
     // Header actions
     onOpenLibrary?: () => void;
@@ -31,6 +39,7 @@ interface BaseCaseListProps {
 
 export default function BaseCaseList({
     variant = 'sidebar',
+    scrollKey,
     onOpenLibrary,
     renderFilter,
     search,
@@ -44,7 +53,35 @@ export default function BaseCaseList({
     emptyText,
     children,
     modals
-}: BaseCaseListProps) {
+    }: BaseCaseListProps) {
+    const scrollRef = useRef<HTMLDivElement | null>(null);
+    // 每次挂载只定位一次（恢复位置或滚到选中案例），之后不干扰用户滚动
+    const hasRestoredRef = useRef(false);
+
+    // 卸载（抽屉关闭）时记录滚动位置，供下次挂载恢复
+    useEffect(() => {
+        if (!scrollKey) return;
+        const el = scrollRef.current;
+        return () => {
+            if (el) scrollTopCache.set(scrollKey, el.scrollTop);
+        };
+    }, [scrollKey]);
+
+    // 列表数据就绪后定位一次：优先恢复上次的滚动位置，没有则把当前选中案例滚到视野中央
+    useLayoutEffect(() => {
+        if (!scrollKey || isLoading || isEmpty || hasRestoredRef.current) return;
+        const el = scrollRef.current;
+        if (!el) return;
+        hasRestoredRef.current = true;
+        const saved = scrollTopCache.get(scrollKey) ?? 0;
+        if (saved > 0) {
+            el.scrollTop = saved;
+            return;
+        }
+        el.querySelector<HTMLElement>('[data-case-selected="true"]')
+            ?.scrollIntoView({ block: 'center' });
+    }, [scrollKey, isLoading, isEmpty]);
+
     return (
         <aside className={variant === 'drawer'
             ? "w-full h-full select-none bg-card flex flex-col min-h-0"
@@ -116,6 +153,7 @@ export default function BaseCaseList({
 
             {/* 列表内容区 */}
             <div
+                ref={scrollRef}
                 className={`flex-1 min-h-0 select-none overflow-y-auto ${variant === 'drawer' ? 'px-1.5 py-2' : 'p-4'}`}
                 onContextMenu={(e) => e.preventDefault()}
             >

@@ -181,6 +181,7 @@ export default function CaseList({
   return (
     <BaseCaseList
       variant={variant}
+      scrollKey="bazi"
       onOpenLibrary={onOpenLibrary}
       renderFilter={
         <CaseTagFilter

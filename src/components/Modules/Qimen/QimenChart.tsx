@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { PaiPanMethod } from '../../../lib/csp-qimen/qimenService';
 import type { GlobalPattern } from '../../../lib/csp-qimen/patternDetector';
 import { getJiaDunStem } from '../../../lib/csp-qimen/qimenUtils';
@@ -74,6 +75,8 @@ interface QimenChartProps {
     globalPatterns?: GlobalPattern[];
     onPatternClick?: (pattern: GlobalPattern) => void;
     onOpenAiModal?: () => void;
+    /** 顶栏第三行右侧自定义动作区（透传给 QimenHeader，如案例盘的长生/十神切换） */
+    headerActions?: ReactNode;
     dynamicMaKong?: { kongPositions: number[]; maPosition: number };
     /** Pad 横屏时传入 true，去掉 max-w 限制让盘面更宽 */
     fullWidth?: boolean;
@@ -109,6 +112,7 @@ export default function QimenChart({
     globalPatterns = [],
     onPatternClick,
     onOpenAiModal,
+    headerActions,
     dynamicMaKong,
     fullWidth = false,
     hideHeader = false,
@@ -147,6 +151,7 @@ export default function QimenChart({
                                 globalPatterns={globalPatterns}
                                 onPatternClick={onPatternClick}
                                 onOpenAiModal={onOpenAiModal}
+                                headerActions={headerActions}
                                 isMobileLayout={isMobileLayout}
                             />
                         </div>

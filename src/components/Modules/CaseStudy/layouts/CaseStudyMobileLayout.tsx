@@ -136,7 +136,7 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
 
     const chartPanel = (
         <div className="h-full bg-muted/10 flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto p-0 scrollbar-thin scrollbar-thumb-border/40 scrollbar-track-transparent flex flex-col">
+            <div className="flex-1 overflow-y-auto p-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden flex flex-col">
                 {isPreviewMode ? (
                     <CasePreviewUnlock variant="panel" libraryTotal={libraryTotal} onActivate={openActivation} />
                 ) : selectedCategory === 'bazi' && activeCase ? (
@@ -148,7 +148,7 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                     <div className="h-full flex flex-col items-center justify-center text-muted-foreground"><Compass className="w-12 h-12 mx-auto mb-2 opacity-20" /><p className="text-sm">选择案例查看排盘</p></div>
                 ) : selectedCategory === 'qimen' && activeCase ? (
                     qimenResult ? (
-                        <div className="flex-shrink-0 flex flex-col"><CaseStudyQimenChart palaces={qimenResult.palaces} selectedPalace={null} onSelectPalace={() => { }} header={qimenResult.header} globalPatterns={qimenResult.globalPatterns} onJuClick={() => setIsJuDialogOpen(true)} isMobile={true} method={qimenMethod} onMethodChange={setQimenMethod} /></div>
+                        <div className="h-full flex flex-col"><CaseStudyQimenChart palaces={qimenResult.palaces} header={qimenResult.header} globalPatterns={qimenResult.globalPatterns} onJuClick={() => setIsJuDialogOpen(true)} isMobile={true} method={qimenMethod} onMethodChange={setQimenMethod} /></div>
                     ) : (<div className="h-full flex flex-col items-center justify-center text-muted-foreground"><p className="text-sm">排盘计算中或无时间信息...</p></div>)
                 ) : selectedCategory === 'qimen' ? (
                     <div className="h-full flex flex-col items-center justify-center text-muted-foreground"><Compass className="w-12 h-12 mx-auto mb-2 opacity-20" /><p className="text-sm">选择案例查看排盘</p></div>

@@ -37,7 +37,7 @@ export interface QimenHeader {
     zhiShi: string;          // 值使
     maXing: string;          // 马星 (WASM已内置在宫位中，此处仅作 Header 显示参考)
     kongWang: string;        // 空亡
-    yueJiang?: string;       // 月将（仅阴盘有值，展示时替换马星位）
+    yueJiang?: string;       // 月将（仅阴盘有值，阴盘下空亡信息位改显月将）
     siZhu: {
         year: string;
         month: string;

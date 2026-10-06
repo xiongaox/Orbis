@@ -81,6 +81,7 @@ export default function QimenCaseList({
     return (
         <BaseCaseList
             variant={variant}
+            scrollKey="qimen"
             onOpenLibrary={() => setShowLibraryModal(true)}
             renderFilter={
                 <div className="relative">

@@ -174,13 +174,11 @@ export default function QimenPadInfoPanel({
                         { label: '旬首', value: header.xunShou, clickable: false },
                         { label: '值符', value: header.zhiFu, clickable: false },
                         { label: '值使', value: header.zhiShi, clickable: false },
-                        // 阴盘用月将替换马星位（月将为阴盘特有概念，其余盘式照常显示马星）
-                        {
-                            label: method === 'yinpan' && header.yueJiang ? '月将' : '马星',
-                            value: method === 'yinpan' && header.yueJiang ? header.yueJiang : header.maXing,
-                            clickable: false
-                        },
-                        { label: '空亡', value: header.kongWang, clickable: false },
+                        { label: '马星', value: header.maXing, clickable: false },
+                        // 阴盘空亡位让给将星（月将）；其余盘式照常显示空亡
+                        (method === 'yinpan' && header.yueJiang
+                            ? { label: '月将', value: header.yueJiang, clickable: false }
+                            : { label: '空亡', value: header.kongWang, clickable: false }),
                     ].map((item, i) => (
                         <div key={i} className="flex items-center gap-1.5">
                             <span className="text-muted-foreground font-light whitespace-nowrap">{item.label}:</span>

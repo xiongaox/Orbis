@@ -144,6 +144,7 @@ export default function QimenCaseCard({
     return (
         <div
             ref={rootRef}
+            data-case-selected={isSelected ? 'true' : undefined}
             className={`group @container relative w-full select-none overflow-hidden rounded-[10px] border transition-colors ${isSelected
                 ? 'border-primary/40 bg-card shadow-[0_0_0_1px_hsl(var(--primary)/0.2)]'
                 : 'border-border/40 bg-card hover:border-border/60 dark:border-border/30'

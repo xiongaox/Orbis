@@ -149,7 +149,8 @@ export default function MobileTabBar({
                 isOpen={gridOpen}
                 onClose={() => setGridOpen(false)}
                 title={<CompactModalTitle>{casestudyMode ? '案例分类' : '选择功能模块'}</CompactModalTitle>}
-                maxWidth="max-w-md"
+                // 底部弹层移动端始终全宽，maxWidth 仅作用于 md+ 居中形态
+                maxWidth="md:max-w-md"
                 bottomSheet
                 bodyClassName="p-4"
             >

@@ -152,6 +152,7 @@ export default function CaseCard({
     return (
         <div
             ref={rootRef}
+            data-case-selected={isSelected ? 'true' : undefined}
             className={`group @container relative w-full select-none overflow-hidden rounded-[10px] border transition-colors ${isSelected
                 ? 'border-primary/40 bg-card shadow-[0_0_0_1px_hsl(var(--primary)/0.2)]'
                 : 'border-border/40 bg-card hover:border-border/60 dark:border-border/30'
@@ -203,12 +204,13 @@ export default function CaseCard({
                 className="relative z-[2] flex cursor-pointer flex-col bg-card px-[4px] py-[8px] text-left @[200px]:px-[8px]"
             >
                 {/* 上区：左「姓名 / 印章+分类」与右侧四柱顶对齐。
-                    姓名固定最多 4 字省略：为研判状态按钮留位（名称过长会把状态按钮挤出卡外） */}
+                    姓名完整展示，仅当超出左列宽度时由 CSS truncate 按实际空间省略
+                    （研判状态按钮 shrink-0，不会被长名挤出卡外） */}
                 <div className="flex min-w-0 items-start justify-between gap-[7px] @[206px]:gap-[5px]">
                     <div className="min-w-0 flex-1">
                         <div className="flex min-w-0 items-center gap-[4px]">
                             <span className="block truncate text-[14px] font-semibold leading-[17px] text-foreground">
-                                {item.name.length > 4 ? `${item.name.slice(0, 4)}…` : item.name}
+                                {item.name}
                             </span>
                             {aiStatus && onOpenAiResearch && (
                                 <button

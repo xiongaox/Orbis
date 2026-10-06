@@ -400,7 +400,7 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
                 isOpen={showSlotPicker}
                 onClose={() => setShowSlotPicker(false)}
                 title={<CompactModalTitle>更换主菜单术数</CompactModalTitle>}
-                maxWidth="max-w-md"
+                maxWidth="md:max-w-md"
                 bottomSheet
                 bodyClassName="p-4"
             >

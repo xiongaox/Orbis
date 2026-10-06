@@ -44,7 +44,7 @@ export default function ProfileCenterModal({ isOpen, onClose, birthDate, onBirth
   };
 
   return (
-    <BaseModal isOpen={isOpen} onClose={onClose} title={<CompactModalTitle>设置生日</CompactModalTitle>} maxWidth="max-w-lg" bodyClassName="p-5 sm:p-6" bottomSheet>
+    <BaseModal isOpen={isOpen} onClose={onClose} title={<CompactModalTitle>设置生日</CompactModalTitle>} maxWidth="md:max-w-lg" bodyClassName="p-5 sm:p-6" bottomSheet>
       <form onSubmit={save} className="space-y-5">
         <div className="space-y-2">
           <button type="button" onClick={() => setShowPicker((current) => !current)} className="focus-ring h-11 w-full rounded-lg border border-border bg-background px-3 text-left text-sm text-foreground">

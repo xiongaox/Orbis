@@ -29,7 +29,7 @@ interface BaseModalProps {
     titleIcon?: React.ReactNode;
     children: React.ReactNode;
     footer?: React.ReactNode;
-    maxWidth?: string; // e.g. 'max-w-sm', 'max-w-md', 'max-w-4xl'
+    maxWidth?: string; // e.g. 'max-w-sm', 'max-w-md', 'max-w-4xl'；bottomSheet 场景请传 md:max-w-*（移动端始终全宽，仅 md+ 居中形态限宽）
     closeOnBackdropClick?: boolean;
     showCloseButton?: boolean;
     className?: string; // For the modal card itself
@@ -195,7 +195,9 @@ export default function BaseModal({
                         {footer}
                     </div>
                 )}
-            </div>,
+                {/* ⚠️ 此处 sheet 闭合标签后不可留逗号：JSX 内的逗号会渲染成文本节点，
+                    在 flex 弹层里成为约 4.6px 宽的匿名子项，把全宽弹层挤出一道右侧缝隙 */}
+            </div>
         </div>,
         document.body,
     );

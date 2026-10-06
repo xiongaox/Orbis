@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import type { PaiPanMethod } from '../../../../lib/csp-qimen/qimenService';
 import type { GlobalPattern } from '../../../../lib/csp-qimen/patternDetector';
 
@@ -49,6 +50,8 @@ interface QimenHeaderProps {
     globalPatterns: GlobalPattern[];
     onPatternClick?: (pattern: GlobalPattern) => void;
     onOpenAiModal?: () => void;
+    /** 第三行右侧自定义动作区（如案例盘的长生/十神切换）：无上一局/下一局按钮时利用空闲位 */
+    headerActions?: ReactNode;
     isMobileLayout?: boolean;
 }
 
@@ -64,6 +67,7 @@ export default function QimenHeader({
     globalPatterns,
     onPatternClick,
     onOpenAiModal,
+    headerActions,
     isMobileLayout = false,
 }: QimenHeaderProps) {
     const [isMethodOpen, setIsMethodOpen] = useState(false);
@@ -88,18 +92,16 @@ export default function QimenHeader({
     };
 
     const juItem: InfoItem = { label: header.ju.substring(0, 2), value: header.ju.substring(2), bold: true, clickable: true };
-    // 阴盘用月将替换马星位（月将为阴盘特有概念，其余盘式照常显示马星）
-    const maXingItem: InfoItem = {
-        label: method === 'yinpan' && header.yueJiang ? '月将' : '马星',
-        value: method === 'yinpan' && header.yueJiang ? header.yueJiang : header.maXing,
-    };
     const infoItems = {
         ju: juItem,
         xunShou: { label: '旬首', value: header.xunShou } as InfoItem,
-        maXing: maXingItem,
+        maXing: { label: '马星', value: header.maXing } as InfoItem,
         zhiFu: { label: '值符', value: header.zhiFu } as InfoItem,
         zhiShi: { label: '值使', value: header.zhiShi } as InfoItem,
-        kongWang: { label: '空亡', value: header.kongWang } as InfoItem,
+        // 阴盘空亡位让给将星（月将）；其余盘式照常显示空亡
+        kongWang: (method === 'yinpan' && header.yueJiang
+            ? { label: '月将', value: header.yueJiang }
+            : { label: '空亡', value: header.kongWang }) as InfoItem,
     };
     const desktopInfoItems: InfoItem[] = [
         infoItems.ju,
@@ -109,7 +111,7 @@ export default function QimenHeader({
         infoItems.zhiShi,
         infoItems.kongWang,
     ];
-    // 列优先排布：第 1 列 阴遁/值符，第 2 列 旬首/值使（两页常驻），第 3 列 马星(月将)/空亡
+    // 列优先排布：第 1 列 阴遁/值符，第 2 列 旬首/值使（两页常驻），第 3 列 马星/空亡
     const mobileInfoColumns: InfoItem[][] = [
         [infoItems.ju, infoItems.zhiFu],
         [infoItems.xunShou, infoItems.zhiShi],
@@ -145,11 +147,16 @@ export default function QimenHeader({
                     <span className="font-serif font-bold text-foreground ml-1 2xl:ml-2">{header.time}</span>
                 </div>
                 <div className="flex items-center gap-1 2xl:gap-2">
-                    <button onClick={onResetToNow} className="px-2 2xl:px-3 py-0.5 2xl:py-1 text-xs 2xl:text-sm bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors font-serif">现在</button>
-                    <button onClick={onOpenDatePicker} className="px-2 2xl:px-3 py-0.5 2xl:py-1 text-xs 2xl:text-sm bg-secondary text-muted-foreground rounded-md hover:bg-secondary/80 transition-colors font-serif border border-border">重新选择</button>
-                    {!isMobileLayout && (
+                    {/* 操作按钮按需渲染：只传必要回调的场景（如案例学习只读排盘）不显示对应按钮 */}
+                    {onResetToNow && (
+                        <button onClick={onResetToNow} className="px-2 2xl:px-3 py-0.5 2xl:py-1 text-xs 2xl:text-sm bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors font-serif">现在</button>
+                    )}
+                    {onOpenDatePicker && (
+                        <button onClick={onOpenDatePicker} className="px-2 2xl:px-3 py-0.5 2xl:py-1 text-xs 2xl:text-sm bg-secondary text-muted-foreground rounded-md hover:bg-secondary/80 transition-colors font-serif border border-border">重新选择</button>
+                    )}
+                    {!isMobileLayout && onOpenAiModal && (
                         <button onClick={onOpenAiModal} className="px-2 2xl:px-3 py-0.5 2xl:py-1 text-xs 2xl:text-sm bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/30 rounded-md transition-all font-serif flex items-center gap-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1-1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
                             <span>AI 提示</span>
                         </button>
                     )}
@@ -240,12 +247,17 @@ export default function QimenHeader({
                     ))}
                 </div>
                 <div className={`flex ${isMobileLayout ? 'items-stretch' : 'items-center'} gap-1 2xl:gap-2`}>
-                    <button type="button" onClick={onPrevHour} className={`${isMobileLayout ? 'px-3 flex items-center' : 'p-1 2xl:p-1.5'} bg-secondary/80 text-muted-foreground rounded-lg hover:bg-secondary transition-colors border border-border`} title="上一局">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isMobileLayout ? 'w-4 h-4' : 'w-3 h-3 2xl:w-3.5 2xl:h-3.5'}><path d="m15 18-6-6 6-6" /></svg>
-                    </button>
-                    <button type="button" onClick={onNextHour} className={`${isMobileLayout ? 'px-3 flex items-center' : 'p-1 2xl:p-1.5'} bg-secondary/80 text-muted-foreground rounded-lg hover:bg-secondary transition-colors border border-border`} title="下一局">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isMobileLayout ? 'w-4 h-4' : 'w-3 h-3 2xl:w-3.5 2xl:h-3.5'}><path d="m9 18 6-6-6-6" /></svg>
-                    </button>
+                    {headerActions}
+                    {onPrevHour && (
+                        <button type="button" onClick={onPrevHour} className={`${isMobileLayout ? 'px-3 flex items-center' : 'p-1 2xl:p-1.5'} bg-secondary/80 text-muted-foreground rounded-lg hover:bg-secondary transition-colors border border-border`} title="上一局">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isMobileLayout ? 'w-4 h-4' : 'w-3 h-3 2xl:w-3.5 2xl:h-3.5'}><path d="m15 18-6-6 6-6" /></svg>
+                        </button>
+                    )}
+                    {onNextHour && (
+                        <button type="button" onClick={onNextHour} className={`${isMobileLayout ? 'px-3 flex items-center' : 'p-1 2xl:p-1.5'} bg-secondary/80 text-muted-foreground rounded-lg hover:bg-secondary transition-colors border border-border`} title="下一局">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isMobileLayout ? 'w-4 h-4' : 'w-3 h-3 2xl:w-3.5 2xl:h-3.5'}><path d="m9 18 6-6-6-6" /></svg>
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
