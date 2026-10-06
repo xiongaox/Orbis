@@ -138,7 +138,8 @@ export default function MobileTabBar({
 
     return (
         <>
-            <nav className="relative shrink-0 h-14 border-t border-border bg-background/95 backdrop-blur-sm" aria-label="主导航">
+            <nav className="relative shrink-0 h-14 border-t border-border bg-background" aria-label="主导航">
+                {/* 不用毛玻璃：WKWebView 下 backdrop-filter 合成层会盖住后续 fixed 弹层（如设置生日） */}
                 <div key={isHomeLevel ? `home-${slots.join('-')}` : `module-${activeChart}`} className="flex h-full animate-fade-in">
                     {renderBar()}
                 </div>

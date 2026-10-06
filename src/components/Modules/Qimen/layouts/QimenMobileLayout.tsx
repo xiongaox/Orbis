@@ -9,6 +9,9 @@ import SideDrawer from '../../../UI/SideDrawer';
 import { useRegisterMobileDrawers } from '../../../../contexts/MobileNavContext';
 import { type QimenLayoutProps } from './QimenLayoutProps';
 
+// 移动端底栏已接管「案例 / 局信息」入口，边缘竖线把手默认隐藏；需要恢复入口时置 true
+const SHOW_EDGE_HANDLES = false;
+
 export default function QimenMobileLayout(props: QimenLayoutProps) {
     const {
         palaces, header, globalPatterns, isLoading, error, currentCase,
@@ -125,35 +128,39 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
                 )}
 
                 <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col relative">
-                    {/* 左侧竖线触发按钮 - 案例 */}
-                    <button
-                        type="button"
-                        onClick={() => setIsCaseListOpen(true)}
-                        className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-start group focus:outline-none"
-                        aria-label="打开案例列表"
-                    >
-                        <span className="w-[3px] h-20 rounded-r bg-primary/35 group-hover:bg-primary/70 group-active:bg-primary/80 transition-colors shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none" />
-                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span className="px-2 py-1 rounded-md text-xs bg-card border border-border shadow-sm text-foreground/80 whitespace-nowrap">
-                                案例
+                    {/* 左侧竖线触发按钮 - 案例（已由底栏接管，默认隐藏） */}
+                    {SHOW_EDGE_HANDLES && (
+                        <button
+                            type="button"
+                            onClick={() => setIsCaseListOpen(true)}
+                            className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-start group focus:outline-none"
+                            aria-label="打开案例列表"
+                        >
+                            <span className="w-[3px] h-20 rounded-r bg-primary/35 group-hover:bg-primary/70 group-active:bg-primary/80 transition-colors shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none" />
+                            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="px-2 py-1 rounded-md text-xs bg-card border border-border shadow-sm text-foreground/80 whitespace-nowrap">
+                                    案例
+                                </span>
                             </span>
-                        </span>
-                    </button>
+                        </button>
+                    )}
 
-                    {/* 右侧竖线触发按钮 - 局信息 */}
-                    <button
-                        type="button"
-                        onClick={() => setIsInfoOpen(true)}
-                        className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-end group focus:outline-none"
-                        aria-label="打开局信息"
-                    >
-                        <span className="w-[3px] h-20 rounded-l bg-primary/35 group-hover:bg-primary/70 group-active:bg-primary/80 transition-colors shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none" />
-                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span className="px-2 py-1 rounded-md text-xs bg-card border border-border shadow-sm text-foreground/80 whitespace-nowrap">
-                                局信息
+                    {/* 右侧竖线触发按钮 - 局信息（已由底栏接管，默认隐藏） */}
+                    {SHOW_EDGE_HANDLES && (
+                        <button
+                            type="button"
+                            onClick={() => setIsInfoOpen(true)}
+                            className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-end group focus:outline-none"
+                            aria-label="打开局信息"
+                        >
+                            <span className="w-[3px] h-20 rounded-l bg-primary/35 group-hover:bg-primary/70 group-active:bg-primary/80 transition-colors shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none" />
+                            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="px-2 py-1 rounded-md text-xs bg-card border border-border shadow-sm text-foreground/80 whitespace-nowrap">
+                                    局信息
+                                </span>
                             </span>
-                        </span>
-                    </button>
+                        </button>
+                    )}
                     {/* 加载状态 */}
                     {isLoading && (
                         <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-20">

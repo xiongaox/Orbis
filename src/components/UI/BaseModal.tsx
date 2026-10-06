@@ -1,5 +1,6 @@
 
 import React, { useLayoutEffect, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { pushBackHandler, popBackHandler } from '../../utils/androidBackButton';
 
@@ -120,7 +121,9 @@ export default function BaseModal({
         ? (title as (close: React.ReactNode) => React.ReactNode)(closeButton)
         : title;
 
-    return (
+    // Portal 到 body：弹窗可能挂在 overflow 滚动容器内（如个人中心），
+    // WebKit 下容器内的 position:fixed 会退化成相对容器定位而被底栏遮挡
+    return createPortal(
         <div
             className={`fixed inset-0 z-[100] isolate flex ${
                 bottomSheet
@@ -192,7 +195,8 @@ export default function BaseModal({
                         {footer}
                     </div>
                 )}
-            </div>
-        </div>
+            </div>,
+        </div>,
+        document.body,
     );
 }

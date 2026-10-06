@@ -77,13 +77,16 @@ export default function PalaceCell({
     })();
     // 显示状态计算：十神或长生二选一
     const showExtraInfo = showShiShen || showChangSheng;
-    const baseClass = `relative ${isMobileLayout ? '' : 'rounded-lg'} border transition-all ${isSelected ? 'border-primary bg-primary/5' : 'border-border/50 hover:border-border hover:bg-muted/30'} ${palace.position === 5 ? 'bg-muted/20' : ''}`;
+    const baseClass = `relative ${enlarged ? 'rounded-2xl' : isMobileLayout ? '' : 'rounded-lg'} border transition-all ${isSelected ? 'border-primary bg-primary/5' : 'border-border/50 hover:border-border hover:bg-muted/30'} ${palace.position === 5 ? 'bg-muted/20' : ''}`;
     // 长生/十神状态文字样式：移动端 11px 不换行，桌面端 text-xs
     const extraInfoClass = isMobileLayout
         ? `${enlarged ? 'text-sm' : 'text-[11px] 2xl:text-sm'} text-muted-foreground whitespace-nowrap overflow-hidden`
         : `${enlarged ? 'text-sm' : 'text-xs 2xl:text-sm'} text-muted-foreground`;
     // 底部元数据 gap：移动端 0，桌面端 0.5
     const metaGapClass = isMobileLayout ? 'gap-0' : 'gap-0.5';
+    // 说明大卡（enlarged）专属：三卦行 / 元数据行的元素间距统一为 gap-3；九宫格普通宫位保持原紧凑样式
+    const sanguaRowCls = enlarged ? 'gap-3 border-b border-border/40 pb-2' : 'gap-1 border-b border-border/40 pb-0.5';
+    const metaRowCls = enlarged ? 'gap-3 border-t border-border/40 pt-2' : `${metaGapClass} border-t border-border/40 pt-0.5`;
     // 盘面说明弹窗联动：弹窗当前选中条目对应的元素加主色描边
     const litCls = (id: string) =>
         guideLitId === id ? 'outline outline-[1.5px] outline-primary outline-offset-2 bg-primary/10 rounded' : '';
@@ -98,7 +101,7 @@ export default function PalaceCell({
     const rowMinH = isMobileLayout ? '' : enlarged ? 'min-h-9' : 'min-h-6 2xl:min-h-7';
     const statusStemCls = enlarged ? 'w-9 h-9 text-2xl' : 'w-6 h-6 2xl:w-7 2xl:h-7 text-base 2xl:text-lg';
     const metaCls = enlarged ? 'text-sm' : 'text-[11px]';
-    const cardPad = enlarged ? 'p-2' : 'p-0.5 2xl:p-1';
+    const cardPad = enlarged ? 'px-3 py-4' : 'p-0.5 2xl:p-1';
     const rowGap = enlarged ? 'gap-y-2' : 'gap-y-1 2xl:gap-y-1.5';
     // 说明弹窗高亮中的状态干：以内层普通字形呈现，避免「描边套状态色块」双层容器
     const litJiGong = guideLitId === 'jiGong';
@@ -112,7 +115,7 @@ export default function PalaceCell({
                 <div className={`h-full flex flex-col ${cardPad} ${showPalaceMeta ? `justify-between ${rowGap}` : showExtraInfo ? 'justify-center gap-y-3 2xl:gap-y-4' : 'justify-evenly gap-y-3 2xl:gap-y-4'}`}>
                     {/* 占位行：对齐普通宫位的“门迫提示”，仅在 showPalaceMeta 开启时显示 */}
                     {showPalaceMeta && (
-                        <div className="flex items-center justify-center gap-1 border-b border-transparent pb-0.5 opacity-0 select-none">
+                        <div className={`flex items-center justify-center ${enlarged ? 'gap-3 pb-2' : 'gap-1 pb-0.5'} border-b border-transparent opacity-0 select-none`}>
                             <span className="text-xs font-serif">占位</span>
                             <span className="text-xs">→</span>
                             <span className="text-sm font-serif font-semibold">占位</span>
@@ -160,7 +163,7 @@ export default function PalaceCell({
                     {/* 底部元数据行：对齐普通宫位的 Meta 行 */}
                     {showPalaceMeta && (
                         palace.palaceMeta ? (
-                            <div className={`flex items-center justify-center ${metaGapClass} border-t border-border/40 pt-0.5 ${metaCls} text-foreground/40 font-serif`}>
+                            <div className={`flex items-center justify-center ${metaGapClass} border-t border-border/40 ${metaRowCls} ${metaCls} text-foreground/40 font-serif`}>
                                 <span {...guideElProps('num')} className={litCls('num')}>{palace.palaceMeta.number}</span>
                                 <span>丨</span>
                                 <span {...guideElProps('wang')} className={litCls('wang')}>{isMobileLayout ? '' : '宫位'}【 {palace.palaceMeta.wangShuai} 】</span>
@@ -197,7 +200,7 @@ export default function PalaceCell({
             <div className={`h-full flex flex-col ${cardPad} ${showPalaceMeta ? `justify-between ${rowGap}` : showExtraInfo ? 'justify-center gap-y-3 2xl:gap-y-4' : 'justify-evenly gap-y-3 2xl:gap-y-4'}`}>
                 {/* 门迫路径行（顶部）：原宫 → 所在宫 → 后天方位 */}
                 {showPalaceMeta && palace.menPoPath && (
-                    <div {...guideElProps('sangua')} className={`flex items-center justify-center gap-1 border-b border-border/40 pb-0.5 ${litCls('sangua')}`}>
+                    <div {...guideElProps('sangua')} className={`flex items-center justify-center ${sanguaRowCls} ${litCls('sangua')}`}>
                         <span className={`${sanguaCls} font-serif text-foreground/40`}>{palace.menPoPath.from}</span>
                         <span className={`${sanguaCls} text-foreground/40`}>→</span>
                         <span className={`${sanguaToCls} font-serif font-semibold text-foreground/60`}>{palace.menPoPath.to}</span>
@@ -281,7 +284,7 @@ export default function PalaceCell({
 
                 {/* 底部元数据行：序号 | 宫位【旺衰】| 内外盘 */}
                 {showPalaceMeta && palace.palaceMeta && (
-                    <div className={`flex items-center justify-center ${metaGapClass} border-t border-border/40 pt-0.5 ${metaCls} text-foreground/40 font-serif`}>
+                    <div className={`flex items-center justify-center ${metaGapClass} border-t border-border/40 ${metaRowCls} ${metaCls} text-foreground/40 font-serif`}>
                         <span {...guideElProps('num')} className={litCls('num')}>{palace.palaceMeta.number}</span>
                         <span>丨</span>
                         <span {...guideElProps('wang')} className={litCls('wang')}>{isMobileLayout ? '' : '宫位'}【 {palace.palaceMeta.wangShuai} 】</span>

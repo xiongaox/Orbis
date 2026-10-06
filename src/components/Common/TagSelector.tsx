@@ -28,7 +28,7 @@ export default function TagSelector({ selectedTags, onChange, disabled }: TagSel
                         onClick={() => toggleTag(tag)}
                         disabled={disabled}
                         className={`
-                            px-3 py-1.5 text-xs rounded-lg transition-all
+                            grow whitespace-nowrap px-3 py-1.5 text-xs rounded-lg transition-all text-center
                             border focus-ring
                             ${isSelected
                                 ? 'bg-[hsl(var(--accent-primary)/0.18)] border-[hsl(var(--accent-primary)/0.4)] text-[hsl(var(--accent-primary))] dark:bg-primary/20 dark:border-primary/50 dark:text-primary'

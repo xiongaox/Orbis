@@ -14,6 +14,7 @@
  
 */
 import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronLeft } from 'lucide-react';
 import { pushBackHandler, popBackHandler } from '../../utils/androidBackButton';
 
@@ -59,9 +60,11 @@ export default function SubPage({
 
     if (!isOpen) return null;
 
-    return (
+    // Portal 到 body：二级页可能挂在 overflow 滚动容器内（如个人中心），
+    // WebKit 下容器内的 position:fixed 会退化成相对容器定位而被底栏遮挡
+    return createPortal(
         <div
-            className="fixed inset-0 z-[100] isolate flex flex-col bg-background"
+            className="fixed inset-0 z-[60] isolate flex flex-col bg-background"
             role="dialog"
             aria-modal="true"
             style={{
@@ -90,6 +93,7 @@ export default function SubPage({
             {footer && (
                 <div className="shrink-0 border-t border-border bg-background px-4 py-3">{footer}</div>
             )}
-        </div>
+        </div>,
+        document.body,
     );
 }

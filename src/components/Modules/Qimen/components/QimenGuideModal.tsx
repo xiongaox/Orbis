@@ -85,6 +85,8 @@ export default function QimenGuideModal({
     const [isWide, setIsWide] = useState(false);
     const layoutRef = useRef<HTMLDivElement>(null);
     const { isMobile: isMobilePage } = useLayoutMode();
+    // 解释条 DOM 登记：移动端点选大卡元素后，把对应条目滚进可视区
+    const itemElsRef = useRef<Record<string, HTMLDivElement | null>>({});
 
     // 无选中宫位时回退乾宫静态示例
     const display = useMemo(() => palace ?? FALLBACK_PALACE, [palace]);
@@ -210,7 +212,14 @@ export default function QimenGuideModal({
 
     const activate = useCallback((id: string) => {
         setActiveId((prev) => (prev === id ? null : id));
-    }, []);
+        // 移动端：解释列表在下方滚动区，点选后把对应条目带入可视区
+        //（block: nearest 仅在目标不可见时滚动，已可见时不打断阅读位置）
+        if (id && isMobilePage) {
+            requestAnimationFrame(() => {
+                itemElsRef.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            });
+        }
+    }, [isMobilePage]);
 
     // 反向选择：点击卡内元素 → 高亮对应词条（再点同一元素取消；空元素条目已隐藏不响应）
     const handleLayoutClick = useCallback((e: ReactMouseEvent) => {
@@ -250,6 +259,7 @@ export default function QimenGuideModal({
     const renderGuideItem = (g: GuideItem, grow = false) => (
         <div
             key={g.id}
+            ref={(el) => { itemElsRef.current[g.id] = el; }}
             onMouseEnter={() => setActiveId(g.id)}
             onClick={() => activate(g.id)}
             className={`cursor-pointer rounded-lg border bg-card px-2.5 py-[7px] transition-colors ${grow ? 'flex-1' : ''} ${

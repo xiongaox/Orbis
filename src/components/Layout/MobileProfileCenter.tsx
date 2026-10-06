@@ -12,8 +12,11 @@ import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
 import {
     Bot,
     BookOpen,
+    Calendar,
     CalendarDays,
+    ChevronDown,
     ChevronRight,
+    ChevronUp,
     Cloud,
     Compass,
     Github,
@@ -22,10 +25,12 @@ import {
     Info,
     KeyRound,
     Moon,
+    Plus,
     ScrollText,
     Star,
     Sun,
     User,
+    X,
 } from 'lucide-react';
 import type { ChartType } from '../../types';
 import { openExternalUrl } from '../../utils/browserUtil';
@@ -33,7 +38,6 @@ import { popBackHandler, pushBackHandler } from '../../utils/androidBackButton';
 import { profileService } from '../../services/profileService';
 import { getUserAvatar } from '../../utils/userUtil';
 import { publicCaseLibraryService } from '../../services/publicCaseLibraryService';
-import { remoteBackupService } from '../../services/remoteBackupService';
 import { webDavBackupService, WEBDAV_CONFIG_CHANGE_EVENT } from '../../services/webdavBackupService';
 import { s3BackupService, S3_CONFIG_CHANGE_EVENT } from '../../services/s3BackupService';
 import BaseModal, { CompactModalTitle } from '../UI/BaseModal';
@@ -177,23 +181,27 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
         return () => { cancelled = true; };
     }, []);
 
-    // 备份信息随配置变化实时刷新（WebDAV / S3 配置事件）
+    // 备份信息随配置变化实时刷新：哪个配置了显示哪个，都配置了优先显示 WebDAV
     useEffect(() => {
         let cancelled = false;
         const read = () => {
             void (async () => {
                 try {
-                    const method = await remoteBackupService.readMethod();
-                    const config = method === 's3'
-                        ? await s3BackupService.readConfig()
-                        : await webDavBackupService.readConfig();
+                    const [webdav, s3] = await Promise.all([
+                        webDavBackupService.readConfig(),
+                        s3BackupService.readConfig(),
+                    ]);
                     if (cancelled) return;
-                    const label = method === 's3' ? 'S3' : 'WebDAV';
-                    setBackupSummary(
-                        config.endpoint
-                            ? `${label} 备份已配置 · ${config.autoBackupEnabled ? '自动备份开' : '自动备份关'}`
-                            : `${label} 备份未配置`,
-                    );
+                    const autoText = (auto: boolean) => (auto ? '自动备份开' : '自动备份关');
+                    let summary: string;
+                    if (webdav.endpoint) {
+                        summary = `WebDAV 备份已配置 · ${autoText(webdav.autoBackupEnabled)}`;
+                    } else if (s3.endpoint) {
+                        summary = `S3 备份已配置 · ${autoText(s3.autoBackupEnabled)}`;
+                    } else {
+                        summary = '云备份未配置';
+                    }
+                    setBackupSummary(summary);
                 } catch {
                     if (!cancelled) setBackupSummary('备份配置读取失败');
                 }
@@ -227,6 +235,17 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
         }
     };
 
+    // 槽位点击排序：上移 / 下移（首页固定在最左，不参与）
+    const moveSlot = (id: ChartType, dir: -1 | 1) => {
+        const from = slots.indexOf(id);
+        const to = from + dir;
+        if (from < 0 || to < 0 || to >= slots.length) return;
+        const next = [...slots];
+        next.splice(from, 1);
+        next.splice(to, 0, id);
+        onSlotsChange(next);
+    };
+
     return (
         <div className="h-full overflow-y-auto" aria-label="个人中心">
             <div className="px-4 pt-5 pb-10 max-w-md mx-auto space-y-6">
@@ -247,41 +266,78 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
                     </div>
                 </div>
 
-                {/* 底部菜单管理：槽位 chips 概览 + 弹层选择，术数增多时本页高度不变 */}
+                {/* 底部菜单管理：管理列表（序号 + 图标 + 名称 + 把手 + 移除），为后续拖拽排序预留形态 */}
                 <section>
                     <SectionTitle title="底部菜单管理" />
-                    <div className="rounded-xl border border-border bg-card p-3">
-                        <div className="grid grid-cols-3 gap-2">
-                            <span className="inline-flex w-full items-center justify-center gap-1.5 h-9 rounded-lg bg-secondary border border-border px-2 text-[13px] text-foreground">
-                                万年通历
-                                <span className="text-[10px] leading-none px-1 py-0.5 rounded bg-primary/10 text-primary">首页</span>
+                    <div className="space-y-2">
+                        {/* 首页行：固定显示，不可移除、不可拖动 */}
+                        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-secondary/40 border border-border">
+                            <span className="w-4 text-center font-serif text-[13px] text-muted-foreground/70">1</span>
+                            <span className="w-[34px] h-[34px] shrink-0 rounded-[9px] bg-primary/10 border border-primary/50 text-primary flex items-center justify-center">
+                                <Calendar className="w-[17px] h-[17px]" />
                             </span>
-                            {slots.map((id) => (
-                                <span
+                            <span className="flex-1 min-w-0">
+                                <span className="block text-[13.5px] font-semibold text-foreground">万年通历</span>
+                                <span className="block text-[10.5px] text-muted-foreground mt-0.5">首页 · 固定显示</span>
+                            </span>
+                        </div>
+
+                        {slots.map((id, i) => {
+                            const Icon = CANDIDATE_ICONS[id];
+                            const showMoveDown = i === 0 && slots.length > 1;
+                            const showMoveUp = i === slots.length - 1 && slots.length > 1;
+                            return (
+                                <div
                                     key={id}
-                                    className="inline-flex w-full items-center justify-center gap-1 h-9 rounded-lg bg-primary/10 border border-primary/30 px-2 text-[13px] text-primary"
+                                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-secondary/40 border border-border"
                                 >
-                                    {mobileNavModuleName(id)}
+                                    <span className="w-4 text-center font-serif text-[13px] text-muted-foreground/70">{i + 2}</span>
+                                    <span className="w-[34px] h-[34px] shrink-0 rounded-[9px] bg-primary/10 border border-primary/50 text-primary flex items-center justify-center">
+                                        {Icon && <Icon className="w-[17px] h-[17px]" />}
+                                    </span>
+                                    <span className="flex-1 min-w-0 text-[13.5px] font-semibold text-foreground">{mobileNavModuleName(id)}</span>
+                                    {showMoveDown && (
+                                        <button
+                                            type="button"
+                                            onClick={() => moveSlot(id, 1)}
+                                            className="w-7 h-7 shrink-0 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted/40 flex items-center justify-center transition-colors focus:outline-none focus-ring"
+                                            aria-label={`下移${mobileNavModuleName(id)}`}
+                                        >
+                                            <ChevronDown className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                    {showMoveUp && (
+                                        <button
+                                            type="button"
+                                            onClick={() => moveSlot(id, -1)}
+                                            className="w-7 h-7 shrink-0 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted/40 flex items-center justify-center transition-colors focus:outline-none focus-ring"
+                                            aria-label={`上移${mobileNavModuleName(id)}`}
+                                        >
+                                            <ChevronUp className="w-4 h-4" />
+                                        </button>
+                                    )}
                                     <button
                                         type="button"
                                         onClick={() => handleToggleSlot(id, false)}
-                                        className="w-5 h-5 rounded-full flex items-center justify-center text-primary/70 hover:text-primary hover:bg-primary/15 transition-colors focus:outline-none focus-ring"
+                                        className="w-7 h-7 shrink-0 rounded-lg bg-black/25 border border-border text-muted-foreground hover:text-red-500 hover:border-red-500/40 flex items-center justify-center transition-colors focus:outline-none focus-ring"
                                         aria-label={`移除${mobileNavModuleName(id)}`}
                                     >
-                                        ×
+                                        <X className="w-[11px] h-[11px]" />
                                     </button>
-                                </span>
-                            ))}
-                            {slots.length < MOBILE_NAV_MAX_SLOTS && (
-                                <button
-                                    type="button"
-                                    onClick={() => setShowSlotPicker(true)}
-                                    className="inline-flex w-full items-center justify-center h-9 rounded-lg border border-dashed border-primary/40 px-2 text-[13px] text-primary hover:bg-primary/5 transition-colors focus:outline-none focus-ring"
-                                >
-                                    + 更换术数
-                                </button>
-                            )}
-                        </div>
+                                </div>
+                            );
+                        })}
+
+                        {slots.length < MOBILE_NAV_MAX_SLOTS && (
+                            <button
+                                type="button"
+                                onClick={() => setShowSlotPicker(true)}
+                                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-primary/50 text-[12.5px] text-primary hover:bg-primary/5 transition-colors focus:outline-none focus-ring"
+                            >
+                                <Plus className="w-3.5 h-3.5" />
+                                更换术数
+                            </button>
+                        )}
                     </div>
                 </section>
 

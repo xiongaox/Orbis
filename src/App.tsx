@@ -264,9 +264,10 @@ function AppShell() {
           </div>
         ))}
 
-        {/* 移动端个人中心：覆盖内容区，底栏保持可见（L1 主菜单层，个人中心高亮） */}
+        {/* 移动端个人中心：覆盖内容区，底栏保持可见（L1 主菜单层，个人中心高亮）；
+            z-[60] 高于底栏毛玻璃层，保证页内底部弹窗（如设置生日）不被底栏遮挡 */}
         {isMobile && showMobileProfile && (
-          <div className="absolute inset-0 z-40 bg-background">
+          <div className="absolute inset-0 z-[60] bg-background">
             <MobileProfileCenter
               slots={navSlots}
               onSlotsChange={setNavSlots}

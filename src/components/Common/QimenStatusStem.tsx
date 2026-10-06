@@ -51,7 +51,7 @@ export default function QimenStatusStem({
 
     return (
         <span
-            className={`inline-flex min-w-6 items-center justify-center px-1 ${isMobile ? mobileClassName : desktopClassName} rounded-md border font-serif font-bold`}
+            className={`inline-flex min-w-5 items-center justify-center px-1 ${isMobile ? mobileClassName : desktopClassName} rounded-md border font-serif font-bold`}
             style={{ ...style, borderColor: style.color }}
         >
             {value}

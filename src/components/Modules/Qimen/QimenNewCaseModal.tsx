@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Calendar, Loader2, Plus, Pencil } from 'lucide-react';
 import BaseModal from '../../UI/BaseModal';
+import SubPage from '../../UI/SubPage';
+import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
 import { qimenCaseService, type CreateQimenCaseInput, type UpdateQimenCaseInput, type QimenCategory, type QimenCase } from '../../../services/qimenCaseService';
 import type { PaiPanMethod } from '../../../lib/csp-qimen/qimenService';
@@ -43,6 +45,9 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
     const [feedback, setFeedback] = useState(initialData?.feedback || '');
     const [analysis, setAnalysis] = useState(initialData?.analysis || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // 移动端检测：与全应用统一走 useLayoutMode
+    const { isMobile } = useLayoutMode();
 
     if (!isOpen) return null;
 
@@ -118,15 +123,9 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
         </div>
     );
 
-    return (
-        <BaseModal
-            isOpen={isOpen}
-            onClose={onClose}
-            title={initialData ? '编辑案例' : '新建案例'}
-            titleIcon={initialData ? <Pencil className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-            footer={footer}
-            maxWidth="max-w-md"
-        >
+    // 表单正文：移动端 SubPage 与桌面端 BaseModal 共用
+    const formContent = (
+        <>
             <div className="space-y-5">
                 {/* 案例名称 */}
                 <div className="space-y-1.5">
@@ -157,9 +156,6 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
                         </span>
                         <Calendar className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                     </button>
-                    {/* DatePicker Portal/Z-Index handling needed if BaseModal has high z-index. 
-                        AdvancedDatePicker typically uses Portal. If not, it might be behind.
-                        Assuming AdvancedDatePicker uses a Portal with higher Z. */}
                 </div>
 
                 {/* 标签分类 */}
@@ -173,7 +169,7 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
                                 key={cat.id}
                                 type="button"
                                 onClick={() => setCategory(cat.id as QimenCategory)}
-                                className={`px-3 py-1 text-xs rounded-md border transition-all focus-ring ${category === cat.id
+                                className={`grow whitespace-nowrap text-center px-3 py-1 text-xs rounded-md border transition-all focus-ring ${category === cat.id
                                     ? 'bg-primary/20 border-primary text-primary'
                                     : 'bg-muted/30 border-border text-muted-foreground hover:border-primary/30 hover:text-foreground'
                                     }`}
@@ -227,8 +223,7 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
                 </div>
             </div>
 
-            {/* 时间选择器 - Must be outside BaseModal content flow if it's a portal, or inside if it's inline. 
-                Assuming AdvancedDatePicker renders a Modal. */}
+            {/* 时间选择器 */}
             <AdvancedDatePicker
                 isOpen={isDatePickerOpen}
                 value={date}
@@ -238,6 +233,34 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
                     setIsDatePickerOpen(false);
                 }}
             />
+        </>
+    );
+
+    // 移动端：统一二级页面壳（返回手势 + 统一页头）；桌面端：保留居中弹窗
+    if (isMobile) {
+        return (
+            <SubPage
+                isOpen={isOpen}
+                onClose={onClose}
+                title={initialData ? '编辑案例' : '新建案例'}
+                bodyClassName="p-4"
+                footer={footer}
+            >
+                {formContent}
+            </SubPage>
+        );
+    }
+
+    return (
+        <BaseModal
+            isOpen={isOpen}
+            onClose={onClose}
+            title={initialData ? '编辑案例' : '新建案例'}
+            titleIcon={initialData ? <Pencil className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+            footer={footer}
+            maxWidth="max-w-md"
+        >
+            {formContent}
         </BaseModal>
     );
 }

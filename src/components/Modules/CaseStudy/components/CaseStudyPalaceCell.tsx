@@ -109,7 +109,7 @@ export default function CaseStudyPalaceCell({
                         {jiGongTianPanStatus.status === 'normal' ? (
                             <span className={jiGongClass}>{palace.jiGongTianPan}</span>
                         ) : (
-                            <QimenStatusStem status={jiGongTianPanStatus.status} value={palace.jiGongTianPan || ''} isMobile={isMobile} mobileAsBadge mobileClassName="w-6 h-6 text-xs" desktopClassName="w-6 h-6 text-sm" />
+                            <QimenStatusStem status={jiGongTianPanStatus.status} value={palace.jiGongTianPan || ''} isMobile={isMobile} mobileAsBadge mobileClassName="w-5 h-5 text-xs" desktopClassName="w-6 h-6 text-sm" />
                         )}
                         {showShiShen && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap`}>{palace.jiGongTianPanShiShen}</span>}
                         {showChangSheng && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap`}>{palace.jiGongTianPanCS}</span>}
@@ -121,11 +121,11 @@ export default function CaseStudyPalaceCell({
                     </div>
                     <div className="flex flex-col items-center justify-end leading-none">
                         {tianPanStatus.status === 'jiXing' ? (
-                            <QimenStatusStem status={tianPanStatus.status} value={palace.tianPan} isMobile={isMobile} mobileAsBadge mobileClassName="w-6 h-6 text-xs" desktopClassName="w-6 h-6 text-sm" />
+                            <QimenStatusStem status={tianPanStatus.status} value={palace.tianPan} isMobile={isMobile} mobileAsBadge mobileClassName="w-5 h-5 text-xs" desktopClassName="w-6 h-6 text-sm" />
                         ) : tianPanStatus.status === 'ruMu' ? (
-                            <QimenStatusStem status={tianPanStatus.status} value={palace.tianPan} isMobile={isMobile} mobileAsBadge mobileClassName="w-6 h-6 text-xs" desktopClassName="w-6 h-6 text-sm" />
+                            <QimenStatusStem status={tianPanStatus.status} value={palace.tianPan} isMobile={isMobile} mobileAsBadge mobileClassName="w-5 h-5 text-xs" desktopClassName="w-6 h-6 text-sm" />
                         ) : tianPanStatus.status === 'jiXingRuMu' ? (
-                            <QimenStatusStem status={tianPanStatus.status} value={palace.tianPan} isMobile={isMobile} mobileAsBadge mobileClassName="w-6 h-6 text-xs" desktopClassName="w-6 h-6 text-sm" />
+                            <QimenStatusStem status={tianPanStatus.status} value={palace.tianPan} isMobile={isMobile} mobileAsBadge mobileClassName="w-5 h-5 text-xs" desktopClassName="w-6 h-6 text-sm" />
                         ) : (
                             <span className={tianPanStatus.colorVar ? `${isMobile ? 'text-sm' : 'text-base'} font-serif font-bold` : `${isMobile ? 'text-sm' : 'text-base'} font-serif ${isDayStem || isHourStem ? 'text-primary font-bold' : 'text-foreground'}`} style={tianPanStatus.colorVar ? { color: tianPanStatus.colorVar } : undefined}>{palace.tianPan}</span>
                         )}
@@ -140,7 +140,7 @@ export default function CaseStudyPalaceCell({
                         {jiGongDiPanStatus.status === 'normal' ? (
                             <span className={`${isMobile ? 'text-sm' : 'text-base'} font-serif text-foreground`}>{palace.jiGongDiPan}</span>
                         ) : (
-                            <QimenStatusStem status={jiGongDiPanStatus.status} value={palace.jiGongDiPan || ''} isMobile={isMobile} mobileAsBadge mobileClassName="w-6 h-6 text-xs" desktopClassName="w-6 h-6 text-sm" />
+                            <QimenStatusStem status={jiGongDiPanStatus.status} value={palace.jiGongDiPan || ''} isMobile={isMobile} mobileAsBadge mobileClassName="w-5 h-5 text-xs" desktopClassName="w-6 h-6 text-sm" />
                         )}
                         {showShiShen && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap`}>{palace.jiGongDiPanShiShen}</span>}
                         {showChangSheng && <span className={`${isMobile ? 'text-[10px]' : 'text-[12px]'} text-muted-foreground whitespace-nowrap`}>{palace.jiGongDiPanCS}</span>}
@@ -152,11 +152,11 @@ export default function CaseStudyPalaceCell({
                     </div>
                     <div className="flex flex-col items-center justify-end leading-none">
                         {diPanStatus.status === 'jiXing' ? (
-                            <QimenStatusStem status={diPanStatus.status} value={palace.diPan} isMobile={isMobile} mobileAsBadge mobileClassName="w-6 h-6 text-xs" desktopClassName="w-6 h-6 text-sm" />
+                            <QimenStatusStem status={diPanStatus.status} value={palace.diPan} isMobile={isMobile} mobileAsBadge mobileClassName="w-5 h-5 text-xs" desktopClassName="w-6 h-6 text-sm" />
                         ) : diPanStatus.status === 'ruMu' ? (
-                            <QimenStatusStem status={diPanStatus.status} value={palace.diPan} isMobile={isMobile} mobileAsBadge mobileClassName="w-6 h-6 text-xs" desktopClassName="w-6 h-6 text-sm" />
+                            <QimenStatusStem status={diPanStatus.status} value={palace.diPan} isMobile={isMobile} mobileAsBadge mobileClassName="w-5 h-5 text-xs" desktopClassName="w-6 h-6 text-sm" />
                         ) : diPanStatus.status === 'jiXingRuMu' ? (
-                            <QimenStatusStem status={diPanStatus.status} value={palace.diPan} isMobile={isMobile} mobileAsBadge mobileClassName="w-6 h-6 text-xs" desktopClassName="w-6 h-6 text-sm" />
+                            <QimenStatusStem status={diPanStatus.status} value={palace.diPan} isMobile={isMobile} mobileAsBadge mobileClassName="w-5 h-5 text-xs" desktopClassName="w-6 h-6 text-sm" />
                         ) : (
                             <span className={diPanStatus.colorVar ? `${isMobile ? 'text-sm' : 'text-base'} font-serif font-bold` : `${isMobile ? 'text-sm' : 'text-base'} font-serif text-foreground`} style={diPanStatus.colorVar ? { color: diPanStatus.colorVar } : undefined}>{palace.diPan}</span>
                         )}

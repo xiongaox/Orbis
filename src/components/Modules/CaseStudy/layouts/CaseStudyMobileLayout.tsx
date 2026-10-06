@@ -25,6 +25,9 @@ import ArticleContentLoading from '../components/ArticleContentLoading';
 import { type CaseStudyLayoutProps } from './CaseStudyLayoutProps';
 import { useRegisterMobileDrawers } from '../../../../contexts/MobileNavContext';
 
+// 移动端底栏已接管「目录 / 排盘信息」入口，边缘竖线把手默认隐藏；需要恢复入口时置 true
+const SHOW_EDGE_HANDLES = false;
+
 const toChineseNum = (num: number) => {
     const chineseRaw = ['〇', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
     return chineseRaw[num] || num.toString();
@@ -169,14 +172,19 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
     return (
         <>
             <div className="flex-1 flex flex-col overflow-hidden relative">
-                <button type="button" onClick={() => setIsLeftPanelOpen(true)} className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-start group focus:outline-none" aria-label="打开目录">
-                    <span className="w-[3px] h-20 rounded-r bg-primary/35 group-hover:bg-primary/70 group-active:bg-primary/80 transition-colors shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none" />
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"><span className="px-2 py-1 rounded-md text-xs bg-card border border-border shadow-sm text-foreground/80 whitespace-nowrap">目录</span></span>
-                </button>
-                <button type="button" onClick={() => setIsChartPanelOpen(true)} className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-end group focus:outline-none" aria-label={selectedCategory === 'duanfa' ? '打开大纲' : '打开排盘'}>
-                    <span className="w-[3px] h-20 rounded-l bg-primary/35 group-hover:bg-primary/70 group-active:bg-primary/80 transition-colors shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none" />
-                    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"><span className="px-2 py-1 rounded-md text-xs bg-card border border-border shadow-sm text-foreground/80 whitespace-nowrap">{selectedCategory === 'duanfa' ? '大纲' : '排盘'}</span></span>
-                </button>
+                {/* 左右竖线把手（已由底栏接管，默认隐藏） */}
+                {SHOW_EDGE_HANDLES && (
+                    <button type="button" onClick={() => setIsLeftPanelOpen(true)} className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-start group focus:outline-none" aria-label="打开目录">
+                        <span className="w-[3px] h-20 rounded-r bg-primary/35 group-hover:bg-primary/70 group-active:bg-primary/80 transition-colors shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none" />
+                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"><span className="px-2 py-1 rounded-md text-xs bg-card border border-border shadow-sm text-foreground/80 whitespace-nowrap">目录</span></span>
+                    </button>
+                )}
+                {SHOW_EDGE_HANDLES && (
+                    <button type="button" onClick={() => setIsChartPanelOpen(true)} className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-end group focus:outline-none" aria-label={selectedCategory === 'duanfa' ? '打开大纲' : '打开排盘'}>
+                        <span className="w-[3px] h-20 rounded-l bg-primary/35 group-hover:bg-primary/70 group-active:bg-primary/80 transition-colors shadow-[0_0_0_1px_rgba(0,0,0,0.04)] dark:shadow-none" />
+                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity"><span className="px-2 py-1 rounded-md text-xs bg-card border border-border shadow-sm text-foreground/80 whitespace-nowrap">{selectedCategory === 'duanfa' ? '大纲' : '排盘'}</span></span>
+                    </button>
+                )}
 
                 {selectedCategory === 'duanfa' ? (
                     <div className="flex-1 flex flex-col overflow-hidden relative">
