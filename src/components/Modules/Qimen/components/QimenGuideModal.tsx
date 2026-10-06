@@ -1,15 +1,18 @@
 /**
- * QimenGuideModal - 盘面元素说明弹窗（环绕版式，取自 design-demos/qimen-guide 方案 A）
+ * QimenGuideModal - 盘面元素说明（环绕版式，取自 design-demos/qimen-guide 方案 A）
  * 宫位卡直接复用盘面 PalaceCell（与外层宫格渲染完全一致：长生/十神/宫位元数据开关、
  * 击刑入墓状态标识、值符值使与动态马空高亮全部同源），12 条解释按就近原则环绕四周，
  * 悬停/点选条目 → 卡内对应元素主色描边高亮；解释条按行等高、左右两列均分对齐。
  * 内容区 <480px（手机竖屏）时降级为「卡在上 + 单列列表」，交互相同仅不环绕。
+ * 移动端不以弹窗呈现：改用 SubPage 二级页面，宫位卡钉在页头下固定不动，说明卡片单独滚动。
  * 日干/时干经 getJiaDunStem 甲遁六仪映射后比对，与盘面 PalaceCell 高亮逻辑一致。
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { BookOpen } from 'lucide-react';
 import BaseModal from '../../../UI/BaseModal';
+import SubPage from '../../../UI/SubPage';
+import { useLayoutMode } from '../../../../hooks/useLayoutMode';
 import PalaceCell from './PalaceCell';
 import { getJiaDunStem } from '../../../../lib/csp-qimen/qimenUtils';
 import { MEN_YINYANG, XING_YINYANG } from '../../../../lib/csp-qimen/constants';
@@ -81,6 +84,7 @@ export default function QimenGuideModal({
     const [activeId, setActiveId] = useState<string | null>(null);
     const [isWide, setIsWide] = useState(false);
     const layoutRef = useRef<HTMLDivElement>(null);
+    const { isMobile: isMobilePage } = useLayoutMode();
 
     // 无选中宫位时回退乾宫静态示例
     const display = useMemo(() => palace ?? FALLBACK_PALACE, [palace]);
@@ -258,6 +262,34 @@ export default function QimenGuideModal({
             <div className="text-[11.5px] leading-relaxed text-foreground/75">{g.desc}</div>
         </div>
     );
+
+    // 移动端：SubPage 二级页面——宫位卡钉在页头下固定不动，说明卡片单独滚动
+    if (isMobilePage) {
+        return (
+            <SubPage
+                isOpen={open}
+                onClose={handleClose}
+                title="盘面元素说明"
+                bodyClassName="!overflow-hidden"
+            >
+                <div ref={layoutRef} onClick={handleLayoutClick} className="flex h-full min-h-0 flex-col">
+                    {!palace && (
+                        <p className="shrink-0 px-4 pt-3 text-xs text-muted-foreground">
+                            当前展示乾宫静态示例；在盘面选中宫位后再次打开，将渲染该宫位的实时数据。
+                        </p>
+                    )}
+                    <div className="shrink-0 px-4 pb-4 pt-3">
+                        {palaceCard}
+                    </div>
+                    <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pb-5">
+                        <div className="flex flex-col gap-2">
+                            {guideItems.map((g) => renderGuideItem(g))}
+                        </div>
+                    </div>
+                </div>
+            </SubPage>
+        );
+    }
 
     return (
         <BaseModal

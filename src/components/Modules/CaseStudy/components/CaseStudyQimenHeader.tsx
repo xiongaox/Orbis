@@ -6,7 +6,7 @@ const METHODS: { value: PaiPanMethod; label: string; shortLabel: string }[] = [
     { value: 'zhirun', label: '时家转盘置润', shortLabel: '置润法' },
     { value: 'yinpan', label: '时家转盘阴盘', shortLabel: '阴盘法' },
     { value: 'chaibu', label: '时家转盘拆补', shortLabel: '拆补法' },
-    { value: 'maoshan', label: '时家茅山', shortLabel: '茅山法' },
+    // 茅山法暂隐藏：上游算法待修正
 ];
 
 interface CaseStudyQimenHeaderProps {
@@ -82,14 +82,14 @@ export default function CaseStudyQimenHeader({
                         })}
                     </div>
                     <div className={`h-8 w-px bg-border/60 ${isMobile ? 'ml-3 mr-3' : 'ml-6 mr-6'}`} />
-                    <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-3'} gap-y-1 ${isMobile ? 'gap-x-2 text-xs' : 'gap-x-4 text-sm'} whitespace-nowrap`}>
+                    <div className={`grid grid-cols-3 gap-y-1 ${isMobile ? 'gap-x-2 text-xs' : 'gap-x-4 text-sm'} whitespace-nowrap`}>
                         {[
                             { label: header.ju.substring(0, 2), value: header.ju.substring(2), bold: true, clickable: true },
                             { label: '旬首', value: header.xunShou, bold: false, clickable: false },
-                            ...(!isMobile ? [{ label: '马星', value: header.maXing, bold: false, clickable: false }] : []),
+                            { label: '马星', value: header.maXing, bold: false, clickable: false },
                             { label: '值符', value: header.zhiFu, bold: false, clickable: false },
                             { label: '值使', value: header.zhiShi, bold: false, clickable: false },
-                            ...(!isMobile ? [{ label: '空亡', value: header.kongWang, bold: false, clickable: false }] : []),
+                            { label: '空亡', value: header.kongWang, bold: false, clickable: false },
                         ].map((item, i) => (
                             <div key={i} className="flex items-center gap-1.5">
                                 <span className="text-muted-foreground font-light opacity-80 text-xs">{item.label}:</span>

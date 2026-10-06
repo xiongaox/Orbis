@@ -1,5 +1,12 @@
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+
+// 应用版本单一来源：src-tauri/tauri.conf.json 的 version（与打包产物一致；package.json 的
+// version 无人维护，勿用）。经 define 注入 __APP_VERSION__ 供界面展示与后续检查更新。
+const appVersion = (
+  JSON.parse(readFileSync(new URL('./src-tauri/tauri.conf.json', import.meta.url), 'utf-8')) as { version: string }
+).version
 
 // 非前端目录，统一排除出 chokidar 监视范围。
 //
@@ -27,6 +34,9 @@ const nonFrontendDirs = [
 
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+  },
   plugins: [react()],
   server: {
     host: true,

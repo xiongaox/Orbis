@@ -3,6 +3,8 @@ import type { BaziApiResponse, PillarData } from '../../../../types/bazi';
 import { getElementColor } from '../../../../lib/xuan-bazi/maps/baziStyleMap';
 import { calculateWuxingStatus } from '../../../../lib/xuan-bazi/utils/wuxingStatusUtil';
 import { computePillarDetails } from '../../../Modules/Bazi/utils/baziChartUtils';
+import { calculateShenSha, calculateDynamicShenSha, getJiJie, type ShenShaContext } from '../../../../lib/xuan-bazi/utils/baziShenShaUtil';
+import { createDefaultShenShaSetting } from '../../../../lib/xuan-bazi/settings/baziShenShaSetting';
 
 interface CaseStudyBaziChartProps {
     data: BaziApiResponse | null;
@@ -12,19 +14,21 @@ interface CaseStudyBaziChartProps {
     isMobile?: boolean;
 }
 
-/** 精简版柱位卡片 - 不显示神煞 */
+/** 精简版柱位卡片 */
 function SimplePillarCard({
     pillar,
     isDayMaster = false,
     genderLabel = '日主',
     isYunPillar = false,
     isMobile = false,
+    shensha = [],
 }: {
     pillar: PillarData;
     isDayMaster?: boolean;
     genderLabel?: string;
     isYunPillar?: boolean;
     isMobile?: boolean;
+    shensha?: string[];
 }) {
     return (
         <div className={`h-full flex flex-col ${isDayMaster ? 'bg-primary/5' : ''} ${isYunPillar ? 'bg-accent/5' : ''}`}>
@@ -72,6 +76,11 @@ function SimplePillarCard({
             <div className={`${isMobile ? 'h-7' : 'h-10'} flex items-center justify-center`}>
                 <span className={`${isMobile ? 'text-[12px]' : 'text-sm'} text-muted-foreground text-center line-clamp-1`}>{pillar.naYin}</span>
             </div>
+            <div className={`flex-1 ${isMobile ? 'min-h-[70px] py-1 px-0.5 gap-1' : 'min-h-[100px] px-1 py-1 gap-2'} flex flex-col items-center justify-start`}>
+                {shensha.map((s, i) => (
+                    <span key={i} className={`${isMobile ? 'text-[11px]' : 'text-xs'} text-foreground text-center`}>{s}</span>
+                ))}
+            </div>
         </div>
     );
 }
@@ -106,6 +115,39 @@ export default function CaseStudyBaziChart({
         if (selectedLiuNianYear === null || selectedLiuNianYear === undefined) return null;
         return liuNian?.find(ln => ln.year === selectedLiuNianYear) ?? null;
     }, [liuNian, selectedLiuNianYear]);
+
+    // 神煞计算上下文（与主模块 BaziChart 同源）
+    const shenShaContext = useMemo((): ShenShaContext | null => {
+        if (!data || !pillars || pillars.length < 4) return null;
+        return {
+            sex: (data.gender === '男' || data.gender === 'male' || data.gender === '乾造') ? 1 : 0,
+            jiJie: getJiJie(monthBranch),
+            yearNaYinWuXing: pillars[0]?.naYin || '',
+            yearGan: pillars[0]?.tiangan || '', yearZhi: pillars[0]?.dizhi || '',
+            monthGan: pillars[1]?.tiangan || '', monthZhi: pillars[1]?.dizhi || '',
+            dayGan: pillars[2]?.tiangan || '', dayZhi: pillars[2]?.dizhi || '',
+            hourGan: pillars[3]?.tiangan || '', hourZhi: pillars[3]?.dizhi || '',
+            dayGanZhi: pillars[2]?.ganZhi || '', hourGanZhi: pillars[3]?.ganZhi || '',
+        };
+    }, [data, pillars, monthBranch]);
+
+    const shenShaSetting = useMemo(() => createDefaultShenShaSetting(), []);
+
+    // 四柱神煞（按柱位序：年/月/日/时）
+    const pillarShenSha = useMemo(() => {
+        if (!shenShaContext) return [] as string[][];
+        const result = calculateShenSha(shenShaContext, shenShaSetting);
+        return [result.year, result.month, result.day, result.hour].map(list => list.map(r => r.name));
+    }, [shenShaContext, shenShaSetting]);
+
+    // 大运/流年列动态神煞
+    const yunShenSha = useMemo(() => {
+        if (!shenShaContext) return { daYun: [] as string[], liuNian: [] as string[] };
+        return {
+            daYun: selectedDaYun?.ganZhi ? calculateDynamicShenSha(shenShaContext, shenShaSetting, selectedDaYun.ganZhi[0], selectedDaYun.ganZhi[1], '大运').map(r => r.name) : [],
+            liuNian: selectedLiuNian?.ganZhi ? calculateDynamicShenSha(shenShaContext, shenShaSetting, selectedLiuNian.ganZhi[0], selectedLiuNian.ganZhi[1], '流年').map(r => r.name) : [],
+        };
+    }, [shenShaContext, shenShaSetting, selectedDaYun, selectedLiuNian]);
 
     // 构造大运柱数据
     const daYunPillar = useMemo((): PillarData | null => {
@@ -200,19 +242,22 @@ export default function CaseStudyBaziChart({
                                 <span className={`${isMobile ? 'text-[12px]' : 'text-xs'} text-muted-foreground`}>{label}</span>
                             </div>
                         ))}
+                        <div className="flex-1 min-h-[70px] flex items-start justify-center bg-muted/30">
+                            <span className={`${isMobile ? 'text-[12px]' : 'text-xs'} text-muted-foreground`}>神煞</span>
+                        </div>
                     </div>
 
                     {/* 流年柱（如果选中） */}
                     {liuNianPillar && (
                         <div className="flex-1 border-r border-border">
-                            <SimplePillarCard pillar={liuNianPillar} isYunPillar isMobile={isMobile} />
+                            <SimplePillarCard pillar={liuNianPillar} isYunPillar isMobile={isMobile} shensha={yunShenSha.liuNian} />
                         </div>
                     )}
 
                     {/* 大运柱（如果选中） */}
                     {daYunPillar && (
                         <div className="flex-1 border-r border-border">
-                            <SimplePillarCard pillar={daYunPillar} isYunPillar isMobile={isMobile} />
+                            <SimplePillarCard pillar={daYunPillar} isYunPillar isMobile={isMobile} shensha={yunShenSha.daYun} />
                         </div>
                     )}
 
@@ -224,6 +269,7 @@ export default function CaseStudyBaziChart({
                                 isDayMaster={index === 2}
                                 genderLabel={index === 2 ? genderLabel : undefined}
                                 isMobile={isMobile}
+                                shensha={pillarShenSha[index] ?? []}
                             />
                         </div>
                     ))}

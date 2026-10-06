@@ -122,8 +122,8 @@ export default function MobileTabBar({
                     key={slot.key}
                     type="button"
                     onClick={slot.onTap}
-                    className={`relative flex-1 min-w-0 h-full flex items-center justify-center text-[13px] tracking-[0.12em] indent-[0.12em] transition-colors focus:outline-none focus-ring ${
-                        slot.active ? 'text-primary font-serif font-semibold' : 'text-muted-foreground'
+                    className={`relative flex-1 min-w-0 h-full flex items-center justify-center text-[15px] font-medium tracking-[0.12em] indent-[0.12em] transition-colors focus:outline-none focus-ring ${
+                        slot.active ? 'text-primary font-serif font-bold' : 'text-muted-foreground'
                     }`}
                 >
                     {slot.active && (

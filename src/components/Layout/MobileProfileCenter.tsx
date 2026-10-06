@@ -19,6 +19,7 @@ import {
     Github,
     Grid3X3,
     History,
+    Info,
     KeyRound,
     Moon,
     ScrollText,
@@ -315,6 +316,16 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
                         <SettingsRow icon={History} label="对话历史" onClick={() => setShowChatHistory(true)} />
                         <SettingsRow icon={Bot} label="AI 集成" onClick={() => setShowAi(true)} />
                         <SettingsRow icon={Cloud} label="数据备份" sub="本地私有存储 · WebDAV / S3 仅备份" onClick={() => setShowBackup(true)} />
+                        {canSign && (
+                            <SettingsRow icon={KeyRound} label="签发激活码" end={<span className="text-xs text-primary">管理员</span>} onClick={() => setSignerOpen(true)} />
+                        )}
+                    </div>
+                </section>
+
+                {/* 关于：联系 / 仓库 / 版本（版本号为后续检查更新预留） */}
+                <section>
+                    <SectionTitle title="关于" />
+                    <div className="rounded-xl border border-border bg-card divide-y divide-border/60 overflow-hidden">
                         <SettingsRow icon={User} label="联系作者" onClick={() => setShowContact(true)} />
                         <SettingsRow
                             icon={Github}
@@ -323,9 +334,7 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
                                 void openExternalUrl('https://github.com/xiongaox/Orbis');
                             }}
                         />
-                        {canSign && (
-                            <SettingsRow icon={KeyRound} label="签发激活码" end={<span className="text-xs text-primary">管理员</span>} onClick={() => setSignerOpen(true)} />
-                        )}
+                        <SettingsRow icon={Info} label="版本" end={<span className="text-xs text-muted-foreground">v{__APP_VERSION__}</span>} />
                     </div>
                 </section>
             </div>

@@ -191,13 +191,13 @@ export default function CaseStudyQimenChart({
 
                     {/* 移动端：排盘方法切换按钮 - 在驿马行下方 */}
                     {isMobile && (
-                        <div className="w-full bg-card px-2 py-2">
-                            <div className="grid grid-cols-4 gap-1">
+                        <div className="w-full bg-card py-2">
+                            {/* 茅山法暂隐藏：上游算法待修正 */}
+                            <div className="grid grid-cols-3 gap-1">
                                 {([
                                     { value: 'zhirun' as PaiPanMethod, label: '置润法' },
                                     { value: 'yinpan' as PaiPanMethod, label: '阴盘法' },
                                     { value: 'chaibu' as PaiPanMethod, label: '拆补法' },
-                                    { value: 'maoshan' as PaiPanMethod, label: '茅山法' },
                                 ]).map((m) => (
                                     <button
                                         key={m.value}
