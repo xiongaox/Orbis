@@ -79,3 +79,7 @@ notes/sanyuan
 # iOS build artifacts
 *.ipa
 .zcodeignore
+
+# Local-only design demos and AI tool state (仅本地，不入库)
+/design-demos/
+/.omo/
