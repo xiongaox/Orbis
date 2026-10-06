@@ -48,6 +48,12 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
   const pageCount = Math.max(1, Math.ceil(backups.length / PAGE_SIZE));
   const visibleBackups = useMemo(() => backups.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [backups, page]);
   const allVisibleSelected = visibleBackups.length > 0 && visibleBackups.every((backup) => selectedPaths.has(backup.path));
+  // 全选针对全部备份（跨分页）：选中集在刷新时按现存列表裁剪，size 达到总数即为全选
+  const allSelected = backups.length > 0 && selectedPaths.size >= backups.length;
+
+  const toggleAllSelection = () => {
+    setSelectedPaths(allSelected ? new Set() : new Set(backups.map((backup) => backup.path)));
+  };
 
   const loadBackups = async () => {
     setBusy('load');
@@ -174,10 +180,22 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
           </div>
         ))}
       </div>
-      <div className="flex items-center justify-end gap-3 px-5 pb-5 text-base text-muted-foreground">
-        <span>{backups.length} 个备份 · {page} / {pageCount} 页</span>
-        <button type="button" disabled={page <= 1} onClick={() => setPage((current) => current - 1)} className="rounded-md p-1.5 hover:bg-secondary disabled:opacity-40" aria-label="上一页"><ChevronLeft className="h-4 w-4" /></button>
-        <button type="button" disabled={page >= pageCount} onClick={() => setPage((current) => current + 1)} className="rounded-md p-1.5 hover:bg-secondary disabled:opacity-40" aria-label="下一页"><ChevronRight className="h-4 w-4" /></button>
+      <div className="flex items-center justify-between gap-3 px-5 pb-5 text-base text-muted-foreground">
+        <div className="flex min-w-0 items-center gap-3">
+          {/* 全选（跨分页）：桌面端表头已有本页全选框，这里仅移动端展示 */}
+          <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm text-foreground md:min-h-0 md:hidden">
+            <input type="checkbox" checked={allSelected} onChange={toggleAllSelection} aria-label="选择全部备份" className="peer sr-only" />
+            <span className={`flex h-4 w-4 items-center justify-center rounded border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-primary/50 ${allSelected ? 'bg-primary border-primary' : 'border-muted-foreground/50 bg-background hover:border-primary/50'}`}>
+              {allSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+            </span>
+            全选
+          </label>
+          <span className="truncate">{backups.length} 个备份 · {page} / {pageCount} 页</span>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <button type="button" disabled={page <= 1} onClick={() => setPage((current) => current - 1)} className="rounded-md p-1.5 hover:bg-secondary disabled:opacity-40" aria-label="上一页"><ChevronLeft className="h-4 w-4" /></button>
+          <button type="button" disabled={page >= pageCount} onClick={() => setPage((current) => current + 1)} className="rounded-md p-1.5 hover:bg-secondary disabled:opacity-40" aria-label="下一页"><ChevronRight className="h-4 w-4" /></button>
+        </div>
       </div>
     </>
   );
@@ -196,7 +214,7 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
         isOpen={isOpen}
         onClose={onClose}
         title="备份文件管理"
-        footer={<div className="flex items-center justify-end gap-3">{footerNode}</div>}
+        footer={<div className="flex items-center justify-between gap-3">{footerNode}</div>}
       >
         {bodyContent}
         <ConfirmModal
