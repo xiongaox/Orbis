@@ -28,6 +28,7 @@ export const APP_CHANGELOG: AppChangelogEntry[] = [
             '【优化】安装包英文化：安装路径与主程序统一为 orbis，默认安装到系统 Program Files',
             '【修复】Windows 安装器无 LOGO 图标的问题',
             '【修复】移动端网页底栏被浏览器工具栏遮挡（视口高度改用 dvh 动态适配）',
+            '【提示】macOS 版未做 Apple 公证，首次打开若提示「已损坏」，将 orbis.app 拖入应用程序文件夹后，在终端执行 sudo xattr -r -d com.apple.quarantine /Applications/orbis.app，再打开即可',
         ],
     },
     {

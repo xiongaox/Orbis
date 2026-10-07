@@ -28,6 +28,7 @@ Orbis 此前是 Vite 构建的纯网页应用：页面托管在 Vercel / Cloudfl
 - **Windows x86 兼容版**：`orbis_2.1.0_x86-setup.exe`，适用于 32 位系统环境，默认安装到 `C:\Program Files (x86)\orbis`
 - **macOS M 芯片（Apple Silicon）**：`orbis_2.1.0_aarch64.dmg`
 - **macOS Intel 芯片**：`orbis_2.1.0_x64.dmg`
+- **macOS 提示**：安装包未经 Apple 公证，首次打开若提示「已损坏，无法打开」，将 orbis.app 拖入应用程序文件夹后，在终端执行 `sudo xattr -r -d com.apple.quarantine /Applications/orbis.app`，再打开即可
 - **Android（arm64）**：`orbis_2.1.0_release.apk`，适用于主流 64 位安卓机型，正式签名，可与已装版本覆盖升级
 
 > iOS 版本暂未提供正式签名包：可到 Actions 的 `ios-build` 工作流下载未签名 ipa，用个人 Apple ID 签名后侧载。
