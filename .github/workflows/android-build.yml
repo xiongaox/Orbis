@@ -91,4 +91,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           name: Orbis ${{ github.ref_name }}
+          body_path: RELEASE_NOTES.md
           files: dist-apk/*.apk
