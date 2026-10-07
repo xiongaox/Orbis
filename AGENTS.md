@@ -79,6 +79,11 @@ Orbis/
     产物 artifact `orbis-android`），签名材料永不入库、激活签发私钥不出本机。
   - 桌面端：本地 `npm run tauri:build`；管理员版 `npm run tauri:build:admin`；调试版两包一键 `npm run tauri:debug-apps`。
     云端 macOS/Windows：Actions 页手动跑 `desktop-build` 或推 `v*` 标签（artifact `orbis-macos` / `orbis-windows`）。
+  - 云端构建（desktop-build / android-build / ios-build）在「还原私有语料」步骤经只读部署密钥检出
+    orbis-lore 私有仓，还原断法/案例正文（src/data/cases）与加密案例包（dist-cases/）。凭据为仓库
+    Secret `ORBIS_LORE_DEPLOY_KEY`（orbis-lore 的只读 Deploy Key「Orbis CI (read-only)」，可随时在
+    orbis-lore → Settings → Deploy keys 吊销）；Secret 缺失时工作流立即报错退出，不会静默产出空内容包
+    （v2.1.0 正式包曾因缺语料丢失断法与完整案例）。
 - **例外（仅限这些情况才可做界面检查）**：用户明确要求截图/验证；或需要排查
   「构建是否成功」「资源是否加载」这类无法靠静态检查确认的链路问题时，最多确认一次，不要反复试。
 - 若确实需要给出视觉效果，优先产出 `design-demos/` 下的可交互 demo 让用户自己打开看，

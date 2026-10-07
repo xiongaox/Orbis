@@ -2,6 +2,7 @@
 # 本机无完整 Xcode，iOS 构建依赖 runner 自带的 Xcode/iOS SDK；禁用代码签名，
 # 从 xcarchive 取出 .app 打包为 Payload/*.ipa。
 # 注意：不构建管理员版——签发私钥材料（keys/）永不进入任何远端。
+# 私有语料：构建前从 orbis-lore 还原断法/案例正文与加密案例包，见「还原私有语料」步骤。
 # 触发：手动运行，或推送 v* 标签发布时；不随普通提交构建。
 name: ios-build
 
@@ -35,6 +36,35 @@ jobs:
 
       - name: 安装依赖
         run: npm ci
+
+      # 断法正文（import.meta.glob 内联进前端）与完整案例库（build.rs 嵌入加密包）
+      # 都来自 gitignored 的私有语料，构建前必须从 orbis-lore 还原，否则产物内容为空
+      #（v2.1.0 云端正式包正是因缺这一步而丢失断法与完整案例）。
+      # 凭据：ORBIS_LORE_DEPLOY_KEY = orbis-lore 只读部署密钥，私钥仅存于本仓库 Secrets。
+      - name: 检查语料仓凭据
+        shell: bash
+        env:
+          ORBIS_LORE_DEPLOY_KEY: ${{ secrets.ORBIS_LORE_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$ORBIS_LORE_DEPLOY_KEY" || { echo "::error::缺少 Secret ORBIS_LORE_DEPLOY_KEY（orbis-lore 只读部署密钥），本次构建拒绝继续以免产出空内容包"; exit 1; }
+
+      - name: 检出私有语料仓 orbis-lore
+        uses: actions/checkout@v4
+        with:
+          repository: xiongaox/orbis-lore
+          ssh-key: ${{ secrets.ORBIS_LORE_DEPLOY_KEY }}
+          path: orbis-lore
+          persist-credentials: false
+
+      - name: 还原私有语料
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp -R orbis-lore/corpus/. src/data/cases/
+          mkdir -p dist-cases
+          cp orbis-lore/dist/cases_v1.enc dist-cases/
+          echo "语料还原完成：$(find src/data/cases -name '*.md' | wc -l) 个 md，案例加密包 $(wc -c < dist-cases/cases_v1.enc) 字节"
 
       - name: 生成 iOS 工程
         run: |

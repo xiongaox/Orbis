@@ -1,6 +1,7 @@
 # Orbis 桌面端普通版构建（不含任何密钥材料，签发能力仅存在于本地的管理员版构建）。
 # 触发：手动运行，或推送 v* 标签发布时。
 # 矩阵：macOS 出 Apple Silicon（aarch64）与 Intel（x86_64）两版，Windows 出 x64 与 x86 两版。
+# 私有语料：构建前从 orbis-lore 还原断法/案例正文与加密案例包，见「还原私有语料」步骤。
 name: desktop-build
 
 on:
@@ -48,6 +49,35 @@ jobs:
 
       - name: 安装依赖
         run: npm ci
+
+      # 断法正文（import.meta.glob 内联进前端）与完整案例库（build.rs 嵌入加密包）
+      # 都来自 gitignored 的私有语料，构建前必须从 orbis-lore 还原，否则产物内容为空
+      #（v2.1.0 云端正式包正是因缺这一步而丢失断法与完整案例）。
+      # 凭据：ORBIS_LORE_DEPLOY_KEY = orbis-lore 只读部署密钥，私钥仅存于本仓库 Secrets。
+      - name: 检查语料仓凭据
+        shell: bash
+        env:
+          ORBIS_LORE_DEPLOY_KEY: ${{ secrets.ORBIS_LORE_DEPLOY_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$ORBIS_LORE_DEPLOY_KEY" || { echo "::error::缺少 Secret ORBIS_LORE_DEPLOY_KEY（orbis-lore 只读部署密钥），本次构建拒绝继续以免产出空内容包"; exit 1; }
+
+      - name: 检出私有语料仓 orbis-lore
+        uses: actions/checkout@v4
+        with:
+          repository: xiongaox/orbis-lore
+          ssh-key: ${{ secrets.ORBIS_LORE_DEPLOY_KEY }}
+          path: orbis-lore
+          persist-credentials: false
+
+      - name: 还原私有语料
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp -R orbis-lore/corpus/. src/data/cases/
+          mkdir -p dist-cases
+          cp orbis-lore/dist/cases_v1.enc dist-cases/
+          echo "语料还原完成：$(find src/data/cases -name '*.md' | wc -l) 个 md，案例加密包 $(wc -c < dist-cases/cases_v1.enc) 字节"
 
       # 显式 --target：产物落在 target/<三元组>/release/bundle/ 下；
       # Intel mac 与 32 位 Windows 为交叉编译
