@@ -1,0 +1,73 @@
+# Orbis 安卓端 release 构建（正式签名，包名 com.orbis.app）。
+# 签名材料经 GitHub Secrets 注入（用户 2026-10-07 决策）：keystore 以 base64 存于
+# ANDROID_KEYSTORE_BASE64，凭据为 ANDROID_STORE_PASSWORD / ANDROID_KEY_ALIAS /
+# ANDROID_KEY_PASSWORD；工作流现场落盘 keys/orbis-android.keystore 与
+# src-tauri/gen/android/keystore.properties（均被 gitignore，不会入库）。
+# 注意：仅普通版——案例激活签发私钥（管理员版材料）永不进入任何远端。
+# 触发：手动运行，或推送 v* 标签发布时；不随普通提交构建。
+name: android-build
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-release-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: 安装 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: 安装 Rust（Android target）
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - name: Rust 构建缓存
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: 定位 NDK
+        run: echo "NDK_HOME=$(ls -d "$ANDROID_HOME"/ndk/* | sort -V | tail -1)" >> "$GITHUB_ENV"
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 释放签名材料
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_KEYSTORE_BASE64" || { echo "::error::缺少签名 Secret"; exit 1; }
+          mkdir -p keys
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > keys/orbis-android.keystore
+          printf 'storeFile=../../../../keys/orbis-android.keystore\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$ANDROID_STORE_PASSWORD" "$ANDROID_KEY_ALIAS" "$ANDROID_KEY_PASSWORD" \
+            > src-tauri/gen/android/keystore.properties
+
+      - name: 构建 release APK（aarch64）
+        run: npx tauri android build --target aarch64
+
+      - name: 收集构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: orbis-android
+          if-no-files-found: error
+          path: src-tauri/gen/android/app/build/outputs/apk/**/release/*.apk
