@@ -6,7 +6,7 @@ import { getUserAvatar } from '../../utils/userUtil';
 import { openExternalUrl } from '../../utils/browserUtil';
 import { publicCaseLibraryService } from '../../services/publicCaseLibraryService';
 import BaseModal, { CompactModalTitle } from '../UI/BaseModal';
-import AppChangelogList from '../Common/AppChangelogList';
+import { AppChangelogSplitView } from '../Common/AppChangelogList';
 import SignerModal from '../Common/SignerModal';
 
 interface UserMenuProps {
@@ -87,10 +87,10 @@ export default function UserMenu({ onShowContact, onShowProfile, onShowAiIntegra
                 isOpen={showChangelog}
                 onClose={() => setShowChangelog(false)}
                 title={<CompactModalTitle>版本与更新日志</CompactModalTitle>}
-                maxWidth="md:max-w-md"
-                bodyClassName="p-5 sm:p-6 space-y-3"
+                maxWidth="md:max-w-2xl"
+                bodyClassName="p-0"
             >
-                <AppChangelogList />
+                <AppChangelogSplitView />
             </BaseModal>
         </div>
     );
