@@ -2,14 +2,14 @@
 # 本机无完整 Xcode，iOS 构建依赖 runner 自带的 Xcode/iOS SDK；禁用代码签名，
 # 从 xcarchive 取出 .app 打包为 Payload/*.ipa。
 # 注意：不构建管理员版——签发私钥材料（keys/）永不进入任何远端。
+# 触发：手动运行，或推送 v* 标签发布时；不随普通提交构建。
 name: ios-build
 
 on:
   workflow_dispatch:
   push:
-    paths:
-      - '.github/workflows/ios-build.yml'
-      - 'scripts/fake-tauri-ios-server.py'
+    tags:
+      - 'v*'
 
 jobs:
   build-unsigned-ipa:

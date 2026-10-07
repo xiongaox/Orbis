@@ -62,10 +62,10 @@ export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-t
 | 桌面构建（管理员版） | `npm run tauri:build:admin`（仅作者本机，需 keys/） |
 | 安卓构建（**默认**：日常装机验证，用户未点名 release 时一律用这个） | 先执行第 0 节 export 块，再 `npm run android:build:debug`（等价 `npx tauri android build --apk --debug --target aarch64`），产物 `app-universal-debug.apk`（包名 `com.orbis.app.debug`），`adb install -r` 覆盖装保留数据 |
 | 安卓构建（管理员版 debug：应用内签发激活码） | 先执行第 0 节 export 块，再 `npm run android:build:debug:admin`（追加 `--features admin-signing`，需本机 `keys/signing_blob.rs`）。包名与普通版相同，**会覆盖安装普通 debug 包**；产物与普通版同路径同名，注意先拷出改名留存 |
-| 安卓构建（release：**仅**用户明确要求 release / 正式交付时） | 先执行第 0 节 export 块，再 `npx tauri android build --target aarch64`（release 产物已自动正式签名，包名 `com.orbis.app`，与 debug 包并存两个图标属预期） |
+| 安卓构建（release：**仅**用户明确要求 release / 正式交付时） | 云端：Actions 页手动跑 `android-build` 或推 `v*` 标签（正式签名经 GitHub Secrets `ANDROID_KEYSTORE_BASE64`/`ANDROID_STORE_PASSWORD`/`ANDROID_KEY_ALIAS`/`ANDROID_KEY_PASSWORD` 注入，产物 artifact `orbis-android`，2026-10-07 起可用）；本地：先执行第 0 节 export 块，再 `npx tauri android build --target aarch64`（release 产物已自动正式签名，包名 `com.orbis.app`，与 debug 包并存两个图标属预期） |
 | Rust 安全层测试 | `cd src-tauri && cargo test`（无需 Java） |
 | 安卓图标重生成 | `npm run android:icons`（tauri icon 之后必须重跑，见根 AGENTS.md） |
-| iOS 用户端未签名 ipa（本机无完整 Xcode，走云构建） | 改 `.github/workflows/ios-build.yml` 后 push 自动触发，或 Actions 页手动跑 `ios-build`；产物 artifact `orbis-ios-user-unsigned`，需代理（`export HTTPS_PROXY=http://127.0.0.1:7897`）。流程要点：`tauri ios init` 生成 `src-tauri/gen/apple`，跳过零依赖 pod install，需伪造选项服务（`scripts/fake-tauri-ios-server.py`）供 xcode-script 阶段读取，Xcode 用 16.4（26 的构建系统会 builtin-create-build-directory 静默失败）。管理员版 ipa 因签发私钥不能上 CI，只能本机装 Xcode 后构建 |
+| iOS 用户端未签名 ipa（本机无完整 Xcode，走云构建） | 工作流仅 Actions 页手动跑 `ios-build` 或推 `v*` 标签时触发，**不随普通提交构建**（2026-10-07 起，此前 paths 触发会因历史重写推送而误触发）；产物 artifact `orbis-ios-user-unsigned`，需代理（`export HTTPS_PROXY=http://127.0.0.1:7897`）。流程要点：`tauri ios init` 生成 `src-tauri/gen/apple`，跳过零依赖 pod install，需伪造选项服务（`scripts/fake-tauri-ios-server.py`）供 xcode-script 阶段读取，Xcode 用 16.4（26 的构建系统会 builtin-create-build-directory 静默失败）。管理员版 ipa 因签发私钥不能上 CI，只能本机装 Xcode 后构建 |
 
 ## 4. 环境自检（怀疑环境坏了再跑，平时跳过）
 

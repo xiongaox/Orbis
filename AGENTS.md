@@ -75,7 +75,10 @@ Orbis/
     应用数据互相独立（激活状态不共享）。移动端 release 的管理员版仅在用户明确要求时构建。
   - 移动端 release（`npx tauri android build --target aarch64`，包名 `com.orbis.app`）**仅在用户明确要求
     release / 正式交付时构建**；与手机上已装的 debug 包并存为两个图标，属预期。
-  - 桌面端：`npm run tauri:build`；管理员版 `npm run tauri:build:admin`；调试版两包一键 `npm run tauri:debug-apps`。
+    云端 release：Actions 页手动跑 `android-build` 或推 `v*` 标签（正式签名经 GitHub Secrets 注入，
+    产物 artifact `orbis-android`），签名材料永不入库、激活签发私钥不出本机。
+  - 桌面端：本地 `npm run tauri:build`；管理员版 `npm run tauri:build:admin`；调试版两包一键 `npm run tauri:debug-apps`。
+    云端 macOS/Windows：Actions 页手动跑 `desktop-build` 或推 `v*` 标签（artifact `orbis-macos` / `orbis-windows`）。
 - **例外（仅限这些情况才可做界面检查）**：用户明确要求截图/验证；或需要排查
   「构建是否成功」「资源是否加载」这类无法靠静态检查确认的链路问题时，最多确认一次，不要反复试。
 - 若确实需要给出视觉效果，优先产出 `design-demos/` 下的可交互 demo 让用户自己打开看，

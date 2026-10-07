@@ -26,6 +26,7 @@ import {
     KeyRound,
     Moon,
     Plus,
+    RefreshCw,
     ScrollText,
     Star,
     Sun,
@@ -34,6 +35,9 @@ import {
 } from 'lucide-react';
 import type { ChartType } from '../../types';
 import { openExternalUrl } from '../../utils/browserUtil';
+import { useUpdateChecker } from '../../hooks/useUpdateChecker';
+import AppChangelogList, { ChangelogItems } from '../Common/AppChangelogList';
+import { type AppChangelogEntry } from '../../lib/appChangelog';
 import { popBackHandler, pushBackHandler } from '../../utils/androidBackButton';
 import { profileService } from '../../services/profileService';
 import { getUserAvatar } from '../../utils/userUtil';
@@ -41,6 +45,7 @@ import { publicCaseLibraryService } from '../../services/publicCaseLibraryServic
 import { webDavBackupService, WEBDAV_CONFIG_CHANGE_EVENT } from '../../services/webdavBackupService';
 import { s3BackupService, S3_CONFIG_CHANGE_EVENT } from '../../services/s3BackupService';
 import BaseModal, { CompactModalTitle } from '../UI/BaseModal';
+import SubPage from '../UI/SubPage';
 import ProfileCenterModal from '../Auth/ProfileCenterModal';
 import AiIntegrationModal from '../Common/AiIntegrationModal';
 import AiChatHistoryModal from '../Common/AiChatHistoryModal';
@@ -143,6 +148,20 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
     const [showContact, setShowContact] = useState(false);
     const [signerOpen, setSignerOpen] = useState(false);
     const [showSlotPicker, setShowSlotPicker] = useState(false);
+    const [showChangelog, setShowChangelog] = useState(false);
+    const [changelogDetail, setChangelogDetail] = useState<AppChangelogEntry | null>(null);
+    const { updateState, latestVersion, checkUpdate } = useUpdateChecker();
+
+    const updateEndText =
+        updateState === 'newer'
+            ? `可更新至 v${latestVersion}`
+            : updateState === 'checking'
+                ? '检查中…'
+                : updateState === 'latest'
+                    ? '已是最新'
+                    : updateState === 'error'
+                        ? '检查失败，点击重试'
+                        : '检查新版本';
 
     // 安卓返回键 / Escape 分层关闭：先关术数选择弹层，再回主菜单
     useEffect(() => {
@@ -378,7 +397,7 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
                     </div>
                 </section>
 
-                {/* 关于：联系 / 仓库 / 版本（版本号为后续检查更新预留） */}
+                {/* 关于：联系 / 仓库 / 检查更新 / 版本（点击版本行查看更新日志） */}
                 <section>
                     <SectionTitle title="关于" />
                     <div className="rounded-xl border border-border bg-card divide-y divide-border/60 overflow-hidden">
@@ -390,10 +409,54 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
                                 void openExternalUrl('https://github.com/xiongaox/Orbis');
                             }}
                         />
-                        <SettingsRow icon={Info} label="版本" end={<span className="text-xs text-muted-foreground">v{__APP_VERSION__}</span>} />
+                        <SettingsRow
+                            icon={RefreshCw}
+                            label="检查更新"
+                            end={
+                                <span className={`text-xs ${updateState === 'newer' ? 'text-primary' : 'text-muted-foreground'}`}>
+                                    {updateEndText}
+                                </span>
+                            }
+                            onClick={checkUpdate}
+                        />
+                        <SettingsRow
+                            icon={Info}
+                            label="版本"
+                            end={<span className="text-xs text-muted-foreground">v{__APP_VERSION__}</span>}
+                            onClick={() => setShowChangelog(true)}
+                        />
                     </div>
                 </section>
             </div>
+
+            {/* 版本与更新日志二级页：按开发日分组的版本卡片，卡片默认展示前 3 条 */}
+            <SubPage
+                isOpen={showChangelog}
+                onClose={() => setShowChangelog(false)}
+                title="版本与更新日志"
+                bodyClassName="p-4 space-y-3"
+            >
+                <AppChangelogList previewCount={3} onEntryClick={setChangelogDetail} />
+            </SubPage>
+
+            {/* 单版本完整日志弹窗：从二级页卡片点入 */}
+            <BaseModal
+                isOpen={changelogDetail !== null}
+                onClose={() => setChangelogDetail(null)}
+                title={<CompactModalTitle>{`${changelogDetail?.version ?? ''} 更新日志`}</CompactModalTitle>}
+                maxWidth="md:max-w-md"
+                bottomSheet
+                bodyClassName="p-4"
+            >
+                {changelogDetail && (
+                    <div>
+                        <div className="text-[11px] text-muted-foreground">{changelogDetail.date}</div>
+                        <div className="mt-2">
+                            <ChangelogItems items={changelogDetail.items} />
+                        </div>
+                    </div>
+                )}
+            </BaseModal>
 
             {/* 术数选择弹层：候选列表可滚动，术数增多不影响个人中心页高度 */}
             <BaseModal

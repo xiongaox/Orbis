@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bot, CalendarDays, Compass, User, Cloud, KeyRound, MessageSquare } from 'lucide-react';
+import { Bot, CalendarDays, Compass, Info, KeyRound, MessageSquare, RefreshCw, User, Cloud } from 'lucide-react';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { useUpdateChecker } from '../../hooks/useUpdateChecker';
 import { getUserAvatar } from '../../utils/userUtil';
 import { openExternalUrl } from '../../utils/browserUtil';
 import { publicCaseLibraryService } from '../../services/publicCaseLibraryService';
+import BaseModal, { CompactModalTitle } from '../UI/BaseModal';
+import AppChangelogList from '../Common/AppChangelogList';
 import SignerModal from '../Common/SignerModal';
 
 interface UserMenuProps {
@@ -20,6 +23,8 @@ export default function UserMenu({ onShowContact, onShowProfile, onShowAiIntegra
     const [menuOpen, setMenuOpen] = useState(false);
     const [canSign, setCanSign] = useState(false);
     const [isSignerOpen, setIsSignerOpen] = useState(false);
+    const [showChangelog, setShowChangelog] = useState(false);
+    const { updateState, checkUpdate } = useUpdateChecker();
     const menuRef = useRef<HTMLDivElement>(null);
     const avatarPath = getUserAvatar(undefined, birthDate?.getFullYear());
 
@@ -60,12 +65,33 @@ export default function UserMenu({ onShowContact, onShowProfile, onShowAiIntegra
                     <button type="button" onClick={() => { onShowAiChatHistory(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"><MessageSquare className="w-4 h-4" />对话历史</button>
                     <button type="button" onClick={() => { onShowAiIntegration(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"><Bot className="w-4 h-4" />AI 集成</button>
                     <button type="button" onClick={() => { onShowPrivateDataBackup(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"><Cloud className="w-4 h-4" />数据备份</button>
+                    <button type="button" onClick={checkUpdate} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2">
+                        <RefreshCw className="w-4 h-4" />检查更新
+                        {updateState !== 'idle' && (
+                            <span className={`ml-auto text-xs ${updateState === 'newer' ? 'text-primary' : 'text-muted-foreground'}`}>
+                                {updateState === 'checking' ? '检查中…' : updateState === 'latest' ? '已是最新' : updateState === 'newer' ? '有新版' : '失败重试'}
+                            </span>
+                        )}
+                    </button>
+                    <button type="button" onClick={() => { setShowChangelog(true); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2">
+                        <Info className="w-4 h-4" />更新日志
+                        <span className="ml-auto text-xs text-muted-foreground">v{__APP_VERSION__}</span>
+                    </button>
                     {canSign && (
                         <button type="button" onClick={() => { setIsSignerOpen(true); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-secondary/50 flex items-center gap-2 border-t border-border/50"><KeyRound className="w-4 h-4" />签发激活码</button>
                     )}
                 </div>
             )}
             {isSignerOpen && <SignerModal isOpen={isSignerOpen} onClose={() => setIsSignerOpen(false)} />}
+            <BaseModal
+                isOpen={showChangelog}
+                onClose={() => setShowChangelog(false)}
+                title={<CompactModalTitle>版本与更新日志</CompactModalTitle>}
+                maxWidth="md:max-w-md"
+                bodyClassName="p-5 sm:p-6 space-y-3"
+            >
+                <AppChangelogList />
+            </BaseModal>
         </div>
     );
 }
