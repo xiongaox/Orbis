@@ -185,7 +185,10 @@
 
 html,
 body {
+  /* 手机浏览器里 100vh 含工具栏区，会让整页多出一段可滚动的幽灵区域；dvh 跟随
+     可见视口。WebView 无动态浏览器 UI，两者恒等；老内核按级联忽略后一行。 */
   min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
   font-family: var(--font-sans);
   font-weight: var(--font-weight-base);
