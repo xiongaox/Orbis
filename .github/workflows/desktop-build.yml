@@ -47,15 +47,18 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: orbis-macos
+          # tauri build 未指定 --target，宿主机构建产物在 target/release/ 下
+          # （不带三元组目录）；找不到文件直接报错，避免静默丢产物
+          if-no-files-found: error
           path: |
-            src-tauri/target/*/release/bundle/dmg/*.dmg
-            src-tauri/target/*/release/bundle/macos/*.app
+            src-tauri/target/release/bundle/dmg/*.dmg
+            src-tauri/target/release/bundle/macos/*.app
 
       - name: 收集构建产物（Windows）
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
           name: orbis-windows
+          if-no-files-found: error
           path: |
             src-tauri/target/release/bundle/nsis/*.exe
-            src-tauri/target/release/bundle/msi/*.msi
