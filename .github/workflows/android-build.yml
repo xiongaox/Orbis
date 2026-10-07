@@ -13,6 +13,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   build-release-apk:
     runs-on: ubuntu-latest
@@ -65,9 +68,27 @@ jobs:
       - name: 构建 release APK（aarch64）
         run: npx tauri android build --target aarch64
 
+      - name: 重命名 APK（带版本号，英文命名）
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          mkdir -p dist-apk
+          APK=$(find src-tauri/gen/android/app/build/outputs/apk -path '*release*/*.apk' | head -1)
+          cp "$APK" "dist-apk/orbis_${VERSION}_release.apk"
+          echo "产物：dist-apk/orbis_${VERSION}_release.apk"
+
       - name: 收集构建产物
         uses: actions/upload-artifact@v4
         with:
           name: orbis-android
           if-no-files-found: error
-          path: src-tauri/gen/android/app/build/outputs/apk/**/release/*.apk
+          path: dist-apk/*.apk
+
+      - name: 发布到 GitHub Release（仅 v* 标签）
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: Orbis ${{ github.ref_name }}
+          files: dist-apk/*.apk
