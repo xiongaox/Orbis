@@ -4,16 +4,20 @@ import {
     NINE_STAR_NAMES,
     PALACE_LABELS,
     PALACE_ORDER,
+    STAR_PAIR_INSIGHTS,
 } from './constants';
 import type {
     FlightDirection,
     Mountain,
     PalaceName,
     PalaceVerificationLevel,
+    SanYuanChartPatternId,
+    SanYuanChartSummary,
     SanYuanPalaceAnalysis,
     SanYuanChart,
     SanYuanHeader,
     SanYuanInput,
+    SanYuanStarPairInsight,
     SanYuanTalentInsight,
     YuanPhase,
 } from './types';
@@ -353,8 +357,7 @@ function getDirectionLabel(mountain: Mountain, facing: Mountain): string {
         ?? `${mountain}山${facing}向`;
 }
 
-export function calculateSanYuanChart(input: SanYuanInput): SanYuanChart {
-    if (!Number.isInteger(input.yun) || input.yun < 1 || input.yun > 9) {
+export function calculateSanYuanChart(input: SanYuanInput): SanYuanChart {    if (!Number.isInteger(input.yun) || input.yun < 1 || input.yun > 9) {
         throw new Error('元运必须是 1 到 9 之间的整数。');
     }
 
@@ -409,4 +412,160 @@ export function calculateSanYuanChart(input: SanYuanInput): SanYuanChart {
     }, {} as SanYuanChart['palaces']);
 
     return { input, header, palaces };
+}
+
+/** 八宫对宫（合十/反吟逐宫校验用） */
+const OPPOSITE_PALACE: Record<PalaceName, PalaceName> = {
+    Qian: 'Li', Li: 'Qian',
+    Kan: 'Kun', Kun: 'Kan',
+    Zhen: 'Dui', Dui: 'Zhen',
+    Gen: 'Xun', Xun: 'Gen',
+};
+
+/** 四大局断语（形峦前提 + 吉凶取向，随格局固定） */
+const CHART_PATTERN_VERDICTS: Record<SanYuanChartPatternId, { title: string; verdict: string }> = {
+    'wang-shan-wang-xiang': {
+        title: '旺山旺向',
+        verdict: '当运山星到坐、向星到向，为理气最吉之局；坐后宜有实（楼/高地）、向首宜开阔或见水，形理相配方主丁财两旺。',
+    },
+    'shang-shan-xia-shui': {
+        title: '上山下水',
+        verdict: '当运山星到向、向星到坐，理气颠倒；须坐空朝满（坐后低洼见水、向前有实）方可取用，形理不合则损丁破财。',
+    },
+    'shuang-xing-hui-zuo': {
+        title: '双星会坐',
+        verdict: '山向二星同到坐山，旺丁不旺财；坐后宜有靠勿空，可于向首布置动水以催财。',
+    },
+    'shuang-xing-hui-xiang': {
+        title: '双星会向',
+        verdict: '山向二星同到向首，旺财不旺丁；向首宜见水、水外有山为佳，现代城市向首开阔即算得用。',
+    },
+};
+
+/**
+ * 盘级格局总览：四大局、伏吟/反吟、合十、当运旺星落宫、大玄空零神方、五黄落宫。
+ * 全部为确定性数学判定；伏吟/反吟/合十按整盘（八宫全部满足）判定，
+ * 局部同象在条目 basis 中列出具体宫位。
+ */
+export function summarizeSanYuanChart(chart: SanYuanChart): SanYuanChartSummary {
+    const { header, palaces, input } = chart;
+    const yun = header.yun;
+
+    const sittingPalace = TRIGRAM_OF_MOUNTAIN[input.mountain];
+    const facingPalace = TRIGRAM_OF_MOUNTAIN[input.facing];
+    const sitting = palaces[sittingPalace];
+    const facing = palaces[facingPalace];
+
+    // ---- 四大局：以坐山/向首两宫的山向星分布判定（五黄寄宫不影响：山星入中时看坐山是否得向星） ----
+    const mountainAtSitting = sitting.mountainStar === yun;
+    const facingAtSitting = sitting.facingStar === yun;
+    const mountainAtFacing = facing.mountainStar === yun;
+    const facingAtFacing = facing.facingStar === yun;
+
+    let pattern: SanYuanChartSummary['pattern'] = null;
+    const basisOf = (starLabel: string, palaceLabel: string) =>
+        `${starLabel}${toChineseNumeral(yun)}到${palaceLabel}宫`;
+
+    if (mountainAtSitting && facingAtFacing) {
+        pattern = {
+            id: 'wang-shan-wang-xiang',
+            ...CHART_PATTERN_VERDICTS['wang-shan-wang-xiang'],
+            basis: `${basisOf('山星', sitting.label)}、${basisOf('向星', facing.label)}`,
+        };
+    } else if (mountainAtFacing && facingAtSitting) {
+        pattern = {
+            id: 'shang-shan-xia-shui',
+            ...CHART_PATTERN_VERDICTS['shang-shan-xia-shui'],
+            basis: `${basisOf('山星', facing.label)}、${basisOf('向星', sitting.label)}`,
+        };
+    } else if (mountainAtSitting && facingAtSitting) {
+        pattern = {
+            id: 'shuang-xing-hui-zuo',
+            ...CHART_PATTERN_VERDICTS['shuang-xing-hui-zuo'],
+            basis: `山星、向星${toChineseNumeral(yun)}同到${sitting.label}宫`,
+        };
+    } else if (mountainAtFacing && facingAtFacing) {
+        pattern = {
+            id: 'shuang-xing-hui-xiang',
+            ...CHART_PATTERN_VERDICTS['shuang-xing-hui-xiang'],
+            basis: `山星、向星${toChineseNumeral(yun)}同到${facing.label}宫`,
+        };
+    }
+
+    // ---- 伏吟/反吟/合十：整盘判定，同时记录满足的宫位 ----
+    const yuanBoard = computeYunBoard(yun); // 运盘即元旦盘（五入中顺飞所得）
+    const panList: { pan: '山盘' | '向盘'; board: Board }[] = [
+        { pan: '山盘', board: Object.fromEntries(PALACE_ORDER.map((name) => [name, palaces[name].mountainStar])) as Board },
+        { pan: '向盘', board: Object.fromEntries(PALACE_ORDER.map((name) => [name, palaces[name].facingStar])) as Board },
+    ];
+
+    const fuYinHits: { pan: '山盘' | '向盘'; palace: PalaceName }[] = [];
+    const fanYinHits: { pan: '山盘' | '向盘'; palace: PalaceName }[] = [];
+    const heShiHits: { pan: '山盘' | '向盘' }[] = [];
+
+    for (const { pan, board } of panList) {
+        const fuPalaces = PALACE_ORDER.filter((name) => board[name] === yuanBoard[name]);
+        const fanPalaces = PALACE_ORDER.filter((name) => board[name] === yuanBoard[OPPOSITE_PALACE[name]]);
+        const shiPalaces = PALACE_ORDER.filter((name) => wrap9(board[name] + yun) === 10);
+
+        if (fuPalaces.length === PALACE_ORDER.length) {
+            fuYinHits.push({ pan, palace: sittingPalace });
+        } else if (fuPalaces.length > 0) {
+            // 局部伏吟：记录宫位供参考，不作为整盘伏吟结论
+            fuPalaces.forEach((palace) => fuYinHits.push({ pan, palace }));
+        }
+        if (fanPalaces.length === PALACE_ORDER.length) {
+            fanYinHits.push({ pan, palace: sittingPalace });
+        }
+        if (shiPalaces.length === PALACE_ORDER.length) {
+            heShiHits.push({ pan });
+        }
+    }
+
+    // ---- 当运旺星落宫（山星/向星 = 运数；中五无宫不计） ----
+    const wangStars: SanYuanChartSummary['wangStars'] = [];
+    for (const kind of ['山星', '向星'] as const) {
+        const hitPalaces = PALACE_ORDER
+            .filter((name) => (kind === '山星' ? palaces[name].mountainStar : palaces[name].facingStar) === yun)
+            .map((name) => ({ name, label: palaces[name].label }));
+        wangStars.push({ kind, palaces: hitPalaces });
+    }
+
+    // ---- 大玄空零神方（当元零神数所在宫） ----
+    const zeroGodPalaces = PALACE_ORDER
+        .filter((name) => isBigXuanKongZeroGod(palaces[name].bigXuanKong, input.yuanPhase))
+        .map((name) => ({ name, label: palaces[name].label, value: palaces[name].bigXuanKong }));
+
+    // ---- 五黄落宫（山星/向星 = 5；寄宫不计） ----
+    const wuHuang: SanYuanChartSummary['wuHuang'] = [];
+    for (const kind of ['山星', '向星'] as const) {
+        const hit = PALACE_ORDER.find((name) => (kind === '山星' ? palaces[name].mountainStar : palaces[name].facingStar) === 5);
+        if (hit) {
+            wuHuang.push({ kind, palace: { name: hit, label: palaces[hit].label } });
+        }
+    }
+
+    return {
+        pattern,
+        fuYin: fuYinHits.length > 0 ? fuYinHits : null,
+        fanYin: fanYinHits.length > 0 ? fanYinHits : null,
+        heShi: heShiHits.length > 0 ? heShiHits : null,
+        wangStars,
+        zeroGodPalaces,
+        wuHuang,
+    };
+}
+
+/** 取某宫山星×向星组合断语（未收录组合返回 null 字段） */
+export function getSanYuanStarPairInsight(chart: SanYuanChart, palaceName: PalaceName): SanYuanStarPairInsight {
+    const palace = chart.palaces[palaceName];
+    const hit = STAR_PAIR_INSIGHTS.find(
+        (item) => item.mountainStar === palace.mountainStar && item.facingStar === palace.facingStar,
+    );
+    return {
+        mountainStar: palace.mountainStar,
+        facingStar: palace.facingStar,
+        name: hit?.name ?? null,
+        meaning: hit?.meaning ?? null,
+    };
 }

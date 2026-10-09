@@ -23,9 +23,9 @@ export default function SanYuanDesktopLayout({ state }: SanYuanDesktopLayoutProp
 
             {/* 中间盘面 */}
             <main className="flex-1 min-h-0 min-w-0 flex flex-col p-4 relative overflow-y-auto">
-                <div className="w-full max-w-4xl mx-auto flex flex-col pt-4 pb-8 min-h-full">
+                <div className="w-full max-w-4xl mx-auto flex flex-col pt-2 pb-8 min-h-full">
                     <SanYuanInfoBar state={state} />
-                    <div className="flex-1 min-h-0 flex items-center justify-center">
+                    <div className="mt-2 flex-1 min-h-0 flex items-start justify-center">
                         <SanYuanChart
                             chart={state.chart}
                             selectedPalace={state.selectedPalace}
@@ -37,7 +37,7 @@ export default function SanYuanDesktopLayout({ state }: SanYuanDesktopLayoutProp
 
             {/* 右侧详情 */}
             <div className="w-72 xl:w-80 2xl:w-96 flex-shrink-0 min-h-0 overflow-hidden flex flex-col border-l border-border/50 bg-card/30">
-                <SanYuanPalaceDetail chart={state.chart} selectedPalace={state.selectedPalace} />
+                <SanYuanPalaceDetail chart={state.chart} summary={state.summary} selectedPalace={state.selectedPalace} />
             </div>
         </>
     );

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { SANYUAN_CASES_CHANGED_EVENT } from '../../../../data/caseConstants';
 import type { SanYuanInput } from '../../../../lib/sanyuan';
 import {
@@ -9,10 +10,11 @@ import {
 } from '../../../../services/sanyuanCaseService';
 import BaseCaseList from '../../../Common/BaseCaseList';
 import ConfirmModal from '../../../Common/ConfirmModal';
-import CustomSelect from '../../../UI/CustomSelect';
+import SortFieldButton, { type SortState } from '../../../Common/SortFieldButton';
 import SanYuanCaseLibraryModal from './SanYuanCaseLibraryModal';
 import SanYuanCaseCard from './SanYuanCaseCard';
 import SanYuanCaseModal from './SanYuanCaseModal';
+import { SANYUAN_SORT_OPTIONS, compareSanYuanCase } from '../caseSort';
 
 interface SanYuanCaseListProps {
     chartInput: SanYuanInput;
@@ -31,6 +33,9 @@ export default function SanYuanCaseList({
     const [isLoading, setIsLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [selectedType, setSelectedType] = useState<SanYuanCaseType | 'all'>('all');
+    const [isTypeOpen, setIsTypeOpen] = useState(false);
+    // 字段排序（时间/分类）：field 为 null 表示默认（创建时间倒序），与奇门侧栏同构
+    const [sort, setSort] = useState<SortState>({ field: null, dir: 'desc' });
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [editingCase, setEditingCase] = useState<SanYuanCase | null>(null);
     const [caseToDelete, setCaseToDelete] = useState<SanYuanCase | null>(null);
@@ -71,6 +76,11 @@ export default function SanYuanCaseList({
         });
     }, [cases, search, selectedType]);
 
+    // 筛选 → 字段排序（未选字段时保持服务端的创建时间倒序）
+    const sortedCases = sort.field
+        ? [...filteredCases].sort((a, b) => compareSanYuanCase(a, b, sort.field as string) * (sort.dir === 'asc' ? 1 : -1))
+        : filteredCases;
+
     const handleSaved = (caseData: SanYuanCase) => {
         const shouldSelect = !editingCase || editingCase.id === selectedCaseId;
         setIsCreateOpen(false);
@@ -100,31 +110,61 @@ export default function SanYuanCaseList({
         }
     };
 
-    const typeOptions = [
-        { label: `全部（${cases.length}）`, value: 'all' },
-        ...SANYUAN_CASE_TYPES.map((type) => ({
-            label: `${type.name}（${cases.filter((caseData) => caseData.case_type === type.id).length}）`,
-            value: type.id,
-        })),
-    ];
+    const FILTER_TYPES = [{ id: 'all', name: '全部' }, ...SANYUAN_CASE_TYPES] as const;
+    const currentTypeName = FILTER_TYPES.find((type) => type.id === selectedType)?.name ?? '全部';
 
     return (
         <BaseCaseList
+            scrollKey="sanyuan"
             onOpenLibrary={() => setIsLibraryOpen(true)}
             renderFilter={
-                <CustomSelect
-                    options={typeOptions}
-                    value={selectedType}
-                    onChange={(value) => setSelectedType(value as SanYuanCaseType | 'all')}
-                    className="w-[92px]"
-                />
+                <div className="relative">
+                    <button
+                        type="button"
+                        onClick={() => setIsTypeOpen(!isTypeOpen)}
+                        className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                    >
+                        {currentTypeName}
+                        <span className="text-muted-foreground/60">({sortedCases.length})</span>
+                        <ChevronDown className={`w-3 h-3 transition-transform ${isTypeOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {isTypeOpen && (
+                        <div className="absolute right-0 mt-2 w-40 bg-sidebar border border-sidebar-border rounded-lg shadow-lg p-2 z-20">
+                            {FILTER_TYPES.map((type) => (
+                                <button
+                                    key={type.id}
+                                    type="button"
+                                    onClick={() => {
+                                        setSelectedType(type.id as SanYuanCaseType | 'all');
+                                        setIsTypeOpen(false);
+                                    }}
+                                    className={`w-full flex items-center justify-between px-2 py-1.5 text-xs rounded-md transition-colors ${selectedType === type.id
+                                        ? 'bg-primary/10 text-primary'
+                                        : 'text-foreground hover:bg-sidebar-accent/60'
+                                        }`}
+                                >
+                                    <span>{type.name}</span>
+                                    <span className="text-muted-foreground/60">
+                                        {type.id === 'all'
+                                            ? cases.length
+                                            : cases.filter((caseData) => caseData.case_type === type.id).length}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
             }
             search={search}
             onSearchChange={setSearch}
+            extraActions={
+                <SortFieldButton options={SANYUAN_SORT_OPTIONS} value={sort} onChange={setSort} />
+            }
             onCreate={() => setIsCreateOpen(true)}
             isLoading={isLoading}
-            isEmpty={filteredCases.length === 0}
-            emptyText="暂无案例，点击上方按钮新建"
+            isEmpty={sortedCases.length === 0}
+            emptyText="暂无案例"
             modals={
                 <>
                     <SanYuanCaseModal
@@ -161,7 +201,7 @@ export default function SanYuanCaseList({
                 </>
             }
         >
-            {filteredCases.map((caseData) => (
+            {sortedCases.map((caseData) => (
                 <SanYuanCaseCard
                     key={caseData.id}
                     caseData={caseData}

@@ -1,14 +1,17 @@
-import { analyzeSanYuanPalace } from '../../../../lib/sanyuan';
+import { analyzeSanYuanPalace, getSanYuanStarPairInsight } from '../../../../lib/sanyuan';
 import type {
     PalaceVerificationLevel,
     SanYuanChart,
+    SanYuanChartSummary,
     SanYuanPalaceAnalysis,
     SanYuanTalentInsight,
     PalaceName,
 } from '../../../../lib/sanyuan';
+import SanYuanChartSummaryCard from './SanYuanChartSummaryCard';
 
 interface SanYuanPalaceDetailProps {
     chart: SanYuanChart;
+    summary: SanYuanChartSummary;
     selectedPalace: PalaceName | null;
 }
 
@@ -59,6 +62,7 @@ function TimingItem({
 
 function PalaceAnalysisContent({ analysis, chart }: { analysis: SanYuanPalaceAnalysis; chart: SanYuanChart }) {
     const { talents, timing, verification } = analysis;
+    const starPair = getSanYuanStarPairInsight(chart, analysis.palace);
 
     return (
         <>
@@ -74,6 +78,18 @@ function PalaceAnalysisContent({ analysis, chart }: { analysis: SanYuanPalaceAna
                 <p className="text-sm font-medium">{verification.title}</p>
                 <p className="mt-1 text-xs leading-relaxed text-foreground/80">{verification.summary}</p>
             </section>
+
+            {starPair.name && starPair.meaning && (
+                <section className="mt-3 rounded-lg border border-border/50 bg-background/40 p-3">
+                    <p className="text-sm font-medium text-foreground">
+                        组合断语：{starPair.name}
+                        <span className="ml-2 text-xs text-muted-foreground">
+                            山星{starPair.mountainStar} · 向星{starPair.facingStar}
+                        </span>
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{starPair.meaning}</p>
+                </section>
+            )}
 
             <section className="mt-5">
                 <div className="flex items-center justify-between gap-3">
@@ -137,14 +153,14 @@ function PalaceAnalysisContent({ analysis, chart }: { analysis: SanYuanPalaceAna
     );
 }
 
-export default function SanYuanPalaceDetail({ chart, selectedPalace }: SanYuanPalaceDetailProps) {
+export default function SanYuanPalaceDetail({ chart, summary, selectedPalace }: SanYuanPalaceDetailProps) {
     if (!selectedPalace) {
         return (
-            <div className="p-6">
-                <h2 className="text-xl font-bold font-serif mb-3">宫位研判</h2>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                    点击任一外宫，查看三才、时运条件与现场核验提示。
-                </p>
+            <div className="h-full min-h-0 overflow-y-auto">
+                <SanYuanChartSummaryCard
+                    headerTitle={`${chart.header.directionLabel} · ${chart.header.yun}运${chart.header.panTypeLabel}`}
+                    summary={summary}
+                />
             </div>
         );
     }

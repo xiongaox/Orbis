@@ -10,7 +10,7 @@ interface SanYuanChartProps {
 
 export default function SanYuanChart({ chart, selectedPalace, onSelectPalace }: SanYuanChartProps) {
     return (
-        <div className="w-full max-w-[640px] aspect-square grid grid-cols-3 grid-rows-3 gap-3 p-2 bg-card/20 border border-border/50 rounded-xl shadow-inner mx-auto my-auto overflow-hidden">
+        <div className="w-full max-w-[640px] aspect-square grid grid-cols-3 grid-rows-3 gap-3 p-2 bg-card/20 border border-border/50 rounded-xl shadow-inner mx-auto overflow-hidden">
             {LUOSHU_LAYOUT.flatMap((row) => row.map((palace) => {
                 if (!palace) {
                     return <div key="center" className="bg-background/20 rounded-xl" aria-hidden="true" />;

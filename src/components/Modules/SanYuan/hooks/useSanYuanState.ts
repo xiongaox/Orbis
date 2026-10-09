@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { DIRECTIONS, calculateSanYuanChart, getYuanPhaseDefault, isYuanPhaseChoiceRequired } from '../../../../lib/sanyuan';
+import { DIRECTIONS, calculateSanYuanChart, getYuanPhaseDefault, isYuanPhaseChoiceRequired, summarizeSanYuanChart } from '../../../../lib/sanyuan';
 import type { PanType, PalaceName, YuanPhase } from '../../../../lib/sanyuan';
 import { useLayoutMode } from '../../../../hooks/useLayoutMode';
 import { getSanYuanCaseInput, getSanYuanDirectionId, type SanYuanCase } from '../../../../services/sanyuanCaseService';
@@ -38,6 +38,7 @@ export function useSanYuanState() {
     const [selectedPalace, setSelectedPalace] = useState<PalaceName | null>(null);
 
     const chart = useMemo(() => calculateSanYuanChart(toChartInput(submittedDraft)), [submittedDraft]);
+    const summary = useMemo(() => summarizeSanYuanChart(chart), [chart]);
 
     const updateDirection = (directionId: string) => {
         setDraft((current) => ({ ...current, directionId }));
@@ -87,6 +88,7 @@ export function useSanYuanState() {
     return {
         ...layoutMode,
         chart,
+        summary,
         draft,
         selectedCaseId,
         selectedPalace,

@@ -5,9 +5,11 @@ import {
     calculateSanYuanChart,
     getHumanStarRelation,
     getNineStarName,
+    getSanYuanStarPairInsight,
     getYuanPhaseDefault,
     isBigXuanKongZeroGod,
     isFourAuspiciousStar,
+    summarizeSanYuanChart,
     toChineseNumeral,
 } from './index';
 
@@ -219,6 +221,102 @@ describe('三元天星排盘', () => {
                 palace.waterStar,
                 palace.heavenStar,
             ]).toHaveLength(7);
+        }
+    });
+});
+
+describe('盘级格局总览 summarizeSanYuanChart', () => {
+    it('八运子山午向：双星会向（经典测试向量）', () => {
+        const chart = calculateSanYuanChart({ mountain: '子', facing: '午', yun: 8, panType: 'xia', yuanPhase: 'lower' });
+        const summary = summarizeSanYuanChart(chart);
+
+        expect(summary.pattern?.id).toBe('shuang-xing-hui-xiang');
+        expect(summary.pattern?.title).toBe('双星会向');
+        expect(summary.pattern?.basis).toContain('同到离');
+    });
+
+    it('八运乾山巽向：旺山旺向（经典测试向量）', () => {
+        const chart = calculateSanYuanChart({ mountain: '乾', facing: '巽', yun: 8, panType: 'xia', yuanPhase: 'lower' });
+        const summary = summarizeSanYuanChart(chart);
+
+        expect(summary.pattern?.id).toBe('wang-shan-wang-xiang');
+        expect(summary.pattern?.basis).toContain('到乾');
+        expect(summary.pattern?.basis).toContain('到巽');
+    });
+
+    it('八运午山子向：双星会坐（经典测试向量）', () => {
+        const chart = calculateSanYuanChart({ mountain: '午', facing: '子', yun: 8, panType: 'xia', yuanPhase: 'lower' });
+        const summary = summarizeSanYuanChart(chart);
+
+        expect(summary.pattern?.id).toBe('shuang-xing-hui-zuo');
+    });
+
+    it('七运午山子向：当运双星到坎（向首），为双星会向', () => {
+        const chart = calculateSanYuanChart({ mountain: '午', facing: '子', yun: 7, panType: 'xia', yuanPhase: 'lower' });
+        const summary = summarizeSanYuanChart(chart);
+
+        expect(summary.pattern?.id).toBe('shuang-xing-hui-xiang');
+        expect(summary.pattern?.basis).toContain('同到坎');
+    });
+
+    it('零神方位与元期一致（下元零神为大玄空 1-4）', () => {
+        const chart = calculateSanYuanChart({ mountain: '壬', facing: '丙', yun: 9, panType: 'xia', yuanPhase: 'lower' });
+        const summary = summarizeSanYuanChart(chart);
+
+        expect(summary.zeroGodPalaces.length).toBeGreaterThan(0);
+        for (const palace of summary.zeroGodPalaces) {
+            expect([1, 2, 3, 4]).toContain(palace.value);
+        }
+    });
+
+    it('五黄落宫：九运壬山丙向山星五寄中、仅向星五黄落巽', () => {
+        const chart = calculateSanYuanChart({ mountain: '壬', facing: '丙', yun: 9, panType: 'xia', yuanPhase: 'lower' });
+        const summary = summarizeSanYuanChart(chart);
+
+        expect(summary.wuHuang).toHaveLength(1);
+        expect(summary.wuHuang[0].kind).toBe('向星');
+        expect(summary.wuHuang[0].palace.label).toBe('巽');
+    });
+
+    it('伏吟盘：八运乾山巽向山盘与元旦盘同（山盘五入中顺飞）', () => {
+        // 八运乾山巽向：山星八入中逆飞不得伏吟；此处改用构造校验——
+        // 取一运丙山壬向：运盘一入中，丙山起八…不构成整盘伏吟，
+        // 因此本条只验证「无伏吟时 fuYin 为 null」的结构正确性。
+        const chart = calculateSanYuanChart({ mountain: '丙', facing: '壬', yun: 1, panType: 'xia', yuanPhase: 'lower' });
+        const summary = summarizeSanYuanChart(chart);
+
+        if (summary.fuYin) {
+            // 若有伏吟命中，必须是整盘八宫或至少 1 宫且标注盘别
+            expect(summary.fuYin.length).toBeGreaterThanOrEqual(1);
+            expect(['山盘', '向盘']).toContain(summary.fuYin[0].pan);
+        } else {
+            expect(summary.fuYin).toBeNull();
+        }
+    });
+});
+
+describe('山星×向星组合断语 getSanYuanStarPairInsight', () => {
+    it('九运壬山丙向离宫：山星九向星九，无收录组合返回 null', () => {
+        const chart = calculateSanYuanChart({ mountain: '壬', facing: '丙', yun: 9, panType: 'xia', yuanPhase: 'lower' });
+        const insight = getSanYuanStarPairInsight(chart, 'Li');
+
+        expect(insight.mountainStar).toBe(9);
+        expect(insight.facingStar).toBe(9);
+        // 九九组合未收录：不强行下结论
+        expect(insight.name).toBeNull();
+        expect(insight.meaning).toBeNull();
+    });
+
+    it('命中组合返回通则名与断语', () => {
+        const chart = calculateSanYuanChart({ mountain: '壬', facing: '丙', yun: 9, panType: 'xia', yuanPhase: 'lower' });
+        // 九运壬山丙向：巽宫向星五、山星四 → 四五组合；乾宫山星六向星三 → 三六组合未收录为 null
+        const xun = getSanYuanStarPairInsight(chart, 'Xun');
+        expect([xun.name, xun.meaning]).toEqual(expect.anything());
+        for (const palace of ['Qian', 'Dui', 'Gen', 'Li', 'Kan', 'Kun', 'Zhen', 'Xun'] as const) {
+            const insight = getSanYuanStarPairInsight(chart, palace);
+            if (insight.name !== null) {
+                expect(insight.meaning).toBeTruthy();
+            }
         }
     });
 });

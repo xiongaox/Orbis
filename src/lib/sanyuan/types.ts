@@ -69,6 +69,50 @@ export type NineStarName = '贪狼' | '巨门' | '禄存' | '文曲' | '廉贞' 
 export type HumanStarRelation = '生气' | '天医' | '祸害' | '六煞' | '五鬼' | '延年' | '绝命' | '伏位';
 export type PalaceVerificationLevel = 'priority' | 'verify' | 'caution';
 
+/** 盘级格局四大局（按当运星与坐向的关系判定） */
+export type SanYuanChartPatternId =
+    | 'wang-shan-wang-xiang'   // 旺山旺向
+    | 'shang-shan-xia-shui'    // 上山下水
+    | 'shuang-xing-hui-zuo'    // 双星会坐
+    | 'shuang-xing-hui-xiang'; // 双星会向
+
+export interface SanYuanChartSummary {
+    /** 四大局：当运山星/向星与坐山、向首的关系；九运等无当运旺山旺向组合时为 null */
+    pattern: {
+        id: SanYuanChartPatternId;
+        title: string;
+        /** 判定依据（如「山星九到坐山乾，向星九到向首丙」） */
+        basis: string;
+        /** 断语（形峦前提 + 吉凶取向，随格局固定） */
+        verdict: string;
+    } | null;
+    /** 伏吟：山盘或向盘与元旦盘逐宫相同 */
+    fuYin: { pan: '山盘' | '向盘'; palace: PalaceName }[] | null;
+    /** 反吟：山盘或向盘与元旦盘逐宫合十 */
+    fanYin: { pan: '山盘' | '向盘'; palace: PalaceName }[] | null;
+    /** 合十：山盘或向盘与运盘逐宫合十 */
+    heShi: { pan: '山盘' | '向盘' }[] | null;
+    /** 当运旺星（山星/向星 = 运数）落宫 */
+    wangStars: {
+        kind: '山星' | '向星';
+        palaces: { name: PalaceName; label: string }[];
+    }[];
+    /** 大玄空零神方（当元零神数所在宫） */
+    zeroGodPalaces: { name: PalaceName; label: string; value: number }[];
+    /** 山/向星五黄落宫（寄宫除外）；无则空数组 */
+    wuHuang: { kind: '山星' | '向星'; palace: { name: PalaceName; label: string } }[];
+}
+
+/** 山星×向星组合断语（宫位详情用） */
+export interface SanYuanStarPairInsight {
+    mountainStar: number;
+    facingStar: number;
+    /** 组合通则名（如「二五交加」「一六共宗」）；无收录组合为 null */
+    name: string | null;
+    /** 组合断语；无收录组合为 null */
+    meaning: string | null;
+}
+
 export interface SanYuanTalentInsight {
     title: string;
     alias: string;
