@@ -72,6 +72,11 @@ export const baziCaseService = {
     await localPrivateStore.remove('bazi_case', id);
   },
 
+  /** 清空本模块全部案例（案例库弹窗的「清除数据」入口，仅影响八字，不动其他术数与备份配置） */
+  async clearCases(): Promise<void> {
+    await localPrivateStore.clear('bazi_case');
+  },
+
   async getCasesByTags(tags: CaseTag[]): Promise<BaziCase[]> {
     const cases = await listCases();
     return cases.filter((item) => tags.some((tag) => item.tags?.includes(tag)));

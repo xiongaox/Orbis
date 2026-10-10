@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
-import { Search, Plus, Upload, Library } from 'lucide-react';
+import { Search, Plus, Trash2, Upload, Library } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
 import BaseModal from '../UI/BaseModal';
 import SubPage from '../UI/SubPage';
@@ -51,6 +51,12 @@ export interface CaseLibraryModalProps<T extends { id: string }> {
 
     /** 操作栏自定义动作（如导出按钮），渲染在导入之后 */
     extraActions?: ReactNode;
+
+    /**
+     * 清空当前模块全部案例（各模块传入自己的 service.clearCases）。
+     * 不传则不显示「清除数据」按钮——该动作不可撤销，只在模块明确支持时才暴露。
+     */
+    clearCases?: () => Promise<void>;
 }
 
 export default function CaseLibraryModal<T extends { id: string }>({
@@ -68,6 +74,7 @@ export default function CaseLibraryModal<T extends { id: string }>({
     renderSubModals,
     getItemName,
     extraActions,
+    clearCases,
 }: CaseLibraryModalProps<T>) {
     const [cases, setCases] = useState<T[]>([]);
     const [loading, setLoading] = useState(false);
@@ -80,6 +87,8 @@ export default function CaseLibraryModal<T extends { id: string }>({
     const [editingCase, setEditingCase] = useState<T | null>(null);
     const [caseToDelete, setCaseToDelete] = useState<T | null>(null);
     const [deletingCaseId, setDeletingCaseId] = useState<string | null>(null);
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [clearingCases, setClearingCases] = useState(false);
 
     // 移动端检测：与全应用统一走 useLayoutMode
     const { isMobile } = useLayoutMode();
@@ -138,6 +147,25 @@ export default function CaseLibraryModal<T extends { id: string }>({
         }
     };
 
+    // 清空当前模块全部案例
+    const executeClear = async () => {
+        if (!clearCases) return;
+        setClearingCases(true);
+        try {
+            await clearCases();
+            // 选中项必已不存在，先解除选中再刷新，避免详情区停留在已删案例上
+            onSelectCase?.(null);
+            window.dispatchEvent(new CustomEvent(refreshEventName));
+            setShowClearConfirm(false);
+            loadCases();
+        } catch (error) {
+            console.error('清除案例失败:', error);
+            alert(error instanceof Error ? error.message : '清除失败');
+        } finally {
+            setClearingCases(false);
+        }
+    };
+
     const header = (
         <div className="flex w-full items-center gap-2">
             <span>案例库</span>
@@ -179,6 +207,17 @@ export default function CaseLibraryModal<T extends { id: string }>({
                         <Plus className="w-4 h-4" />
                         新建
                     </button>
+                    {clearCases && (
+                        <button
+                            type="button"
+                            onClick={() => setShowClearConfirm(true)}
+                            title="清空当前模块全部案例"
+                            className="flex items-center gap-1.5 px-3 py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-lg text-sm font-medium transition-colors border border-destructive/20 cursor-pointer focus-ring"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                            清除数据
+                        </button>
+                    )}
                 </div>
 
                 {/* 主体 */}
@@ -265,6 +304,17 @@ export default function CaseLibraryModal<T extends { id: string }>({
                 confirmText="删除"
                 variant="destructive"
                 loading={!!deletingCaseId}
+            />
+
+            <ConfirmModal
+                isOpen={showClearConfirm}
+                onClose={() => setShowClearConfirm(false)}
+                onConfirm={executeClear}
+                title="清除数据"
+                description={<>将清空本模块全部案例，共 <span className="font-medium text-foreground">{cases.length}</span> 条。其他模块的案例、备份配置均不受影响。此操作无法撤销，建议先备份。</>}
+                confirmText="全部清除"
+                variant="destructive"
+                loading={clearingCases}
             />
         </>
     );

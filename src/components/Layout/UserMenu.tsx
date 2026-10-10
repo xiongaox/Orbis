@@ -1,24 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bot, CalendarDays, Compass, Info, KeyRound, MessageSquare, RefreshCw, Trash2, User, Cloud } from 'lucide-react';
+import { Bot, CalendarDays, Compass, Info, KeyRound, MessageSquare, RefreshCw, User, Cloud } from 'lucide-react';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useUpdateChecker } from '../../hooks/useUpdateChecker';
 import { getUserAvatar } from '../../utils/userUtil';
 import { openExternalUrl } from '../../utils/browserUtil';
 import { publicCaseLibraryService } from '../../services/publicCaseLibraryService';
-import { localPrivateStore, type PrivateRecordType } from '../../services/localPrivateStore';
-import { BAZI_CASES_CHANGED_EVENT, QIMEN_CASES_CHANGED_EVENT, SANYUAN_CASES_CHANGED_EVENT } from '../../data/caseConstants';
 import BaseModal, { CompactModalTitle } from '../UI/BaseModal';
 import { AppChangelogSplitView } from '../Common/AppChangelogList';
 import SignerModal from '../Common/SignerModal';
-
-/**
- * 临时调试入口：清空本地业务数据用的类型清单。
- * 刻意排除 webdav_config / s3_config / backup_method，否则清空后连备份列表都打不开，无法接着测恢复。
- * 验证完恢复流程后，连同下面的「清除数据」按钮一起删除。
- */
-const CLEARABLE_RECORD_TYPES: PrivateRecordType[] = [
-    'bazi_case', 'qimen_case', 'sanyuan_case', 'profile', 'ai_model_service', 'case_favorite', 'case_progress',
-];
 
 interface UserMenuProps {
     onShowContact: () => void;
@@ -57,21 +46,6 @@ export default function UserMenu({ onShowContact, onShowProfile, onShowAiIntegra
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [menuOpen]);
 
-    // 临时调试入口：清空本地业务数据后可直接去「数据备份 → 恢复」验证恢复流程
-    const handleClearData = async () => {
-        setMenuOpen(false);
-        if (!window.confirm('清除本地全部业务数据（案例、资料、摘要与收藏）？\n备份配置会保留，清空后可直接测试恢复。此操作不可撤销。')) return;
-        try {
-            for (const type of CLEARABLE_RECORD_TYPES) await localPrivateStore.clear(type);
-            for (const eventName of [BAZI_CASES_CHANGED_EVENT, QIMEN_CASES_CHANGED_EVENT, SANYUAN_CASES_CHANGED_EVENT]) {
-                window.dispatchEvent(new CustomEvent(eventName));
-            }
-            window.alert('本地数据已清空，可前往「数据备份」测试恢复了。');
-        } catch (error) {
-            window.alert(error instanceof Error ? error.message : '清除数据失败');
-        }
-    };
-
     return (
         <div className="relative" ref={menuRef}>
             <button
@@ -106,8 +80,6 @@ export default function UserMenu({ onShowContact, onShowProfile, onShowAiIntegra
                     {canSign && (
                         <button type="button" onClick={() => { setIsSignerOpen(true); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-primary hover:bg-secondary/50 flex items-center gap-2 border-t border-border/50"><KeyRound className="w-4 h-4" />签发激活码</button>
                     )}
-                    {/* 临时调试入口：验证恢复流程用，验证完连同 CLEARABLE_RECORD_TYPES 一起删除 */}
-                    <button type="button" onClick={() => { void handleClearData(); }} className="w-full text-left px-4 py-2 text-sm text-destructive hover:bg-secondary/50 flex items-center gap-2 border-t border-border/50"><Trash2 className="w-4 h-4" />清除数据（调试）</button>
                 </div>
             )}
             {isSignerOpen && <SignerModal isOpen={isSignerOpen} onClose={() => setIsSignerOpen(false)} />}

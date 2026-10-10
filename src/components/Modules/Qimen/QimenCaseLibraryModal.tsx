@@ -37,6 +37,7 @@ export default function QimenCaseLibraryModal({
             onSelectCase={onSelectCase}
             fetchCases={qimenCaseService.getCases}
             deleteCase={qimenCaseService.deleteCase}
+            clearCases={qimenCaseService.clearCases}
             refreshEventName={QIMEN_CASES_CHANGED_EVENT}
             categories={categories}
             getCategoryCount={(catId, cases) => {

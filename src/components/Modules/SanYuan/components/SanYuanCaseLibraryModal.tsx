@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Library, Plus, Search } from 'lucide-react';
+import { Library, Plus, Search, Trash2 } from 'lucide-react';
 import { SANYUAN_CASES_CHANGED_EVENT } from '../../../../data/caseConstants';
 import type { SanYuanInput } from '../../../../lib/sanyuan';
 import {
@@ -39,6 +39,8 @@ export default function SanYuanCaseLibraryModal({
     const [editingCase, setEditingCase] = useState<SanYuanCase | null>(null);
     const [caseToDelete, setCaseToDelete] = useState<SanYuanCase | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
+    const [isClearing, setIsClearing] = useState(false);
 
     const loadCases = useCallback(async () => {
         setIsLoading(true);
@@ -115,6 +117,22 @@ export default function SanYuanCaseLibraryModal({
         }
     };
 
+    // 清空三元全部案例：选中项必已不存在，先解除选中再刷新，避免详情区停留在已删案例上
+    const executeClear = async () => {
+        setIsClearing(true);
+        try {
+            await sanyuanCaseService.clearCases();
+            onClearSelectedCase();
+            setIsClearConfirmOpen(false);
+            window.dispatchEvent(new CustomEvent(SANYUAN_CASES_CHANGED_EVENT));
+        } catch (error) {
+            console.error('清除三元案例失败:', error);
+            alert(error instanceof Error ? error.message : '清除失败');
+        } finally {
+            setIsClearing(false);
+        }
+    };
+
     return (
         <>
             <BaseModal
@@ -149,6 +167,15 @@ export default function SanYuanCaseLibraryModal({
                             >
                                 <Plus className="h-4 w-4" />
                                 新建
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setIsClearConfirmOpen(true)}
+                                title="清空三元天星全部案例"
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20 focus-ring"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                                清除数据
                             </button>
                         </div>
 
@@ -198,6 +225,17 @@ export default function SanYuanCaseLibraryModal({
                 confirmText="删除"
                 variant="destructive"
                 loading={isDeleting}
+            />
+
+            <ConfirmModal
+                isOpen={isClearConfirmOpen}
+                onClose={() => setIsClearConfirmOpen(false)}
+                onConfirm={() => void executeClear()}
+                title="清除数据"
+                description={<>将清空三元天星全部案例，共 <span className="font-medium text-foreground">{cases.length}</span> 条。其他模块的案例、备份配置均不受影响。此操作无法撤销，建议先备份。</>}
+                confirmText="全部清除"
+                variant="destructive"
+                loading={isClearing}
             />
         </>
     );

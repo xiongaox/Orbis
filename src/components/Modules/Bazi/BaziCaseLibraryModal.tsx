@@ -39,6 +39,7 @@ export default function BaziCaseLibraryModal({
             }}
             fetchCases={baziCaseService.getCases}
             deleteCase={baziCaseService.deleteCase}
+            clearCases={baziCaseService.clearCases}
             refreshEventName={BAZI_CASES_CHANGED_EVENT}
             categories={categories}
             getCategoryCount={(catId, cases) => {
