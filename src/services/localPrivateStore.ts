@@ -5,6 +5,7 @@
  * 兼容已有数据；公开记录、业务 API 和备份格式均不再包含账号信息。
  */
 import Database from '@tauri-apps/plugin-sql';
+import { BAZI_CASES_CHANGED_EVENT, QIMEN_CASES_CHANGED_EVENT, SANYUAN_CASES_CHANGED_EVENT } from '../data/caseConstants';
 
 export type PrivateRecordType = 'bazi_case' | 'qimen_case' | 'sanyuan_case' | 'profile' | 'ai_model_service' | 'case_favorite' | 'case_progress' | 'webdav_config' | 's3_config' | 'backup_method';
 
@@ -270,6 +271,13 @@ export const localPrivateStore = {
     for (const record of records) {
       const existing = await this.get(record.type, record.id);
       if (!existing || existing.updatedAt <= record.updatedAt) await this.put(record.type, record.payload, record.id, record.sortOrder);
+    }
+    // 各模块案例列表只在挂载时取数，恢复后不会自行重载（此前仅弹「已恢复」提示，
+    // 界面仍是空列表，看起来像恢复失败）。统一在此广播变更事件，覆盖 S3/WebDAV/本地文件全部恢复入口。
+    if (typeof window !== 'undefined') {
+      for (const eventName of [BAZI_CASES_CHANGED_EVENT, QIMEN_CASES_CHANGED_EVENT, SANYUAN_CASES_CHANGED_EVENT]) {
+        window.dispatchEvent(new CustomEvent(eventName));
+      }
     }
   },
 };
