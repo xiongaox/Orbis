@@ -178,9 +178,10 @@ export default function CaseLibraryModal<T extends { id: string }>({
     // 正文：移动端 SubPage 与桌面端 BaseModal 共用
     const libraryContent = (
         <>
-                {/* 搜索和操作栏 */}
-                <div className={`flex gap-2 ${isMobile ? 'mb-2' : 'mb-4'} shrink-0`}>
-                    <div className="relative flex-1">
+                {/* 搜索和操作栏：移动端拆两行（搜索独占一行、按钮平分一行），
+                    五个元素挤在 390px 单行会把按钮压到文字竖排 */}
+                <div className={`flex shrink-0 gap-2 ${isMobile ? 'flex-col mb-2' : 'mb-4'}`}>
+                    <div className={`relative ${isMobile ? '' : 'flex-1'}`}>
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <input
                             type="text"
@@ -190,6 +191,10 @@ export default function CaseLibraryModal<T extends { id: string }>({
                             className="w-full bg-secondary/50 border border-border rounded-lg pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-ring title-outline-none focus:outline-none focus:border-primary/50"
                         />
                     </div>
+                    {/* 移动端：行内按钮一律平分宽度并居中，图标让位给文字（「清除数据」四个字要放得下）；
+                        用直接子选择器统一约束，模块传入的 extraActions（如导出）无需各自适配。
+                        注意只能写 [&>button] 形式，[&_button] 在 Tailwind 里不会产出规则。 */}
+                    <div className={isMobile ? 'flex gap-2 [&>*]:flex-1 [&>button]:justify-center [&>button]:whitespace-nowrap [&>button>svg]:hidden' : 'flex gap-2'}>
                     <button
                         type="button"
                         onClick={() => setShowImportModal(true)}
@@ -218,6 +223,7 @@ export default function CaseLibraryModal<T extends { id: string }>({
                             清除数据
                         </button>
                     )}
+                    </div>
                 </div>
 
                 {/* 主体 */}
