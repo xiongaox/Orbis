@@ -91,14 +91,15 @@ describe('S3 备份服务', () => {
 
     const result = await s3BackupService.backup(config);
 
+    // 文件名现在带来源端后缀（本用例 window 未标记 Tauri 运行时，识别为 web）；时间戳部分固定，端后缀正则匹配
     expect(result.backup).toEqual({
-      path: 'orbis/backups/orbis_20260826_132030_000.zip',
-      filename: 'orbis_20260826_132030_000.zip',
+      path: `orbis/backups/${result.backup.filename}`,
+      filename: expect.stringMatching(/^orbis_20260826_132030_000_[a-z]+\.zip$/) as unknown as string,
       createdAt: '2026-08-26T13:20:30.000Z',
       size: null,
     });
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://examplebucket.s3.us-east-1.amazonaws.com/orbis/backups/orbis_20260826_132030_000.zip',
+      `https://examplebucket.s3.us-east-1.amazonaws.com/orbis/backups/${result.backup.filename}`,
       expect.objectContaining({
         method: 'PUT',
         headers: expect.objectContaining({

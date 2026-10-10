@@ -6,6 +6,7 @@ import ConfirmModal from './ConfirmModal';
 import Toast from './Toast';
 import { useToast } from '../../hooks/useToast';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { detectBackupPlatform, platformFromFilename, PLATFORM_LABELS } from '../../services/remoteBackupShared';
 import { webDavBackupService, type WebDavConfig } from '../../services/webdavBackupService';
 import { s3BackupService, type S3Config } from '../../services/s3BackupService';
 import type { RemoteBackupMethod } from '../../services/remoteBackupService';
@@ -137,6 +138,28 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
     setPendingDeletePaths(null);
   };
 
+  /**
+   * 恢复确认文案：多端共用一个备份目录时，先让用户看清这份备份来自哪台设备。
+   * 旧备份文件名没有端后缀，无法从列表识别来源，只能提示"未标注"。
+   */
+  const renderRestoreDescription = () => {
+    if (!pendingRestore) return undefined;
+    const source = platformFromFilename(pendingRestore.filename);
+    const current = detectBackupPlatform();
+    const crossDevice = source !== null && source !== current;
+    return (
+      <>
+        <span className="block">将恢复备份“{pendingRestore.filename}”。当前本地数据可能被补充或更新。</span>
+        <span className={`mt-2 block ${crossDevice ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
+          {source === null
+            ? '此备份未标注来源设备（旧版本创建）。'
+            : `此备份来自 ${PLATFORM_LABELS[source]}，当前设备为 ${PLATFORM_LABELS[current]}。`}
+          {crossDevice && ' 各端案例互不覆盖、恢复按并集合并，跨端恢复会把该设备的数据并入本机。'}
+        </span>
+      </>
+    );
+  };
+
   // 移动端检测（该组件无 isOpen 早退，hooks 顺序天然稳定）
   const { isMobile } = useLayoutMode();
 
@@ -169,7 +192,15 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
               </span>
             </label>
             <div className="min-w-0 flex-1 md:contents">
-              <span className="block truncate font-mono text-sm text-foreground" title={backup.filename}>{backup.filename}</span>
+              <span className="flex min-w-0 items-center gap-1.5" title={backup.filename}>
+                <span className="truncate font-mono text-sm text-foreground">{backup.filename}</span>
+                {/* 端标识来自文件名后缀，旧备份没有后缀就不显示，无需下载解析 */}
+                {platformFromFilename(backup.filename) && (
+                  <span className="shrink-0 rounded border border-border bg-secondary/60 px-1.5 py-0.5 text-[11px] leading-none text-muted-foreground">
+                    {PLATFORM_LABELS[platformFromFilename(backup.filename)!]}
+                  </span>
+                )}
+              </span>
               <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground md:contents">
                 <span className="md:text-left md:text-sm">{formatDate(backup.createdAt)}</span>
                 <span className="md:hidden" aria-hidden="true">·</span>
@@ -225,7 +256,7 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
           onClose={() => { if (busy !== 'restore') setPendingRestore(null); }}
           onConfirm={() => { void confirmRestore(); }}
           title="确认恢复备份"
-          description={pendingRestore ? <>将恢复备份“{pendingRestore.filename}”。当前本地数据可能被补充或更新。</> : undefined}
+          description={renderRestoreDescription()}
           confirmText={busy === 'restore' ? '恢复中…' : '确认恢复'}
           loading={busy === 'restore'}
         />
@@ -258,7 +289,7 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
         onClose={() => { if (busy !== 'restore') setPendingRestore(null); }}
         onConfirm={() => { void confirmRestore(); }}
         title="确认恢复备份"
-        description={pendingRestore ? <>将恢复备份“{pendingRestore.filename}”。当前本地数据可能被补充或更新。</> : undefined}
+        description={renderRestoreDescription()}
         confirmText={busy === 'restore' ? '恢复中…' : '确认恢复'}
         loading={busy === 'restore'}
       />

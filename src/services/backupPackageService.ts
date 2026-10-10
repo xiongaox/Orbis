@@ -13,6 +13,7 @@
 import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
 import { localPrivateStore, type PrivateRecord } from './localPrivateStore';
 import { aiChatHistoryService, type AiChatSession } from './aiChatHistoryService';
+import { detectBackupPlatform, isBackupPlatform, platformFromFilename, type BackupPlatform } from './remoteBackupShared';
 
 export interface BackupContentOptions {
   /**
@@ -30,6 +31,8 @@ export interface BackupManifest {
   schemaVersion: number;
   appName: string;
   exportedAt: string;
+  /** 备份来源端；旧的备份包没有此字段 */
+  platform?: BackupPlatform;
   options: BackupContentOptions;
   files: Record<string, {
     description: string;
@@ -43,6 +46,8 @@ export interface RestoreSummary {
   restoredRecordsCount: number;
   restoredSessionsCount: number;
   restoredCaseTypes: string[];
+  /** 备份来源端（取自 manifest 或文件名后缀，旧备份为 null），供界面判断是否跨端恢复 */
+  sourcePlatform: BackupPlatform | null;
 }
 
 /** 备份配置和系统凭据类型，避免在另一设备恢复时覆盖目标设备的备份凭证 */
@@ -152,6 +157,7 @@ export async function packBackupZip(options: BackupContentOptions = DEFAULT_BACK
     schemaVersion: 3,
     appName: 'Orbis',
     exportedAt: new Date().toISOString(),
+    platform: detectBackupPlatform(),
     options,
     files: manifestFiles,
   };
@@ -218,6 +224,8 @@ export async function unpackAndRestoreBackup(
       restoredRecordsCount: snapshot.records?.length || 0,
       restoredSessionsCount: 0,
       restoredCaseTypes: Array.from(caseTypes),
+      // 旧版单一 JSON 快照没有端信息，只能靠文件名后缀
+      sourcePlatform: filename ? platformFromFilename(filename) : null,
     };
   }
 
@@ -236,6 +244,7 @@ export async function unpackAndRestoreBackup(
   const restoredRecords: PrivateRecord[] = [];
   const restoredSessions: AiChatSession[] = [];
   const caseTypes = new Set<string>();
+  let manifestPlatform: BackupPlatform | null = null;
 
   // 遍历解压出来的所有 JSON 文件
   for (const [entryPath, u8Content] of Object.entries(unzipped)) {
@@ -248,6 +257,13 @@ export async function unpackAndRestoreBackup(
     try {
       parsed = JSON.parse(jsonStr);
     } catch {
+      continue;
+    }
+
+    // 0. 归档元数据：取来源端（旧包无此字段）
+    if (entryPath === 'manifest.json') {
+      const platform = (parsed as BackupManifest | null)?.platform;
+      if (isBackupPlatform(platform)) manifestPlatform = platform;
       continue;
     }
 
@@ -297,5 +313,7 @@ export async function unpackAndRestoreBackup(
     restoredRecordsCount: restoredRecords.length,
     restoredSessionsCount: restoredSessions.length,
     restoredCaseTypes: Array.from(caseTypes),
+    // manifest 优先（准确记录打包端），旧包回退到文件名后缀
+    sourcePlatform: manifestPlatform ?? (filename ? platformFromFilename(filename) : null),
   };
 }

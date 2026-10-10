@@ -6,6 +6,7 @@ import { remoteBackupService, type RemoteBackupMethod } from '../../services/rem
 import { AUTO_BACKUP_INTERVAL_MINUTES } from '../../services/remoteBackupShared';
 import { exportTextFile } from '../../utils/fileExportUtil';
 import type { RestoreSummary } from '../../services/backupPackageService';
+import { PLATFORM_LABELS } from '../../services/remoteBackupShared';
 import RemoteBackupManagerModal from './RemoteBackupManagerModal';
 import SubPage from '../UI/SubPage';
 import SubPageTabs from '../UI/SubPageTabs';
@@ -27,9 +28,11 @@ function describeRestore(filename: string, summary: RestoreSummary) {
   const parts: string[] = [];
   if (summary.restoredRecordsCount > 0) parts.push(`${summary.restoredRecordsCount} 条记录`);
   if (summary.restoredSessionsCount > 0) parts.push(`${summary.restoredSessionsCount} 段对话`);
-  if (parts.length === 0) return `已恢复 ${filename}：备份内没有数据`;
   const caseHint = summary.restoredCaseTypes.length > 0 ? `（含 ${summary.restoredCaseTypes.join('、')} 案例）` : '';
-  return `已恢复 ${filename}：${parts.join('、')}${caseHint}`;
+  // manifest 里的来源端比文件名可靠（旧包没有端后缀），恢复完成后再报一次实际来源
+  const sourceHint = summary.sourcePlatform ? `，来自 ${PLATFORM_LABELS[summary.sourcePlatform]}` : '';
+  if (parts.length === 0) return `已恢复 ${filename}${sourceHint}：备份内没有数据`;
+  return `已恢复 ${filename}${sourceHint}：${parts.join('、')}${caseHint}`;
 }
 
 const emptyWebDavConfig: WebDavConfig = {

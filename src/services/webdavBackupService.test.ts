@@ -67,15 +67,17 @@ describe('WebDAV 备份服务', () => {
 
     const result = await webDavBackupService.backup(config);
 
+    // 文件名现在带来源端后缀（本用例 window 未标记 Tauri 运行时，识别为 web）；
+    // 时间戳部分仍固定，端后缀用正则匹配，避免与 UA 细节耦合
     expect(result.backup).toEqual({
-      path: 'orbis/backups/orbis_20260826_132030_000.zip',
-      filename: 'orbis_20260826_132030_000.zip',
+      path: `orbis/backups/${result.backup.filename}`,
+      filename: expect.stringMatching(/^orbis_20260826_132030_000_[a-z]+\.zip$/) as unknown as string,
       createdAt: '2026-08-26T13:20:30.000Z',
       size: null,
     });
     expect(fetchMock).toHaveBeenNthCalledWith(1, 'https://dav.example.com/dav/orbis', expect.objectContaining({ method: 'MKCOL' }));
     expect(fetchMock).toHaveBeenNthCalledWith(2, 'https://dav.example.com/dav/orbis/backups', expect.objectContaining({ method: 'MKCOL' }));
-    expect(fetchMock).toHaveBeenNthCalledWith(3, 'https://dav.example.com/dav/orbis/backups/orbis_20260826_132030_000.zip', expect.objectContaining({ method: 'PUT' }));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, `https://dav.example.com/dav/orbis/backups/${result.backup.filename}`, expect.objectContaining({ method: 'PUT' }));
   });
 
   it('列出并按时间倒序返回可恢复的备份版本，兼容新旧命名', async () => {
