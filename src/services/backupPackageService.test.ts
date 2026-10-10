@@ -152,4 +152,14 @@ describe('backupPackageService 多模块 ZIP 备份与恢复', () => {
     }));
     expect(mocks.aiChatHistoryService.importSessions).not.toHaveBeenCalled();
   });
+
+  it('本地无数据时拒绝打包，避免生成 1KB 级空备份被当作有效备份留存', async () => {
+    mocks.localPrivateStore.snapshot.mockResolvedValue({
+      schemaVersion: 3,
+      exportedAt: '2026-10-10T00:00:00Z',
+      records: [],
+    });
+
+    await expect(packBackupZip({ includeChatHistory: true })).rejects.toThrow('本地没有可备份的数据');
+  });
 });

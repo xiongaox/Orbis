@@ -33,7 +33,12 @@ const config = {
 describe('WebDAV 备份服务', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.localPrivateStore.snapshot.mockResolvedValue({ schemaVersion: 1, exportedAt: '2026-08-26T00:00:00.000Z', records: [] });
+    // 给一条真实记录：打包已拒绝空快照，用例关注的是上传与签名行为
+    mocks.localPrivateStore.snapshot.mockResolvedValue({
+      schemaVersion: 1,
+      exportedAt: '2026-08-26T00:00:00.000Z',
+      records: [{ id: 'bazi-1', type: 'bazi_case', payload: { title: '八字案例' }, createdAt: '2026-08-01', updatedAt: '2026-08-01' }],
+    });
     vi.stubGlobal('window', { setTimeout, clearTimeout, setInterval, clearInterval, addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn() });
   });
 

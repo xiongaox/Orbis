@@ -63,6 +63,13 @@ export async function packBackupZip(options: BackupContentOptions = DEFAULT_BACK
   const snapshot = await localPrivateStore.snapshot();
   const allRecords = snapshot.records || [];
 
+  // 空快照必须报错，不能照常打包上传：
+  // 各项案例文件即使无数据也会写成 []，压缩后仅 1KB 出头，与正常包（几十到上百 KB）
+  // 在远端列表里几乎无从分辨，而「备份成功」的提示会让空包被当成有效备份留存下来。
+  if (allRecords.length === 0) {
+    throw new Error('本地没有可备份的数据：请确认当前设备已有案例或配置，或本机存储是否正常');
+  }
+
   // 2. 分流案例与系统设置
   const accountRecords: PrivateRecord[] = [];
   const caseRecordsByType = new Map<string, PrivateRecord[]>();
