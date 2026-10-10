@@ -39,12 +39,16 @@ android {
                 storePassword = keystoreProperties["storePassword"] as String
                 keyAlias = keystoreProperties["keyAlias"] as String
                 keyPassword = keystoreProperties["keyPassword"] as String
+                // minSdk >= 24 时 AGP 默认只签 v2，而华为/小米等国产 ROM 的安装器
+                // 在解析阶段仍校验 v1（JAR）签名，缺 v1 会报「解析软件包时出现问题」
+                enableV1Signing = true
+                enableV2Signing = true
             }
         }
     }
     buildTypes {
         getByName("debug") {
-            applicationIdSuffix = ".debug"
+            applicationIdSuffix = ".debug.admin"
             manifestPlaceholders["usesCleartextTraffic"] = "true"
             isDebuggable = true
             isJniDebuggable = true
