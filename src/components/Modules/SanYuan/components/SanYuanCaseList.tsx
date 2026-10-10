@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
 import { SANYUAN_CASES_CHANGED_EVENT } from '../../../../data/caseConstants';
 import type { SanYuanInput } from '../../../../lib/sanyuan';
 import {
@@ -9,6 +8,7 @@ import {
     type SanYuanCaseType,
 } from '../../../../services/sanyuanCaseService';
 import BaseCaseList from '../../../Common/BaseCaseList';
+import CategoryFilterDropdown from '../../../Common/CategoryFilterDropdown';
 import ConfirmModal from '../../../Common/ConfirmModal';
 import SortFieldButton, { type SortState } from '../../../Common/SortFieldButton';
 import SanYuanCaseLibraryModal from './SanYuanCaseLibraryModal';
@@ -33,7 +33,6 @@ export default function SanYuanCaseList({
     const [isLoading, setIsLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [selectedType, setSelectedType] = useState<SanYuanCaseType | 'all'>('all');
-    const [isTypeOpen, setIsTypeOpen] = useState(false);
     // 字段排序（时间/分类）：field 为 null 表示默认（创建时间倒序），与奇门侧栏同构
     const [sort, setSort] = useState<SortState>({ field: null, dir: 'desc' });
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -118,43 +117,17 @@ export default function SanYuanCaseList({
             scrollKey="sanyuan"
             onOpenLibrary={() => setIsLibraryOpen(true)}
             renderFilter={
-                <div className="relative">
-                    <button
-                        type="button"
-                        onClick={() => setIsTypeOpen(!isTypeOpen)}
-                        className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-                    >
-                        {currentTypeName}
-                        <span className="text-muted-foreground/60">({sortedCases.length})</span>
-                        <ChevronDown className={`w-3 h-3 transition-transform ${isTypeOpen ? 'rotate-180' : ''}`} />
-                    </button>
-
-                    {isTypeOpen && (
-                        <div className="absolute right-0 mt-2 w-40 bg-sidebar border border-sidebar-border rounded-lg shadow-lg p-2 z-20">
-                            {FILTER_TYPES.map((type) => (
-                                <button
-                                    key={type.id}
-                                    type="button"
-                                    onClick={() => {
-                                        setSelectedType(type.id as SanYuanCaseType | 'all');
-                                        setIsTypeOpen(false);
-                                    }}
-                                    className={`w-full flex items-center justify-between px-2 py-1.5 text-xs rounded-md transition-colors ${selectedType === type.id
-                                        ? 'bg-primary/10 text-primary'
-                                        : 'text-foreground hover:bg-sidebar-accent/60'
-                                        }`}
-                                >
-                                    <span>{type.name}</span>
-                                    <span className="text-muted-foreground/60">
-                                        {type.id === 'all'
-                                            ? cases.length
-                                            : cases.filter((caseData) => caseData.case_type === type.id).length}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                <CategoryFilterDropdown
+                    label={currentTypeName}
+                    count={sortedCases.length}
+                    selectedId={selectedType}
+                    onSelect={(id) => setSelectedType(id as SanYuanCaseType | 'all')}
+                    options={FILTER_TYPES.map((type) => ({
+                        id: type.id,
+                        name: type.name,
+                        count: type.id === 'all' ? cases.length : cases.filter((caseData) => caseData.case_type === type.id).length,
+                    }))}
+                />
             }
             search={search}
             onSearchChange={setSearch}

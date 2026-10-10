@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
 import { qimenCaseService, type QimenCase, QIMEN_CATEGORIES } from '../../../services/qimenCaseService';
 import QimenCaseLibraryModal from './QimenCaseLibraryModal';
 import { QIMEN_CASES_CHANGED_EVENT } from '../../../data/caseConstants';
 import BaseCaseList from '../../Common/BaseCaseList';
+import CategoryFilterDropdown from '../../Common/CategoryFilterDropdown';
 import QimenCaseCard from './QimenCaseCard';
 import SortFieldButton, { type SortState } from '../../Common/SortFieldButton';
 import { QIMEN_SORT_OPTIONS, compareQimenCase } from './caseSort';
@@ -33,7 +33,6 @@ export default function QimenCaseList({
 }: QimenCaseListProps) {
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
-    const [isCategoryOpen, setIsCategoryOpen] = useState(false);
     const [showLibraryModal, setShowLibraryModal] = useState(false);
     // 字段排序（时间/分类）：field 为 null 表示默认（创建时间倒序）
     const [sort, setSort] = useState<SortState>({ field: null, dir: 'desc' });
@@ -84,43 +83,17 @@ export default function QimenCaseList({
             scrollKey="qimen"
             onOpenLibrary={() => setShowLibraryModal(true)}
             renderFilter={
-                <div className="relative">
-                    <button
-                        type="button"
-                        onClick={() => setIsCategoryOpen(!isCategoryOpen)}
-                        className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-                    >
-                        {currentCategoryName}
-                        <span className="text-muted-foreground/60">({filteredCases.length})</span>
-                        <ChevronDown className={`w-3 h-3 transition-transform ${isCategoryOpen ? 'rotate-180' : ''}`} />
-                    </button>
-
-                    {isCategoryOpen && (
-                        <div className="absolute right-0 mt-2 w-40 bg-sidebar border border-sidebar-border rounded-lg shadow-lg p-2 z-20">
-                            {FILTER_CATEGORIES.map((cat) => (
-                                <button
-                                    key={cat.id}
-                                    type="button"
-                                    onClick={() => {
-                                        setSelectedCategory(cat.id);
-                                        setIsCategoryOpen(false);
-                                    }}
-                                    className={`w-full flex items-center justify-between px-2 py-1.5 text-xs rounded-md transition-colors ${selectedCategory === cat.id
-                                        ? 'bg-primary/10 text-primary'
-                                        : 'text-foreground hover:bg-sidebar-accent/60'
-                                        }`}
-                                >
-                                    <span>{cat.name}</span>
-                                    <span className="text-muted-foreground/60">
-                                        {cat.id === 'all'
-                                            ? cases.length
-                                            : cases.filter(c => c.category === cat.id).length}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                <CategoryFilterDropdown
+                    label={currentCategoryName}
+                    count={filteredCases.length}
+                    selectedId={selectedCategory}
+                    onSelect={setSelectedCategory}
+                    options={FILTER_CATEGORIES.map((cat) => ({
+                        id: cat.id,
+                        name: cat.name,
+                        count: cat.id === 'all' ? cases.length : cases.filter(c => c.category === cat.id).length,
+                    }))}
+                />
             }
             search={search}
             onSearchChange={setSearch}

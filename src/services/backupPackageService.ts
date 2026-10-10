@@ -95,16 +95,15 @@ export async function packBackupZip(options: BackupContentOptions = DEFAULT_BACK
   };
 
   // 3.2 各术数命盘案例（八字、奇门、三元天星等）
-  const knownDivinations = new Set(['bazi', 'qimen', 'sanyuan']);
-  for (const div of caseRecordsByType.keys()) {
-    knownDivinations.add(div);
-  }
-
+  // 清单以 DIVINATION_NAMES 为单一来源：即使某术数暂无案例也输出空文件，
+  // 新增术数只需在此登记一次，避免与实际案例类型脱节
   const DIVINATION_NAMES: Record<string, string> = {
     bazi: '八字命盘案例',
     qimen: '奇门排盘案例',
     sanyuan: '三元天星案例',
   };
+
+  const knownDivinations = new Set([...Object.keys(DIVINATION_NAMES), ...caseRecordsByType.keys()]);
 
   for (const div of knownDivinations) {
     const records = caseRecordsByType.get(div) || [];

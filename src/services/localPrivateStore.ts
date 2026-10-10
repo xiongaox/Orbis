@@ -120,6 +120,25 @@ const memoryRecords = new Map<string, PrivateRecord>();
 
 type StoredRecord = PrivateRecord & { userId?: string };
 
+/**
+ * 列出本地全部记录（不按类型过滤）。
+ * 备份快照专用：避免依赖手写类型清单而在新增术数时漏备份。
+ */
+async function listAllRecords(): Promise<PrivateRecord[]> {
+  if (isTauriRuntime()) {
+    const db = await getTauriDatabase();
+    const rows = await db.select<Array<{ id: string; record_type: PrivateRecordType; payload: string; created_at: string; updated_at: string; sort_order?: number }>>(
+      'SELECT id, record_type, payload, created_at, updated_at, sort_order FROM private_records ORDER BY record_type, COALESCE(sort_order, 2147483647), updated_at DESC',
+    );
+    return rows.map(fromRow);
+  }
+  if (typeof indexedDB === 'undefined') return [...memoryRecords.values()];
+  await migrateIndexedRecords();
+  const records = await withIndexedStore<StoredRecord[]>('readonly', (store) => store.getAll());
+  return records.map(normalizeRecord).sort((a, b) => a.type.localeCompare(b.type)
+    || (a.sortOrder ?? Number.MAX_SAFE_INTEGER) - (b.sortOrder ?? Number.MAX_SAFE_INTEGER));
+}
+
 async function withIndexedStore<T>(mode: IDBTransactionMode, action: (store: IDBObjectStore) => IDBRequest<T>) {
   if (typeof indexedDB === 'undefined') throw new Error('当前环境不支持 IndexedDB');
   const db = await openIndexedDb();
@@ -235,10 +254,9 @@ export const localPrivateStore = {
   },
 
   async snapshot(): Promise<PrivateDataSnapshot> {
-    const records: PrivateRecord[] = [];
-    for (const type of ['bazi_case', 'qimen_case', 'sanyuan_case', 'profile', 'ai_model_service', 'case_favorite', 'case_progress', 'webdav_config', 's3_config', 'backup_method'] as PrivateRecordType[]) {
-      records.push(...await this.list(type));
-    }
+    // 不按手写类型清单逐类查询：新增术数（新 case 类型）时若漏同步清单，
+    // 该术数案例会静默不进备份包；直接列全部记录可彻底避免这类遗漏。
+    const records = await listAllRecords();
     return { schemaVersion: SCHEMA_VERSION, exportedAt: now(), records };
   },
 

@@ -88,8 +88,9 @@ export default function BaseCaseList({
             : "w-full h-full select-none bg-sidebar/5 border-r border-border/50 flex flex-col min-h-0"
         }>
             <div className={variant === 'drawer' ? 'p-3 border-b border-border/60 space-y-2 shrink-0' : 'p-4 border-b border-border/50 space-y-3 shrink-0'}>
-                {/* 顶部：案例库与筛选 */}
-                <div className="flex items-center justify-between">
+                {/* 顶部：案例库与筛选。relative 供筛选下拉按整行宽度展开：
+                    移动端抽屉只有 240px 上下，下拉若按固定宽度会超出抽屉被裁 */}
+                <div className="relative flex items-center justify-between">
                     <button
                         type="button"
                         onClick={onOpenLibrary}

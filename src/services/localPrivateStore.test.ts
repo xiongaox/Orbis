@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@tauri-apps/plugin-sql', () => ({ default: { load: vi.fn() } }));
 
-import { localPrivateStore } from './localPrivateStore';
+import { localPrivateStore, type PrivateRecordType } from './localPrivateStore';
 
 describe('本地私有数据备份', () => {
   beforeEach(() => {
@@ -34,5 +34,13 @@ describe('本地私有数据备份', () => {
     await expect(localPrivateStore.get('webdav_config', 'webdav_config')).resolves.toMatchObject({
       payload: { endpoint: 'https://dav.example.com', password: 'secret' },
     });
+  });
+
+  // 曾因快照按手写类型清单逐类查询，新增术数的案例不进备份包（线上表现为备份缺案例）
+  it('快照包含未登记在旧类型清单中的新术数案例', async () => {
+    await localPrivateStore.put('liuyao_case' as PrivateRecordType, { title: '六爻案例' }, 'ly-1');
+
+    const snapshot = await localPrivateStore.snapshot();
+    expect(snapshot.records.some((record) => record.id === 'ly-1')).toBe(true);
   });
 });
