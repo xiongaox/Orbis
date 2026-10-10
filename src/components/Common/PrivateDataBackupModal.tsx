@@ -5,6 +5,7 @@ import { s3BackupService, type S3Config } from '../../services/s3BackupService';
 import { remoteBackupService, type RemoteBackupMethod } from '../../services/remoteBackupService';
 import { AUTO_BACKUP_INTERVAL_MINUTES } from '../../services/remoteBackupShared';
 import { exportTextFile } from '../../utils/fileExportUtil';
+import type { RestoreSummary } from '../../services/backupPackageService';
 import RemoteBackupManagerModal from './RemoteBackupManagerModal';
 import SubPage from '../UI/SubPage';
 import SubPageTabs from '../UI/SubPageTabs';
@@ -15,6 +16,20 @@ import { useLayoutMode } from '../../hooks/useLayoutMode';
 interface PrivateDataBackupModalProps {
   isOpen: boolean;
   onClose: () => void;
+}
+
+/**
+ * 恢复结果提示文案。
+ * 备份包大小差异很大（几十 KB 到几百 KB），空包同样能“恢复成功”，
+ * 只有把恢复到的条数显示出来，才能一眼分辨选错了备份。
+ */
+function describeRestore(filename: string, summary: RestoreSummary) {
+  const parts: string[] = [];
+  if (summary.restoredRecordsCount > 0) parts.push(`${summary.restoredRecordsCount} 条记录`);
+  if (summary.restoredSessionsCount > 0) parts.push(`${summary.restoredSessionsCount} 段对话`);
+  if (parts.length === 0) return `已恢复 ${filename}：备份内没有数据`;
+  const caseHint = summary.restoredCaseTypes.length > 0 ? `（含 ${summary.restoredCaseTypes.join('、')} 案例）` : '';
+  return `已恢复 ${filename}：${parts.join('、')}${caseHint}`;
 }
 
 const emptyWebDavConfig: WebDavConfig = {
@@ -412,7 +427,7 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
           </div>
         </SubPage>
         <Toast toast={toast} />
-        <RemoteBackupManagerModal isOpen={showManager} method={method} config={method === 's3' ? s3Config : webdavConfig} onClose={() => setShowManager(false)} onRestored={(filename) => showToast(`已恢复：${filename}`)} />
+        <RemoteBackupManagerModal isOpen={showManager} method={method} config={method === 's3' ? s3Config : webdavConfig} onClose={() => setShowManager(false)} onRestored={(filename, summary) => showToast(describeRestore(filename, summary))} />
       </>
     );
   }
@@ -448,7 +463,7 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
         </div>
       </div>
       <Toast toast={toast} />
-      <RemoteBackupManagerModal isOpen={showManager} method={method} config={method === 's3' ? s3Config : webdavConfig} onClose={() => setShowManager(false)} onRestored={(filename) => showToast(`已恢复：${filename}`)} />
+      <RemoteBackupManagerModal isOpen={showManager} method={method} config={method === 's3' ? s3Config : webdavConfig} onClose={() => setShowManager(false)} onRestored={(filename, summary) => showToast(describeRestore(filename, summary))} />
     </>
   );
 }

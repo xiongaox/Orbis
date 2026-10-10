@@ -10,13 +10,15 @@ import { webDavBackupService, type WebDavConfig } from '../../services/webdavBac
 import { s3BackupService, type S3Config } from '../../services/s3BackupService';
 import type { RemoteBackupMethod } from '../../services/remoteBackupService';
 import type { RemoteBackupMeta } from '../../services/remoteBackupShared';
+import type { RestoreSummary } from '../../services/backupPackageService';
 
 interface RemoteBackupManagerModalProps {
   isOpen: boolean;
   method: RemoteBackupMethod;
   config: WebDavConfig | S3Config;
   onClose: () => void;
-  onRestored: (filename: string) => void;
+  /** 恢复完成回调：带上恢复摘要，便于调用方提示恢复了多少条（空备份一眼可辨） */
+  onRestored: (filename: string, summary: RestoreSummary) => void;
 }
 
 const PAGE_SIZE = 6;
@@ -111,9 +113,10 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
   const restore = async (backup: RemoteBackupMeta) => {
     setBusy('restore');
     try {
-      if (method === 's3') await s3BackupService.restore(config as S3Config, backup.path);
-      else await webDavBackupService.restore(config as WebDavConfig, backup.path);
-      onRestored(backup.filename);
+      const summary = method === 's3'
+        ? await s3BackupService.restore(config as S3Config, backup.path)
+        : await webDavBackupService.restore(config as WebDavConfig, backup.path);
+      onRestored(backup.filename, summary);
       onClose();
     } catch (error) {
       showToast(error instanceof Error ? error.message : '恢复备份失败', 'error');
