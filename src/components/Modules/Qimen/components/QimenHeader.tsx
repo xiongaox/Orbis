@@ -53,6 +53,12 @@ interface QimenHeaderProps {
     /** 第三行右侧自定义动作区（如案例盘的长生/十神切换）：无上一局/下一局按钮时利用空闲位 */
     headerActions?: ReactNode;
     isMobileLayout?: boolean;
+    /**
+     * 紧凑档（案例学习窄侧栏）：四柱与信息区改为分行排布。
+     * 默认两者同处一行（justify-between），整页排盘时宽度充裕；
+     * 嵌进约 25% 宽侧栏时信息区会被挤出容器裁掉，故紧凑档下让信息区独占下一行。
+     */
+    compact?: boolean;
 }
 
 export default function QimenHeader({
@@ -69,6 +75,7 @@ export default function QimenHeader({
     onOpenAiModal,
     headerActions,
     isMobileLayout = false,
+    compact = false,
 }: QimenHeaderProps) {
     const [isMethodOpen, setIsMethodOpen] = useState(false);
     // isSettingsOpen 状态已提升到父组件
@@ -119,8 +126,8 @@ export default function QimenHeader({
     ];
 
     const renderInfoItem = (item: InfoItem, index: number) => (
-        <div key={index} className="flex items-center gap-1 2xl:gap-2">
-            <span className="text-muted-foreground font-light">{item.label}:</span>
+        <div key={index} className={`flex items-center gap-1 2xl:gap-2 ${compact ? 'min-w-0' : ''}`}>
+            <span className={`text-muted-foreground font-light ${compact ? 'shrink-0' : ''}`}>{item.label}:</span>
             {item.clickable ? (
                 <button
                     onClick={onJuClick}
@@ -136,9 +143,9 @@ export default function QimenHeader({
     );
 
     return (
-        <div className={`w-full bg-card flex flex-col ${isMobileLayout ? 'p-4 gap-3' : 'rounded-xl border border-border p-3 2xl:p-5 gap-2 2xl:gap-4'}`}>
+        <div className={`w-full bg-card flex flex-col ${isMobileLayout ? 'p-4 gap-3' : compact ? 'border border-border p-2 gap-1.5' : 'rounded-xl border border-border p-3 2xl:p-5 gap-2 2xl:gap-4'}`}>
             {/* 第一行：日期时间 + 操作按钮 */}
-            <div className="flex items-center justify-between text-sm 2xl:text-xl">
+            <div className={`flex items-center text-sm 2xl:text-xl ${compact ? 'flex-wrap gap-y-1' : 'justify-between'}`}>
                 <div className="flex items-baseline gap-1 2xl:gap-2">
                     <span className="font-serif font-bold text-foreground">
                         {header.solarDate.replace(/年|月|日/g, (match) => ` ${match} `)}
@@ -165,7 +172,7 @@ export default function QimenHeader({
 
             {/* 第二行：四柱 + 信息 */}
             {header.siZhu?.year && (
-                <div className="flex items-center justify-between">
+                <div className={`flex ${compact ? 'flex-col gap-1.5' : 'items-center justify-between'}`}>
                     <div className="flex gap-5 2xl:gap-6">
                         {(['year', 'month', 'day', 'hour'] as const).map((key) => {
                             const labels = { year: '年', month: '月', day: '日', hour: '时' };
@@ -177,12 +184,12 @@ export default function QimenHeader({
                                 <div key={key} className={`flex flex-col items-center relative ${isMobileLayout ? 'pr-4' : 'pr-3 2xl:pr-4'}`}>
                                     <span className={`text-base 2xl:text-2xl font-serif leading-none ${isMobileLayout ? 'mb-1' : 'mb-0.5 2xl:mb-1'} ${isDayOrHour ? 'text-primary font-bold' : 'text-foreground'}`}>{stem}</span>
                                     <span className={`text-base 2xl:text-2xl font-serif leading-none ${isDayOrHour && isJia ? 'text-primary font-bold' : 'text-foreground'}`}>{branch}</span>
-                                    <span className="absolute top-1/2 -translate-y-1/2 right-0 text-xs 2xl:text-sm text-muted-foreground/60 font-serif transform scale-90 origin-right">{labels[key]}</span>
+                                    <span className={`absolute top-1/2 -translate-y-1/2 right-0 text-xs 2xl:text-sm text-muted-foreground/60 font-serif transform scale-90 origin-right`}>{labels[key]}</span>
                                 </div>
                             );
                         })}
                     </div>
-                    <div className="h-6 2xl:h-10 w-px bg-border/60 ml-4 2xl:ml-8 mr-4 2xl:mr-10" />
+                    {!compact && <div className="h-6 2xl:h-10 w-px bg-border/60 ml-4 2xl:ml-8 mr-4 2xl:mr-10" />}
                     {isMobileLayout ? (
                         <div className="flex-1 min-w-0">
                             <div
@@ -216,7 +223,7 @@ export default function QimenHeader({
                             </div>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-3 gap-y-0.5 2xl:gap-y-1 gap-x-3 2xl:gap-x-8 text-xs 2xl:text-base flex-1">
+                        <div className={`grid grid-cols-3 ${compact ? 'w-full min-w-0 gap-y-1.5 gap-x-3 text-sm' : 'gap-y-0.5 2xl:gap-y-1 gap-x-3 2xl:gap-x-8 text-xs 2xl:text-base flex-1'}`}>
                             {desktopInfoItems.map(renderInfoItem)}
                         </div>
                     )}
@@ -224,7 +231,7 @@ export default function QimenHeader({
             )}
 
             {/* 第三行：标签 + 操作按钮 */}
-            <div className={`flex ${isMobileLayout ? 'items-stretch' : 'items-center'} justify-between`}>
+            <div className={`flex ${isMobileLayout ? 'items-stretch' : 'items-center'} ${compact ? 'flex-wrap gap-y-1.5' : 'justify-between'}`}>
                 <div className="flex items-center gap-1 2xl:gap-2">
                     <div className="relative">
                         <button type="button" onClick={() => setIsMethodOpen(!isMethodOpen)} className="flex items-center gap-1 pl-3 pr-2 py-1 rounded-lg border border-border text-muted-foreground text-xs 2xl:text-sm font-serif hover:bg-muted/10 transition-colors">
@@ -246,7 +253,7 @@ export default function QimenHeader({
                         <button key={idx} onClick={() => onPatternClick?.(pattern)} className="px-2.5 2xl:px-3.5 py-1 rounded-lg border border-border text-muted-foreground text-xs 2xl:text-sm font-serif hover:bg-muted/10 transition-colors" title={pattern.fullLabel}>{pattern.label}</button>
                     ))}
                 </div>
-                <div className={`flex ${isMobileLayout ? 'items-stretch' : 'items-center'} gap-1 2xl:gap-2`}>
+                <div className={`flex ${isMobileLayout ? 'items-stretch' : 'items-center'} gap-1 2xl:gap-2 ${compact ? 'ml-auto' : ''}`}>
                     {headerActions}
                     {onPrevHour && (
                         <button type="button" onClick={onPrevHour} className={`${isMobileLayout ? 'px-3 flex items-center' : 'p-1 2xl:p-1.5'} bg-secondary/80 text-muted-foreground rounded-lg hover:bg-secondary transition-colors border border-border`} title="上一局">

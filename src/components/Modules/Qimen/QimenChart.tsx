@@ -84,6 +84,13 @@ interface QimenChartProps {
     hideHeader?: boolean;
     /** 移动端布局 */
     isMobileLayout?: boolean;
+    /**
+     * 紧凑档：供把盘面嵌进窄侧栏的场景使用（案例学习右栏）。
+     * 开启后——收紧内边距与格间距、去掉盘面与宫位圆角、宫位内容不再撑满拉长、
+     * 字号按「容器宽度」而非视口宽度分档。
+     * 不传时保持奇门模块整页排盘的原样，互不影响。
+     */
+    compact?: boolean;
     /** 外部受控的显示状态（移动端使用） */
     controlledShowChangSheng?: boolean;
     controlledShowShiShen?: boolean;
@@ -117,6 +124,7 @@ export default function QimenChart({
     fullWidth = false,
     hideHeader = false,
     isMobileLayout = false,
+    compact = false,
     controlledShowChangSheng,
     controlledShowShiShen,
     controlledShowPalaceMeta,
@@ -132,13 +140,13 @@ export default function QimenChart({
     const targetHourStem = getJiaDunStem(header.siZhu.hour[0], header.siZhu.hour[1]);
 
     return (
-        <div className={`flex flex-col h-full overflow-hidden items-center ${isMobileLayout ? 'p-0' : 'p-2'} relative`}>
+        <div className={`flex flex-col h-full overflow-hidden items-center ${isMobileLayout ? 'p-0' : compact ? 'p-1' : 'p-2'} relative`}>
             <div className="flex flex-col flex-1 min-h-0 items-center w-full">
                 {/* 九宫盘主体 */}
                 <div className={`flex flex-col h-full items-center w-full ${isMobileLayout ? '' : fullWidth ? 'max-w-[560px]' : 'max-w-2xl'}`}>
                     {/* 顶部信息栏 - Pad 端由右侧面板渲染 */}
                     {!hideHeader && (
-                        <div className={`w-full flex-shrink-0 ${isMobileLayout ? 'mb-0' : 'mb-2'}`}>
+                        <div className={`w-full flex-shrink-0 ${isMobileLayout ? 'mb-0' : compact ? 'mb-1' : 'mb-2'}`}>
                             <QimenHeader
                                 header={header}
                                 method={method}
@@ -153,14 +161,15 @@ export default function QimenChart({
                                 onOpenAiModal={onOpenAiModal}
                                 headerActions={headerActions}
                                 isMobileLayout={isMobileLayout}
+                                compact={compact}
                             />
                         </div>
                     )}
 
-                    {/* 九宫格盘式 */}
-                    <div className="flex-1 min-h-0 w-full">
-                        <div className={`w-full h-full ${isMobileLayout ? '' : 'bg-card rounded-xl border border-border p-2'}`}>
-                            <div className={`grid grid-cols-3 ${isMobileLayout ? 'gap-0' : 'gap-1'} h-full`}>
+                    {/* 九宫格盘式：紧凑档挂 @container，宫位字号改按「格子实际宽度」分档 */}
+                    <div className={`flex-1 min-h-0 w-full ${compact ? '@container' : ''}`}>
+                        <div className={`w-full h-full ${isMobileLayout ? '' : compact ? 'bg-card border border-border p-1' : 'bg-card rounded-xl border border-border p-2'}`}>
+                            <div className={`grid grid-cols-3 ${isMobileLayout ? 'gap-0' : compact ? 'gap-0.5' : 'gap-1'} h-full`}>
                                 {orderedPalaces.map((palace) => (
                                     <PalaceCell
                                         key={palace.position}
@@ -178,6 +187,7 @@ export default function QimenChart({
                                         isJiGongHourStem={palace.jiGongTianPan === targetHourStem}
                                         dynamicMaKong={dynamicMaKong}
                                         isMobileLayout={isMobileLayout}
+                                        compact={compact}
                                         onLongPress={onLongPressPalace ? () => onLongPressPalace(palace.position) : undefined}
                                     />
                                 ))}

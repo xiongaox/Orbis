@@ -1,3 +1,3 @@
 interface:
-  display_name: "ValPoint Git 描述"
-  short_description: "输入 git描述 生成提交描述并同步更新日志"
+  display_name: "Orbis Git 描述"
+  short_description: "git描述 仅本地提交；git描述并提交 追加推送；git描述提交并构建 追加更新日志与云端构建"

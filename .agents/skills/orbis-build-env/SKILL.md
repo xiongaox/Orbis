@@ -55,19 +55,55 @@ export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-t
 
 ## 3. 按任务速查
 
+> **何时才构建**：用户**明确要求**「构建 / 出包」时才执行。改完代码不要主动构建安装包——
+> 用户先在自己跑着的 `npm run tauri:dev`（HMR）里确认效果，再让 AI 构建。默认交付物是
+> 代码改动 + 静态自检结果。见根 `AGENTS.md` 的「UI 验收与交付规则」。
+
 | 任务 | 命令 |
 |------|------|
 | 前端自检 | `npm run lint && npx tsc -b`（无需 Java/Android） |
 | 桌面构建（普通版） | `npm run tauri:build` |
 | 桌面构建（管理员版） | `npm run tauri:build:admin`（仅作者本机，需 keys/） |
-| 安卓构建（**默认**：日常装机验证，用户未点名 release 时一律用这个） | 先执行第 0 节 export 块，再 `npm run android:build:debug`（等价 `npx tauri android build --apk --debug --target aarch64`），产物 `app-universal-debug.apk`（包名 `com.orbis.app.debug`），`adb install -r` 覆盖装保留数据 |
+| 安卓构建（**用户要求「构建」但未点名 release 时用这个**） | 先执行第 0 节 export 块，再 `npm run android:build:debug`（等价 `npx tauri android build --apk --debug --target aarch64`），产物 `app-universal-debug.apk`（包名 `com.orbis.app.debug`），`adb install -r` 覆盖装保留数据 |
 | 安卓构建（管理员版 debug：应用内签发激活码） | 先执行第 0 节 export 块，再 `npm run android:build:debug:admin`（追加 `--features admin-signing`，需本机 `keys/signing_blob.rs`）。包名与普通版相同，**会覆盖安装普通 debug 包**；产物与普通版同路径同名，注意先拷出改名留存 |
 | 安卓构建（release：**仅**用户明确要求 release / 正式交付时） | 云端：Actions 页手动跑 `android-build` 或推 `v*` 标签（正式签名经 GitHub Secrets `ANDROID_KEYSTORE_BASE64`/`ANDROID_STORE_PASSWORD`/`ANDROID_KEY_ALIAS`/`ANDROID_KEY_PASSWORD` 注入，产物 artifact `orbis-android`，2026-10-07 起可用）；本地：先执行第 0 节 export 块，再 `npx tauri android build --target aarch64`（release 产物已自动正式签名，包名 `com.orbis.app`，与 debug 包并存两个图标属预期） |
 | Rust 安全层测试 | `cd src-tauri && cargo test`（无需 Java） |
 | 安卓图标重生成 | `npm run android:icons`（tauri icon 之后必须重跑，见根 AGENTS.md） |
 | iOS 用户端未签名 ipa（本机无完整 Xcode，走云构建） | 工作流仅 Actions 页手动跑 `ios-build` 或推 `v*` 标签时触发，**不随普通提交构建**（2026-10-07 起，此前 paths 触发会因历史重写推送而误触发）；产物 artifact `orbis-ios-user-unsigned`，需代理（`export HTTPS_PROXY=http://127.0.0.1:7897`）。流程要点：`tauri ios init` 生成 `src-tauri/gen/apple`，跳过零依赖 pod install，需伪造选项服务（`scripts/fake-tauri-ios-server.py`）供 xcode-script 阶段读取，Xcode 用 16.4（26 的构建系统会 builtin-create-build-directory 静默失败）。管理员版 ipa 因签发私钥不能上 CI，只能本机装 Xcode 后构建 |
 
-## 4. 环境自检（怀疑环境坏了再跑，平时跳过）
+## 4. 构建产物归档（管理员版 apk / dmg）
+
+本机凡是构建出**管理员版**安装包，一律复制到归档目录，用户直接从那里取用。
+
+**当前机器的归档目录：`/Users/xiongaox/Downloads`**（本机构建环境约定）。
+
+```bash
+# 命名约定：orbis-admin-<版本>-<架构>-<类型>.<ext>
+cp <apk 产物> "/Users/xiongaox/Downloads/orbis-admin-2.1.1-aarch64-release.apk"
+cp <dmg 产物> "/Users/xiongaox/Downloads/orbis-admin-2.1.1-aarch64-release.dmg"
+```
+
+- 复制后**移除该目录下的旧版本同名包**（如上一版 `orbis-admin-2.1.0-*`），避免用户装错版本。
+- 复制后核对产物：APK 用 `apksigner verify --min-sdk-version 23` 确认 v1+v2 双签名，
+  DMG 用 `hdiutil attach -nobrowse -readonly` 确认可挂载、卷内 app 版本号正确，然后 `detach`。
+- **换了环境必须询问**：若 `echo $HOME` 不再是 `/Users/xiongaox`（换了机器/新 MBP/换用户），
+  **先停下询问用户保存到哪里**，不要沿用 `/Users/xiongaox/Downloads`，也不要自行新建目录。
+  确认后同时更新本 skill 的归档路径与根 `AGENTS.md` 的同一约定。
+
+### 已知坑：DMG 打包失败 `failed to run bundle_dmg.sh`
+
+多为**上一次构建残留了 DMG 挂载**，导致 `hdiutil` 无法挂载新镜像。处理：
+
+```bash
+hdiutil info | grep -i "orbis\|dmg\."          # 找残留挂载点
+hdiutil detach /Volumes/<挂载点> -force        # 卸载
+rm -f src-tauri/target/release/bundle/macos/rw.*.dmg
+rm -f src-tauri/target/release/bundle/dmg/*.dmg
+```
+
+清理后重跑 `npm run tauri:build:admin` 即可（`.app` 通常已成功构建，只有 dmg 这一步失败）。
+
+## 5. 环境自检（怀疑环境坏了再跑，平时跳过）
 
 ```bash
 zsh -ic 'java -version; echo $ANDROID_HOME; sdkmanager --list_installed'
@@ -75,13 +111,14 @@ zsh -ic 'java -version; echo $ANDROID_HOME; sdkmanager --list_installed'
 
 预期输出：`openjdk version "17.0.20.1"`；SDK 已装包列表含 `build-tools;35.0.0`、`ndk;27.2.12479018`、`platform-tools`、`platforms;android-35`、`platforms;android-36`。
 
-## 5. 维护规则
+## 6. 维护规则
 
 - 机器环境变化（升级/更换 JDK、NDK、SDK 位置、换新 Mac）时，**同时更新两处**：`~/.zshrc` 的「Orbis build env」块 + 本 skill 第 0/1 节，并更新第 1 节各版本号。
+- **换机器 / 换用户目录时**：同步更新第 4 节的产物归档路径与根 `AGENTS.md` 的对应约定（两处必须一致）。
 - 每次构建会话开始时以本 skill 为唯一事实来源，不要重新全盘探测；仅当某工具按本 skill 的路径找不到时才排查并回填修正。
 - Android keystore / 密码变更时：更新 `src-tauri/gen/android/keystore.properties`，并**重新异地备份** keystore 与密码。
 
-## 6. Windows 环境（占位，待补）
+## 7. Windows 环境（占位，待补）
 
 > TODO(Windows)：首次在 Windows 机器上开发时补全本节，方法同 macOS 探测流程：
 >

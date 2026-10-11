@@ -25,6 +25,8 @@ interface PalaceCellProps {
     guideInteractive?: boolean;
     /** 大卡档位（说明弹窗用）：字号/行高等整体放大一档，相当于常驻 2xl 档位 */
     enlarged?: boolean;
+    /** 紧凑档（案例学习窄侧栏用）：去圆角、内容不撑满、放高档改按容器宽度判定 */
+    compact?: boolean;
 }
 
 export default function PalaceCell({
@@ -46,6 +48,7 @@ export default function PalaceCell({
     guideLitId,
     guideInteractive = false,
     enlarged = false,
+    compact = false,
 }: PalaceCellProps) {
     // 双击手势实现：300ms 内两次点击触发
     const lastClickTime = useRef(0);
@@ -77,11 +80,21 @@ export default function PalaceCell({
     })();
     // 显示状态计算：十神或长生二选一
     const showExtraInfo = showShiShen || showChangSheng;
-    const baseClass = `relative ${enlarged ? 'rounded-2xl' : isMobileLayout ? '' : 'rounded-lg'} border transition-all ${isSelected ? 'border-primary bg-primary/5' : 'border-border/50 hover:border-border hover:bg-muted/30'} ${palace.position === 5 ? 'bg-muted/20' : ''}`;
-    // 长生/十神状态文字样式：移动端 11px 不换行，桌面端 text-xs
-    const extraInfoClass = isMobileLayout
-        ? `${enlarged ? 'text-sm' : 'text-[11px] 2xl:text-sm'} text-muted-foreground whitespace-nowrap overflow-hidden`
-        : `${enlarged ? 'text-sm' : 'text-xs 2xl:text-sm'} text-muted-foreground`;
+    /**
+     * 放大档的断点前缀。
+     * 默认按视口宽度分档（奇门模块整页排盘，视口宽即盘面宽）。
+     * 紧凑档（案例学习把它嵌进约 25% 宽的侧栏）必须改按容器宽度分档，
+     * 否则宽视口会误判成大格子、把窄栏里的宫位文字挤到换行。
+     * 判据只影响 compact 场景，不传 compact 时与原来完全一致。
+     */
+    const bp = compact ? '@[620px]:' : '2xl:';
+    // 圆角：说明大卡 rounded-2xl；紧凑档（案例学习窄侧栏）去直角；其余保持 rounded-lg
+    const radiusCls = enlarged ? 'rounded-2xl' : isMobileLayout || compact ? '' : 'rounded-lg';
+    const baseClass = `relative ${radiusCls} border transition-all ${isSelected ? 'border-primary bg-primary/5' : 'border-border/50 hover:border-border hover:bg-muted/30'} ${palace.position === 5 ? 'bg-muted/20' : ''}`;
+    // 长生/十神/旺衰状态文字：移动端与紧凑档一律不换行——窄宫位里「衰旺」被挤到第二行会顶乱整格
+    const extraInfoClass = isMobileLayout || compact
+        ? `${enlarged ? 'text-sm' : `text-[11px] ${bp}text-sm`} text-muted-foreground whitespace-nowrap overflow-hidden`
+        : `${enlarged ? 'text-sm' : `text-xs ${bp}text-sm`} text-muted-foreground`;
     // 底部元数据 gap：移动端 0，桌面端 0.5
     const metaGapClass = isMobileLayout ? 'gap-0' : 'gap-0.5';
     // 说明大卡（enlarged）专属：三卦行 / 元数据行的元素间距统一为 gap-3；九宫格普通宫位保持原紧凑样式
@@ -92,17 +105,24 @@ export default function PalaceCell({
         guideLitId === id ? 'outline outline-[1.5px] outline-primary outline-offset-2 bg-primary/10 rounded' : '';
     // 说明弹窗反向选择：可点击的卡内元素打上 data-guide-el 标记，由弹窗层委托处理点击
     const guideElProps = (id: string) => (guideInteractive ? { 'data-guide-el': id } : {});
+    /**
+     * 放大档的断点前缀。
+     * 默认按视口宽度分档（奇门模块整页排盘，视口宽即盘面宽）。
+     * 紧凑档（案例学习把它嵌进约 25% 宽的侧栏）必须改按容器宽度分档，
+     * 否则宽视口会误判成大格子、把窄栏里的宫位文字挤到换行。
+     * 判据只影响 compact 场景，不传 compact 时与原来完全一致。
+     */
     // 尺寸档位：说明弹窗大卡（enlarged）整体放大一档，避免大卡小字、高亮框相对突兀
-    const ganCls = enlarged ? 'text-2xl' : 'text-base 2xl:text-xl';
-    const xingCls = enlarged ? 'text-3xl' : 'text-xl 2xl:text-2xl';
-    const menCls = enlarged ? 'text-2xl' : 'text-lg 2xl:text-xl';
+    const ganCls = enlarged ? 'text-2xl' : `text-base ${bp}text-xl`;
+    const xingCls = enlarged ? 'text-3xl' : `text-xl ${bp}text-2xl`;
+    const menCls = enlarged ? 'text-2xl' : `text-lg ${bp}text-xl`;
     const sanguaCls = enlarged ? 'text-base' : 'text-xs';
     const sanguaToCls = enlarged ? 'text-lg' : 'text-sm';
-    const rowMinH = isMobileLayout ? '' : enlarged ? 'min-h-9' : 'min-h-6 2xl:min-h-7';
-    const statusStemCls = enlarged ? 'w-9 h-9 text-2xl' : 'w-6 h-6 2xl:w-7 2xl:h-7 text-base 2xl:text-lg';
+    const rowMinH = isMobileLayout ? '' : enlarged ? 'min-h-9' : `min-h-6 ${bp}min-h-7`;
+    const statusStemCls = enlarged ? 'w-9 h-9 text-2xl' : `w-6 h-6 ${bp}w-7 ${bp}h-7 text-base ${bp}text-lg`;
     const metaCls = enlarged ? 'text-sm' : 'text-[11px]';
-    const cardPad = enlarged ? 'px-3 py-4' : 'p-0.5 2xl:p-1';
-    const rowGap = enlarged ? 'gap-y-2' : 'gap-y-1 2xl:gap-y-1.5';
+    const cardPad = enlarged ? 'px-3 py-4' : `p-0.5 ${bp}p-1`;
+    const rowGap = enlarged ? 'gap-y-2' : `gap-y-1 ${bp}gap-y-1.5`;
     // 说明弹窗高亮中的状态干：以内层普通字形呈现，避免「描边套状态色块」双层容器
     const litJiGong = guideLitId === 'jiGong';
     const litTianPan = guideLitId === 'tianPan';
@@ -112,7 +132,7 @@ export default function PalaceCell({
     if (palace.position === 5) {
         return (
             <button type="button" {...gestureProps} className={baseClass}>
-                <div className={`h-full flex flex-col ${cardPad} ${showPalaceMeta ? `justify-between ${rowGap}` : showExtraInfo ? 'justify-center gap-y-3 2xl:gap-y-4' : 'justify-evenly gap-y-3 2xl:gap-y-4'}`}>
+                <div className={`${compact ? '' : 'h-full '}flex flex-col ${cardPad} ${showPalaceMeta ? `justify-between ${rowGap}` : showExtraInfo ? `justify-center gap-y-3 ${bp}gap-y-4` : compact ? 'justify-center gap-y-3' : `justify-evenly gap-y-3 ${bp}gap-y-4`}`}>
                     {/* 占位行：对齐普通宫位的“门迫提示”，仅在 showPalaceMeta 开启时显示 */}
                     {showPalaceMeta && (
                         <div className={`flex items-center justify-center ${enlarged ? 'gap-3 pb-2' : 'gap-1 pb-0.5'} border-b border-transparent opacity-0 select-none`}>
@@ -132,26 +152,26 @@ export default function PalaceCell({
                     {/* 第二行：占位 - 与普通宫位对齐，包含长生占位 */}
                     <div className="grid grid-cols-3 w-full">
                         <div className="flex flex-col items-center justify-center leading-none">
-                            <span className="text-base 2xl:text-xl font-serif text-foreground">&nbsp;</span>
+                            <span className={`text-base ${bp}text-xl font-serif text-foreground`}>&nbsp;</span>
                             {showExtraInfo && <span className={extraInfoClass}>&nbsp;</span>}
                         </div>
                         <div className="flex flex-col items-center justify-center leading-none">
-                            <span className="text-xl 2xl:text-2xl font-serif font-bold text-foreground">&nbsp;</span>
+                            <span className={`text-xl ${bp}text-2xl font-serif font-bold text-foreground`}>&nbsp;</span>
                             {showExtraInfo && <span className={extraInfoClass}>&nbsp;</span>}
                         </div>
                         <div className="flex flex-col items-center justify-center leading-none">
-                            <span className="text-base 2xl:text-xl font-serif text-foreground">&nbsp;</span>
+                            <span className={`text-base ${bp}text-xl font-serif text-foreground`}>&nbsp;</span>
                             {showExtraInfo && <span className={extraInfoClass}>&nbsp;</span>}
                         </div>
                     </div>
                     {/* 第三行：地盘干 - 与普通宫位对齐，包含长生占位 */}
                     <div className="grid grid-cols-3 w-full">
                         <div className="flex flex-col items-center justify-center leading-none">
-                            <span className="text-base 2xl:text-xl font-serif text-foreground">&nbsp;</span>
+                            <span className={`text-base ${bp}text-xl font-serif text-foreground`}>&nbsp;</span>
                             {showExtraInfo && <span className={extraInfoClass}>&nbsp;</span>}
                         </div>
                         <div className="flex flex-col items-center justify-center leading-none">
-                            <span className="text-lg 2xl:text-xl font-serif text-foreground">&nbsp;</span>
+                            <span className={`text-lg ${bp}text-xl font-serif text-foreground`}>&nbsp;</span>
                             {showExtraInfo && <span className={extraInfoClass}>&nbsp;</span>}
                         </div>
                     <div {...guideElProps('diPan')} className={`flex flex-col items-center justify-center leading-none ${litCls('diPan')}`}>
@@ -197,7 +217,7 @@ export default function PalaceCell({
 
     return (
         <button type="button" {...gestureProps} className={baseClass}>
-            <div className={`h-full flex flex-col ${cardPad} ${showPalaceMeta ? `justify-between ${rowGap}` : showExtraInfo ? 'justify-center gap-y-3 2xl:gap-y-4' : 'justify-evenly gap-y-3 2xl:gap-y-4'}`}>
+            <div className={`${compact ? '' : 'h-full '}flex flex-col ${cardPad} ${showPalaceMeta ? `justify-between ${rowGap}` : showExtraInfo ? `justify-center gap-y-3 ${bp}gap-y-4` : compact ? 'justify-center gap-y-3' : `justify-evenly gap-y-3 ${bp}gap-y-4`}`}>
                 {/* 门迫路径行（顶部）：原宫 → 所在宫 → 后天方位 */}
                 {showPalaceMeta && palace.menPoPath && (
                     <div {...guideElProps('sangua')} className={`flex items-center justify-center ${sanguaRowCls} ${litCls('sangua')}`}>
@@ -254,7 +274,7 @@ export default function PalaceCell({
                     <div className="flex flex-col items-center justify-end leading-none">
                         <div className={`flex items-center justify-center ${isMobileLayout ? '' : rowMinH}`}>
                             {jiGongDiPanStatus.status === 'normal' ? (
-                                <span className="text-base 2xl:text-xl font-serif text-foreground">{palace.jiGongDiPan}</span>
+                                <span className={`text-base ${bp}text-xl font-serif text-foreground`}>{palace.jiGongDiPan}</span>
                             ) : (
                                 <QimenStatusStem status={jiGongDiPanStatus.status} value={palace.jiGongDiPan || ''} isMobile={isMobileLayout} mobileClassName={enlarged ? 'text-xl' : 'text-base'} desktopClassName={statusStemCls} />
                             )}

@@ -5,7 +5,7 @@ description: >-
   日常对话中仅泛泛提及 "worktree" 单词时不要自动激活本技能。
   负责严格的前置未提交代码检查（若工作区有修改则必须阻断）、以 dev-<git-id> 规范创建独立工作树目录与分支、
   为新 worktree 快速软链接共享 node_modules、同步 .env/keys/dist-cases 离线案例包与密钥环境，
-  支持在工作树内执行前端 lint/typecheck/build/test 及 Tauri 构建校验，并在开发完成时严格禁止自启动应用，交由用户手动调试。
+  支持在工作树内执行前端 lint/typecheck/build/test 及 Tauri 构建校验（静态自检，不出安装包），并在开发完成时严格禁止自启动应用，交由用户手动调试。
 ---
 
 # Orbis Git Worktree 规范工作流
@@ -78,9 +78,9 @@ git status --porcelain
 
 ---
 
-### 第四阶段：需求完成与分级构建交付 (Build & Deliver)
+### 第四阶段：需求完成与静态自检 (Verify & Hand off)
 
-需求编码与自测完成后，在主项目或直接在工作树下调用构建脚本：
+需求编码完成后，在主项目或直接在工作树下调用自检脚本：
 ```bash
 .agents/skills/worktree/scripts/build-worktree.sh -p "<worktree-path>"
 ```
@@ -92,9 +92,13 @@ git status --porcelain
 5. （若附带 `-t / --tauri` 参数）执行 Rust `cargo test` 与 Tauri 客户端完整构建。
 6. 校验 `dist/index.html` 产物状态。
 
+> ⚠️ 这一步是**静态自检**，不是出安装包。**不要因此构建 apk / dmg / exe 交付包**——
+> 用户在 dev 里确认效果后才会明确要求「构建」，届时按 `orbis-build-env` 技能执行（见根 `AGENTS.md`
+> 的「UI 验收与交付规则」）。
+
 #### 交付回复规范
-构建自检成功后，Agent 必须向用户明确回复：
-1. 需求改动已完成，且前端与构建自检全部通过。
+自检通过后，Agent 必须向用户明确回复：
+1. 需求改动已完成，且静态自检（lint / tsc / test / build）全部通过。
 2. 明确给出工作树路径与修改分支。
 3. 明确提示用户：**根据 Orbis 项目交付规范，Agent 严格不自启任何常驻服务，请您在需要时手动运行以下命令进行调试**：
    - 调试前端页面：`cd "<worktree-path>" && npm run dev -- --port 9899`

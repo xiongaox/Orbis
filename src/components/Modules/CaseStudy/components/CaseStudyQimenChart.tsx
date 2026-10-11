@@ -49,19 +49,21 @@ export default function CaseStudyQimenChart({
         setShowChangSheng(false);
     };
 
+    // 与 QimenHeader 内的格局按钮（时墓等）保持同一断点体系：按容器宽度分档，
+    // 否则宽视口下这里用 2xl: 放大、旁边按钮按容器宽度保持原样，两者会明显不等高不等宽。
     const headerActions = (
         <>
             <button
                 type="button"
                 onClick={handleToggleChangSheng}
-                className={`px-2.5 2xl:px-3.5 py-1 rounded-lg border text-xs 2xl:text-sm font-serif transition-colors ${showChangSheng ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/10'}`}
+                className={`px-2.5 @[620px]:px-3.5 py-1 rounded-lg border text-xs @[620px]:text-sm font-serif transition-colors ${showChangSheng ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/10'}`}
             >
                 长生
             </button>
             <button
                 type="button"
                 onClick={handleToggleShiShen}
-                className={`px-2.5 2xl:px-3.5 py-1 rounded-lg border text-xs 2xl:text-sm font-serif transition-colors ${showShiShen ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/10'}`}
+                className={`px-2.5 @[620px]:px-3.5 py-1 rounded-lg border text-xs @[620px]:text-sm font-serif transition-colors ${showShiShen ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-muted/10'}`}
             >
                 十神
             </button>
@@ -80,6 +82,8 @@ export default function CaseStudyQimenChart({
             globalPatterns={globalPatterns}
             onPatternClick={onPatternClick}
             isMobileLayout={isMobile}
+            // 案例学习的排盘嵌在窄侧栏里，多一层 8px 内边距就会挤到宫位文字换行，故走紧凑档
+            compact
             controlledShowChangSheng={showChangSheng}
             controlledShowShiShen={showShiShen}
             headerActions={headerActions}

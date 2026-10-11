@@ -152,7 +152,7 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
     const chartPanel = (
         <div className="h-full bg-muted/10 flex flex-col overflow-hidden">
             {(activeCase && chartCount > 1 && !isPreviewMode) ? (
-                <div className="p-2 border-b border-border bg-muted/20 flex justify-between items-center h-[40px]">
+                <div className="px-2 py-1 border-b border-border bg-muted/20 flex justify-between items-center h-[32px]">
                     <span className="text-xs font-medium text-muted-foreground">排盘信息</span>
                     <div className="flex space-x-1">
                         {Array.from({ length: chartCount }).map((_, i) => (
@@ -167,7 +167,7 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
                     </div>
                 </div>
             ) : (
-                <div className="p-2 border-b border-border bg-muted/20 flex justify-between items-center h-[40px]">
+                <div className="px-2 py-1 border-b border-border bg-muted/20 flex justify-between items-center h-[32px]">
                     <span className="text-xs font-medium text-muted-foreground">排盘信息</span>
                 </div>
             )}
@@ -191,9 +191,9 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
                     </div>
                 ) : selectedCategory === 'qimen' && activeCase ? (
                     qimenResult ? (
-                        <div className="h-full flex flex-col">
-                            <CaseStudyQimenChart palaces={qimenResult.palaces} header={qimenResult.header} globalPatterns={qimenResult.globalPatterns} onJuClick={() => setIsJuDialogOpen(true)} isMobile={false} method={qimenMethod} onMethodChange={setQimenMethod} />
-                        </div>
+                        // 排盘面板本身已是 flex 容器，这里不再套一层 div，
+                        // 让 QimenChart 直接吃满右栏高度，避免多一层造成的空隙
+                        <CaseStudyQimenChart palaces={qimenResult.palaces} header={qimenResult.header} globalPatterns={qimenResult.globalPatterns} onJuClick={() => setIsJuDialogOpen(true)} isMobile={false} method={qimenMethod} onMethodChange={setQimenMethod} />
                     ) : (
                         <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
                             <p className="text-sm">排盘计算中或无时间信息...</p>

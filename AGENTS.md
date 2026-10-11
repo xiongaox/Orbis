@@ -16,7 +16,7 @@ Orbis/
 │   ├── services/             # 本地存储、备份与案例业务 IO
 │   ├── hooks/                # 跨组件状态聚合与逻辑编排
 │   └── data/cases/           # 案例语料还原目录（源库为私有仓 orbis-lore，不入库）
-├── .agent/rules/             # 代理规则（中文输出等）
+├── .agents/skills/           # 代理技能（构建环境、git 描述、worktree）
 ├── docs/
 └── AGENTS.md
 ```
@@ -54,7 +54,9 @@ Orbis/
 - `src/data/cases/AGENTS.md`：Markdown 案例语料维护规则。
 
 ## CONVENTIONS
-- 输出语言强制简体中文；不输出内部推理；遵守 `.agent/rules/GEMINI.md`。
+- **输出语言强制简体中文**：所有沟通、反馈、解释、思考过程与文档一律中文，禁止中英夹杂的引导句
+  （如 "I will do X"）；任务/计划/进度等小节标题也用中文（「任务」而非 Task）。
+- 不输出内部推理。
 - TypeScript 严格模式：`strict`、`noUnusedLocals`、`noUnusedParameters`、`noUncheckedSideEffectImports`。
 - 模块解析为 bundler 模式；类型导入优先 `import type`。
 - UI 层保持组合职责，计算/聚合逻辑优先放 hooks/lib/services。
@@ -64,9 +66,13 @@ Orbis/
 ## UI 验收与交付规则（重要）
 - **UI 验证由用户人工完成，AI 不要在界面验证上耗时**。不要为了「看一眼效果」去反复截图、
   导航界面、点控件、定位元素或抓取 DOM；这些操作对交付没有价值，且极其浪费时间。
-- **AI 的职责边界**：改完代码 → 通过静态自检（`npm run lint`、`npx tsc -b`）→ **把包构建出来** → 交付并说明构建产物路径。
-- **构建方式视目标端而定**，桌面端与移动端同一规则：
-  - 移动端：**默认一律构建 debug 包**（用户没有明确点名 release 时不得构建 release）：
+- **完成需求后不要主动构建任何安装包（含 debug 包）**。用户的工作流是：AI 改完代码 →
+  用户在自己跑着的 `npm run tauri:dev`（HMR）里确认效果 → 用户明确说「构建」后 AI 才构建。
+  AI 的默认交付物是**代码改动 + 静态自检结果**，不是 apk/dmg。
+- **AI 的职责边界**：改完代码 → 通过静态自检（`npm run lint`、`npx tsc -b`，涉及逻辑再跑 `npm test`）
+  → 报告改动与自检结果 → 等用户确认后再按需构建。
+- **构建方式视目标端而定**，桌面端与移动端同一规则（仅在用户明确要求构建时执行）：
+  - 移动端：默认构建 debug 包：
     `npm run android:build:debug`（等价 `npx tauri android build --apk --debug --target aarch64`），
     产物 `app-universal-debug.apk`（包名 `com.orbis.app.debug`），`adb install -r` 覆盖安装、保留数据。
   - 移动端管理员版 debug：`npm run android:build:debug:admin`（追加 `--features admin-signing` +
@@ -84,6 +90,10 @@ Orbis/
     Secret `ORBIS_LORE_DEPLOY_KEY`（orbis-lore 的只读 Deploy Key「Orbis CI (read-only)」，可随时在
     orbis-lore → Settings → Deploy keys 吊销）；Secret 缺失时工作流立即报错退出，不会静默产出空内容包
     （v2.1.0 正式包曾因缺语料丢失断法与完整案例）。
+- **构建产物归档**：本机构建出的管理员版 apk / dmg **一律复制到 `/Users/xiongaox/Downloads`**，
+  命名沿用 `orbis-admin-<版本>-<架构>-release.<ext>`，并移除同目录旧版本，避免混淆。
+  该路径是**当前机器的约定**；若检测到换了机器 / 用户目录不同（`echo $HOME` 不再是 `/Users/xiongaox`），
+  **先停下询问用户保存到哪里**，不要沿用旧路径、也不要自行新建目录。
 - **例外（仅限这些情况才可做界面检查）**：用户明确要求截图/验证；或需要排查
   「构建是否成功」「资源是否加载」这类无法靠静态检查确认的链路问题时，最多确认一次，不要反复试。
 - 若确实需要给出视觉效果，优先产出 `design-demos/` 下的可交互 demo 让用户自己打开看，
