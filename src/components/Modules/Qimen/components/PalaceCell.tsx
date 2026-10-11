@@ -27,6 +27,13 @@ interface PalaceCellProps {
     enlarged?: boolean;
     /** 紧凑档（案例学习窄侧栏用）：去圆角、内容不撑满、放高档改按容器宽度判定 */
     compact?: boolean;
+    /**
+     * 给干/星/门与其正下方旺衰之间补一点行间呼吸。
+     * 这组元素用 leading-none 保证单字本身紧凑，但行高等于字号会让上下两行零间距，
+     * 在案例学习那种有容器包裹的窄宫位里尤其贴成一块。
+     * 只由案例学习显式开启：奇门遁甲模块（含 Pad 端 compact）的排盘外观保持原样。
+     */
+    roomyStemSpacing?: boolean;
 }
 
 export default function PalaceCell({
@@ -49,6 +56,7 @@ export default function PalaceCell({
     guideInteractive = false,
     enlarged = false,
     compact = false,
+    roomyStemSpacing = false,
 }: PalaceCellProps) {
     // 双击手势实现：300ms 内两次点击触发
     const lastClickTime = useRef(0);
@@ -97,6 +105,8 @@ export default function PalaceCell({
         : `${enlarged ? 'text-sm' : `text-xs ${bp}text-sm`} text-muted-foreground`;
     // 底部元数据 gap：移动端 0，桌面端 0.5
     const metaGapClass = isMobileLayout ? 'gap-0' : 'gap-0.5';
+    // 干/星/门与正下方旺衰的间距：未开启时为空串，class 与改动前逐字一致
+    const stemGap = roomyStemSpacing ? (enlarged ? 'gap-y-1' : 'gap-y-0.5') : '';
     // 说明大卡（enlarged）专属：三卦行 / 元数据行的元素间距统一为 gap-3；九宫格普通宫位保持原紧凑样式
     const sanguaRowCls = enlarged ? 'gap-3 border-b border-border/40 pb-2' : 'gap-1 border-b border-border/40 pb-0.5';
     const metaRowCls = enlarged ? 'gap-3 border-t border-border/40 pt-2' : `${metaGapClass} border-t border-border/40 pt-0.5`;
@@ -238,7 +248,7 @@ export default function PalaceCell({
 
                 {/* 第二行：寄宫天盘 + 九星 + 天盘干 */}
                 <div className="grid grid-cols-3 w-full">
-                    <div {...guideElProps('jiGong')} className={`flex flex-col items-center justify-end leading-none ${litCls('jiGong')}`}>
+                    <div {...guideElProps('jiGong')} className={`flex flex-col items-center justify-end leading-none ${stemGap} ${litCls('jiGong')}`}>
                         <div className={`flex items-center justify-center ${isMobileLayout ? '' : rowMinH}`}>
                             {jiGongTianPanStatus.status === 'normal' || litJiGong ? (
                                 <span className={jiGongClass}>{palace.jiGongTianPan}</span>
@@ -249,14 +259,14 @@ export default function PalaceCell({
                         {showShiShen && <span className={extraInfoClass}>{palace.jiGongTianPanShiShen}</span>}
                         {showChangSheng && <span className={extraInfoClass}>{palace.jiGongTianPanCS}</span>}
                     </div>
-                    <div {...guideElProps('xing')} className={`flex flex-col items-center justify-end leading-none ${litCls('xing')}`}>
+                    <div {...guideElProps('xing')} className={`flex flex-col items-center justify-end leading-none ${stemGap} ${litCls('xing')}`}>
                         <div className={`flex items-center justify-center ${isMobileLayout ? '' : rowMinH}`}>
                             <span className={`${xingCls} font-serif font-bold ${isZhiFu ? 'text-primary' : 'text-foreground'}`}>{palace.xing}</span>
                         </div>
                         {showShiShen && <span className={extraInfoClass}>{palace.xingShiShen}</span>}
                         {showChangSheng && <span className={extraInfoClass}>{palace.xingWang}</span>}
                     </div>
-                    <div {...guideElProps('tianPan')} className={`flex flex-col items-center justify-end leading-none ${litCls('tianPan')}`}>
+                    <div {...guideElProps('tianPan')} className={`flex flex-col items-center justify-end leading-none ${stemGap} ${litCls('tianPan')}`}>
                         <div className={`flex items-center justify-center ${isMobileLayout ? '' : rowMinH}`}>
                             {tianPanStatus.status !== 'normal' && !litTianPan ? (
                                 <QimenStatusStem status={tianPanStatus.status} value={palace.tianPan} isMobile={isMobileLayout} mobileClassName={enlarged ? 'text-xl' : 'text-base'} desktopClassName={statusStemCls} />
@@ -271,7 +281,7 @@ export default function PalaceCell({
 
                 {/* 第三行：寄宫地盘 + 八门 + 地盘干 */}
                 <div className="grid grid-cols-3 w-full">
-                    <div className="flex flex-col items-center justify-end leading-none">
+                    <div className={`flex flex-col items-center justify-end leading-none ${stemGap}`}>
                         <div className={`flex items-center justify-center ${isMobileLayout ? '' : rowMinH}`}>
                             {jiGongDiPanStatus.status === 'normal' ? (
                                 <span className={`text-base ${bp}text-xl font-serif text-foreground`}>{palace.jiGongDiPan}</span>
@@ -282,14 +292,14 @@ export default function PalaceCell({
                         {showShiShen && <span className={extraInfoClass}>{palace.jiGongDiPanShiShen}</span>}
                         {showChangSheng && <span className={extraInfoClass}>{palace.jiGongDiPanCS}</span>}
                     </div>
-                    <div {...guideElProps('men')} className={`flex flex-col items-center justify-end leading-none ${litCls('men')}`}>
+                    <div {...guideElProps('men')} className={`flex flex-col items-center justify-end leading-none ${stemGap} ${litCls('men')}`}>
                         <div className={`flex items-center justify-center ${isMobileLayout ? '' : rowMinH}`}>
                             <span className={menPoStatus.colorVar ? `${menCls} font-serif font-bold` : `${menCls} font-serif ${isZhiShi ? 'text-primary' : 'text-foreground'}`} style={menPoStatus.colorVar ? { color: menPoStatus.colorVar } : undefined}>{palace.men}</span>
                         </div>
                         {showShiShen && <span className={extraInfoClass}>{palace.menShiShen}</span>}
                         {showChangSheng && <span className={extraInfoClass}>{palace.menWang}</span>}
                     </div>
-                    <div {...guideElProps('diPan')} className={`flex flex-col items-center justify-end leading-none ${litCls('diPan')}`}>
+                    <div {...guideElProps('diPan')} className={`flex flex-col items-center justify-end leading-none ${stemGap} ${litCls('diPan')}`}>
                         <div className={`flex items-center justify-center ${isMobileLayout ? '' : rowMinH}`}>
                             {diPanStatus.status !== 'normal' && !litDiPan ? (
                                 <QimenStatusStem status={diPanStatus.status} value={palace.diPan} isMobile={isMobileLayout} mobileClassName={enlarged ? 'text-xl' : 'text-base'} desktopClassName={statusStemCls} />

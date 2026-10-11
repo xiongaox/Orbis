@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { relative, resolve, sep } from 'node:path';
 import { spawn } from 'node:child_process';
+import { extractCaseSummary } from './case-summary';
 
 type Domain = 'bazi' | 'qimen';
 
@@ -45,13 +46,6 @@ function quote(value: string | number): string {
     return typeof value === 'number' ? String(value) : "'" + value.replaceAll("'", "''") + "'";
 }
 
-function summary(content: string, domain: Domain): string {
-    if (domain === 'qimen') return content.match(/(?:\*\*)?公元(?:\*\*)?[：:]\s*([^\n]+)/)?.[1]?.trim() ?? '未知时间';
-    const birth = content.match(/命主生辰[：:]\s*([^\n]+)/)?.[1]?.trim();
-    const master = content.match(/日主[：:]\s*([^\n]+)/)?.[1]?.trim();
-    return birth && master ? birth + ' ' + master : '未知八字';
-}
-
 async function collect(): Promise<LibraryFile[]> {
     const files: LibraryFile[] = [];
     for (const path of await walk(dataRoot)) {
@@ -72,7 +66,7 @@ async function collect(): Promise<LibraryFile[]> {
             authorKey,
             authorName,
             category: rest.length > 1 ? rest.at(-2) ?? '未分类' : '未分类',
-            summary: summary(content, domain),
+            summary: extractCaseSummary(content, domain),
             sha256: createHash('sha256').update(content).digest('hex'),
             byteSize: (await stat(path)).size,
             profile: isProfile,

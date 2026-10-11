@@ -91,6 +91,12 @@ interface QimenChartProps {
      * 不传时保持奇门模块整页排盘的原样，互不影响。
      */
     compact?: boolean;
+    /**
+     * 干/星/门与正下方旺衰之间补一点行间距（案例学习窄侧栏用）。
+     * 与 compact 分开：Pad 端奇门排盘也走 compact，但外观需保持原样，
+     * 故这里用独立开关，只有案例学习显式开启。
+     */
+    roomyStemSpacing?: boolean;
     /** 外部受控的显示状态（移动端使用） */
     controlledShowChangSheng?: boolean;
     controlledShowShiShen?: boolean;
@@ -125,6 +131,7 @@ export default function QimenChart({
     hideHeader = false,
     isMobileLayout = false,
     compact = false,
+    roomyStemSpacing = false,
     controlledShowChangSheng,
     controlledShowShiShen,
     controlledShowPalaceMeta,
@@ -188,6 +195,7 @@ export default function QimenChart({
                                         dynamicMaKong={dynamicMaKong}
                                         isMobileLayout={isMobileLayout}
                                         compact={compact}
+                                        roomyStemSpacing={roomyStemSpacing}
                                         onLongPress={onLongPressPalace ? () => onLongPressPalace(palace.position) : undefined}
                                     />
                                 ))}

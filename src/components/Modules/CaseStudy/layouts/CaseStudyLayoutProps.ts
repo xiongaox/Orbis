@@ -25,6 +25,9 @@ export interface CaseStudyLayoutProps {
     previewsPerGroup: number;
     /** 打开激活弹窗（试读态的显式激活入口） */
     openActivation: () => void;
+    /** 移除激活：清空本地案例库并回到试读态（调用方负责二次确认） */
+    removeActivation: () => Promise<void>;
+    isRemoving: boolean;
 
     // 列表分页与选中
     currentPage: number;

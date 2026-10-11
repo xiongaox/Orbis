@@ -14,6 +14,9 @@ import CaseStudyDesktopLayout from './layouts/CaseStudyDesktopLayout';
 import CaseStudyPadLayout from './layouts/CaseStudyPadLayout';
 import CaseStudyMobileLayout from './layouts/CaseStudyMobileLayout';
 import { type CaseStudyLayoutProps } from './layouts/CaseStudyLayoutProps';
+import ConfirmModal from '../../Common/ConfirmModal';
+import Toast from '../../Common/Toast';
+import { useToast } from '../../../hooks/useToast';
 
 export interface CaseStudyCategoryIntent {
     /** 目标分类 id（见 lib/caseStudy/constants CATEGORIES，如 'duanfa'） */
@@ -45,6 +48,20 @@ export default function CaseStudyPage({ categoryIntent }: CaseStudyPageProps) {
     const [isChartPanelOpen, setIsChartPanelOpen] = useState(false);
 
     const openActivation = useCallback(() => setIsActivationModalOpen(true), []);
+
+    // 移除激活：破坏性操作，必须二次确认后再清空本地案例库
+    const { toast, showToast } = useToast();
+    const [isRemoveConfirmOpen, setIsRemoveConfirmOpen] = useState(false);
+    const { removeActivation, isRemoving } = caseStudyState;
+    const confirmRemoveActivation = () => {
+        void removeActivation().then(() => {
+            setIsRemoveConfirmOpen(false);
+            showToast('已移除激活，已回到试读模式');
+        }).catch((cause: unknown) => {
+            setIsRemoveConfirmOpen(false);
+            showToast(cause instanceof Error ? cause.message : String(cause), 'error');
+        });
+    };
 
     // 应用外部分类直达意图（移动端个人中心「案例 / 断法」入口）：按 seq 去重，重复触发同一分类仍可再次生效
     const appliedIntentSeqRef = useRef(0);
@@ -88,6 +105,9 @@ export default function CaseStudyPage({ categoryIntent }: CaseStudyPageProps) {
         useDesktopLayout, isPadLandscape, isMobile,
         ...caseStudyState,
         openActivation,
+        // 列表里的移除按钮只负责发起确认，真正的清空在确认后执行
+        removeActivation: () => { setIsRemoveConfirmOpen(true); return Promise.resolve(); },
+        isRemoving,
         baziData,
         duanFa,
         isLeftPanelOpen, setIsLeftPanelOpen,
@@ -142,6 +162,19 @@ export default function CaseStudyPage({ categoryIntent }: CaseStudyPageProps) {
                 onSelectArticle={caseStudyState.handleSelectCase}
                 getArticleInfo={getArticleInfo}
             />
+
+            <ConfirmModal
+                isOpen={isRemoveConfirmOpen}
+                onClose={() => setIsRemoveConfirmOpen(false)}
+                onConfirm={confirmRemoveActivation}
+                title="移除激活"
+                description="将清空本机已下载的案例库并回到试读模式，需要重新输入激活码才能恢复。本机激活记录会被一并清除，此操作不可撤销。"
+                confirmText={isRemoving ? '移除中…' : '确认移除'}
+                loading={isRemoving}
+                variant="destructive"
+            />
+
+            <Toast toast={toast} />
         </div>
     );
 }

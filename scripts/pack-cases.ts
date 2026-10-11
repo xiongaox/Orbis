@@ -23,6 +23,7 @@ import { gunzipSync, gzipSync } from 'node:zlib';
 import { existsSync, readFileSync } from 'node:fs';
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { relative, resolve, sep } from 'node:path';
+import { extractCaseSummary } from './case-summary';
 
 type Domain = 'bazi' | 'qimen';
 
@@ -71,13 +72,6 @@ async function walk(directory: string): Promise<string[]> {
     return children.flat();
 }
 
-function extractSummary(content: string, domain: Domain): string {
-    if (domain === 'qimen') return content.match(/(?:\*\*)?公元(?:\*\*)?[：:]\s*([^\n]+)/)?.[1]?.trim() ?? '未知时间';
-    const birth = content.match(/命主生辰[：:]\s*([^\n]+)/)?.[1]?.trim();
-    const master = content.match(/日主[：:]\s*([^\n]+)/)?.[1]?.trim();
-    return birth && master ? birth + ' ' + master : '未知八字';
-}
-
 async function collect(): Promise<{ cases: PackagedCaseItem[]; authorProfiles: Record<string, string> }> {
     const cases: PackagedCaseItem[] = [];
     const authorProfiles: Record<string, string> = {};
@@ -85,6 +79,11 @@ async function collect(): Promise<{ cases: PackagedCaseItem[]; authorProfiles: R
         const parts = relative(dataRoot, path).split(sep);
         const [domain, authorKey, ...rest] = parts;
         if ((domain !== 'bazi' && domain !== 'qimen') || !authorKey || !rest.length) continue;
+        // 断法（src/data/cases/<domain>/duanfa/）不是作者目录，是断法语料：
+        // 由客户端 import.meta.glob 直接读明文（见 lib/caseStudy/duanfaData.ts），
+        // 不参与案例库加密包。漏排会把 "duanfa" 当成作者，
+        // 案例列表里就多出「出行出国」这类作者显示为 duanfa 的假条目。
+        if (authorKey === 'duanfa') continue;
         const content = await readFile(path, 'utf8');
         const authorName = authorNames[authorKey] ?? authorKey;
         const title = rest.at(-1)?.replace(/\.md$/, '') ?? '无标题';
@@ -99,7 +98,7 @@ async function collect(): Promise<{ cases: PackagedCaseItem[]; authorProfiles: R
             author_key: authorKey,
             author_name: authorName,
             category: rest.length > 1 ? rest.at(-2) ?? '未分类' : '未分类',
-            summary: extractSummary(content, domain),
+            summary: extractCaseSummary(content, domain),
             content,
         });
     }

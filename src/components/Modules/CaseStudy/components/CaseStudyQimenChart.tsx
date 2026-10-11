@@ -84,6 +84,8 @@ export default function CaseStudyQimenChart({
             isMobileLayout={isMobile}
             // 案例学习的排盘嵌在窄侧栏里，多一层 8px 内边距就会挤到宫位文字换行，故走紧凑档
             compact
+            // 宫位里有容器包裹时，干与正下方旺衰贴着不好看；只在此处补行距，奇门遁甲排盘不受影响
+            roomyStemSpacing
             controlledShowChangSheng={showChangSheng}
             controlledShowShiShen={showShiShen}
             headerActions={headerActions}

@@ -40,7 +40,7 @@ export default function CaseStudyPadLayout(props: CaseStudyLayoutProps) {
         setIsJuDialogOpen, setIsLearningPanelOpen,
         contentScrollRef, savedProgress, currentProgress, restoreProgress,
         isLeftPanelOpen, setIsLeftPanelOpen, isChartPanelOpen, setIsChartPanelOpen,
-        isPreviewMode, libraryTotal, libraryGroupTotals, previewsPerGroup, openActivation,
+        isPreviewMode, libraryTotal, libraryGroupTotals, previewsPerGroup, openActivation, removeActivation, isRemoving,
     } = props;
 
     if (selectedCategory === 'duanfa') {
@@ -174,7 +174,7 @@ export default function CaseStudyPadLayout(props: CaseStudyLayoutProps) {
 
             <SideDrawer open={isLeftPanelOpen} title="目录" side="left" onClose={() => setIsLeftPanelOpen(false)}>
                 <div className="h-full min-h-0 overflow-hidden flex flex-col">
-                    <CaseListSidebar allCases={allCases} displayCases={displayCases} selectedCategory={selectedCategory} selectedCaseId={selectedCaseId} selectedDayMaster={selectedDayMaster} searchTerm={searchTerm} currentPage={currentPage} totalPages={totalPages} onSelectCase={(id) => { handleSelectCase(id); setIsLeftPanelOpen(false); }} onSelectDayMaster={handleSelectDayMaster} onSearchChange={setSearchTerm} onPageChange={setCurrentPage} onSelectAuthor={(author) => { handleSelectAuthor(author); setIsLeftPanelOpen(false); }} variant="drawer" isPreviewMode={isPreviewMode} onRequestActivate={openActivation} libraryGroupTotals={libraryGroupTotals} libraryTotal={libraryTotal} previewsPerGroup={previewsPerGroup} />
+                    <CaseListSidebar allCases={allCases} displayCases={displayCases} selectedCategory={selectedCategory} selectedCaseId={selectedCaseId} selectedDayMaster={selectedDayMaster} searchTerm={searchTerm} currentPage={currentPage} totalPages={totalPages} onSelectCase={(id) => { handleSelectCase(id); setIsLeftPanelOpen(false); }} onSelectDayMaster={handleSelectDayMaster} onSearchChange={setSearchTerm} onPageChange={setCurrentPage} onSelectAuthor={(author) => { handleSelectAuthor(author); setIsLeftPanelOpen(false); }} variant="drawer" isPreviewMode={isPreviewMode} onRequestActivate={openActivation} onRemoveActivation={removeActivation} isRemoving={isRemoving} libraryGroupTotals={libraryGroupTotals} libraryTotal={libraryTotal} previewsPerGroup={previewsPerGroup} />
                 </div>
             </SideDrawer>
 

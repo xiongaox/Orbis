@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Search, ChevronLeft, ChevronRight, ChevronDown, KeyRound, Lock } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, ChevronDown, KeyRound, Lock, ShieldOff } from 'lucide-react';
 import { DAY_MASTER_CATEGORIES, QIMEN_CATEGORIES } from '../../../../lib/caseStudy/constants';
 import type { CaseItem } from '../hooks/useCaseStudy';
 
@@ -24,6 +24,9 @@ interface CaseListSidebarProps {
     isPreviewMode?: boolean;
     /** 试读态下的激活入口 */
     onRequestActivate?: () => void;
+    /** 已激活时的移除入口（调用方负责二次确认） */
+    onRemoveActivation?: () => void;
+    isRemoving?: boolean;
     /** 各分类在全库中的真实篇数（键为 `域/分类`），试读态用于展示真实规模 */
     libraryGroupTotals?: Record<string, number>;
     /** 全库篇数 */
@@ -50,6 +53,8 @@ export default function CaseListSidebar({
     hidePagination = false,
     isPreviewMode = false,
     onRequestActivate,
+    onRemoveActivation,
+    isRemoving = false,
     libraryGroupTotals,
     libraryTotal = 0,
     previewsPerGroup = 0,
@@ -83,28 +88,43 @@ export default function CaseListSidebar({
             <div className="p-3 border-b border-border space-y-2">
                 <div className="flex items-center justify-between">
                     <h3 className="font-medium text-sm">{isPreviewMode ? '案例试读' : '案例列表'}</h3>
-                    {/* 分页控件 */}
-                    {!hidePagination && totalPages > 1 && (
-                        <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1">
+                        {/* 移除激活：仅已激活（非试读）时可用，二次确认后清空本地案例库 */}
+                        {!isPreviewMode && onRemoveActivation && (
                             <button
-                                onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-                                disabled={currentPage === 1}
-                                className="p-0.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                                type="button"
+                                onClick={onRemoveActivation}
+                                disabled={isRemoving}
+                                title="移除激活"
+                                aria-label="移除激活"
+                                className="p-0.5 rounded text-muted-foreground/70 hover:text-destructive hover:bg-destructive/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                             >
-                                <ChevronLeft className="w-3.5 h-3.5" />
+                                <ShieldOff className="w-3.5 h-3.5" />
                             </button>
-                            <span className="text-xs text-muted-foreground font-mono min-w-[36px] text-center">
-                                {currentPage}/{totalPages}
-                            </span>
-                            <button
-                                onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-                                disabled={currentPage === totalPages}
-                                className="p-0.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
-                            >
-                                <ChevronRight className="w-3.5 h-3.5" />
-                            </button>
-                        </div>
-                    )}
+                        )}
+                        {/* 分页控件 */}
+                        {!hidePagination && totalPages > 1 && (
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+                                    disabled={currentPage === 1}
+                                    className="p-0.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                    <ChevronLeft className="w-3.5 h-3.5" />
+                                </button>
+                                <span className="text-xs text-muted-foreground font-mono min-w-[36px] text-center">
+                                    {currentPage}/{totalPages}
+                                </span>
+                                <button
+                                    onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="p-0.5 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                    <ChevronRight className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* 试读态说明与激活入口 */}

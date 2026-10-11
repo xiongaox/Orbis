@@ -8,8 +8,6 @@ export const CATEGORIES = [
     { id: 'bazi', label: '命理', name: '八字' },
     { id: 'qimen', label: '预测', name: '奇门' },
     { id: 'duanfa', label: '断法', name: '断法' },
-    { id: 'liuyao', label: '预测', name: '六爻' },
-    { id: 'ziwei', label: '命理', name: '紫薇' },
 ];
 
 export const LUNAR_MONTH_MAP: Record<string, number> = {

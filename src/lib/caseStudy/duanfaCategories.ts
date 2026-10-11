@@ -6,7 +6,4 @@ export interface ShuShuCategory {
 
 export const SHU_SHU_CATEGORIES: ShuShuCategory[] = [
     { id: 'qimen', label: '奇门断法' },
-    { id: 'bazi', label: '八字断法' },
-    { id: 'ziwei', label: '紫微斗数' },
-    { id: 'liuyao', label: '六爻预测' },
 ];

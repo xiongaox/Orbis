@@ -38,7 +38,7 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
         qimenResult, qimenMethod, setQimenMethod,
         setIsJuDialogOpen, setIsLearningPanelOpen,
         contentScrollRef, savedProgress, currentProgress, restoreProgress,
-        isPreviewMode, libraryTotal, libraryGroupTotals, previewsPerGroup, openActivation,
+        isPreviewMode, libraryTotal, libraryGroupTotals, previewsPerGroup, openActivation, removeActivation, isRemoving,
     } = props;
 
     // 断法模块使用独立布局（仅桌面和 Pad）
@@ -224,6 +224,7 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
                 onSelectCase={handleSelectCase} onSelectDayMaster={handleSelectDayMaster}
                 onSearchChange={setSearchTerm} onPageChange={setCurrentPage} onSelectAuthor={handleSelectAuthor}
                 isPreviewMode={isPreviewMode} onRequestActivate={openActivation}
+                onRemoveActivation={removeActivation} isRemoving={isRemoving}
                 libraryGroupTotals={libraryGroupTotals} libraryTotal={libraryTotal} previewsPerGroup={previewsPerGroup}
             />
             <div className="w-[55%] h-full flex flex-col overflow-hidden">

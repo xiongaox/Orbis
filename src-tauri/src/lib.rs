@@ -80,6 +80,7 @@ pub fn run() {
       commands::get_cases_status,
       commands::activate_cases,
       commands::activate_with_master_password,
+      commands::remove_activation,
       commands::get_case_list,
       commands::get_case_content,
       commands::get_author_profile,

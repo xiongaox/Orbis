@@ -48,7 +48,7 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
         contentScrollRef, savedProgress, currentProgress, restoreProgress,
         isLeftPanelOpen, setIsLeftPanelOpen, isChartPanelOpen, setIsChartPanelOpen,
         duanFa, duanFaContentRef, duanFaSavedProgress, duanFaCurrentProgress, duanFaRestoreProgress,
-        isPreviewMode, libraryTotal, libraryGroupTotals, previewsPerGroup, openActivation,
+        isPreviewMode, libraryTotal, libraryGroupTotals, previewsPerGroup, openActivation, removeActivation, isRemoving,
     } = props;
 
     // 移动端底栏注册：目录（左抽屉）与 排盘信息/大纲（右抽屉）由底部导航槽位打开
@@ -213,7 +213,7 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                         </div>
                     ) : (
                         <div className="flex-1 min-h-0 overflow-hidden">
-                            <CaseListSidebar allCases={allCases} displayCases={filteredCases} selectedCategory={selectedCategory} selectedCaseId={selectedCaseId} selectedDayMaster={selectedDayMaster} searchTerm={searchTerm} currentPage={currentPage} totalPages={totalPages} onSelectCase={(id) => { handleSelectCase(id); setIsLeftPanelOpen(false); }} onSelectDayMaster={(id) => { handleSelectDayMaster(id); }} onSearchChange={setSearchTerm} onPageChange={setCurrentPage} onSelectAuthor={(author) => { handleSelectAuthor(author); setIsLeftPanelOpen(false); }} variant="drawer" hidePagination isPreviewMode={isPreviewMode} onRequestActivate={openActivation} libraryGroupTotals={libraryGroupTotals} libraryTotal={libraryTotal} previewsPerGroup={previewsPerGroup} />
+                            <CaseListSidebar allCases={allCases} displayCases={filteredCases} selectedCategory={selectedCategory} selectedCaseId={selectedCaseId} selectedDayMaster={selectedDayMaster} searchTerm={searchTerm} currentPage={currentPage} totalPages={totalPages} onSelectCase={(id) => { handleSelectCase(id); setIsLeftPanelOpen(false); }} onSelectDayMaster={(id) => { handleSelectDayMaster(id); }} onSearchChange={setSearchTerm} onPageChange={setCurrentPage} onSelectAuthor={(author) => { handleSelectAuthor(author); setIsLeftPanelOpen(false); }} variant="drawer" hidePagination isPreviewMode={isPreviewMode} onRequestActivate={openActivation} onRemoveActivation={removeActivation} isRemoving={isRemoving} libraryGroupTotals={libraryGroupTotals} libraryTotal={libraryTotal} previewsPerGroup={previewsPerGroup} />
                         </div>
                     )}
                 </div>

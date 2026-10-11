@@ -190,6 +190,25 @@ export function useCaseStudy() {
         runActivation(publicCaseLibraryService.activateWithMasterPassword(password));
     };
 
+    // 移除激活：清空本地库后回到试读态。先切状态再刷新列表，
+    // 避免清空与列表刷新之间出现「已激活但列表为空」的闪烁。
+    const [isRemoving, setIsRemoving] = useState(false);
+    const removeActivation = () => {
+        if (isRemoving) return Promise.resolve();
+        setIsRemoving(true);
+        return publicCaseLibraryService.removeActivation().then(() => {
+            setActivationState('locked');
+            setSelectedCaseId(null);
+            setSelectedAuthor(null);
+            loadPreviewEntries();
+        }).catch((cause: unknown) => {
+            console.error('移除激活失败', cause);
+            throw cause;
+        }).finally(() => {
+            setIsRemoving(false);
+        });
+    };
+
     // 锁定态即为试读态：可浏览每个分类的试读样章，激活入口由各处显式按钮触发
     const isPreviewMode = activationState === 'locked';
 
@@ -390,6 +409,8 @@ export function useCaseStudy() {
         activationError,
         activate,
         activateWithMasterPassword,
+        removeActivation,
+        isRemoving,
 
         // 分页
         currentPage,

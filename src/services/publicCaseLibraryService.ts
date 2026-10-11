@@ -49,6 +49,10 @@ export const publicCaseLibraryService = {
     async activateWithMasterPassword(password: string): Promise<number> {
         return invokeDesktop<number>('activate_with_master_password', { password: password.trim() });
     },
+    /** 移除激活：清空本地案例库并落盘移除标记，回到试读态（需用户重新输入激活码才会恢复）。 */
+    async removeActivation(): Promise<void> {
+        return invokeDesktop<void>('remove_activation');
+    },
     /** 管理员版才可用：应用内为机器码签发激活码。 */
     async isSigningAvailable(): Promise<boolean> {
         return invokeDesktop<boolean>('is_signing_available');

@@ -74,6 +74,11 @@ pub fn initialize(connection: &Connection) -> Result<(), String> {
                 activated_at TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS case_removal (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                removed_at TEXT NOT NULL
+            );
+
             CREATE INDEX IF NOT EXISTS idx_case_entries_domain ON case_entries(domain);",
         )
         .map_err(|cause| format!("无法初始化案例数据库: {}", cause))?;
@@ -156,7 +161,31 @@ pub fn import_bundle(
         params![machine_id, license_code.trim(), bundle.version, activated_at],
     )
     .map_err(db_err("写入激活记录"))?;
+    // 重新激活即明确撤销「已移除」状态，否则启动同步会一直被跳过
+    tx.execute("DELETE FROM case_removal", []).map_err(db_err("清除移除标记"))?;
     tx.commit().map_err(|cause| format!("提交案例库事务失败: {}", cause))
+}
+
+/// 本机是否已被用户移除激活：为真时启动同步不得擅自恢复内置案例包。
+pub fn is_removed(connection: &Connection) -> Result<bool, String> {
+    connection
+        .query_row("SELECT 1 FROM case_removal WHERE id = 1", [], |_| Ok(()))
+        .optional()
+        .map(|hit| hit.is_some())
+        .map_err(|cause| format!("无法读取移除状态: {}", cause))
+}
+
+/// 移除激活：清空案例数据与激活记录，并落盘移除标记（单事务）。
+/// 标记必须持久化——案例包随应用内置，否则下次启动的自动同步会把它重新灌回来。
+pub fn remove_activation(connection: &Connection) -> Result<(), String> {
+    let tx = connection.unchecked_transaction().map_err(|cause| format!("无法开启事务: {}", cause))?;
+    tx.execute("DELETE FROM case_entries", []).map_err(db_err("清空案例目录"))?;
+    tx.execute("DELETE FROM case_contents", []).map_err(db_err("清空案例正文"))?;
+    tx.execute("DELETE FROM author_profiles", []).map_err(db_err("清空作者生平"))?;
+    tx.execute("DELETE FROM activation_status", []).map_err(db_err("清空激活记录"))?;
+    tx.execute("INSERT INTO case_removal (id, removed_at) VALUES (1, ?1)", params![now_iso()])
+        .map_err(db_err("写入移除标记"))?;
+    tx.commit().map_err(|cause| format!("提交移除事务失败: {}", cause))
 }
 
 pub fn list_entries(connection: &Connection, domain: Option<&str>) -> Result<Vec<CaseMeta>, String> {
@@ -273,6 +302,32 @@ mod tests {
             .unwrap();
         assert_eq!(stored_machine, "ORBIS-A8F2-9901-7BC3");
         assert_ne!(stored_machine, "ORBIS-BB12-3456-7890");
+    }
+
+    #[test]
+    fn removal_clears_data_and_persists_until_reactivation() {
+        let connection = Connection::open_in_memory().unwrap();
+        initialize(&connection).unwrap();
+        let bundle = sample_bundle();
+        let key = crypto::derive_local_key("ORBIS-A8F2-9901-7BC3", "ACT-VALID").unwrap();
+        import_bundle(&connection, "ORBIS-A8F2-9901-7BC3", "ACT-VALID", &bundle, &key).unwrap();
+        assert!(!is_removed(&connection).unwrap());
+
+        remove_activation(&connection).unwrap();
+
+        // 数据清空、回到未激活态
+        let status = read_status(&connection).unwrap();
+        assert!(!status.is_activated);
+        assert_eq!(status.total, 0);
+        assert!(stored_license(&connection).unwrap().is_none());
+        assert!(list_entries(&connection, None).unwrap().is_empty());
+        // 标记必须落盘：否则下次启动的自动同步会把内置包重新灌回来
+        assert!(is_removed(&connection).unwrap());
+
+        // 用户重新激活 → 标记清除，恢复可同步
+        import_bundle(&connection, "ORBIS-A8F2-9901-7BC3", "ACT-VALID", &bundle, &key).unwrap();
+        assert!(!is_removed(&connection).unwrap());
+        assert!(read_status(&connection).unwrap().is_activated);
     }
 }
 

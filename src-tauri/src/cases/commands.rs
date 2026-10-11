@@ -2,7 +2,7 @@
 //!
 //! 暴露给前端的 IPC 命令：
 //! get_machine_id / get_cases_status / activate_cases / activate_with_master_password /
-//! get_case_list / get_case_content / get_author_profile。
+//! remove_activation / get_case_list / get_case_content / get_author_profile。
 //!
 //! 激活流程（完全离线，案例包随应用内置）：
 //! - activate_cases：Ed25519 验签激活码（一机一码，远程签发）；
@@ -83,8 +83,57 @@ pub fn get_machine_id() -> String {
 }
 
 #[tauri::command]
-pub fn get_cases_status(state: tauri::State<CasesState>, app: AppHandle) -> Result<CasesStatus, String> {
+pub async fn get_cases_status(
+    state: tauri::State<'_, CasesState>,
+    app: AppHandle,
+) -> Result<CasesStatus, String> {
+    sync_embedded_bundle(&app, &state).await;
     state.with_connection(&app, db::read_status)
+}
+
+/// 启动时静默同步内置案例包：已激活且包版本变化就重新灌库。
+///
+/// 案例包是构建时嵌入的（build.rs ← dist-cases/cases_v1.enc），重打包后
+/// 激活码不变，若只在用户手动激活时才比对版本，已装应用会一直沿用旧数据。
+/// 本地解密不联网、不需要激活码，因此这里可以直接复用已存储的许可串。
+///
+/// 同步失败（未激活 / 未内置包 / 解密异常）不向上抛：状态查询本身必须可用，
+/// 用户仍可在激活界面看到真实错误。
+async fn sync_embedded_bundle(app: &AppHandle, state: &tauri::State<'_, CasesState>) {
+    // 用户主动移除过激活：不擅自用内置包恢复，需其重新输入激活码
+    match state.with_connection(app, db::is_removed) {
+        Ok(true) => return,
+        Ok(false) => {}
+        Err(cause) => {
+            log::warn!("读取移除状态失败：{}", cause);
+            return;
+        }
+    }
+    let license = match state.with_connection(app, db::stored_license) {
+        Ok(Some(license)) => license,
+        _ => return,
+    };
+    match activate_with_license(app, state, machine_id::machine_id(), license).await {
+        Ok(_) => {}
+        Err(cause) => log::warn!("启动同步案例包失败：{}", cause),
+    }
+}
+
+/// 移除激活：清空本地案例库并落盘移除标记，回到试读态。
+/// 与 `get_cases_status` 的自动同步是一对：标记不清除，重启也不会自动恢复。
+#[tauri::command]
+pub async fn remove_activation(
+    state: tauri::State<'_, CasesState>,
+    app: AppHandle,
+) -> Result<(), String> {
+    state
+        .with_connection(&app, db::remove_activation)
+        .map_err(|cause| format!("移除激活失败：{}", cause))?;
+    // 缓存的行级密钥随激活记录一并失效，避免残留
+    if let Ok(mut cache) = state.local_key_cache.lock() {
+        *cache = None;
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -115,27 +164,34 @@ pub async fn activate_with_master_password(
     activate_with_license(&app, &state, machine, license).await
 }
 
-/// 共用激活管线：同一许可重复激活直接复用本地数据；否则解密内置包并全量灌库。
+/// 共用激活管线：同一许可且同一案例包版本时复用本地数据；否则解密内置包并全量灌库。
+/// 版本必须参与判断——案例包是构建时嵌入的，换包后激活码不变，
+/// 若只比激活码会一直复用旧数据（重打包后列表看不到更新）。
 async fn activate_with_license(
     app: &AppHandle,
     state: &CasesState,
     machine: String,
     license: String,
 ) -> Result<u32, String> {
-    let existing = state.with_connection(app, |connection| {
-        Ok(db::stored_license(connection)?.filter(|_| db::read_status(connection).map(|status| status.total > 0).unwrap_or(false)))
-    })?;
-    if existing.as_deref() == Some(license.as_str()) {
-        let total = state.with_connection(app, |connection| Ok(db::read_status(connection)?.total))?;
-        emit_progress(app, "done", Some(100.0), "案例库已是最新。");
-        return Ok(total);
-    }
-
     let file = bundle::embedded_bundle()
         .ok_or_else(|| "应用未内置案例包（构建前请先运行 npm run cases:pack）".to_string())?;
 
     emit_progress(app, "decrypting", None, "正在安全解密案例包...");
     let decrypted = parse_and_decrypt(file, &crypto::master_key())?;
+
+    let up_to_date = state.with_connection(app, |connection| {
+        let status = db::read_status(connection)?;
+        let stored = db::stored_license(connection)?;
+        Ok(status.total > 0
+            && stored.as_deref() == Some(license.as_str())
+            && status.version.as_deref() == Some(decrypted.version.as_str()))
+    })?;
+    if up_to_date {
+        let total = state.with_connection(app, |connection| Ok(db::read_status(connection)?.total))?;
+        emit_progress(app, "done", Some(100.0), "案例库已是最新。");
+        return Ok(total);
+    }
+
     let local_key = crypto::derive_local_key(&machine, &license)?;
 
     emit_progress(app, "importing", None, "正在安全部署本地案例库...");

@@ -24,6 +24,7 @@
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { relative, resolve, sep } from 'node:path';
+import { extractCaseSummary } from './case-summary';
 
 type Domain = 'bazi' | 'qimen';
 
@@ -67,9 +68,6 @@ const MIN_BUDGET_CHARS = 400;
 const MAX_EXCERPT_RATIO = 0.4;
 
 const authorNames: Record<string, string> = { lishuanglin: '李双林', nanxuanzi: '南玄子', buchuiniu: '不吹牛', zhangzhichun: '张志春' };
-/** 断法专栏在应用内本就以明文提供（DUANFA_FILES），不参与试读挑篇，但仍计入全库篇数 */
-const excludedAuthors = new Set(['duanfa']);
-
 function option(name: string): string | undefined {
     const argv = process.argv.slice(2);
     const index = argv.indexOf(name);
@@ -104,14 +102,6 @@ async function walk(directory: string): Promise<string[]> {
 /** 字数口径：忽略空白与换行，贴近中文“字数”直觉 */
 function countChars(text: string): number {
     return text.replace(/\s+/g, '').length;
-}
-
-/** 与 pack-cases.ts 保持一致：试读列表摘要需与激活后的案例列表摘要完全同源 */
-function extractSummary(content: string, domain: Domain): string {
-    if (domain === 'qimen') return content.match(/(?:\*\*)?公元(?:\*\*)?[：:]\s*([^\n]+)/)?.[1]?.trim() ?? '未知时间';
-    const birth = content.match(/命主生辰[：:]\s*([^\n]+)/)?.[1]?.trim();
-    const master = content.match(/日主[：:]\s*([^\n]+)/)?.[1]?.trim();
-    return birth && master ? birth + ' ' + master : '未知八字';
 }
 
 const META_LINE = /^(命主生辰|性别|日主|格局|令地)\s*[：:]/;
@@ -233,6 +223,10 @@ async function collect(): Promise<RawCase[]> {
         const parts = relative(dataRoot, path).split(sep);
         const [domain, authorKey, ...rest] = parts;
         if ((domain !== 'bazi' && domain !== 'qimen') || !authorKey || !rest.length) continue;
+        // 与 pack-cases.ts 同步：断法（<domain>/duanfa/）不是作者目录，不属案例库条目
+        // （客户端另有明文链路 lib/caseStudy/duanfaData.ts），一并排除，
+        // 否则会混进奇门案例分类、作者显示为 "duanfa"，还会被计入全库篇数
+        if (authorKey === 'duanfa') continue;
         const title = rest.at(-1)?.replace(/\.md$/, '') ?? '无标题';
         const authorName = authorNames[authorKey] ?? authorKey;
         // 作者生平文件（作者目录下的同名 md）不是案例，不计入分组与总篇数
@@ -245,7 +239,7 @@ async function collect(): Promise<RawCase[]> {
             authorKey,
             authorName,
             group: rest.length > 1 ? rest.at(-2) ?? '未分类' : '未分类',
-            summary: extractSummary(content, domain),
+            summary: extractCaseSummary(content, domain),
             content,
             bodyChars: countChars(splitContent(content).body),
         });
@@ -339,7 +333,7 @@ async function main(): Promise<void> {
     const previews: PreviewCase[] = [];
     let previewedGroups = 0;
     for (const key of [...groups.keys()].sort((a, b) => a.localeCompare(b, 'zh-CN'))) {
-        const candidates = (groups.get(key) ?? []).filter((item) => !excludedAuthors.has(item.authorKey));
+        const candidates = groups.get(key) ?? [];
         if (candidates.length === 0) continue;
         previewedGroups++;
         const picked = pickForGroup(candidates, perGroup, picks[key]);
@@ -366,7 +360,7 @@ async function main(): Promise<void> {
     await writeFile(output, renderSource(previews, totalsByGroup, libraryTotal, perGroup, budget, ratio));
 
     const shortGroups = [...groups.keys()].filter((key) => {
-        const candidates = (groups.get(key) ?? []).filter((item) => !excludedAuthors.has(item.authorKey));
+        const candidates = groups.get(key) ?? [];
         return candidates.length > 0 && candidates.length < perGroup;
     });
     console.log('试读数据生成完成：' + relative(workspace, output));
