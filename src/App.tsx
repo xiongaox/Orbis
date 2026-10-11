@@ -290,6 +290,7 @@ function AppShell() {
           activeChart={activeChart}
           profileOpen={showMobileProfile}
           slots={navSlots}
+          lockedCharts={lockedCharts}
           drawers={activeDrawers}
           onSelectChart={(chart) => {
             // 从重选菜单网格进入的案例学习不属于个人中心来源
@@ -298,6 +299,7 @@ function AppShell() {
             setActiveChart(chart);
           }}
           onOpenProfile={() => setShowMobileProfile(true)}
+          onToggleChartLock={handleToggleChartLock}
           onSelectCaseStudyCategory={handleOpenCaseStudyCategory}
           caseStudyFromProfile={caseStudyFromProfile}
         />

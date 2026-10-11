@@ -5,7 +5,7 @@ import type { Case, ChartType } from '../types';
 export const LOCKED_CHARTS_STORAGE_KEY = 'orbis_locked_charts';
 export const LOCKED_CHART_SNAPSHOTS_STORAGE_KEY = 'orbis_locked_chart_snapshots';
 
-const LOCKABLE_CHARTS: ChartType[] = ['bazi', 'qimen'];
+export const LOCKABLE_CHARTS: ChartType[] = ['bazi', 'qimen'];
 
 export interface BaziLockedSnapshot {
     version: 1;
