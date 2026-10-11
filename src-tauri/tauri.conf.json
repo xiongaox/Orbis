@@ -46,7 +46,7 @@
         "uninstallerIcon": "icons/icon.ico"
       }
     },
-    "ios": {
+    "iOS": {
       "minimumSystemVersion": "15.0"
     },
     "android": {
