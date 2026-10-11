@@ -125,8 +125,10 @@ export default function QimenHeader({
         [infoItems.maXing, infoItems.kongWang],
     ];
 
+    // 紧凑档信息区字号统一 14px（标签与值同档，避免小字标签配大字值）；
+    // 移动端本就窄，保持原有 text-xs 档，不跟着放大
     const renderInfoItem = (item: InfoItem, index: number) => (
-        <div key={index} className={`flex items-center gap-1 2xl:gap-2 ${compact ? 'min-w-0' : ''}`}>
+        <div key={index} className={`flex items-center gap-1 2xl:gap-2 ${compact && !isMobileLayout ? 'min-w-0 whitespace-nowrap text-sm' : 'min-w-0'}`}>
             <span className={`text-muted-foreground font-light ${compact ? 'shrink-0' : ''}`}>{item.label}:</span>
             {item.clickable ? (
                 <button
@@ -143,7 +145,7 @@ export default function QimenHeader({
     );
 
     return (
-        <div className={`w-full bg-card flex flex-col ${isMobileLayout ? 'p-4 gap-3' : compact ? 'border border-border p-2 gap-1.5' : 'rounded-xl border border-border p-3 2xl:p-5 gap-2 2xl:gap-4'}`}>
+        <div className={`w-full bg-card flex flex-col ${isMobileLayout ? 'p-4 gap-4' : compact ? 'border border-border p-2.5 gap-4' : 'rounded-xl border border-border p-3 2xl:p-5 gap-2 2xl:gap-4'}`}>
             {/* 第一行：日期时间 + 操作按钮 */}
             <div className={`flex items-center text-sm 2xl:text-xl ${compact ? 'flex-wrap gap-y-1' : 'justify-between'}`}>
                 <div className="flex items-baseline gap-1 2xl:gap-2">
@@ -172,8 +174,11 @@ export default function QimenHeader({
 
             {/* 第二行：四柱 + 信息 */}
             {header.siZhu?.year && (
-                <div className={`flex ${compact ? 'flex-col gap-1.5' : 'items-center justify-between'}`}>
-                    <div className="flex gap-5 2xl:gap-6">
+                <div className={`flex ${compact && !isMobileLayout ? 'items-stretch gap-4' : 'items-center justify-between'}`}>
+                    {/* 紧凑档（案例学习桌面窄侧栏）：四柱与信息区同行并排，顶部对齐
+                        （items-stretch）——信息区下方有翻页小点，居中对齐会把四柱压低。
+                        移动端与整页排盘保持原有排布，不受紧凑档影响。 */}
+                    <div className={`flex ${compact && !isMobileLayout ? 'w-1/2 shrink-0 items-center' : 'gap-5 2xl:gap-6'}`}>
                         {(['year', 'month', 'day', 'hour'] as const).map((key) => {
                             const labels = { year: '年', month: '月', day: '日', hour: '时' };
                             const stem = header.siZhu[key][0];
@@ -181,34 +186,42 @@ export default function QimenHeader({
                             const isDayOrHour = key === 'day' || key === 'hour';
                             const isJia = stem === '甲';
                             return (
-                                <div key={key} className={`flex flex-col items-center relative ${isMobileLayout ? 'pr-4' : 'pr-3 2xl:pr-4'}`}>
-                                    <span className={`text-base 2xl:text-2xl font-serif leading-none ${isMobileLayout ? 'mb-1' : 'mb-0.5 2xl:mb-1'} ${isDayOrHour ? 'text-primary font-bold' : 'text-foreground'}`}>{stem}</span>
-                                    <span className={`text-base 2xl:text-2xl font-serif leading-none ${isDayOrHour && isJia ? 'text-primary font-bold' : 'text-foreground'}`}>{branch}</span>
-                                    <span className={`absolute top-1/2 -translate-y-1/2 right-0 text-xs 2xl:text-sm text-muted-foreground/60 font-serif transform scale-90 origin-right`}>{labels[key]}</span>
+                                <div key={key} className={`flex flex-col items-center relative ${compact && !isMobileLayout ? 'flex-1 pr-3.5' : isMobileLayout ? 'pr-4' : 'pr-3 2xl:pr-4'}`}>
+                                    <span className={`${compact && !isMobileLayout ? 'text-lg' : 'text-base 2xl:text-2xl'} font-serif leading-none ${isMobileLayout ? 'mb-1' : 'mb-0.5 2xl:mb-1'} ${isDayOrHour ? 'text-primary font-bold' : 'text-foreground'}`}>{stem}</span>
+                                    <span className={`${compact && !isMobileLayout ? 'text-lg' : 'text-base 2xl:text-2xl'} font-serif leading-none ${isDayOrHour && isJia ? 'text-primary font-bold' : 'text-foreground'}`}>{branch}</span>
+                                    <span className={`absolute top-1/2 -translate-y-1/2 right-0 ${compact && !isMobileLayout ? 'text-sm' : 'text-xs 2xl:text-sm'} text-muted-foreground/60 font-serif transform scale-90 origin-right`}>{labels[key]}</span>
                                 </div>
                             );
                         })}
                     </div>
-                    {!compact && <div className="h-6 2xl:h-10 w-px bg-border/60 ml-4 2xl:ml-8 mr-4 2xl:mr-10" />}
-                    {isMobileLayout ? (
-                        <div className="flex-1 min-w-0">
+                    {compact && !isMobileLayout
+                        ? <div className="w-px self-stretch my-0.5 bg-border/60" />
+                        : <div className="h-6 2xl:h-10 w-px bg-border/60 ml-4 2xl:ml-8 mr-4 2xl:mr-10" />}
+                    {isMobileLayout || compact ? (
+                        <div className="flex-1 min-w-0 relative">
+                            {/* 可视区 2 行 × 2 列，横排 3 列共 6 项（列优先）：
+                                容器 150% 宽、每列 1/3 → 每列恰为可视区一半，露出两列；
+                                列 2「旬首/值使」两页常驻，列 1 滑出、列 3 滑入 */}
                             <div
                                 ref={infoScrollRef}
-                                className="text-xs overflow-x-auto snap-x snap-mandatory overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                                className={`${compact && !isMobileLayout ? '' : 'text-xs '}overflow-x-auto snap-x snap-mandatory overscroll-x-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden`}
                                 onScroll={handleInfoScroll}
                             >
                                 <div className="flex w-[150%]">
                                     {mobileInfoColumns.map((columnItems, columnIndex) => (
                                         <div
                                             key={columnIndex}
-                                            className="w-1/3 pr-3 snap-start grid grid-rows-2 gap-y-1"
+                                            className={`w-1/3 snap-start grid grid-rows-2 ${compact && !isMobileLayout ? 'gap-y-1 pr-2' : 'pr-3 gap-y-1'}`}
                                         >
                                             {columnItems.map(renderInfoItem)}
                                         </div>
                                     ))}
                                 </div>
                             </div>
-                            <div className="flex justify-center gap-1 mt-1">
+                            {/* 翻页小点：绝对定位挂底，不参与高度计算——
+                                否则会把信息区撑高、四柱与信息区顶不对齐。
+                                下探量取行距中点：贴信息区或压到第三行按钮都难看 */}
+                            <div className={`absolute left-0 right-0 flex justify-center gap-1 ${isMobileLayout ? '-bottom-2.5' : '-bottom-3.5'}`}>
                                 {[0, 1].map(pageIndex => (
                                     <button
                                         key={pageIndex}
@@ -223,7 +236,7 @@ export default function QimenHeader({
                             </div>
                         </div>
                     ) : (
-                        <div className={`grid grid-cols-3 ${compact ? 'w-full min-w-0 gap-y-1.5 gap-x-3 text-sm' : 'gap-y-0.5 2xl:gap-y-1 gap-x-3 2xl:gap-x-8 text-xs 2xl:text-base flex-1'}`}>
+                        <div className="grid grid-cols-3 gap-y-0.5 2xl:gap-y-1 gap-x-3 2xl:gap-x-8 text-xs 2xl:text-base flex-1">
                             {desktopInfoItems.map(renderInfoItem)}
                         </div>
                     )}
@@ -231,7 +244,7 @@ export default function QimenHeader({
             )}
 
             {/* 第三行：标签 + 操作按钮 */}
-            <div className={`flex ${isMobileLayout ? 'items-stretch' : 'items-center'} ${compact ? 'flex-wrap gap-y-1.5' : 'justify-between'}`}>
+            <div className={`flex ${isMobileLayout ? 'items-stretch' : 'items-center'} ${compact ? 'flex-wrap gap-x-3 gap-y-2 justify-between' : 'justify-between'}`}>
                 <div className="flex items-center gap-1 2xl:gap-2">
                     <div className="relative">
                         <button type="button" onClick={() => setIsMethodOpen(!isMethodOpen)} className="flex items-center gap-1 pl-3 pr-2 py-1 rounded-lg border border-border text-muted-foreground text-xs 2xl:text-sm font-serif hover:bg-muted/10 transition-colors">
@@ -254,8 +267,7 @@ export default function QimenHeader({
                     ))}
                 </div>
                 <div className={`flex ${isMobileLayout ? 'items-stretch' : 'items-center'} gap-1 2xl:gap-2 ${compact ? 'ml-auto' : ''}`}>
-                    {headerActions}
-                    {onPrevHour && (
+                    {headerActions}                    {onPrevHour && (
                         <button type="button" onClick={onPrevHour} className={`${isMobileLayout ? 'px-3 flex items-center' : 'p-1 2xl:p-1.5'} bg-secondary/80 text-muted-foreground rounded-lg hover:bg-secondary transition-colors border border-border`} title="上一局">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={isMobileLayout ? 'w-4 h-4' : 'w-3 h-3 2xl:w-3.5 2xl:h-3.5'}><path d="m15 18-6-6 6-6" /></svg>
                         </button>

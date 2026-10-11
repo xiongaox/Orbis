@@ -8,7 +8,7 @@ import { useCaseStudyBaziData } from './hooks/useCaseStudyBaziData';
 import { DUANFA_FILES } from '../../../lib/caseStudy/duanfaData';
 
 import ActivationModal from './ActivationModal';
-import JuSelectDialog from './components/JuSelectDialog';
+import CustomJuModal from '../Qimen/components/CustomJuModal';
 import LearningPanelModal from './components/LearningPanelModal';
 import CaseStudyDesktopLayout from './layouts/CaseStudyDesktopLayout';
 import CaseStudyPadLayout from './layouts/CaseStudyPadLayout';
@@ -125,11 +125,15 @@ export default function CaseStudyPage({ categoryIntent }: CaseStudyPageProps) {
                 />
             )}
 
-            <JuSelectDialog
+            {/* 局数弹窗直接复用奇门遁甲的 CustomJuModal，不再自建一套 */}
+            <CustomJuModal
                 isOpen={isJuDialogOpen}
+                currentJu={caseStudyState.qimenResult?.header.ju ?? ''}
                 onClose={() => setIsJuDialogOpen(false)}
-                currentJu={caseStudyState.customJu}
-                onSelectJu={caseStudyState.setCustomJu}
+                onConfirm={(ju) => {
+                    caseStudyState.setCustomJu(ju);
+                    setIsJuDialogOpen(false);
+                }}
             />
 
             <LearningPanelModal
