@@ -25,7 +25,8 @@ export const DEFAULT_MOBILE_NAV_SLOTS: ChartType[] = ['bazi', 'qimen'];
 export const MOBILE_NAV_CANDIDATES: ReadonlyArray<{ id: ChartType; name: string }> = [
     { id: 'bazi', name: '四柱八字' },
     { id: 'qimen', name: '奇门遁甲' },
-    { id: 'sanyuan', name: '三元天星' },
+    // 三元天星暂不对外展示（作者自研中），代码保留；恢复时放回此行
+    // { id: 'sanyuan', name: '三元天星' },
 ];
 
 /** 独立固定菜单（非术数）：常驻主菜单，不占术数槽位、不可更换 */

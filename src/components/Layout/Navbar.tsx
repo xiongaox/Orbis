@@ -3,7 +3,7 @@
  * - 主要目标：提供应用的基础布局框架
 */
 import { useState, useEffect } from 'react';
-import { Calendar, Compass, Grid3X3, Sun, Moon, Star } from 'lucide-react';
+import { Calendar, Compass, Grid3X3, Sun, Moon } from 'lucide-react';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { openExternalUrl } from '../../utils/browserUtil';
 import BaseModal from '../UI/BaseModal';
@@ -31,7 +31,9 @@ const navItems: NavItemType[] = [
   { id: 'wannianli', name: '万年通历', icon: Calendar, priority: 'core' },
   { id: 'bazi', name: '四柱八字', icon: Compass, priority: 'core', lockable: true },
   { id: 'qimen', name: '奇门遁甲', icon: Grid3X3, priority: 'core', lockable: true },
-  { id: 'sanyuan', name: '三元天星', icon: Star, priority: 'core' },
+  // ponytail: 三元天星暂不对外展示（作者自研中），代码与路由保留在 dev 分支；
+  // 若 main 需要恢复，把下面这行放回原位即可。
+  // { id: 'sanyuan', name: '三元天星', icon: Star, priority: 'core' },
   { id: 'xiaoliuren', name: '案例学习', icon: Sun, priority: 'core' },
 ];
 
