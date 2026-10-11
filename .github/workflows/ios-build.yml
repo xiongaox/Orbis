@@ -70,12 +70,30 @@ jobs:
         run: |
           brew install xcodegen
           npx tauri ios init
-          # 图标必须来自仓库内的 icons/ios/（.gitignore 已放行）。缺失即说明又被忽略掉了，
-          # 此时 init 会静默使用 Tauri 默认图标（v2.1.2 的 ipa 就是这样）。
+          # tauri ios init 只铺模板自带的 Tauri 默认图标，不会自动使用 tauri icon 的产物
+          # （IosConfig 无 assetCatalogs 配置项，模板图标内置在 CLI 二进制里）。
+          # 故此处用仓库内的 icons/ios/ 覆盖 appiconset：两边 18 个文件名逐一对应，
+          # 不覆盖则 ipa 桌面图标为 Tauri 默认图标（v2.1.2 即如此）。
+          APPICONSET="src-tauri/gen/apple/Assets.xcassets/AppIcon.appiconset"
+          test -d "$APPICONSET" || { echo "::error::未找到 $APPICONSET，tauri ios init 可能失败"; exit 1; }
           test -f src-tauri/icons/ios/AppIcon-512@2x.png || {
-            echo "::error::src-tauri/icons/ios/ 缺失，iOS 工程回退为 Tauri 默认图标；请确认该目录已入库"
+            echo "::error::src-tauri/icons/ios/ 缺失；该目录需入库（.gitignore 已放行），否则回退为默认图标"
             exit 1
           }
+          COPIED=0
+          for f in src-tauri/icons/ios/*.png; do
+            name=$(basename "$f")
+            if [ -f "$APPICONSET/$name" ]; then
+              cp "$f" "$APPICONSET/$name"; COPIED=$((COPIED+1))
+            else
+              echo "::warning::appiconset 中无同名文件，跳过：$name"
+            fi
+          done
+          echo "已覆盖 $COPIED 个图标"
+          test "$COPIED" -ge 15 || { echo "::error::覆盖数量异常（$COPIED），图标可能未生效"; exit 1; }
+          # 记录源图指纹，供归档后比对 ipa 内图标是否为项目 logo
+          shasum -a 256 src-tauri/icons/ios/AppIcon-512@2x.png | awk '{print $1}' > /tmp/orbis-icon-sha.txt
+          echo "源图 sha256: $(cat /tmp/orbis-icon-sha.txt)"
 
       - name: 构建前端产物
         run: npm run build
@@ -146,11 +164,24 @@ jobs:
 
           cd build
           zip -qry orbis-ios-user-unsigned.ipa Payload
-          # 防回归：Xcode 把 Assets.xcassets 编译成 Assets.car，图标不以独立 png 留存，
-          # 故不比对像素；改为确认图标资产确实被编进 .app（默认图标同走该路径，
-          # 真正的守卫是上面「生成 iOS 工程」步的源目录存在性检查）。
+          # 防回归：确认 ipa 内图标确为项目 logo 而非 Tauri 默认图标。
+          # .app 内的 AppIcon*.png 是 iOS 专用 CgBI 变体，直接比字节会不等，
+          # 故用 sips 归一化为标准 PNG 后比对像素内容。
           test -f Payload/*.app/Assets.car || { echo "::error::.app 内缺少 Assets.car，图标未编入"; exit 1; }
-          echo "图标资产已编入"
+          ICON_IN_APP=$(find Payload -name "AppIcon-76x76@2x.png" -o -name "AppIcon76x76@2x~ipad.png" | head -1)
+          test -n "$ICON_IN_APP" || { echo "::error::.app 内未找到 iPad 图标资源"; exit 1; }
+          ICON_SRC=$(find ../src-tauri/icons/ios -name "AppIcon-76x76@2x.png" | head -1)
+          sips -s format png "$ICON_IN_APP" --out /tmp/icon-in-app.png >/dev/null 2>&1
+          sips -s format png "$ICON_SRC" --out /tmp/icon-src.png >/dev/null 2>&1
+          SHA_IN_APP=$(shasum -a 256 /tmp/icon-in-app.png | awk '{print $1}')
+          SHA_SRC=$(shasum -a 256 /tmp/icon-src.png | awk '{print $1}')
+          if [ "$SHA_IN_APP" != "$SHA_SRC" ]; then
+            echo "::error::ipa 内图标与 src-tauri/icons/ios/ 不一致，桌面图标会是 Tauri 默认图标"
+            echo "  包内: $SHA_IN_APP ($ICON_IN_APP)"
+            echo "  源图: $SHA_SRC ($ICON_SRC)"
+            exit 1
+          fi
+          echo "图标校验通过：ipa 内图标与项目源图一致（$ICON_SRC）"
           kill $SERVER_PID || true
 
       - name: 上传未签名 ipa
