@@ -42,6 +42,10 @@ src-tauri/icons/*
 !src-tauri/icons/64x64.png
 !src-tauri/icons/128x128.png
 !src-tauri/icons/128x128@2x.png
+# iOS 图标：tauri ios init 生成在 gen/apple（不入库），app 图标取自 icons/ios/。
+# 必须入库，否则 CI 全新检出后用 Tauri 默认图标（v2.1.2 的 ipa 即如此）。
+!src-tauri/icons/ios/
+!src-tauri/icons/ios/*
 ._*
 .Spotlight-V100
 .Trashes

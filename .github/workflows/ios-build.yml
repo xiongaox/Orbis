@@ -70,6 +70,12 @@ jobs:
         run: |
           brew install xcodegen
           npx tauri ios init
+          # 图标必须来自仓库内的 icons/ios/（.gitignore 已放行）。缺失即说明又被忽略掉了，
+          # 此时 init 会静默使用 Tauri 默认图标（v2.1.2 的 ipa 就是这样）。
+          test -f src-tauri/icons/ios/AppIcon-512@2x.png || {
+            echo "::error::src-tauri/icons/ios/ 缺失，iOS 工程回退为 Tauri 默认图标；请确认该目录已入库"
+            exit 1
+          }
 
       - name: 构建前端产物
         run: npm run build
@@ -110,8 +116,23 @@ jobs:
           mkdir -p build/Payload
           APP=$(find build/orbis.xcarchive/Products/Applications -maxdepth 1 -name "*.app" | head -1)
           cp -R "$APP" build/Payload/
+          # 防回归（闪退根因）：xcode-script 路径不经过 AppInterface::build_options()，
+          # 若伪造服务的 features 里漏了 tauri/custom-protocol，编出来的是开发模式二进制——
+          # 运行期去找 build.devUrl 而非内嵌资源，装到真机即闪退。
+          # 判别特征：启用该 feature 时前端产物会被编进可执行文件，里头能看到 assets/ 下的资源名。
+          # 不假定可执行文件名（cargo-mobile2 的产物命名随 lib name 变化），在 .app 内整体搜。
+          if ! strings -a Payload/*.app/* 2>/dev/null | grep -q "assets/index-"; then
+            echo "::error::可执行文件未内嵌前端资源，custom-protocol 未生效（装到真机会闪退）"
+            exit 1
+          fi
+          echo "custom-protocol 校验通过：已内嵌前端资源"
           cd build
           zip -qry orbis-ios-user-unsigned.ipa Payload
+          # 防回归：Xcode 把 Assets.xcassets 编译成 Assets.car，图标不以独立 png 留存，
+          # 故不比对像素；改为确认图标资产确实被编进 .app（默认图标同走该路径，
+          # 真正的守卫是上面「生成 iOS 工程」步的源目录存在性检查）。
+          test -f Payload/*.app/Assets.car || { echo "::error::.app 内缺少 Assets.car，图标未编入"; exit 1; }
+          echo "图标资产已编入"
           kill $SERVER_PID || true
 
       - name: 上传未签名 ipa

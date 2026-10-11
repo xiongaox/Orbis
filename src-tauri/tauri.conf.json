@@ -46,6 +46,9 @@
         "uninstallerIcon": "icons/icon.ico"
       }
     },
+    "ios": {
+      "minimumSystemVersion": "15.0"
+    },
     "android": {
       "debugApplicationIdSuffix": ".debug"
     }

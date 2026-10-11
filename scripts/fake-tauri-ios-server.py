@@ -13,9 +13,15 @@ import websockets
 
 # 对应 crates/tauri-cli/src/mobile/mod.rs 的 CliOptions(Default)
 # 注意：features 必须为数组（CLI 反序列化不接受 null）
+#
+# features 必须含 tauri/custom-protocol —— xcode-script 路径不经过
+# AppInterface::build_options()（crates/tauri-cli/src/interface/rust.rs 中唯一注入
+# 该 feature 的地方，官方 tauri ios build 就是靠它），不补这里编译出的是开发模式
+# 二进制：运行时去找 build.devUrl 而非内嵌资源，装到真机即闪退。
+# Cargo.toml 的 [features] 注释也已说明 custom-protocol 绝不能进 default，只能显式传。
 RESPONSE = {
     "dev": False,
-    "features": [],
+    "features": ["tauri/custom-protocol"],
     "args": ["--lib"],
     "noise_level": "Polite",
     "vars": {},
