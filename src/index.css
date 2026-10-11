@@ -5,6 +5,12 @@
 @tailwind utilities;
 
 :root {
+  /* 系统栏安全区。Android 由 MainActivity.kt 原生注入同名变量（该平台 WebView 的
+     env() 恒为 0，必须注入），注入值定义在行内样式上、优先级高于此处，故不受影响；
+     iOS 的 WKWebView 原生支持 env()，此处回退即令顶栏避开状态栏、底栏避开home指示条；
+     桌面端 env() 为 0，行为与改动前一致。 */
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --background: 0 0% 97%;
   --foreground: 0 0% 20%;
   --card: 0 0% 97%;

@@ -235,9 +235,13 @@ function AppShell() {
   };
 
   return (
-    // 系统栏安全区：--safe-area-inset-* 由 Android 端原生注入（见 MainActivity.kt），
-    // 桌面端与浏览器端未定义，退化为 0。根节点自带 bg-background，而背景会填满
-    // padding 区域，所以状态栏那条仍是应用底色（随主题），交互内容则被顶到系统栏下方。
+    // 系统栏安全区：--safe-area-inset-* 在 index.css 的 :root 中回退为 env(safe-area-inset-*)。
+    // - Android：MainActivity.kt 以行内样式注入同名变量（该平台 WebView 的 env() 恒为 0，
+    //   必须原生注入），行内样式优先级高于 :root，故取注入值；
+    // - iOS：WKWebView 原生支持 env()，取系统安全区，顶栏避开状态栏、底栏避开 home 指示条；
+    // - 桌面/浏览器：env() 为 0，退化为无 padding，行为与既有实现一致。
+    // 根节点自带 bg-background，背景会填满 padding 区域，所以状态栏那条仍是应用底色（随主题），
+    // 交互内容则被顶到系统栏下方。
     // 高度用 dvh 兜底升级：手机浏览器的 100vh 按工具栏收起后的大视口计算，底栏会被
     // 浏览器地址栏/工具栏压住，dvh 才是当前可见高度；Tauri WebView 无动态浏览器 UI，
     // dvh 与 vh 恒等，App 端渲染不变；@supports 保证不认识 dvh 的老内核仍走 100vh。
