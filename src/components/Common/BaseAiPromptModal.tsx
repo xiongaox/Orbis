@@ -100,6 +100,8 @@ export default function BaseAiPromptModal({
     };
 
     const titleText = `${moduleName}信息提示词`;
+    // 八字论命盘、其余术数（奇门等）论排盘，卡片副标题随术数用词，不能统一叫「命盘」
+    const chartPromptLabel = moduleName === '八字' ? '命盘提示词' : '排盘提示词';
 
     // 抽屉节点：移动端/桌面端两种壳下都渲染
     const chatDrawer = (
@@ -132,7 +134,7 @@ export default function BaseAiPromptModal({
                                     <FileText className="w-[18px] h-[18px]" />
                                 </span>
                                 <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-semibold text-foreground">命盘提示词</div>
+                                    <div className="text-sm font-semibold text-foreground">{chartPromptLabel}</div>
                                     <div className="text-[11px] text-muted-foreground mt-0.5">{promptText.length} 字 · {promptExpanded ? '点按收起' : '点按展开预览'}</div>
                                 </div>
                                 <button
