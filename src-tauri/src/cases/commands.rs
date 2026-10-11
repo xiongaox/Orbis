@@ -18,6 +18,7 @@ use crate::cases::machine_id;
 use crate::cases::signing;
 use rusqlite::Connection;
 use serde_json::json;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, Manager};
 
@@ -28,6 +29,9 @@ pub struct CasesState {
     connection: Mutex<Option<Connection>>,
     /// (LocalKey, machine_id|license_code) 缓存，避免逐篇 Argon2 派生。
     local_key_cache: Mutex<Option<([u8; 32], String)>>,
+    /// 本次进程是否已完成内置包同步。同步要整包解密（2MB 密文 → 6MB JSON），
+    /// 而案例包在进程生命周期内不可能变化，因此只需成功一次。
+    bundle_synced: AtomicBool,
 }
 
 impl Default for CasesState {
@@ -35,6 +39,7 @@ impl Default for CasesState {
         Self {
             connection: Mutex::new(None),
             local_key_cache: Mutex::new(None),
+            bundle_synced: AtomicBool::new(false),
         }
     }
 }
@@ -100,6 +105,11 @@ pub async fn get_cases_status(
 /// 同步失败（未激活 / 未内置包 / 解密异常）不向上抛：状态查询本身必须可用，
 /// 用户仍可在激活界面看到真实错误。
 async fn sync_embedded_bundle(app: &AppHandle, state: &tauri::State<'_, CasesState>) {
+    // 内置包在进程内不会变化，同步成本却是整包解密（见 bundle_synced 注释）。
+    // 这里必须最先判断，才真正省掉重复开销。
+    if state.bundle_synced.load(Ordering::SeqCst) {
+        return;
+    }
     // 用户主动移除过激活：不擅自用内置包恢复，需其重新输入激活码
     match state.with_connection(app, db::is_removed) {
         Ok(true) => return,
@@ -114,7 +124,7 @@ async fn sync_embedded_bundle(app: &AppHandle, state: &tauri::State<'_, CasesSta
         _ => return,
     };
     match activate_with_license(app, state, machine_id::machine_id(), license).await {
-        Ok(_) => {}
+        Ok(_) => state.bundle_synced.store(true, Ordering::SeqCst),
         Err(cause) => log::warn!("启动同步案例包失败：{}", cause),
     }
 }
@@ -133,6 +143,8 @@ pub async fn remove_activation(
     if let Ok(mut cache) = state.local_key_cache.lock() {
         *cache = None;
     }
+    // 移除后本地库已空，同进程内再次激活必须重新灌库，不能沿用「已同步」判断
+    state.bundle_synced.store(false, Ordering::SeqCst);
     Ok(())
 }
 
@@ -272,5 +284,15 @@ mod tests {
     fn state_defaults_to_closed_connection() {
         let state = CasesState::default();
         assert!(state.connection.lock().unwrap().is_none());
+    }
+
+    /// 内置包同步的短路标志：默认未同步，成功后才置位。
+    /// 若默认即为 true，已装应用将永远不再灌入新版案例包。
+    #[test]
+    fn bundle_sync_flag_starts_unsynced_and_is_settable() {
+        let state = CasesState::default();
+        assert!(!state.bundle_synced.load(Ordering::SeqCst));
+        state.bundle_synced.store(true, Ordering::SeqCst);
+        assert!(state.bundle_synced.load(Ordering::SeqCst));
     }
 }

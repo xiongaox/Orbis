@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { BaziApiResponse, PillarData } from '../../../../types/bazi';
 import { getElementColor } from '../../../../lib/xuan-bazi/maps/baziStyleMap';
 import { calculateWuxingStatus } from '../../../../lib/xuan-bazi/utils/wuxingStatusUtil';
@@ -22,6 +22,7 @@ function SimplePillarCard({
     isYunPillar = false,
     isMobile = false,
     shensha = [],
+    shenshaCollapsed = false,
 }: {
     pillar: PillarData;
     isDayMaster?: boolean;
@@ -29,7 +30,10 @@ function SimplePillarCard({
     isYunPillar?: boolean;
     isMobile?: boolean;
     shensha?: string[];
+    /** 折叠态只展示最前一位神煞 */
+    shenshaCollapsed?: boolean;
 }) {
+    const visibleShensha = shenshaCollapsed ? shensha.slice(0, 1) : shensha;
     return (
         <div className={`h-full flex flex-col ${isDayMaster ? 'bg-primary/5' : ''} ${isYunPillar ? 'bg-accent/5' : ''}`}>
             <div className={`${isMobile ? 'h-6' : 'h-8'} flex items-center justify-center border-b border-border ${isYunPillar ? 'bg-accent/10' : 'bg-secondary/30'}`}>
@@ -73,11 +77,11 @@ function SimplePillarCard({
             <div className={`${isMobile ? 'h-7' : 'h-10'} flex items-center justify-center border-b border-border`}>
                 <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground text-center line-clamp-1`}>{pillar.kongWang}</span>
             </div>
-            <div className={`${isMobile ? 'h-7' : 'h-10'} flex items-center justify-center`}>
+            <div className={`${isMobile ? 'h-7' : 'h-10'} flex items-center justify-center border-b border-border`}>
                 <span className={`${isMobile ? 'text-[12px]' : 'text-sm'} text-muted-foreground text-center line-clamp-1`}>{pillar.naYin}</span>
             </div>
-            <div className={`flex-1 ${isMobile ? 'min-h-[70px] py-1 px-0.5 gap-1' : 'min-h-[100px] px-1 py-1 gap-2'} flex flex-col items-center justify-start`}>
-                {shensha.map((s, i) => (
+            <div className={`flex-1 ${isMobile ? 'py-1 px-0.5 gap-1' : 'px-1 py-1 gap-2'} ${shenshaCollapsed ? '' : isMobile ? 'min-h-[70px]' : 'min-h-[100px]'} flex flex-col items-center justify-start`}>
+                {visibleShensha.map((s, i) => (
                     <span key={i} className={`${isMobile ? 'text-[11px]' : 'text-xs'} text-foreground text-center`}>{s}</span>
                 ))}
             </div>
@@ -92,6 +96,8 @@ export default function CaseStudyBaziChart({
     selectedLiuNianYear,
     isMobile = false,
 }: CaseStudyBaziChartProps) {
+    const [isShenshaCollapsed, setIsShenshaCollapsed] = useState(false);
+
     const pillars = data?.pillars;
     const daYun = data?.daYun;
     const liuNian = data?.liuNian;
@@ -234,30 +240,44 @@ export default function CaseStudyBaziChart({
                         <div className={`${isMobile ? 'min-h-[70px]' : 'min-h-[90px]'} flex items-center justify-center border-b border-border bg-muted/30`}>
                             <span className={`${isMobile ? 'text-[12px]' : 'text-xs'} text-muted-foreground`}>藏干</span>
                         </div>
-                        {['星运', '自坐', '空亡', '纳音'].map((label, idx) => (
+                        {['星运', '自坐', '空亡', '纳音'].map((label) => (
                             <div
                                 key={label}
-                                className={`${isMobile ? 'h-7' : 'h-10'} flex items-center justify-center bg-muted/30 ${idx < 3 ? 'border-b border-border' : ''}`}
+                                className={`${isMobile ? 'h-7' : 'h-10'} flex items-center justify-center border-b border-border bg-muted/30`}
                             >
                                 <span className={`${isMobile ? 'text-[12px]' : 'text-xs'} text-muted-foreground`}>{label}</span>
                             </div>
                         ))}
-                        <div className="flex-1 min-h-[70px] flex items-start justify-center bg-muted/30">
-                            <span className={`${isMobile ? 'text-[12px]' : 'text-xs'} text-muted-foreground`}>神煞</span>
+                        <div className={`flex-1 flex items-start justify-center bg-muted/30 ${isShenshaCollapsed ? '' : isMobile ? 'min-h-[70px]' : 'min-h-[100px]'}`}>
+                            <button
+                                type="button"
+                                onClick={() => setIsShenshaCollapsed((previous) => !previous)}
+                                aria-expanded={!isShenshaCollapsed}
+                                title={isShenshaCollapsed ? '展开全部神煞' : '收起神煞，只显示第一位'}
+                                className={`mt-1 inline-flex items-center justify-center rounded px-1 ${isMobile ? 'text-[12px]' : 'text-xs'} text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40`}
+                            >
+                                {/* 左侧留出与右侧「间距 + 三角」等宽的空位，使「神煞」二字与「纳音」等列标题中心对齐 */}
+                                <span aria-hidden="true" className="w-[13px]" />
+                                <span>神煞</span>
+                                <span
+                                    aria-hidden="true"
+                                    className={`ml-1 w-0 h-0 border-x-[4.5px] border-x-transparent border-t-[5px] border-t-current transition-transform ${isShenshaCollapsed ? '-rotate-90' : ''}`}
+                                />
+                            </button>
                         </div>
                     </div>
 
                     {/* 流年柱（如果选中） */}
                     {liuNianPillar && (
                         <div className="flex-1 border-r border-border">
-                            <SimplePillarCard pillar={liuNianPillar} isYunPillar isMobile={isMobile} shensha={yunShenSha.liuNian} />
+                            <SimplePillarCard pillar={liuNianPillar} isYunPillar isMobile={isMobile} shensha={yunShenSha.liuNian} shenshaCollapsed={isShenshaCollapsed} />
                         </div>
                     )}
 
                     {/* 大运柱（如果选中） */}
                     {daYunPillar && (
                         <div className="flex-1 border-r border-border">
-                            <SimplePillarCard pillar={daYunPillar} isYunPillar isMobile={isMobile} shensha={yunShenSha.daYun} />
+                            <SimplePillarCard pillar={daYunPillar} isYunPillar isMobile={isMobile} shensha={yunShenSha.daYun} shenshaCollapsed={isShenshaCollapsed} />
                         </div>
                     )}
 
@@ -270,6 +290,7 @@ export default function CaseStudyBaziChart({
                                 genderLabel={index === 2 ? genderLabel : undefined}
                                 isMobile={isMobile}
                                 shensha={pillarShenSha[index] ?? []}
+                                shenshaCollapsed={isShenshaCollapsed}
                             />
                         </div>
                     ))}
