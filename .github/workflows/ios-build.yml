@@ -105,6 +105,9 @@ jobs:
           /tmp/ws-venv/bin/python scripts/fake-tauri-ios-server.py &
           SERVER_PID=$!
           sleep 2
+          # 确认伪造服务确实提供了 custom-protocol（xcode-script 靠它决定编译模式）
+          grep -q 'tauri/custom-protocol' scripts/fake-tauri-ios-server.py \
+            || { echo "::error::伪造服务未提供 custom-protocol，产物会是开发模式"; exit 1; }
           printf '127.0.0.1:9876' > "$TMPDIR/com.orbis.app-server-addr"
           SCHEME=$(xcodebuild -list -project "$XCPROJ" | awk '/Schemes:/{flag=1; next} flag && NF {print; exit}' | xargs)
           echo "构建 scheme：$SCHEME"
@@ -121,8 +124,15 @@ jobs:
           # 运行期去找 build.devUrl 而非内嵌资源，装到真机即闪退。
           # 判别特征：启用该 feature 时前端产物会被编进可执行文件，里头能看到 assets/ 下的资源名。
           # 可执行文件名不写死（cargo-mobile2 的产物名随 lib name 变化），从 Info.plist 读。
-          if ! strings -a Payload/*.app/$(/usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" Payload/*.app/Info.plist) 2>/dev/null | grep -q "assets/index-"; then
+          APP_DIR=$(find Payload -maxdepth 1 -name "*.app" | head -1)
+          EXEC_NAME=$(/usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$APP_DIR/Info.plist")
+          test -n "$EXEC_NAME" || { echo "::error::无法从 Info.plist 读取 CFBundleExecutable"; exit 1; }
+          if ! strings -a "$APP_DIR/$EXEC_NAME" | grep -q "assets/index-"; then
             echo "::error::可执行文件未内嵌前端资源，custom-protocol 未生效（装到真机会闪退）"
+            echo "--- 诊断：.app 内容 ---"; ls -la "$APP_DIR" | head -20
+            echo "--- 诊断：可执行文件内是否含前端资源线索 ---"
+            strings -a "$APP_DIR/$EXEC_NAME" | grep -c "index.html" || true
+            strings -a "$APP_DIR/$EXEC_NAME" | grep -o "http://localhost:[0-9]*" | head -3 || true
             exit 1
           fi
           echo "custom-protocol 校验通过：已内嵌前端资源"
