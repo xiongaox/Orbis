@@ -120,8 +120,8 @@ jobs:
           # 若伪造服务的 features 里漏了 tauri/custom-protocol，编出来的是开发模式二进制——
           # 运行期去找 build.devUrl 而非内嵌资源，装到真机即闪退。
           # 判别特征：启用该 feature 时前端产物会被编进可执行文件，里头能看到 assets/ 下的资源名。
-          # 不假定可执行文件名（cargo-mobile2 的产物命名随 lib name 变化），在 .app 内整体搜。
-          if ! strings -a Payload/*.app/* 2>/dev/null | grep -q "assets/index-"; then
+          # 可执行文件名不写死（cargo-mobile2 的产物名随 lib name 变化），从 Info.plist 读。
+          if ! strings -a Payload/*.app/$(/usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" Payload/*.app/Info.plist) 2>/dev/null | grep -q "assets/index-"; then
             echo "::error::可执行文件未内嵌前端资源，custom-protocol 未生效（装到真机会闪退）"
             exit 1
           fi
