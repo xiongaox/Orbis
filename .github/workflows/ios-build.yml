@@ -127,21 +127,23 @@ jobs:
           APP_DIR=$(find build/Payload -maxdepth 1 -name "*.app" | head -1)
           EXEC_NAME=$(/usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$APP_DIR/Info.plist")
           test -n "$EXEC_NAME" || { echo "::error::无法从 Info.plist 读取 CFBundleExecutable"; exit 1; }
-          if strings -a "$APP_DIR/$EXEC_NAME" | grep -q "assets/index-"; then
-            echo "custom-protocol 校验通过：已内嵌前端资源"
+          # 先用 strings 落盘再 grep：本步开头是 set -o pipefail，而 grep -q 命中后
+          # 会提前关闭管道，令上游 strings 收到 SIGPIPE 返回非 0，整个管道因此判负、
+          # 断言在资源其实已内嵌时误报失败（曾连续三次云构建卡在此处）。
+          STRINGS_TMP=$(mktemp)
+          strings -a "$APP_DIR/$EXEC_NAME" > "$STRINGS_TMP" || true
+          if grep -q "assets/index-" "$STRINGS_TMP"; then
+            echo "custom-protocol 校验通过：已内嵌前端资源（$(grep -c "index.html" "$STRINGS_TMP") 处 index.html 引用）"
           else
-            echo "::error::可执行文件未检出内嵌前端资源特征，custom-protocol 可能未生效（装到真机或闪退）"
+            echo "::error::可执行文件未内嵌前端资源，custom-protocol 未生效（装到真机会闪退）"
             echo "--- 诊断：.app 内容 ---"; ls -la "$APP_DIR" | head -20
-            echo "--- 诊断：可执行文件规模 ---"; ls -la "$APP_DIR/$EXEC_NAME"
-            STRINGS_TMP=$(mktemp)
-            strings -a "$APP_DIR/$EXEC_NAME" > "$STRINGS_TMP" || true
             echo "--- 诊断：index.html 出现次数 ---"; grep -c "index.html" "$STRINGS_TMP" || true
-            echo "--- 诊断：assets/ 路径样本 ---"; grep -o "assets/[A-Za-z0-9._-]*" "$STRINGS_TMP" | sort -u | head -10 || true
             echo "--- 诊断：devUrl 常量 ---"; grep -o "http://localhost:[0-9]*" "$STRINGS_TMP" | head -3 || true
-            echo "--- 诊断：tauri 资源相关标记 ---"; grep -c "tauri://" "$STRINGS_TMP" || true
             rm -f "$STRINGS_TMP"
             exit 1
           fi
+          rm -f "$STRINGS_TMP"
+
           cd build
           zip -qry orbis-ios-user-unsigned.ipa Payload
           # 防回归：Xcode 把 Assets.xcassets 编译成 Assets.car，图标不以独立 png 留存，
