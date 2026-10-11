@@ -91,9 +91,21 @@ jobs:
           done
           echo "已覆盖 $COPIED 个图标"
           test "$COPIED" -ge 15 || { echo "::error::覆盖数量异常（$COPIED），图标可能未生效"; exit 1; }
-          # 记录源图指纹，供归档后比对 ipa 内图标是否为项目 logo
-          shasum -a 256 src-tauri/icons/ios/AppIcon-512@2x.png | awk '{print $1}' > /tmp/orbis-icon-sha.txt
-          echo "源图 sha256: $(cat /tmp/orbis-icon-sha.txt)"
+          # 可靠守卫：此时 appiconset 内的文件尚未经 actool 重编码，可直接与源图比哈希。
+          # （归档后 .app 内的图标已被 actool --compress-pngs 转为 CgBI，字节必变，
+          #  故比对只在此处成立。）任一张不一致即说明覆盖未生效。
+          MISMATCH=0
+          for f in src-tauri/icons/ios/*.png; do
+            name=$(basename "$f")
+            [ -f "$APPICONSET/$name" ] || continue
+            A=$(shasum -a 256 "$f" | awk '{print $1}')
+            B=$(shasum -a 256 "$APPICONSET/$name" | awk '{print $1}')
+            if [ "$A" != "$B" ]; then
+              echo "::error::图标未成功覆盖：$name"; MISMATCH=$((MISMATCH+1))
+            fi
+          done
+          test "$MISMATCH" -eq 0 || { echo "::error::$MISMATCH 个图标与源图不一致"; exit 1; }
+          echo "图标覆盖校验通过：$COPIED 张均与 src-tauri/icons/ios/ 一致"
 
       - name: 构建前端产物
         run: npm run build
@@ -164,24 +176,13 @@ jobs:
 
           cd build
           zip -qry orbis-ios-user-unsigned.ipa Payload
-          # 防回归：确认 ipa 内图标确为项目 logo 而非 Tauri 默认图标。
-          # .app 内的 AppIcon*.png 是 iOS 专用 CgBI 变体，直接比字节会不等，
-          # 故用 sips 归一化为标准 PNG 后比对像素内容。
+          # 防回归：确认 .app 内图标资产存在。
+          # 不做像素级比对——actool 以 --compress-pngs 重编码为 CgBI 变体，
+          # 与源图字节/hash 必然不同，据此比对会误报（曾如此误判为图标未生效）。
+          # 图标正确性的可靠守卫是上面「生成 iOS 工程」步：覆盖后逐个校验哈希。
           test -f Payload/*.app/Assets.car || { echo "::error::.app 内缺少 Assets.car，图标未编入"; exit 1; }
-          ICON_IN_APP=$(find Payload -name "AppIcon-76x76@2x.png" -o -name "AppIcon76x76@2x~ipad.png" | head -1)
-          test -n "$ICON_IN_APP" || { echo "::error::.app 内未找到 iPad 图标资源"; exit 1; }
-          ICON_SRC=$(find ../src-tauri/icons/ios -name "AppIcon-76x76@2x.png" | head -1)
-          sips -s format png "$ICON_IN_APP" --out /tmp/icon-in-app.png >/dev/null 2>&1
-          sips -s format png "$ICON_SRC" --out /tmp/icon-src.png >/dev/null 2>&1
-          SHA_IN_APP=$(shasum -a 256 /tmp/icon-in-app.png | awk '{print $1}')
-          SHA_SRC=$(shasum -a 256 /tmp/icon-src.png | awk '{print $1}')
-          if [ "$SHA_IN_APP" != "$SHA_SRC" ]; then
-            echo "::error::ipa 内图标与 src-tauri/icons/ios/ 不一致，桌面图标会是 Tauri 默认图标"
-            echo "  包内: $SHA_IN_APP ($ICON_IN_APP)"
-            echo "  源图: $SHA_SRC ($ICON_SRC)"
-            exit 1
-          fi
-          echo "图标校验通过：ipa 内图标与项目源图一致（$ICON_SRC）"
+          find Payload -name "AppIcon*.png" | head -5
+          echo "图标资产已编入（像素级正确性见覆盖步骤的哈希校验）"
           kill $SERVER_PID || true
 
       - name: 上传未签名 ipa
