@@ -18,6 +18,16 @@ export interface AppChangelogEntry {
 
 export const APP_CHANGELOG: AppChangelogEntry[] = [
     {
+        version: 'v2.1.3',
+        date: '2026-10-11',
+        items: [
+            '【新增】iPad 横屏双击宫位弹出宫位详情：与桌面端手势一致，单击只选中、双击看详情',
+            '【优化】iPad 横屏关闭宫位详情不再取消选中：关掉弹窗后盘面仍停在原宫位，便于对照查看',
+            '【优化】手机端奇门盘的状态标记（击刑、入墓等）与下方长生/十神不再贴死，补了一点行距',
+            '【新增】iOS 提供未签名 ipa 下载：随安装包一同发布在 Release 附件，用爱思助手等工具以个人 Apple ID 签名后即可侧载（详见安装包说明）',
+        ],
+    },
+    {
         version: 'v2.1.2',
         date: '2026-10-11',
         items: [

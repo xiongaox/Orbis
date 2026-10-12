@@ -37,6 +37,12 @@ export default function QimenPadLayout(props: QimenLayoutProps) {
     const [guideOpen, setGuideOpen] = useState(false);
     const openGuide = () => setGuideOpen(true);
 
+    // 双击打开的宫位详情：与单击选中（selectedPalace）分开，手势与桌面端一致——单击选中、双击弹详情
+    const [detailPalacePos, setDetailPalacePos] = useState<number | null>(null);
+    const detailPalaceData = detailPalacePos
+        ? palaces.find(p => p.position === detailPalacePos) || null
+        : null;
+
     return (
         <>
             {/* 左侧信息栏面板 - 竖向紧凑排版 */}
@@ -109,6 +115,11 @@ export default function QimenPadLayout(props: QimenLayoutProps) {
                     header={header}
                     selectedPalace={selectedPalace}
                     onSelectPalace={(position) => setSelectedPalace(position === selectedPalace ? null : position)}
+                    onLongPressPalace={(position) => {
+                        // 双击：选中并打开宫位详情弹窗（与桌面端一致）
+                        setSelectedPalace(position);
+                        setDetailPalacePos(position);
+                    }}
                     onPrevHour={handlePrevHour}
                     onNextHour={handleNextHour}
                     method={paiPanMethod}
@@ -177,18 +188,18 @@ export default function QimenPadLayout(props: QimenLayoutProps) {
                 />
             </SideDrawer>
 
-            {/* Pad 横屏专用宫位详情弹窗 */}
+            {/* Pad 横屏专用宫位详情弹窗：双击触发，关闭只收起详情不影响盘面选中 */}
             <BaseModal
-                isOpen={selectedPalace !== null}
-                onClose={() => setSelectedPalace(null)}
+                isOpen={detailPalacePos !== null}
+                onClose={() => setDetailPalacePos(null)}
                 title="宫位详情"
                 maxWidth="max-w-2xl"
                 bodyClassName="p-0 flex flex-col overflow-hidden"
             >
-                {selectedPalaceData && (
+                {detailPalaceData && (
                     <div className="bg-card flex flex-col h-[75vh]">
                         <QimenPalaceDetail
-                            palace={selectedPalaceData}
+                            palace={detailPalaceData}
                             timeZhi={header?.siZhu?.hour?.slice(1, 2)}
                             zhiShiMen={header?.zhiShi ? header.zhiShi + '门' : ''}
                             zhiFuXing={header?.zhiFu}

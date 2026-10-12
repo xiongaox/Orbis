@@ -4,6 +4,8 @@
 # 注意：不构建管理员版——签发私钥材料（keys/）永不进入任何远端。
 # 私有语料：构建前从 orbis-lore 还原断法/案例正文与加密案例包，见「还原私有语料」步骤。
 # 触发：手动运行，或推送 v* 标签发布时；不随普通提交构建。
+# 产物：推 v* 标签时，未签名 ipa 随其他平台产物一起挂到 GitHub Release 附件列表
+#       （文件名 orbis_<版本>_ios-unsigned.ipa）；同时保留 Actions artifact 供单次构建取用。
 name: ios-build
 
 on:
@@ -11,6 +13,9 @@ on:
   push:
     tags:
       - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
   build-unsigned-ipa:
@@ -175,7 +180,11 @@ jobs:
           rm -f "$STRINGS_TMP"
 
           cd build
-          zip -qry orbis-ios-user-unsigned.ipa Payload
+          # 文件名带版本号，与其他平台产物命名一致（orbis_<版本>_<类型>.<ext>）。
+          # 未签名是这份产物的固有属性，写进文件名以免下载后误以为可直接安装。
+          VERSION=$(node -p "require('../src-tauri/tauri.conf.json').version")
+          IPA="orbis_${VERSION}_ios-unsigned.ipa"
+          zip -qry "$IPA" Payload
           # 防回归：确认 .app 内图标资产存在。
           # 不做像素级比对——actool 以 --compress-pngs 重编码为 CgBI 变体，
           # 与源图字节/hash 必然不同，据此比对会误报（曾如此误判为图标未生效）。
@@ -183,10 +192,24 @@ jobs:
           test -f Payload/*.app/Assets.car || { echo "::error::.app 内缺少 Assets.car，图标未编入"; exit 1; }
           find Payload -name "AppIcon*.png" | head -5
           echo "图标资产已编入（像素级正确性见覆盖步骤的哈希校验）"
+          echo "IPA_PATH=build/$IPA" >> "$GITHUB_ENV"
           kill $SERVER_PID || true
 
       - name: 上传未签名 ipa
         uses: actions/upload-artifact@v4
         with:
           name: orbis-ios-user-unsigned
-          path: build/orbis-ios-user-unsigned.ipa
+          path: ${{ env.IPA_PATH }}
+
+      # 发布到 Release 附件（仅 v* 标签）。
+      # 刻意不传 body_path：Release 正文由 desktop-build 负责写入，这里再写一次会与之
+      # 并发覆盖（正文内容相同，但会造成时序上的无谓竞争）。此步骤只挂附件。
+      # 「未签名、需自行签名」的说明写在 RELEASE_NOTES.md 正文里。
+      - name: 发布未签名 ipa 到 GitHub Release（仅 v* 标签）
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: Orbis ${{ github.ref_name }}
+          files: ${{ env.IPA_PATH }}
