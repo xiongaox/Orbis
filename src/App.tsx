@@ -24,12 +24,14 @@ import { MOBILE_NAV_HOME_CHART, readMobileNavSlots, writeMobileNavSlots } from '
 import {
   LOCKED_CHARTS_STORAGE_KEY,
   LOCKED_CHART_SNAPSHOTS_STORAGE_KEY,
+  LOCKED_CHARTS_MAX,
   readLockedCharts,
   readLockedChartSnapshots,
   writeLockedCharts,
   writeLockedChartSnapshots,
   type LockedChartSnapshots,
   type QimenLockedSnapshot,
+  type CaseStudyLockedSnapshot,
 } from './lib/lockedChartStorage';
 
 function AppShell() {
@@ -37,6 +39,7 @@ function AppShell() {
   const [lockedCharts, setLockedCharts] = useState<ChartType[]>(readLockedCharts);
   const [lockedSnapshots, setLockedSnapshots] = useState<LockedChartSnapshots>(readLockedChartSnapshots);
   const [qimenLiveSnapshot, setQimenLiveSnapshot] = useState<QimenLockedSnapshot | null>(null);
+  const [caseStudyLiveSnapshot, setCaseStudyLiveSnapshot] = useState<CaseStudyLockedSnapshot | null>(null);
   const [showCaseLibraryModal, setShowCaseLibraryModal] = useState(false);
   // 移动端底部导航：可换槽位（首页万年通历固定）与个人中心页开关
   const { isMobile } = useLayoutMode();
@@ -110,6 +113,10 @@ function AppShell() {
     setQimenLiveSnapshot(snapshot);
   }, []);
 
+  const handleCaseStudySnapshotChange = useCallback((snapshot: CaseStudyLockedSnapshot) => {
+    setCaseStudyLiveSnapshot(snapshot);
+  }, []);
+
   const handleToggleChartLock = (chart: ChartType) => {
     const isLocked = lockedCharts.includes(chart);
 
@@ -124,10 +131,7 @@ function AppShell() {
     }
 
     if (chart === 'bazi') {
-      setLockedSnapshots((current) => ({
-        ...current,
-        bazi: bazi.getLockedSnapshot(),
-      }));
+      setLockedSnapshots((current) => ({ ...current, bazi: bazi.getLockedSnapshot() }));
     }
 
     if (chart === 'qimen') {
@@ -145,7 +149,33 @@ function AppShell() {
       }));
     }
 
-    setLockedCharts((current) => [...current, chart]);
+    if (chart === 'xiaoliuren') {
+      // 未访问过案例学习时直接锁定（如移动端重选菜单）：无实时态可用，从默认分类起
+      setLockedSnapshots((current) => ({
+        ...current,
+        xiaoliuren: caseStudyLiveSnapshot ?? {
+          version: 1,
+          capturedAt: new Date().toISOString(),
+          selectedCategory: 'bazi',
+          selectedCaseId: null,
+          currentPage: 1,
+          duanFaFileId: null,
+        },
+      }));
+    }
+
+    // 上限两个：本次锁第 3 个时淘汰最早锁定的模块，其快照在同一个 trim 里清掉
+    const overflow = lockedCharts.length + 1 - LOCKED_CHARTS_MAX;
+    if (overflow > 0) {
+      const dropped = [...lockedCharts, chart].slice(0, overflow);
+      setLockedSnapshots((current) => {
+        const next = { ...current };
+        for (const old of dropped) delete next[old as keyof LockedChartSnapshots];
+        return next;
+      });
+    }
+
+    setLockedCharts((current) => [...current, chart].slice(-LOCKED_CHARTS_MAX));
   };
 
   // 使用提取的 Hook 计算干支留意数据
@@ -193,7 +223,13 @@ function AppShell() {
           />
         );
       case 'xiaoliuren':
-        return <CaseStudyPage categoryIntent={caseStudyIntent} />;
+        return (
+          <CaseStudyPage
+            categoryIntent={caseStudyIntent}
+            lockedSnapshot={lockedSnapshots.xiaoliuren}
+            onSnapshotChange={handleCaseStudySnapshotChange}
+          />
+        );
       case 'wannianli':
         return <WannianliPage onGoPaiPan={handleWannianliGoPaiPan} />;
       case 'sanyuan':

@@ -198,7 +198,7 @@ export default function PalaceCell({
                             <div className={`flex items-center justify-center ${metaGapClass} border-t border-border/40 ${metaRowCls} ${metaCls} text-foreground/40 font-serif`}>
                                 <span {...guideElProps('num')} className={litCls('num')}>{palace.palaceMeta.number}</span>
                                 <span>丨</span>
-                                <span {...guideElProps('wang')} className={litCls('wang')}>{isMobileLayout ? '' : '宫位'}【 {palace.palaceMeta.wangShuai} 】</span>
+                                <span {...guideElProps('wang')} className={litCls('wang')}>{isMobileLayout ? '' : '宫位 '}【 {palace.palaceMeta.wangShuai} 】</span>
                                 <span>丨</span>
                                 <span {...guideElProps('panType')} className={litCls('panType')}>{isMobileLayout ? palace.palaceMeta.panType.replace('盘', '') : palace.palaceMeta.panType}</span>
                             </div>
@@ -319,7 +319,7 @@ export default function PalaceCell({
                     <div className={`flex items-center justify-center ${metaGapClass} border-t border-border/40 ${metaRowCls} ${metaCls} text-foreground/40 font-serif`}>
                         <span {...guideElProps('num')} className={litCls('num')}>{palace.palaceMeta.number}</span>
                         <span>丨</span>
-                        <span {...guideElProps('wang')} className={litCls('wang')}>{isMobileLayout ? '' : '宫位'}【 {palace.palaceMeta.wangShuai} 】</span>
+                        <span {...guideElProps('wang')} className={litCls('wang')}>{isMobileLayout ? '' : '宫位 '}【 {palace.palaceMeta.wangShuai} 】</span>
                         <span>丨</span>
                         <span {...guideElProps('panType')} className={litCls('panType')}>{isMobileLayout ? palace.palaceMeta.panType.replace('盘', '') : palace.palaceMeta.panType}</span>
                     </div>

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { useCaseStudy, ALL_CASES } from './hooks/useCaseStudy';
 import { isActivationSupported } from '../../../services/publicCaseLibraryService';
@@ -6,6 +6,7 @@ import { useReadingProgress } from './hooks/useReadingProgress';
 import { useDuanFa } from './hooks/useDuanFa';
 import { useCaseStudyBaziData } from './hooks/useCaseStudyBaziData';
 import { DUANFA_FILES } from '../../../lib/caseStudy/duanfaData';
+import type { CaseStudyLockedSnapshot } from '../../../lib/lockedChartStorage';
 
 import ActivationModal from './ActivationModal';
 import CustomJuModal from '../Qimen/components/CustomJuModal';
@@ -28,16 +29,20 @@ export interface CaseStudyCategoryIntent {
 interface CaseStudyPageProps {
     /** 外部入口（移动端个人中心「案例 / 断法」）指定的分类；seq 变化时应用 */
     categoryIntent?: CaseStudyCategoryIntent | null;
+    /** 模块锁定恢复快照（切走再回来 / 重启后回到原文章） */
+    lockedSnapshot?: CaseStudyLockedSnapshot;
+    /** 上报实时导航态，供锁定瞬间捕获快照 */
+    onSnapshotChange?: (snapshot: CaseStudyLockedSnapshot) => void;
 }
 
-export default function CaseStudyPage({ categoryIntent }: CaseStudyPageProps) {
+export default function CaseStudyPage({ categoryIntent, lockedSnapshot, onSnapshotChange }: CaseStudyPageProps) {
     const { isPadLandscape, useDesktopLayout } = useLayoutMode();
     const isMobile = !useDesktopLayout && !isPadLandscape;
 
     // Core state hooks
-    const caseStudyState = useCaseStudy();
+    const caseStudyState = useCaseStudy(lockedSnapshot);
     const { setSelectedCategory } = caseStudyState;
-    const duanFa = useDuanFa();
+    const duanFa = useDuanFa(lockedSnapshot?.duanFaFileId);
     // 试读片段不参与排盘：盘面在激活前不对试读条目开放
     const baziData = useCaseStudyBaziData(caseStudyState.isPreviewMode ? null : caseStudyState.activeCase, caseStudyState.activeChartIndex);
 
@@ -48,6 +53,26 @@ export default function CaseStudyPage({ categoryIntent }: CaseStudyPageProps) {
     const [isChartPanelOpen, setIsChartPanelOpen] = useState(false);
 
     const openActivation = useCallback(() => setIsActivationModalOpen(true), []);
+
+    // 锁定时捕获的导航态（分类 / 当前文章 / 列表页码 / 断法选中文件）；
+    // 正文与排盘结果不入快照，按需重新加载
+    const liveSnapshot = useMemo((): CaseStudyLockedSnapshot => ({
+        version: 1,
+        capturedAt: new Date().toISOString(),
+        selectedCategory: caseStudyState.selectedCategory,
+        selectedCaseId: caseStudyState.selectedCaseId,
+        currentPage: caseStudyState.currentPage,
+        duanFaFileId: duanFa.selectedFileId,
+    }), [
+        caseStudyState.selectedCategory,
+        caseStudyState.selectedCaseId,
+        caseStudyState.currentPage,
+        duanFa.selectedFileId,
+    ]);
+
+    useEffect(() => {
+        onSnapshotChange?.(liveSnapshot);
+    }, [liveSnapshot, onSnapshotChange]);
 
     // 移除激活：破坏性操作，必须二次确认后再清空本地案例库
     const { toast, showToast } = useToast();

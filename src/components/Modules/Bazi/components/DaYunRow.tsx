@@ -7,11 +7,13 @@ interface DaYunItem {
     dizhi: string;
     startAge: number;
     startYear: number;
+    ganZhi?: string;
 }
 
 interface DaYunRowProps {
     displayDaYun: DaYunItem[];
     activeDaYunIndex: number;
+    birthYear: number;
     dayMaster: string;
     daYunPage: number;
     totalDaYunPages: number;
@@ -23,6 +25,7 @@ interface DaYunRowProps {
 export default function DaYunRow({
     displayDaYun,
     activeDaYunIndex,
+    birthYear,
     dayMaster,
     daYunPage,
     totalDaYunPages,
@@ -36,19 +39,17 @@ export default function DaYunRow({
                 {/* 左侧标题区 */}
                 <div className={`${isMobileLayout ? 'w-7' : 'w-10'} bg-secondary/30 border-r border-border flex flex-col items-center justify-center gap-0.5`}>
                     {/* 上一页按钮 */}
-                    {totalDaYunPages > 1 && (
-                        <button
-                            onClick={() => onPageChange(Math.max(0, daYunPage - 1))}
-                            disabled={daYunPage === 0}
-                            className={`w-5 h-4 flex items-center justify-center rounded text-[10px] transition-colors
+                    <button
+                        onClick={() => onPageChange(Math.max(0, daYunPage - 1))}
+                        disabled={daYunPage === 0}
+                        className={`w-5 h-4 flex items-center justify-center rounded text-[10px] transition-colors
                 ${daYunPage === 0
-                                    ? 'text-muted-foreground/30 cursor-not-allowed'
-                                    : 'text-muted-foreground hover:bg-primary/20 hover:text-primary cursor-pointer'}`}
-                            title={daYunPage > 0 ? `上一页 (${daYunPage}/${totalDaYunPages})` : '已是第一页'}
-                        >
-                            ▲
-                        </button>
-                    )}
+                                ? 'text-muted-foreground/30 cursor-not-allowed'
+                                : 'text-muted-foreground hover:bg-primary/20 hover:text-primary cursor-pointer'}`}
+                        title={daYunPage > 0 ? `上一页 (${daYunPage}/${totalDaYunPages})` : '已是第一页'}
+                    >
+                        ▲
+                    </button>
 
                     {/* 大运标题 */}
                     <div className={`${isMobileLayout ? 'text-sm' : 'text-base'} text-foreground/70 font-medium leading-none flex flex-col items-center gap-0.5`}>
@@ -57,43 +58,46 @@ export default function DaYunRow({
                     </div>
 
                     {/* 页码提示 */}
-                    {totalDaYunPages > 1 && (
-                        <div className="text-[9px] text-muted-foreground/60 leading-none">
-                            {daYunPage + 1}/{totalDaYunPages}
-                        </div>
-                    )}
+                    <div className="text-[9px] text-muted-foreground/60 leading-none">
+                        {daYunPage + 1}/{totalDaYunPages}
+                    </div>
 
                     {/* 下一页按钮 */}
-                    {totalDaYunPages > 1 && (
-                        <button
-                            onClick={() => onPageChange(Math.min(totalDaYunPages - 1, daYunPage + 1))}
-                            disabled={daYunPage >= totalDaYunPages - 1}
-                            className={`w-5 h-4 flex items-center justify-center rounded text-[10px] transition-colors
+                    <button
+                        onClick={() => onPageChange(Math.min(totalDaYunPages - 1, daYunPage + 1))}
+                        disabled={daYunPage >= totalDaYunPages - 1}
+                        className={`w-5 h-4 flex items-center justify-center rounded text-[10px] transition-colors
                 ${daYunPage >= totalDaYunPages - 1
-                                    ? 'text-muted-foreground/30 cursor-not-allowed'
-                                    : 'text-muted-foreground hover:bg-primary/20 hover:text-primary cursor-pointer'}`}
-                            title={daYunPage < totalDaYunPages - 1 ? `下一页 (${daYunPage + 2}/${totalDaYunPages})` : '已是最后一页'}
-                        >
-                            ▼
-                        </button>
-                    )}
+                                ? 'text-muted-foreground/30 cursor-not-allowed'
+                                : 'text-muted-foreground hover:bg-primary/20 hover:text-primary cursor-pointer'}`}
+                        title={daYunPage < totalDaYunPages - 1 ? `下一页 (${daYunPage + 2}/${totalDaYunPages})` : '已是最后一页'}
+                    >
+                        ▼
+                    </button>
                 </div>
 
                 {/* 大运格子 */}
                 <div className="flex-1 min-w-0 overflow-x-auto flex flex-col">
                     <div className="grid grid-cols-10 min-w-0 w-full flex-1">
                         {displayDaYun.map((item) => {
+                            // 空占位格：只保留网格边框
+                            if (!item.ganZhi) {
+                                return <div key={`dayun-${item.index}`} className="min-w-0 border-r border-border last:border-r-0" />;
+                            }
                             const isActive = item.index === activeDaYunIndex;
+                            // 出生前的大运：可点击查看对应流年，未选中时整体降低透明度以示区别
+                            const isPreBirth = birthYear > 0 && item.startYear < birthYear;
+                            const dimClass = isPreBirth && !isActive ? 'opacity-40' : '';
                             return (
                                 <div
                                     key={`dayun-${item.index}`}
-                                    className={`min-w-0 ${isMobileLayout ? 'px-0.5 py-1.5' : 'p-3'} border-r border-border last:border-r-0 cursor-pointer transition-colors hover:bg-primary/10 h-full flex flex-col justify-center ${isActive ? 'bg-primary/5' : ''}`}
+                                    className={`min-w-0 ${isMobileLayout ? 'px-0.5 py-1.5' : 'p-3'} border-r border-border last:border-r-0 cursor-pointer transition-colors hover:bg-primary/10 h-full flex flex-col justify-center ${dimClass} ${isActive ? 'bg-primary/5' : ''}`}
                                     onClick={() => onDaYunClick(item.index)}
                                 >
                                     <div className="flex flex-col items-center text-center">
                                         <div className="flex flex-col items-center gap-1">
                                             <div className={`${isMobileLayout ? 'text-xs' : 'text-sm'} text-muted-foreground leading-snug whitespace-nowrap`}>
-                                                {item.startAge}岁
+                                                {isPreBirth ? 0 : item.startAge}岁
                                             </div>
                                             <div className={`${isMobileLayout ? 'text-xs' : 'text-sm'} text-muted-foreground leading-snug whitespace-nowrap`}>
                                                 {item.startYear}

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import type { BaziApiResponse } from '../../../types/bazi';
+import type { BaziApiResponse, DaYunPeriod } from '../../../types/bazi';
 import { checkLiunianStatus } from './utils/dayunLiunianUtils';
 
 // 子组件导入
@@ -54,19 +54,50 @@ export default function DayunLiunianPanel({
   const pillars = data?.pillars ?? EMPTY_PILLARS;
   const dayMaster = pillars[2]?.tiangan || '丙';
 
-  // 大运分页显示
-  const displayDaYun = useMemo(() => {
-    const startIdx = daYunPage * 10;
-    return daYun.slice(startIdx, startIdx + 10);
-  }, [daYun, daYunPage]);
+  // 出生前大运占位，保证每页都能凑满 10 格（向前翻页时不会出现空档）
+  const blankDaYun = (index: number): DaYunPeriod => ({
+    index,
+    startYear: 0,
+    endYear: 0,
+    startAge: 0,
+    endAge: 0,
+    ganZhi: '',
+    tiangan: '',
+    dizhi: '',
+  });
 
-  const totalDaYunPages = useMemo(() => Math.ceil(daYun.length / 10), [daYun]);
+  // 出生前大运单独成页（页码 -1）：默认首页仍以起运前的小运段打头，向上翻才进入出生前一页
+  const preBirthDaYun = useMemo(() => daYun.filter(dy => dy.index < 0), [daYun]);
+  const mainDaYun = useMemo(() => daYun.filter(dy => dy.index >= 0), [daYun]);
+  const hasPreBirthPage = preBirthDaYun.length > 0;
+
+  const mainTotalPages = useMemo(() => Math.max(1, Math.ceil(mainDaYun.length / 10)), [mainDaYun]);
+  const totalDaYunPages = mainTotalPages + (hasPreBirthPage ? 1 : 0);
+  // 展示用页码（0 起）：出生前页为 0，其后才是原本的第一页
+  const daYunPageIndex = daYunPage + (hasPreBirthPage ? 1 : 0);
+
+  // 大运分页显示（补足 10 格占位，保持网格列数稳定）
+  const displayDaYun = useMemo(() => {
+    const source = daYunPage < 0 ? preBirthDaYun : mainDaYun;
+    const startIdx = (daYunPage < 0 ? 0 : daYunPage * 10);
+    const page = source.slice(startIdx, startIdx + 10);
+    for (let i = page.length; i < 10; i++) page.push(blankDaYun(-100 - i));
+    return page;
+  }, [daYunPage, preBirthDaYun, mainDaYun]);
+
+  const handleDaYunPageChange = (pageIndex: number) => {
+    const next = Math.min(totalDaYunPages - 1, Math.max(0, pageIndex));
+    setDaYunPage(hasPreBirthPage ? next - 1 : next);
+  };
 
   // 自动确定当前大运
   const autoDaYunIndex = useMemo(() => {
     const found = daYun.find(dy => currentYear >= dy.startYear && currentYear <= dy.endYear);
     return found?.index ?? 1;
   }, [daYun, currentYear]);
+
+  // 出生年：早于该年的大运属于命主出生前，界面降低透明度
+  const birthYear = useMemo(() => parseInt(data?.solarDate ?? '') || 0, [data]);
 
   const activeDaYunIndex = selectedDaYunIndex ?? autoDaYunIndex;
 
@@ -142,11 +173,11 @@ export default function DayunLiunianPanel({
   // 否则"当前流年"跳转后大运/流年行会停留在旧分页上看不到目标年份。
   useEffect(() => {
     if (selectedDaYunIndex === null || selectedDaYunIndex === undefined) return;
-    const targetIdx = daYun.findIndex(d => d.index === selectedDaYunIndex);
+    const targetIdx = mainDaYun.findIndex(d => d.index === selectedDaYunIndex);
     if (targetIdx < 0) return;
     const targetPage = Math.floor(targetIdx / 10);
     setDaYunPage(prev => (prev === targetPage ? prev : targetPage));
-  }, [selectedDaYunIndex, daYun]);
+  }, [selectedDaYunIndex, mainDaYun]);
 
   // 处理大运点击
   const handleDaYunClick = (index: number) => {
@@ -199,11 +230,12 @@ export default function DayunLiunianPanel({
         <DaYunRow
           displayDaYun={displayDaYun}
           activeDaYunIndex={activeDaYunIndex}
+          birthYear={birthYear}
           dayMaster={dayMaster}
-          daYunPage={daYunPage}
+          daYunPage={daYunPageIndex}
           totalDaYunPages={totalDaYunPages}
           onDaYunClick={handleDaYunClick}
-          onPageChange={setDaYunPage}
+          onPageChange={handleDaYunPageChange}
           isMobileLayout={isMobileLayout}
         />
 

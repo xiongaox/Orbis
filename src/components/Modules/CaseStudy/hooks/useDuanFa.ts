@@ -5,7 +5,7 @@ import {
     type DuanFaOutlineItem
 } from '../../../../lib/caseStudy/duanfaData';
 
-export function useDuanFa() {
+export function useDuanFa(initialFileId?: string | null) {
     // 当前选中的术数分类 ID
     const [selectedShuShuId, setSelectedShuShuId] = useState<string>('qimen');
 
@@ -19,8 +19,9 @@ export function useDuanFa() {
         return [];
     }, [selectedShuShuId]);
 
-    // 当前选中的文件 ID
+    // 当前选中的文件 ID（锁定恢复到断法时取快照值，文件不存在则回落首篇）
     const [selectedFileId, setSelectedFileId] = useState<string | null>(() => {
+        if (initialFileId && DUANFA_FILES.some(f => f.id === initialFileId)) return initialFileId;
         return DUANFA_FILES[0]?.id ?? null;
     });
 

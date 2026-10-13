@@ -71,6 +71,7 @@ export default function MobileTabBar({
     // 重选菜单双模式：案例学习内为分类导航，其余为术数模块网格；打开时按当前模块决定
     const [casestudyMode, setCasestudyMode] = useState(false);
     const isHomeLevel = activeChart === MOBILE_NAV_HOME_CHART || profileOpen;
+    const caseStudyLocked = lockedCharts.includes('xiaoliuren');
     // 已锁定盘面的模块，按可锁定顺序稳定排列（八字 · 奇门），切换键据此轮换
     const lockedList = useMemo(
         () => LOCKABLE_CHARTS.filter((chart) => lockedCharts.includes(chart)),
@@ -219,6 +220,23 @@ export default function MobileTabBar({
                             >
                                 切换术数
                             </button>
+                            {/* 案例学习也能锁定：锁定后切去查资料再回来，仍停在当前分类与文章 */}
+                            <button
+                                type="button"
+                                onClick={() => onToggleChartLock('xiaoliuren')}
+                                aria-pressed={caseStudyLocked}
+                                aria-label={caseStudyLocked ? '解除案例学习锁定' : '锁定案例学习'}
+                                title={caseStudyLocked ? '解除锁定' : '锁定：切走再回来仍停在当前分类与文章'}
+                                className={`w-10 h-10 shrink-0 rounded-lg border flex items-center justify-center transition-colors ${
+                                    caseStudyLocked
+                                        ? 'border-primary/50 bg-primary/10 text-primary hover:bg-primary/15'
+                                        : 'border-border bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary'
+                                }`}
+                            >
+                                {caseStudyLocked
+                                    ? <LockKeyhole className="w-4 h-4" />
+                                    : <LockKeyholeOpen className="w-4 h-4" />}
+                            </button>
                         </div>
 
                         <div className="mt-3 grid grid-cols-3 gap-2">
@@ -251,8 +269,8 @@ export default function MobileTabBar({
                             ].map((id) => {
                                 const isHome = id === MOBILE_NAV_HOME_CHART;
                                 const isIndependent = MOBILE_NAV_INDEPENDENT.some((item) => item.id === id);
-                                // 锁键只管盘面锁定；首页与案例学习不可锁定，只显示归属标签
-                                const lockable = !isHome && !isIndependent;
+                                // 锁键只管盘面锁定；首页不可锁定（案例学习与术数一样可锁），只显示归属标签
+                                const lockable = !isHome;
                                 const locked = lockedCharts.includes(id);
                                 const active = id === activeChart && !profileOpen;
                                 return (

@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
-import { AUTHOR_MAP } from '../../../../lib/caseStudy/constants';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { AUTHOR_MAP, CATEGORIES } from '../../../../lib/caseStudy/constants';
+import type { CaseStudyLockedSnapshot } from '../../../../lib/lockedChartStorage';
 import {
     CASE_LIBRARY_TOTAL,
     CASE_PREVIEWS,
@@ -69,14 +70,24 @@ const PREVIEW_CASES: CaseItem[] = sortCases(CASE_PREVIEWS.map((preview) => ({
 
 
 
-export function useCaseStudy() {
+export function useCaseStudy(snapshot?: CaseStudyLockedSnapshot | null) {
+    // 锁定快照只在挂载时取一次：锁定态下组件保持挂载，解锁后重新锁定走的是活状态，无需再恢复
+    const initialSnapshotRef = useRef(snapshot);
+    const initialSnapshot = initialSnapshotRef.current;
+    // 案例目录是异步加载的，首帧 allCases 为空；文章/页码必须等目录就绪后再落位一次，
+    // 否则会被下方「分类变化重置」的 effect 冲成默认值
+    const pendingRestoreRef = useRef<CaseStudyLockedSnapshot | null>(initialSnapshot ?? null);
+
     // 基础状态
     const [allCases, setAllCases] = useState<CaseItem[]>([]);
-    const [selectedCategory, setSelectedCategory] = useState<string>('bazi');
+    const [selectedCategory, setSelectedCategory] = useState<string>(() => {
+        const category = initialSnapshot?.selectedCategory;
+        return category && CATEGORIES.some((item) => item.id === category) ? category : 'bazi';
+    });
     const [selectedDayMaster, setSelectedDayMaster] = useState<string>('all');
     const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(() => Math.max(1, initialSnapshot?.currentPage ?? 1));
 
     // 多排盘支持
     const [activeChartIndex, setActiveChartIndex] = useState<number>(0);
@@ -335,8 +346,25 @@ export function useCaseStudy() {
         setDaYunPage(0);
     }, [selectedCaseId]);
 
+    // 锁定恢复：目录异步就绪后按快照落位一次（只消费一次）；
+    // 与下方重置 effect 同轮触发时由 pendingRestoreRef 让位，避免被重置成默认值
+    useEffect(() => {
+        const pending = pendingRestoreRef.current;
+        if (!pending || allCases.length === 0) return;
+        pendingRestoreRef.current = null;
+        setSelectedCaseId(
+            pending.selectedCaseId && allCases.some((item) => item.id === pending.selectedCaseId && item.category === selectedCategory)
+                ? pending.selectedCaseId
+                : allCases.find((item) => item.category === selectedCategory)?.id ?? null,
+        );
+        setCurrentPage(Math.max(1, pending.currentPage));
+    }, [allCases, selectedCategory]);
+
     // 分类切换时重置筛选，并默认选中第一篇文章
     useEffect(() => {
+        // 锁定恢复尚未落位（案例目录仍在加载）时交给上面的恢复 effect
+        if (pendingRestoreRef.current) return;
+
         setSelectedDayMaster('all');
         setSelectedAuthor(null);
         setSearchTerm('');

@@ -34,7 +34,7 @@ const navItems: NavItemType[] = [
   // ponytail: 三元天星暂不对外展示（作者自研中），代码与路由保留在 dev 分支；
   // 若 main 需要恢复，把下面这行放回原位即可。
   // { id: 'sanyuan', name: '三元天星', icon: Star, priority: 'core' },
-  { id: 'xiaoliuren', name: '案例学习', icon: Sun, priority: 'core' },
+  { id: 'xiaoliuren', name: '案例学习', icon: Sun, priority: 'core', lockable: true },
 ];
 
 interface NavbarProps {

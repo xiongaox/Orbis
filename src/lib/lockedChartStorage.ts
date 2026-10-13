@@ -5,7 +5,10 @@ import type { Case, ChartType } from '../types';
 export const LOCKED_CHARTS_STORAGE_KEY = 'orbis_locked_charts';
 export const LOCKED_CHART_SNAPSHOTS_STORAGE_KEY = 'orbis_locked_chart_snapshots';
 
-export const LOCKABLE_CHARTS: ChartType[] = ['bazi', 'qimen'];
+export const LOCKABLE_CHARTS: ChartType[] = ['bazi', 'qimen', 'xiaoliuren'];
+
+/** 同时可锁定的模块上限：锁第 3 个时淘汰最早锁定的那个 */
+export const LOCKED_CHARTS_MAX = 2;
 
 export interface BaziLockedSnapshot {
     version: 1;
@@ -27,9 +30,21 @@ export interface QimenLockedSnapshot {
     customJu: number;
 }
 
+/** 案例学习锁定快照：只存导航态（分类 / 当前文章 / 列表页码 / 断法选中文件），
+ *  正文与排盘结果会按需重新加载，阅读滚动位置由 useReadingProgress 另行持久化 */
+export interface CaseStudyLockedSnapshot {
+    version: 1;
+    capturedAt: string;
+    selectedCategory: string;
+    selectedCaseId: string | null;
+    currentPage: number;
+    duanFaFileId: string | null;
+}
+
 export interface LockedChartSnapshots {
     bazi?: BaziLockedSnapshot;
     qimen?: QimenLockedSnapshot;
+    xiaoliuren?: CaseStudyLockedSnapshot;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -68,6 +83,16 @@ function isQimenSnapshot(value: unknown): value is QimenLockedSnapshot {
         && (value.currentCase === null || isRecord(value.currentCase));
 }
 
+function isCaseStudySnapshot(value: unknown): value is CaseStudyLockedSnapshot {
+    return isRecord(value)
+        && value.version === 1
+        && typeof value.capturedAt === 'string'
+        && typeof value.selectedCategory === 'string'
+        && typeof value.currentPage === 'number'
+        && (typeof value.selectedCaseId === 'string' || value.selectedCaseId === null)
+        && (typeof value.duanFaFileId === 'string' || value.duanFaFileId === null);
+}
+
 export function readLockedCharts(): ChartType[] {
     const stored = readJson(LOCKED_CHARTS_STORAGE_KEY);
     return Array.isArray(stored)
@@ -86,6 +111,7 @@ export function readLockedChartSnapshots(): LockedChartSnapshots {
     return {
         bazi: isBaziSnapshot(stored.bazi) ? stored.bazi : undefined,
         qimen: isQimenSnapshot(stored.qimen) ? stored.qimen : undefined,
+        xiaoliuren: isCaseStudySnapshot(stored.xiaoliuren) ? stored.xiaoliuren : undefined,
     };
 }
 

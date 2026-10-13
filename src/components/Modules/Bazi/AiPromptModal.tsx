@@ -122,7 +122,8 @@ export default function AiPromptModal({
         }
 
         if (includeDaYun && data.daYun && data.daYun.length > 0) {
-            const validDaYun = data.daYun.filter(d => d.startAge <= 100);
+            // 排除出生前大运（负索引/负年龄），AI 提示词只保留命主本人岁运
+            const validDaYun = data.daYun.filter(d => d.index >= 0 && d.startAge <= 100);
             text += `- 大运排布：${validDaYun.map(d => `${d.ganZhi}(${d.startAge}岁)`).join('  ')}\n`;
 
             if (selectedDaYunIndex !== undefined && selectedDaYunIndex !== null) {

@@ -178,7 +178,9 @@ export default function QimenHeader({
                     {/* 紧凑档（案例学习桌面窄侧栏）：四柱与信息区同行并排，顶部对齐
                         （items-stretch）——信息区下方有翻页小点，居中对齐会把四柱压低。
                         移动端与整页排盘保持原有排布，不受紧凑档影响。 */}
-                    <div className={`flex ${compact && !isMobileLayout ? 'w-1/2 shrink-0 items-center' : 'gap-5 2xl:gap-6'}`}>
+                    {/* 四柱之间：移动端屏幕窄，原来 gap-5(20px) 偏松而列内又挤，
+                        故缩到 gap-2.5 把余量让给列内标签与柱字的间距（见下方 pr）。 */}
+                    <div className={`flex ${compact && !isMobileLayout ? 'w-1/2 shrink-0 items-center' : isMobileLayout ? 'gap-2.5' : 'gap-5 2xl:gap-6'}`}>
                         {(['year', 'month', 'day', 'hour'] as const).map((key) => {
                             const labels = { year: '年', month: '月', day: '日', hour: '时' };
                             const stem = header.siZhu[key][0];
@@ -186,10 +188,14 @@ export default function QimenHeader({
                             const isDayOrHour = key === 'day' || key === 'hour';
                             const isJia = stem === '甲';
                             return (
-                                <div key={key} className={`flex flex-col items-center relative ${compact && !isMobileLayout ? 'flex-1 pr-3.5' : isMobileLayout ? 'pr-4' : 'pr-3 2xl:pr-4'}`}>
+                                // 移动端列内右内边距放宽到 pr-5(20px)：标签是绝对定位压在这一列里，
+                                // 内边距不足时「年/月/日/时」会紧贴柱字（原 pr-4 即如此）。
+                                <div key={key} className={`flex flex-col items-center relative ${compact && !isMobileLayout ? 'flex-1 pr-4' : isMobileLayout ? 'pr-5' : 'pr-4 2xl:pr-5'}`}>
                                     <span className={`${compact && !isMobileLayout ? 'text-lg' : 'text-base 2xl:text-2xl'} font-serif leading-none ${isMobileLayout ? 'mb-1' : 'mb-0.5 2xl:mb-1'} ${isDayOrHour ? 'text-primary font-bold' : 'text-foreground'}`}>{stem}</span>
                                     <span className={`${compact && !isMobileLayout ? 'text-lg' : 'text-base 2xl:text-2xl'} font-serif leading-none ${isDayOrHour && isJia ? 'text-primary font-bold' : 'text-foreground'}`}>{branch}</span>
-                                    <span className={`absolute top-1/2 -translate-y-1/2 right-0 ${compact && !isMobileLayout ? 'text-sm' : 'text-xs 2xl:text-sm'} text-muted-foreground/60 font-serif transform scale-90 origin-right`}>{labels[key]}</span>
+                                    {/* 年/月/日/时四字标签：比柱字小一档但仍需清晰可辨，
+                                        故去掉原先的 scale-90 再缩一档（12px 实缩后约 11px，偏小） */}
+                                    <span className={`absolute top-1/2 -translate-y-1/2 right-0 ${compact && !isMobileLayout ? 'text-base' : 'text-sm 2xl:text-base'} text-muted-foreground/60 font-serif origin-right`}>{labels[key]}</span>
                                 </div>
                             );
                         })}

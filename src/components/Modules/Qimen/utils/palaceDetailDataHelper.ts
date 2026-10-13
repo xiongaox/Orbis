@@ -24,6 +24,56 @@ export interface DetailTag {
     tone?: 'ji' | 'xiong' | 'ping';
 }
 
+/** 宫位凶象状态 → ju_pattern 词条：菜单项点开即该状态的释义，文案不在 UI 层硬编 */
+const STATUS_PATTERN_KEYS: Record<string, string[]> = {
+    '门迫': ['门迫'],
+    '击刑': ['六仪击刑'],
+    '入墓': ['入墓'],
+    // 刑墓同宫：两条都给出
+    '刑+墓': ['六仪击刑', '入墓'],
+};
+
+/** 词条字段有的是字符串、有的是分条对象（如驿马的「应用」），只取字符串 */
+function asText(value: unknown): string {
+    return typeof value === 'string' ? value : '';
+}
+
+/**
+ * 取宫位状态的释义块（门迫 / 击刑 / 入墓 / 刑+墓），返回可拼进详情正文的「【字段】\n正文」块。
+ * 标题只留字段名（定义/含义/辨析/详解/应用）；刑墓同宫时两个词条的同名字段合到一块，标题不重复。
+ * @param statusLabel 状态菜单项的标签
+ * @param stem 该状态命中的干：击刑按干取「六仪击刑」详解里的对应分条
+ */
+export function getPalaceStatusGuideBlocks(statusLabel: string, stem?: string): string[] {
+    const keys = STATUS_PATTERN_KEYS[statusLabel];
+    if (!keys) return [];
+
+    const sections = new Map<string, string[]>();
+    const collect = (name: string, value: string) => {
+        if (!value) return;
+        sections.set(name, [...(sections.get(name) ?? []), value]);
+    };
+
+    for (const key of keys) {
+        const d = QimenDataService.getJuPattern(key);
+        if (!d) continue;
+
+        // 六仪击刑的详解按六仪分条，落到具体哪一仪时只取该条，避免六条全铺开
+        const detail = stem && d.详解 && typeof d.详解 === 'object'
+            ? Object.entries(d.详解 as Record<string, string>).find(([name]) => name.includes(stem))?.[1]
+            : undefined;
+
+        collect('定义', asText(d.定义概念) || asText(d.定义));
+        collect('含义', asText(d.含义));
+        collect('辨析', asText(d.辨析));
+        collect('详解', detail ?? '');
+        collect('应用', asText(d.应用));
+    }
+
+    // 块内用单换行连接，块与块之间才是空行（渲染层按 \n\n 切块）
+    return Array.from(sections, ([name, values]) => `【${name}】\n${values.join('\n')}`);
+}
+
 export interface DetailDisplayData {
     title: string;
     subTitle: string;

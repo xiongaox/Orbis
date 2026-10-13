@@ -4,7 +4,7 @@ import type { QimenPalace } from './QimenChart';
 import { QimenDataService } from '../../../lib/csp-qimen/qimenDataService';
 import { detectPalacePatterns, type PatternContext } from '../../../lib/csp-qimen/patternDetector';
 import { getMenPoStatus, getTianPanStatus } from '../../../lib/csp-qimen/qimenStatusUtils';
-import { getGanLabel, getDetailDisplayData } from './utils/palaceDetailDataHelper';
+import { getGanLabel, getDetailDisplayData, getPalaceStatusGuideBlocks } from './utils/palaceDetailDataHelper';
 
 interface QimenPalaceDetailProps {
     palace: QimenPalace | null;
@@ -24,6 +24,39 @@ interface PalaceStatusNotice {
         backgroundColor: string;
         borderColor: string;
     };
+}
+
+/** 宫位凶象菜单项：宫位列左栏的独立入口（门迫 / 击刑 / 入墓 / 刑+墓） */
+interface PalaceStatusItem {
+    id: string;
+    label: string;
+    /** 命中的干：击刑取释义时按干落到「六仪击刑」详解里的对应分条 */
+    stem?: string;
+}
+
+/** 汇总宫位本身的凶象（与当前选中哪个元素无关） */
+function getPalaceStatusItems(palace: QimenPalace): PalaceStatusItem[] {
+    const items: PalaceStatusItem[] = [];
+
+    // 门迫：门五行克落宫五行
+    if (getMenPoStatus(palace.men, palace.position).isPo) {
+        items.push({ id: 'status_menPo', label: '门迫' });
+    }
+
+    // 击刑/入墓：天盘干 → 地盘干 → 寄干，同一状态只列一次（释义按首个命中的干取）
+    const seen = new Set<string>();
+    for (const stem of [palace.tianPan, palace.diPan, palace.jiGongTianPan, palace.jiGongDiPan]) {
+        if (!stem) continue;
+        const status = getTianPanStatus(stem, palace.position).status;
+        if (status === 'normal') continue;
+
+        const label = status === 'jiXingRuMu' ? '刑+墓' : status === 'jiXing' ? '击刑' : '入墓';
+        if (seen.has(label)) continue;
+        seen.add(label);
+        items.push({ id: `status_${status}`, label, stem });
+    }
+
+    return items;
 }
 
 const STATUS_NOTICE_STYLES = {
@@ -120,7 +153,15 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
 
     // 构建左侧菜单项
     const originalMen = QimenDataService.getOriginalMen(palace.position);
+    // 宫位凶象（门迫/击刑/入墓/刑+墓）在最前独立成项，点开即为该状态的释义
+    const statusItems = getPalaceStatusItems(palace);
     const menuItems = [
+        ...statusItems.map((status) => ({
+            id: status.id,
+            label: status.label,
+            type: '凶象',
+            stem: status.stem,
+        })),
         palace.shen && { id: 'shen', label: palace.shen, type: '八神' },
         // 禽芮代表天禽+天芮两颗星，拆为两个独立列表项
         ...(palace.xing === '禽芮' ? [
@@ -172,12 +213,20 @@ export default function QimenPalaceDetail({ palace, timeZhi, zhiShiMen, zhiFuXin
             { id: 'xing_time_qin', label: `天禽值${timeZhi}时`, type: '九星值时' },
             { id: 'xing_time_rui', label: `天芮值${timeZhi}时`, type: '九星值时' },
         ] : (palace.xing && timeZhi) ? [{ id: 'xing_time', label: `${palace.xing}值${timeZhi}时`, type: '九星值时' }] : []),
-    ].filter(Boolean) as { id: string; label: string; displayLabel?: string; type: string }[];
+    ].filter(Boolean) as { id: string; label: string; displayLabel?: string; type: string; stem?: string }[];
 
     const activeItem = menuItems.find(i => i.id === selectedTab) || menuItems[0];
 
     const detailData = activeItem
-        ? getDetailDisplayData(activeItem.type, activeItem.label, palace.position, timeZhi)
+        ? activeItem.type === '凶象'
+            // 凶象项：释义直接取 ju_pattern 词条，与其它字段同源
+            ? {
+                title: activeItem.label,
+                subTitle: '',
+                tags: [],
+                content: getPalaceStatusGuideBlocks(activeItem.label, activeItem.stem).join('\n\n'),
+            }
+            : getDetailDisplayData(activeItem.type, activeItem.label, palace.position, timeZhi)
         : { title: '', subTitle: '', tags: [], content: '' };
     const statusNotices = activeItem
         ? getPalaceStatusNotices(activeItem, palace, zhiFuXing, zhiShiMen)

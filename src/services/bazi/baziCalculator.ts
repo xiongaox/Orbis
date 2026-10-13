@@ -285,31 +285,57 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
         // 目前先保护 while 循环。
     }
 
-    // 扩展大运到20个（支持更长寿命的查看需求）
-    while (dayunList.length < 20 && dayunList.length > 0) {
-        const last = dayunList[dayunList.length - 1];
-        const lastGan = last.tiangan;
-        const lastZhi = last.dizhi;
+    // 统一按顺/逆推一步干支与十二长生
+    const stepGanZhi = (gan: string, zhi: string, forward: boolean, step: number) => {
+        const ganIdx = ganList.indexOf(gan as typeof TIAN_GAN[number]);
+        const zhiIdx = zhiList.indexOf(zhi as typeof DI_ZHI[number]);
+        if (ganIdx < 0 || zhiIdx < 0) return null;
+        const dir = forward ? 1 : -1;
+        const nextGan = ganList[(((ganIdx + dir * step) % 10) + 10) % 10];
+        const nextZhi = zhiList[(((zhiIdx + dir * step) % 12) + 12) % 12];
+        return {
+            tiangan: nextGan,
+            dizhi: nextZhi,
+            ganZhi: nextGan + nextZhi,
+            diShi: SHI_ER_ZHANG_SHENG[dayGan + nextZhi] || '',
+            ziZuo: SHI_ER_ZHANG_SHENG[nextGan + nextZhi] || '',
+        };
+    };
 
-        let nextGan = '', nextZhi = '', nextGanZhi = '';
-
-        if (lastGan && lastZhi) {
-            const ganIdx = ganList.indexOf(lastGan as typeof TIAN_GAN[number]);
-            const zhiIdx = zhiList.indexOf(lastZhi as typeof DI_ZHI[number]);
-
-            if (yun.isForward()) {
-                nextGan = ganList[(ganIdx + 1) % 10];
-                nextZhi = zhiList[(zhiIdx + 1) % 12];
-            } else {
-                nextGan = ganList[(ganIdx - 1 + 10) % 10]; // 处理负数
-                nextZhi = zhiList[(zhiIdx - 1 + 12) % 12];
-            }
-            nextGanZhi = nextGan + nextZhi;
+    // 向前补充出生前的大运（用于查看六亲在命主出生前的岁运），带负索引与负年龄。
+    // 年份以出生年那一段为锚按十年整块衔接，干支以第一个有效大运为锚逆推，
+    // 因此第一段出生前大运落在 [出生年-10, 出生年-1]，与后续年份连续不重叠。
+    const PRE_BIRTH_DA_YUN_COUNT = 10;
+    const birthYear = solar.getYear();
+    const ganZhiAnchor = dayunList.find(
+        dy => dy.index >= 1 && TIAN_GAN.includes(dy.tiangan as typeof TIAN_GAN[number])
+            && DI_ZHI.includes(dy.dizhi as typeof DI_ZHI[number]),
+    );
+    if (ganZhiAnchor && dayunList.length > 0) {
+        const preList: DaYunPeriod[] = [];
+        for (let k = PRE_BIRTH_DA_YUN_COUNT; k >= 1; k--) {
+            const stepped = stepGanZhi(ganZhiAnchor.tiangan, ganZhiAnchor.dizhi, yun.isForward(), -k);
+            if (!stepped) break;
+            const endYear = birthYear - (k - 1) * 10 - 1;
+            preList.push({
+                index: -k,
+                startYear: endYear - 9,
+                endYear,
+                startAge: endYear - 9 - birthYear,
+                endAge: endYear - birthYear,
+                xunKong: '',
+                ...stepped,
+            });
         }
+        if (preList.length) dayunList.unshift(...preList);
+    }
 
-        // 计算十二长生
-        const diShi = SHI_ER_ZHANG_SHENG[dayGan + nextZhi] || '';
-        const ziZuo = SHI_ER_ZHANG_SHENG[nextGan + nextZhi] || '';
+    // 扩展大运到20个（支持更长寿命的查看需求）
+    while (dayunList.length < 20 + PRE_BIRTH_DA_YUN_COUNT && dayunList.length > 0) {
+        const last = dayunList[dayunList.length - 1];
+        const stepped = last.tiangan && last.dizhi
+            ? stepGanZhi(last.tiangan, last.dizhi, yun.isForward(), 1)
+            : null;
 
         dayunList.push({
             index: last.index + 1,
@@ -317,11 +343,11 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
             endYear: last.endYear + 10,
             startAge: last.endAge + 1,
             endAge: last.endAge + 10,
-            ganZhi: nextGanZhi,
-            tiangan: nextGan,
-            dizhi: nextZhi,
-            diShi,
-            ziZuo,
+            ganZhi: stepped?.ganZhi ?? '',
+            tiangan: stepped?.tiangan ?? '',
+            dizhi: stepped?.dizhi ?? '',
+            diShi: stepped?.diShi ?? '',
+            ziZuo: stepped?.ziZuo ?? '',
             xunKong: '',
         });
     }
@@ -463,19 +489,19 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
 
     allLiuNian.forEach(ln => {
         // 根据系统计算偏移量 (从出生或年龄)
-        // 假设 1 岁 = 时柱 + 1 步顺/逆
+        // 假设 1 岁 = 时柱 + 1 步顺/逆；出生前的流年年龄为负，需按 60 甲子取模回绕
         const shift = ln.age;
+
+        const mod = (i: number, m: number) => ((i % m) + m) % m;
 
         let targetGanIdx, targetZhiIdx;
 
         if (isXiaoYunForward) {
-            targetGanIdx = (xyGanIdx + shift) % 10;
-            targetZhiIdx = (xyZhiIdx + shift) % 12;
+            targetGanIdx = mod(xyGanIdx + shift, 10);
+            targetZhiIdx = mod(xyZhiIdx + shift, 12);
         } else {
-            targetGanIdx = (xyGanIdx - shift) % 10;
-            if (targetGanIdx < 0) targetGanIdx += 10;
-            targetZhiIdx = (xyZhiIdx - shift) % 12;
-            if (targetZhiIdx < 0) targetZhiIdx += 12;
+            targetGanIdx = mod(xyGanIdx - shift, 10);
+            targetZhiIdx = mod(xyZhiIdx - shift, 12);
         }
 
         const xyGan = ganListSeq[targetGanIdx];
