@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
     snapshot: vi.fn(),
     restore: vi.fn(),
   },
+  // 测试用 mock 模块需补齐真实模块的常量导出
+  DEVICE_LOCAL_CONFIG_RECORD_TYPES: new Set(['webdav_config', 's3_config', 'backup_method']),
 }));
 
 vi.mock('./localPrivateStore', () => mocks);

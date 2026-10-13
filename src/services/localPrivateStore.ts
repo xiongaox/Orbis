@@ -24,6 +24,16 @@ export interface PrivateDataSnapshot {
   records: PrivateRecord[];
 }
 
+/**
+ * 设备本地配置类型：不进备份包，恢复其他设备的备份时也绝不删除本机这些记录
+ * （备份里没有它们，覆盖式同步不能把本机备份凭据删掉）。
+ */
+export const DEVICE_LOCAL_CONFIG_RECORD_TYPES = new Set<string>([
+  'webdav_config',
+  's3_config',
+  'backup_method',
+]);
+
 type LegacyPrivateRecord = PrivateRecord & { userId?: string; user_id?: string };
 type LegacySnapshot = { schemaVersion: number; exportedAt: string; records: LegacyPrivateRecord[]; auth?: unknown };
 
@@ -261,16 +271,47 @@ export const localPrivateStore = {
     return { schemaVersion: SCHEMA_VERSION, exportedAt: now(), records };
   },
 
-  async restore(snapshot: PrivateDataSnapshot | LegacySnapshot) {
+  /**
+   * 恢复备份。
+   *
+   * 写入规则：备份内的记录按 updatedAt 优先合并写入。
+   * 同步规则（options.syncTypes）：调用方声明需要完全同步的类型下，
+   * 本机有、备份没有的记录会被删除，使恢复结果与备份一致
+   * （避免多端各自累积、案例库越并越乱）；设备本地配置类型永不删除。
+   */
+  async restore(
+    snapshot: PrivateDataSnapshot | LegacySnapshot,
+    options?: { syncTypes?: Iterable<string> },
+  ): Promise<{ removedRecordsCount: number }> {
     if (!snapshot || !Array.isArray(snapshot.records) || ![1, SCHEMA_VERSION].includes(snapshot.schemaVersion)) throw new Error('备份文件版本不受支持');
     const records = snapshot.records.map((record) => normalizeRecord({
       ...record,
       id: normalizeLegacyId(record),
       payload: normalizeLegacyPayload(record),
     }));
+    const syncedIds = new Map<string, Set<string>>();
+    for (const record of records) {
+      let ids = syncedIds.get(record.type);
+      if (!ids) {
+        ids = new Set<string>();
+        syncedIds.set(record.type, ids);
+      }
+      ids.add(record.id);
+    }
     for (const record of records) {
       const existing = await this.get(record.type, record.id);
       if (!existing || existing.updatedAt <= record.updatedAt) await this.put(record.type, record.payload, record.id, record.sortOrder);
+    }
+    let removedRecordsCount = 0;
+    for (const type of options?.syncTypes ?? []) {
+      if (DEVICE_LOCAL_CONFIG_RECORD_TYPES.has(type)) continue;
+      const keepIds = syncedIds.get(type) ?? new Set<string>();
+      for (const local of await this.list(type as PrivateRecordType)) {
+        if (!keepIds.has(local.id)) {
+          await this.remove(type as PrivateRecordType, local.id);
+          removedRecordsCount += 1;
+        }
+      }
     }
     // 各模块案例列表只在挂载时取数，恢复后不会自行重载（此前仅弹「已恢复」提示，
     // 界面仍是空列表，看起来像恢复失败）。统一在此广播变更事件，覆盖 S3/WebDAV/本地文件全部恢复入口。
@@ -279,6 +320,7 @@ export const localPrivateStore = {
         window.dispatchEvent(new CustomEvent(eventName));
       }
     }
+    return { removedRecordsCount };
   },
 };
 

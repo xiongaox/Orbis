@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
     snapshot: vi.fn(),
     restore: vi.fn(),
   },
+  // 测试用 mock 模块需补齐真实模块的常量导出
+  DEVICE_LOCAL_CONFIG_RECORD_TYPES: new Set(['webdav_config', 's3_config', 'backup_method']),
   aiChatHistoryService: {
     getAllSessions: vi.fn(),
     importSessions: vi.fn(),
@@ -24,6 +26,8 @@ import {
 describe('backupPackageService 多模块 ZIP 备份与恢复', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // restore 是覆盖同步实现，返回删除计数；mock 需要返回该结构供 summary 汇总
+    mocks.localPrivateStore.restore.mockResolvedValue({ removedRecordsCount: 0 });
   });
 
   it('打包为模块化 ZIP，分离账户配置、各术数案例与对话历史', async () => {
@@ -122,12 +126,35 @@ describe('backupPackageService 多模块 ZIP 备份与恢复', () => {
     expect(restoreSummary.restoredRecordsCount).toBe(2);
     expect(restoreSummary.restoredSessionsCount).toBe(1);
     expect(restoreSummary.restoredCaseTypes).toContain('bazi');
+    expect(restoreSummary.removedRecordsCount).toBe(0);
 
     expect(mocks.localPrivateStore.restore).toHaveBeenCalledTimes(1);
+    // 覆盖同步：每个 *_cases.json 对应的案例类型（含空数组类型）+ 备份记录中出现的其他类型都进入同步清单
+    const [snapshotArg, optionsArg] = mocks.localPrivateStore.restore.mock.calls[0] as [unknown, { syncTypes: Set<string> }];
+    expect(snapshotArg).toMatchObject({ schemaVersion: 2 });
+    expect([...(optionsArg?.syncTypes ?? [])].sort()).toEqual(['bazi_case', 'profile', 'qimen_case', 'sanyuan_case']);
+    // 备份含对话历史文件时，按备份覆盖本机会话（而非增量合并）
     expect(mocks.aiChatHistoryService.importSessions).toHaveBeenCalledWith(
       expect.arrayContaining([expect.objectContaining({ id: 's-1' })]),
-      'merge',
+      'replace',
     );
+  });
+
+  it('备份未含对话历史文件时，恢复不动本机会话', async () => {
+    mocks.localPrivateStore.snapshot.mockResolvedValue({
+      schemaVersion: 2,
+      exportedAt: '2026-09-15T00:00:00.000Z',
+      records: [
+        { id: 'bazi-1', type: 'bazi_case', payload: { title: '案例' }, createdAt: '2026-01-01', updatedAt: '2026-01-01' },
+      ],
+    });
+    mocks.aiChatHistoryService.getAllSessions.mockReturnValue([]);
+
+    const packResult = await packBackupZip({ includeChatHistory: false });
+    const restoreSummary = await unpackAndRestoreBackup(packResult.data, 'orbis_20260915_130000_000.zip');
+
+    expect(restoreSummary.removedRecordsCount).toBe(0);
+    expect(mocks.aiChatHistoryService.importSessions).not.toHaveBeenCalled();
   });
 
   it('平滑向下兼容：遇到旧版单一 JSON 备份时，无缝恢复 records', async () => {
@@ -147,10 +174,35 @@ describe('backupPackageService 多模块 ZIP 备份与恢复', () => {
     expect(restoreSummary.restoredSessionsCount).toBe(0);
     expect(restoreSummary.restoredCaseTypes).toContain('bazi');
 
-    expect(mocks.localPrivateStore.restore).toHaveBeenCalledWith(expect.objectContaining({
-      records: expect.arrayContaining([expect.objectContaining({ id: 'old-bazi-1' })]),
-    }));
+    expect(mocks.localPrivateStore.restore).toHaveBeenCalledWith(
+      expect.objectContaining({
+        records: expect.arrayContaining([expect.objectContaining({ id: 'old-bazi-1' })]),
+      }),
+      expect.objectContaining({
+        syncTypes: expect.any(Set),
+      }),
+    );
+    // 旧快照全量同步：快照里出现过的类型进入同步清单
+    const [, legacyOptions] = mocks.localPrivateStore.restore.mock.calls[0] as [unknown, { syncTypes: Set<string> }];
+    expect([...(legacyOptions?.syncTypes ?? [])]).toEqual(['bazi_case']);
     expect(mocks.aiChatHistoryService.importSessions).not.toHaveBeenCalled();
+  });
+
+  it('覆盖同步删除的本机多余记录数透传到恢复摘要', async () => {
+    mocks.localPrivateStore.snapshot.mockResolvedValue({
+      schemaVersion: 2,
+      exportedAt: '2026-09-15T00:00:00.000Z',
+      records: [
+        { id: 'bazi-1', type: 'bazi_case', payload: { title: '保留的案例' }, createdAt: '2026-01-01', updatedAt: '2026-01-01' },
+      ],
+    });
+    mocks.aiChatHistoryService.getAllSessions.mockReturnValue([]);
+    mocks.localPrivateStore.restore.mockResolvedValue({ removedRecordsCount: 2 });
+
+    const packResult = await packBackupZip({ includeChatHistory: false });
+    const restoreSummary = await unpackAndRestoreBackup(packResult.data, 'orbis_20260915_140000_000.zip');
+
+    expect(restoreSummary.removedRecordsCount).toBe(2);
   });
 
   it('本地无数据时拒绝打包，避免生成 1KB 级空备份被当作有效备份留存', async () => {

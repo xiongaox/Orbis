@@ -10,6 +10,7 @@ import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../../utils/lu
 import { getElementTextColor } from '../../../lib/xuan-bazi/maps';
 import type { BaziCase, CaseTag } from '../../../services/baziCaseService';
 import { useSwipeDismiss } from '../../../hooks/useSwipeDismiss';
+import { useCasePrivacy } from '../../../contexts/CasePrivacyContext';
 
 const REVEAL_PX = 140;
 
@@ -31,6 +32,8 @@ export default function SortableCaseCard({
     onDelete,
     preferredTag,
 }: SortableCaseCardProps) {
+    // 隐藏开关由案例库头部统一控制（跨模块共享），这里只读状态
+    const { isPrivacyMode } = useCasePrivacy();
     // 左滑位移（px，负值向左）
     const [swipeX, setSwipeX] = useState(0);
     const [isSwiping, setIsSwiping] = useState(false);
@@ -201,7 +204,7 @@ export default function SortableCaseCard({
                 {/* 左侧：姓名 / 性别 / 分类 / 出生日期时辰 */}
                 <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-medium text-foreground">{caseData.name}</span>
+                        <span className={`truncate text-sm font-medium text-foreground ${isPrivacyMode ? 'select-none blur-[6px]' : ''}`}>{caseData.name}</span>
                         {/* 性别印章：专用性别色实底容器，同分类 chip 一套度量（demo shared.css .seal） */}
                         <span className={`inline-flex h-[21px] w-5 shrink-0 items-center justify-center rounded-md text-xs leading-none ${caseData.gender === 'male'
                             ? 'bg-[var(--gender-male-bg)] text-[var(--gender-male)]'

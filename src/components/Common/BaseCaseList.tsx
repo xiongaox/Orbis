@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { Search, ArrowUpFromLine, ArrowDownToLine } from 'lucide-react';
+import { Search, ArrowUpFromLine, ArrowDownToLine, Eye, EyeOff } from 'lucide-react';
+import { useCasePrivacy } from '../../contexts/CasePrivacyContext';
 
 // 案例列表在移动端 / Pad 端装在 SideDrawer 里，抽屉关闭即整体卸载，重开后滚动位置归零。
 // 这里按 scrollKey 在模块级缓存各列表的滚动位置，跨卸载/重挂载保留。
@@ -82,6 +83,8 @@ export default function BaseCaseList({
             ?.scrollIntoView({ block: 'center' });
     }, [scrollKey, isLoading, isEmpty]);
 
+    const { isPrivacyMode, togglePrivacy } = useCasePrivacy();
+
     return (
         <aside className={variant === 'drawer'
             ? "w-full h-full select-none bg-card flex flex-col min-h-0"
@@ -91,14 +94,27 @@ export default function BaseCaseList({
                 {/* 顶部：案例库与筛选。relative 供筛选下拉按整行宽度展开：
                     移动端抽屉只有 240px 上下，下拉若按固定宽度会超出抽屉被裁 */}
                 <div className="relative flex items-center justify-between">
-                    <button
-                        type="button"
-                        onClick={onOpenLibrary}
-                        className="px-2 py-1 -ml-2 rounded-lg font-display text-base font-medium text-foreground hover:text-primary hover:bg-primary/5 transition-colors flex items-center gap-2 group focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    >
-                        案例库
-                        <Search className="w-3.5 h-3.5 opacity-0 group-hover:opacity-50 transition-opacity" />
-                    </button>
+                    <div className="flex items-center gap-1 min-w-0">
+                        <button
+                            type="button"
+                            onClick={onOpenLibrary}
+                            className="px-2 py-1 -ml-2 rounded-lg font-display text-base font-medium text-foreground hover:text-primary hover:bg-primary/5 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        >
+                            案例库
+                        </button>
+                        {/* 隐藏开关：常驻显示。切换后列表卡片与点开的详情一起打码，
+                            状态跨模块共享，所以八字/奇门/三元行为一致 */}
+                        <button
+                            type="button"
+                            onClick={togglePrivacy}
+                            aria-pressed={isPrivacyMode}
+                            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            title={isPrivacyMode ? '显示明文' : '隐藏姓名'}
+                            aria-label={isPrivacyMode ? '显示明文' : '隐藏姓名'}
+                        >
+                            {isPrivacyMode ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        </button>
+                    </div>
 
                     {renderFilter}
                 </div>

@@ -149,12 +149,12 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
     const crossDevice = source !== null && source !== current;
     return (
       <>
-        <span className="block">将恢复备份“{pendingRestore.filename}”。当前本地数据可能被补充或更新。</span>
+        <span className="block">将恢复备份“{pendingRestore.filename}”。恢复后本机数据将与该备份保持一致，备份之外的本地记录会被删除。</span>
         <span className={`mt-2 block ${crossDevice ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
           {source === null
             ? '此备份未标注来源设备（旧版本创建）。'
             : `此备份来自 ${PLATFORM_LABELS[source]}，当前设备为 ${PLATFORM_LABELS[current]}。`}
-          {crossDevice && ' 各端案例互不覆盖、恢复按并集合并，跨端恢复会把该设备的数据并入本机。'}
+          {crossDevice && ' 恢复以该备份为准：未包含在此备份中的本机案例（含其他设备并入的）将被清除。'}
         </span>
       </>
     );

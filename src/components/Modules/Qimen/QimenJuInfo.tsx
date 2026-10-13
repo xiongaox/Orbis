@@ -15,7 +15,12 @@ interface QimenJuInfoProps {
     date: Date;
     header: QimenHeader;
     caseData: QimenCase | null;
-    onCaseUpdated?: (updatedCase: QimenCase) => void;
+    /** 隐私模式由案例区持有：正文弹窗与摘要卡要同步同一状态 */
+    isCasePrivacyMode?: boolean;
+    onToggleCasePrivacy?: () => void;
+    /** 打开案例正文弹窗（弹窗实例由布局层持有） */
+    /** intent=edit 时弹窗打开后直接聚焦输入框 */
+    onOpenCaseDialog?: (intent?: 'read' | 'edit') => void;
     selectedKongWangKey: PillarKey;
     selectedMaXingKey: PillarKey;
     onKongWangKeyChange: (key: PillarKey) => void;
@@ -32,7 +37,7 @@ interface QimenJuInfoProps {
 }
 
 export default function QimenJuInfo({
-    date, header, caseData, onCaseUpdated,
+    date, header, caseData, isCasePrivacyMode = false, onToggleCasePrivacy, onOpenCaseDialog,
     selectedKongWangKey, selectedMaXingKey, onKongWangKeyChange, onMaXingKeyChange,
     showChangSheng, showShiShen, showPalaceMeta,
     onToggleChangSheng, onToggleShiShen, onTogglePalaceMeta, compact = false, onOpenGuide
@@ -106,8 +111,13 @@ export default function QimenJuInfo({
 
             <div className="h-2 bg-muted/20 border-t border-b border-border/10 flex-shrink-0" />
 
-            {/* 案例信息区 */}
-            <CaseInfoCard caseData={caseData} onCaseUpdated={onCaseUpdated} />
+            {/* 案例信息区：摘要卡入口，正文在 CaseDialogModal 中查改 */}
+            <CaseInfoCard
+                caseData={caseData}
+                isPrivacyMode={isCasePrivacyMode}
+                onTogglePrivacy={() => onToggleCasePrivacy?.()}
+                onOpenDialog={(intent) => onOpenCaseDialog?.(intent)}
+            />
         </div>
     );
 }

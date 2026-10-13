@@ -43,4 +43,31 @@ describe('本地私有数据备份', () => {
     const snapshot = await localPrivateStore.snapshot();
     expect(snapshot.records.some((record) => record.id === 'ly-1')).toBe(true);
   });
+
+  // 恢复语义为覆盖同步：本机有、备份没有的记录被删除，恢复结果与备份一致
+  it('同步恢复删除备份之外的本机案例，但保留设备本地配置', async () => {
+    // 前面用例写过 bazi_case，先清空保证删除计数不受测试间状态影响
+    await localPrivateStore.clear('bazi_case');
+    await localPrivateStore.put('bazi_case', { title: '备份里的案例' }, 'keep-1');
+    await localPrivateStore.put('bazi_case', { title: '本机多余的案例' }, 'extra-1');
+    await localPrivateStore.put('webdav_config', { endpoint: 'https://dav.example.com' }, 'webdav_config');
+
+    const { removedRecordsCount } = await localPrivateStore.restore({
+      schemaVersion: 2,
+      exportedAt: '2026-08-26T00:00:00.000Z',
+      records: [{
+        id: 'keep-1',
+        type: 'bazi_case',
+        payload: { title: '备份里的案例' },
+        createdAt: '2026-08-26T00:00:00.000Z',
+        updatedAt: '2026-08-26T00:00:00.000Z',
+      }],
+    }, { syncTypes: ['bazi_case', 'webdav_config'] });
+
+    expect(removedRecordsCount).toBe(1);
+    await expect(localPrivateStore.get('bazi_case', 'extra-1')).resolves.toBeNull();
+    await expect(localPrivateStore.get('bazi_case', 'keep-1')).resolves.not.toBeNull();
+    // 备份凭据不进备份包，覆盖同步也不能删
+    await expect(localPrivateStore.get('webdav_config', 'webdav_config')).resolves.not.toBeNull();
+  });
 });

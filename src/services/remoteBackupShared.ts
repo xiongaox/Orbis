@@ -82,7 +82,7 @@ export function isTauriRuntime() {
 
 /**
  * 备份来源端。多端共用一个备份目录时，靠它在文件名与 manifest 里区分来源，
- * 避免把别的设备的备份误恢复到本机（各端记录 id 不同，恢复是合并而非覆盖，会越并越多）。
+ * 避免把别的设备的备份误恢复到本机（恢复是覆盖同步：备份里没有的本机数据会被清除）。
  */
 export type BackupPlatform = 'windows' | 'macos' | 'android' | 'ios' | 'linux' | 'web';
 

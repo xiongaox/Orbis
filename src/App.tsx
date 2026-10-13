@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { BaziProvider, useBaziContext } from './contexts/BaziContext';
 import { MobileNavProvider, useMobileNavRegistry } from './contexts/MobileNavContext';
+import { CasePrivacyProvider } from './contexts/CasePrivacyContext';
 import Navbar from './components/Layout/Navbar';
 import MainLayout from './components/Layout/MainLayout';
 import MobileTabBar from './components/Layout/MobileTabBar';
@@ -367,7 +368,9 @@ function AppContent() {
 function App() {
   return (
     <BaziProvider>
-      <AppContent />
+      <CasePrivacyProvider>
+        <AppContent />
+      </CasePrivacyProvider>
     </BaziProvider>
   );
 }

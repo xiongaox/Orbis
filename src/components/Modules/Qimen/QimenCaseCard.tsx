@@ -26,6 +26,7 @@ import { useSwipeDismiss } from '../../../hooks/useSwipeDismiss';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { useQimenCasePanStatus } from './hooks/useQimenCasePanStatus';
 import type { PaiPanMethod } from '../../../lib/csp-qimen/qimenService';
+import { useCasePrivacy } from '../../../contexts/CasePrivacyContext';
 
 /** 左滑露出的操作区宽度，与八字 CaseCard 的 REVEAL_PX 保持同一度量 */
 const REVEAL_PX = 120;
@@ -58,6 +59,8 @@ export default function QimenCaseCard({
     onDelete,
     paiPanMethod = 'zhirun',
 }: QimenCaseCardProps) {
+    // 隐藏开关由案例库头部统一控制（跨模块共享），这里只读状态
+    const { isPrivacyMode } = useCasePrivacy();
     // 盘状态：组件内共享缓存计算（useMemo 固定入参引用，避免 effect 反复重跑）；
     // 与页头 QimenHeader 同源同文字的全局格局徽标原样渲染（有几个显示几个，
     // 常规局为空数组不渲染），旧案例按当前页面排盘方法兜底计算。
@@ -198,11 +201,11 @@ export default function QimenCaseCard({
                 {/* 上区：左「标题 / 事件描述」与右侧四柱顶对齐 */}
                 <div className="flex min-w-0 items-start justify-between gap-[7px]">
                     <div className="min-w-0 flex-1">
-                        <div className="min-w-0 truncate text-[14px] font-semibold leading-[17px] text-foreground">
+                        <div className={`min-w-0 truncate text-[14px] font-semibold leading-[17px] text-foreground ${isPrivacyMode ? 'select-none blur-[6px]' : ''}`}>
                             {caseItem.title}
                         </div>
                         {caseItem.description && (
-                            <div className="mt-[4px] line-clamp-1 text-xs leading-[16px] text-muted-foreground">
+                            <div className={`mt-[4px] line-clamp-1 text-xs leading-[16px] text-muted-foreground ${isPrivacyMode ? 'select-none blur-[5px]' : ''}`}>
                                 {caseItem.description}
                             </div>
                         )}

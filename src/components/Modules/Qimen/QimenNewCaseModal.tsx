@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Calendar, Loader2, Plus, Pencil } from 'lucide-react';
 import BaseModal from '../../UI/BaseModal';
 import SubPage from '../../UI/SubPage';
@@ -31,23 +31,30 @@ interface QimenNewCaseModalProps {
         analysis?: string;
     }) => void;
     initialData?: QimenCase | null; // Added prop for edit mode
+    /** 「立即排盘」：用当前表单时间直接排盘。只有奇门主页有排盘上下文，案例库弹窗不传 */
+    onPreview?: (date: Date) => void;
     /** 当前页面的排盘方式，随案例一起保存（列表「盘式」标签的数据来源） */
     paiPanMethod?: PaiPanMethod;
 }
 
-export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialData, paiPanMethod }: QimenNewCaseModalProps) {
+export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialData, paiPanMethod, onPreview }: QimenNewCaseModalProps) {
     const [title, setTitle] = useState(initialData?.title || '');
     const [date, setDate] = useState<Date>(initialData ? new Date(initialData.test_date) : new Date());
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
     const [category, setCategory] = useState<QimenCategory>(initialData?.category || 'work');
-    const [description, setDescription] = useState(initialData?.description || '');
-    const [feedback, setFeedback] = useState(initialData?.feedback || '');
-    const [analysis, setAnalysis] = useState(initialData?.analysis || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // 移动端检测：与全应用统一走 useLayoutMode
     const { isMobile } = useLayoutMode();
+
+    // 编辑目标切换时重建表单（列表页编辑弹窗常驻挂载，仅靠 initialData 变化无法自更新）
+    useEffect(() => {
+        if (!isOpen) return;
+        setTitle(initialData?.title || '');
+        setDate(initialData ? new Date(initialData.test_date) : new Date());
+        setCategory(initialData?.category || 'work');
+    }, [isOpen, initialData]);
 
     if (!isOpen) return null;
 
@@ -62,13 +69,11 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
             setIsSubmitting(true);
             // If initialData exists, UPDATE; else CREATE
             if (initialData) {
+                // 正文（描述/反馈/断法）不在这里维护，更新时原样保留
                 const updateInput: UpdateQimenCaseInput = {
                     title,
                     test_date: date.toISOString(),
                     category,
-                    description,
-                    feedback,
-                    analysis,
                     ...(paiPanMethod ? { pai_pan_method: paiPanMethod } : {}),
                 };
                 await qimenCaseService.updateCase(initialData.id, updateInput);
@@ -77,9 +82,6 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
                     title,
                     test_date: date.toISOString(),
                     category,
-                    description,
-                    feedback,
-                    analysis,
                     ...(paiPanMethod ? { pai_pan_method: paiPanMethod } : {}),
                 };
                 await qimenCaseService.createCase(createInput);
@@ -89,9 +91,9 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
                 title,
                 date,
                 category,
-                description: description || '',
-                feedback: feedback || '',
-                analysis: analysis || '',
+                description: initialData?.description || '',
+                feedback: initialData?.feedback || '',
+                analysis: initialData?.analysis || '',
             });
         } catch (e) {
             console.error(e);
@@ -101,25 +103,42 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
         }
     };
 
+    // 底部三按钮：与八字新建弹窗同构（左「立即排盘」/ 右「取消 + 保存」）。
+    // 正文不在这里录：建好后从案例区摘要卡进入「案例详情」弹窗，边看盘边记问答
     const footer = (
-        <div className="flex justify-end gap-3 w-full">
-            <button
-                type="button"
-                onClick={onClose}
-                disabled={isSubmitting}
-                className="modal-btn focus-ring"
-            >
-                取消
-            </button>
-            <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="modal-btn primary flex items-center gap-2 focus-ring"
-            >
-                {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-                {initialData ? '保存' : '创建'}
-            </button>
+        <div className="flex items-center justify-between w-full">
+            <div>
+                {onPreview && (
+                    <button
+                        type="button"
+                        onClick={() => onPreview(date)}
+                        disabled={isSubmitting}
+                        className="modal-btn hover:bg-primary/5 hover:border-primary/50 hover:text-primary transition-colors text-primary border-primary/30 focus-ring"
+                    >
+                        立即排盘
+                    </button>
+                )}
+            </div>
+
+            <div className="flex items-center gap-3">
+                <button
+                    type="button"
+                    onClick={onClose}
+                    disabled={isSubmitting}
+                    className="modal-btn focus-ring"
+                >
+                    取消
+                </button>
+                <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className="modal-btn primary flex items-center gap-2 focus-ring"
+                >
+                    {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {initialData ? '保存' : '保存到案例库'}
+                </button>
+            </div>
         </div>
     );
 
@@ -178,48 +197,6 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
                             </button>
                         ))}
                     </div>
-                </div>
-
-                {/* 事情描述 */}
-                <div className="space-y-1.5">
-                    <label className="text-sm text-muted-foreground">
-                        事情描述
-                    </label>
-                    <textarea
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        placeholder="可选，添加案例背景、起因等..."
-                        rows={2}
-                        className="w-full px-3 py-2 bg-muted/30 border border-border rounded-lg text-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50 resize-none focus-ring"
-                    />
-                </div>
-
-                {/* 事件反馈 */}
-                <div className="space-y-1.5">
-                    <label className="text-sm text-muted-foreground">
-                        事件反馈
-                    </label>
-                    <textarea
-                        value={feedback}
-                        onChange={(e) => setFeedback(e.target.value)}
-                        placeholder="可选，添加反馈结果..."
-                        rows={2}
-                        className="w-full px-3 py-2 bg-muted/30 border border-border rounded-lg text-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50 resize-none focus-ring"
-                    />
-                </div>
-
-                {/* 案例断法 */}
-                <div className="space-y-1.5">
-                    <label className="text-sm text-muted-foreground">
-                        案例断法
-                    </label>
-                    <textarea
-                        value={analysis}
-                        onChange={(e) => setAnalysis(e.target.value)}
-                        placeholder="可选，记录断卦思路..."
-                        rows={4}
-                        className="w-full px-3 py-2 bg-muted/30 border border-border rounded-lg text-foreground focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50 resize-none focus-ring"
-                    />
                 </div>
             </div>
 

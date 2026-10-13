@@ -74,6 +74,12 @@ export default function QimenPage({ lockedSnapshot, onSnapshotChange }: QimenPag
                         setIsNewCaseModalOpen(false);
                         setEditingCase(null);
                     }}
+                    onPreview={(date) => {
+                        // 「立即排盘」：不落库，只把盘面切到这个时间
+                        setIsNewCaseModalOpen(false);
+                        setEditingCase(null);
+                        calculateQimenByDate(date);
+                    }}
                     onConfirm={(data) => {
                         setIsNewCaseModalOpen(false);
                         setEditingCase(null);

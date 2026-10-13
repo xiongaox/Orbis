@@ -29,10 +29,12 @@ function describeRestore(filename: string, summary: RestoreSummary) {
   if (summary.restoredRecordsCount > 0) parts.push(`${summary.restoredRecordsCount} 条记录`);
   if (summary.restoredSessionsCount > 0) parts.push(`${summary.restoredSessionsCount} 段对话`);
   const caseHint = summary.restoredCaseTypes.length > 0 ? `（含 ${summary.restoredCaseTypes.join('、')} 案例）` : '';
+  // 覆盖同步：本机有、备份没有的记录会被清理，把清理数量也报出来，避免用户以为数据丢了
+  const removedHint = summary.removedRecordsCount > 0 ? `，已清理备份之外的本机记录 ${summary.removedRecordsCount} 条` : '';
   // manifest 里的来源端比文件名可靠（旧包没有端后缀），恢复完成后再报一次实际来源
   const sourceHint = summary.sourcePlatform ? `，来自 ${PLATFORM_LABELS[summary.sourcePlatform]}` : '';
-  if (parts.length === 0) return `已恢复 ${filename}${sourceHint}：备份内没有数据`;
-  return `已恢复 ${filename}${sourceHint}：${parts.join('、')}${caseHint}`;
+  if (parts.length === 0) return `已恢复 ${filename}${sourceHint}：备份内没有数据${removedHint}`;
+  return `已恢复 ${filename}${sourceHint}：${parts.join('、')}${caseHint}${removedHint}`;
 }
 
 const emptyWebDavConfig: WebDavConfig = {

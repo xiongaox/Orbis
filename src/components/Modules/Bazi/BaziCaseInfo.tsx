@@ -11,6 +11,7 @@ import GanZhiLiuTongModal from './GanZhiLiuTongModal';
 import AiPromptModal from './AiPromptModal';
 import { getZodiacAvatarUrl } from '../../../utils/userUtil';
 import { calcJiaoYunInfo } from '../../../utils/yunInfoUtils';
+import { useCasePrivacy } from '../../../contexts/CasePrivacyContext';
 
 interface BaziCaseInfoProps {
   caseData: Case | null;
@@ -29,6 +30,8 @@ export default function BaziCaseInfo({
   currentYear,
   isMobileLayout = false,
 }: BaziCaseInfoProps) {
+  // 隐藏开关由案例库头部统一控制（跨模块共享），隐藏时命主姓名一并打码
+  const { isPrivacyMode } = useCasePrivacy();
   const [saving, setSaving] = useState(false);
   const [showDiagram, setShowDiagram] = useState(false);
   const [showLiuTong, setShowLiuTong] = useState(false);
@@ -114,7 +117,7 @@ export default function BaziCaseInfo({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <h2 className="font-display text-base font-medium text-[hsl(var(--card-title))] dark:text-foreground truncate">{displayName}</h2>
+                  <h2 className={`font-display text-base font-medium text-[hsl(var(--card-title))] dark:text-foreground truncate ${isPrivacyMode ? 'select-none blur-[6px]' : ''}`}>{displayName}</h2>
                   <span className="text-[10px] px-1.5 py-0.5 bg-[hsl(var(--muted-hover))] border border-[hsl(var(--border-light))] dark:bg-secondary dark:border-border rounded text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground shrink-0">
                     {displayGender}
                   </span>
@@ -209,7 +212,7 @@ export default function BaziCaseInfo({
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <h2 className="font-display text-lg font-medium text-[hsl(var(--card-title))] dark:text-foreground">{displayName}</h2>
+                  <h2 className={`font-display text-lg font-medium text-[hsl(var(--card-title))] dark:text-foreground ${isPrivacyMode ? 'select-none blur-[6px]' : ''}`}>{displayName}</h2>
                   <span className="text-xs px-2 py-0.5 bg-[hsl(var(--muted-hover))] border border-[hsl(var(--border-light))] dark:bg-secondary dark:border-border rounded text-[hsl(var(--text-secondary-light))] dark:text-muted-foreground">
                     {displayGender}
                   </span>

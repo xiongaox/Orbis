@@ -5,9 +5,12 @@ import QimenChart from '../QimenChart';
 import QimenPalaceDetail from '../QimenPalaceDetail';
 import QimenJuInfo from '../QimenJuInfo';
 import QimenGuideModal from '../components/QimenGuideModal';
+import CaseDialogModal from '../components/CaseDialogModal';
+import type { CaseDialogKind } from '../../../Common/caseDialog';
 import SideDrawer from '../../../UI/SideDrawer';
 import { useRegisterMobileDrawers } from '../../../../contexts/MobileNavContext';
 import { type QimenLayoutProps } from './QimenLayoutProps';
+import { useCasePrivacy } from '../../../../contexts/CasePrivacyContext';
 
 // 移动端底栏已接管「案例 / 局信息」入口，边缘竖线把手默认隐藏；需要恢复入口时置 true
 const SHOW_EDGE_HANDLES = false;
@@ -30,6 +33,14 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
         mobileShowChangSheng, mobileShowShiShen, mobileShowPalaceMeta,
         handleMobileToggleCS, handleMobileToggleSS, handleMobileTogglePM
     } = props;
+
+    // 案例正文弹窗（布局层持有）：摘要卡是入口，正文的记录与删除都在弹窗里
+    const [isCaseDialogOpen, setIsCaseDialogOpen] = useState(false);
+    /** 由摘要卡的铅笔进入时，弹窗打开后聚焦输入框 */
+    const [isCaseDialogEditing, setIsCaseDialogEditing] = useState(false);
+    const [caseDialogMode, setCaseDialogMode] = useState<CaseDialogKind>('q');
+    // 隐私状态来自全局 context：与案例库头部的隐藏开关共用，不再各自维护
+    const { isPrivacyMode: isCasePrivacyMode, togglePrivacy } = useCasePrivacy();
 
     // 盘面元素说明弹窗
     const [guideOpen, setGuideOpen] = useState(false);
@@ -59,10 +70,9 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
             date={selectedDate}
             header={header}
             caseData={currentCase}
-            onCaseUpdated={(updatedCase) => {
-                setCurrentCase(updatedCase);
-                setRefreshTrigger(prev => prev + 1);
-            }}
+            isCasePrivacyMode={isCasePrivacyMode}
+            onToggleCasePrivacy={togglePrivacy}
+            onOpenCaseDialog={(intent) => { setIsCaseDialogEditing(intent === 'edit'); setIsCaseDialogOpen(true); }}
             selectedKongWangKey={selectedKongWangKey}
             selectedMaXingKey={selectedMaXingKey}
             onKongWangKeyChange={setSelectedKongWangKey}
@@ -260,6 +270,19 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
                 showChangSheng={mobileShowChangSheng}
                 showShiShen={mobileShowShiShen}
                 showPalaceMeta={mobileShowPalaceMeta}
+            />
+
+            <CaseDialogModal
+                isOpen={isCaseDialogOpen}
+                autoFocusComposer={isCaseDialogEditing}
+                caseData={currentCase}
+                mode={caseDialogMode}
+                onModeChange={setCaseDialogMode}
+                onClose={() => setIsCaseDialogOpen(false)}
+                onCaseUpdated={(updatedCase) => {
+                    setCurrentCase(updatedCase);
+                    setRefreshTrigger(prev => prev + 1);
+                }}
             />
         </>
     );

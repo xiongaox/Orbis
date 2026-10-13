@@ -47,6 +47,7 @@ Orbis/
 
 ## SUBDIRECTORY AGENTS
 - `src/components/Modules/AGENTS.md`：业务模块 UI 边界、模块间职责。
+- `src/components/UI/AGENTS.md`：基础组件用法；**弹窗 ↔ 二级菜单（BaseModal/SubPage）双壳约定**。
 - `src/lib/xuan-bazi/AGENTS.md`：八字算法分层与映射规则。
 - `src/lib/csp-qimen/AGENTS.md`：奇门算法、常量治理、WASM 约束。
 - `src/services/AGENTS.md`：服务层错误处理、数据边界。

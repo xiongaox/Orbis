@@ -35,6 +35,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../../../../utils/lunarUtil';
 import { getElementTextColor } from '../../../../../lib/xuan-bazi/maps';
 import { useSwipeDismiss } from '../../../../../hooks/useSwipeDismiss';
+import { useCasePrivacy } from '../../../../../contexts/CasePrivacyContext';
 
 /** 左滑露出的操作区宽度，与案例库 SortableCaseCard 的 REVEAL_PX 保持同一度量 */
 const REVEAL_PX = 120;
@@ -72,6 +73,8 @@ export default function CaseCard({
     onEdit,
     onDelete,
 }: CaseCardProps) {
+    // 隐藏开关由案例库头部统一控制（跨模块共享），这里只读状态
+    const { isPrivacyMode } = useCasePrivacy();
     // 四柱：年 月 日 时（每柱天干 + 地支）
     const pillars = getBaziPillarsFromDateString(item.birthDate ?? item.date);
     const pillarPairs = pillars.length === 8
@@ -209,7 +212,7 @@ export default function CaseCard({
                 <div className="flex min-w-0 items-start justify-between gap-[7px] @[206px]:gap-[5px]">
                     <div className="min-w-0 flex-1">
                         <div className="flex min-w-0 items-center gap-[4px]">
-                            <span className="block truncate text-[14px] font-semibold leading-[17px] text-foreground">
+                            <span className={`block truncate text-[14px] font-semibold leading-[17px] text-foreground ${isPrivacyMode ? 'select-none blur-[6px]' : ''}`}>
                                 {item.name}
                             </span>
                             {aiStatus && onOpenAiResearch && (

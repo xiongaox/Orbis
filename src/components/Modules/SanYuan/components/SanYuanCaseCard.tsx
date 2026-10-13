@@ -20,6 +20,7 @@ import {
     type SanYuanCaseType,
 } from '../../../../services/sanyuanCaseService';
 import { useSwipeDismiss } from '../../../../hooks/useSwipeDismiss';
+import { useCasePrivacy } from '../../../../contexts/CasePrivacyContext';
 
 /** 左滑露出的操作区宽度，与奇门/八字 CaseCard 保持同一度量 */
 const REVEAL_PX = 120;
@@ -45,6 +46,8 @@ export default function SanYuanCaseCard({
     onEdit,
     onDelete,
 }: SanYuanCaseCardProps) {
+    // 隐藏开关由案例库头部统一控制（跨模块共享），这里只读状态
+    const { isPrivacyMode } = useCasePrivacy();
     const caseTypeName = getCaseTypeName(caseData.case_type);
     const updatedAt = new Date(caseData.updated_at);
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -161,7 +164,7 @@ export default function SanYuanCaseCard({
                 className="relative z-[2] grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-x-[7px] gap-y-[4px] bg-card px-[8px] py-[8px] text-left"
             >
                 {/* 行 1：标题 / 坐向 */}
-                <div className="min-w-0 truncate text-[14px] font-semibold leading-[17px] text-foreground">
+                <div className={`min-w-0 truncate text-[14px] font-semibold leading-[17px] text-foreground ${isPrivacyMode ? 'select-none blur-[6px]' : ''}`}>
                     {caseData.title}
                 </div>
                 <div className="truncate text-right text-xs font-medium leading-[17px] text-foreground/80">

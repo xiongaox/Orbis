@@ -11,7 +11,7 @@
 */
 
 import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
-import { localPrivateStore, type PrivateRecord } from './localPrivateStore';
+import { localPrivateStore, DEVICE_LOCAL_CONFIG_RECORD_TYPES, type PrivateRecord } from './localPrivateStore';
 import { aiChatHistoryService, type AiChatSession } from './aiChatHistoryService';
 import { detectBackupPlatform, isBackupPlatform, platformFromFilename, type BackupPlatform } from './remoteBackupShared';
 
@@ -46,16 +46,11 @@ export interface RestoreSummary {
   restoredRecordsCount: number;
   restoredSessionsCount: number;
   restoredCaseTypes: string[];
+  /** 覆盖同步时删除的本机多余记录数（本机有、备份没有），恢复结果与备份一致 */
+  removedRecordsCount: number;
   /** 备份来源端（取自 manifest 或文件名后缀，旧备份为 null），供界面判断是否跨端恢复 */
   sourcePlatform: BackupPlatform | null;
 }
-
-/** 备份配置和系统凭据类型，避免在另一设备恢复时覆盖目标设备的备份凭证 */
-const EXCLUDED_CONFIG_RECORD_TYPES = new Set([
-  'webdav_config',
-  's3_config',
-  'backup_method',
-]);
 
 /**
  * 将当前工作区数据打包为模块化多 JSON 的 ZIP 压缩包
@@ -80,7 +75,8 @@ export async function packBackupZip(options: BackupContentOptions = DEFAULT_BACK
   const caseRecordsByType = new Map<string, PrivateRecord[]>();
 
   for (const record of allRecords) {
-    if (EXCLUDED_CONFIG_RECORD_TYPES.has(record.type)) {
+    // 打包排除设备本地配置（备份凭据不跨设备覆盖）
+    if (DEVICE_LOCAL_CONFIG_RECORD_TYPES.has(record.type)) {
       continue;
     }
 
@@ -210,7 +206,10 @@ export async function unpackAndRestoreBackup(
     }
 
     const snapshot = JSON.parse(jsonText) as { records?: PrivateRecord[] };
-    await localPrivateStore.restore(snapshot as never);
+    // 旧版快照是全量导出：恢复即按快照内容同步本机（快照里出现过的类型，本机多余记录会被清理）
+    const { removedRecordsCount } = await localPrivateStore.restore(snapshot as never, {
+      syncTypes: new Set((snapshot.records || []).map((record) => record.type)),
+    });
 
     const caseTypes = new Set<string>();
     for (const r of snapshot.records || []) {
@@ -224,6 +223,7 @@ export async function unpackAndRestoreBackup(
       restoredRecordsCount: snapshot.records?.length || 0,
       restoredSessionsCount: 0,
       restoredCaseTypes: Array.from(caseTypes),
+      removedRecordsCount,
       // 旧版单一 JSON 快照没有端信息，只能靠文件名后缀
       sourcePlatform: filename ? platformFromFilename(filename) : null,
     };
@@ -244,6 +244,7 @@ export async function unpackAndRestoreBackup(
   const restoredRecords: PrivateRecord[] = [];
   const restoredSessions: AiChatSession[] = [];
   const caseTypes = new Set<string>();
+  let hasChatHistoryFiles = false;
   let manifestPlatform: BackupPlatform | null = null;
 
   // 遍历解压出来的所有 JSON 文件
@@ -287,6 +288,7 @@ export async function unpackAndRestoreBackup(
 
     // 3. 对话历史：*_chat_history.json
     if (entryPath.endsWith('_chat_history.json')) {
+      hasChatHistoryFiles = true;
       if (Array.isArray(parsed)) {
         restoredSessions.push(...(parsed as AiChatSession[]));
       }
@@ -294,18 +296,27 @@ export async function unpackAndRestoreBackup(
     }
   }
 
-  // 执行案例与配置恢复
+  // 执行案例与配置恢复：恢复即按备份覆盖同步——
+  // 需要完全同步的类型 = 备份中每个 *_cases.json 对应的案例类型（即使备份里该类型为空数组，
+  // 也要清掉本机多余案例）+ 备份记录中出现的其他类型（profile、收藏、进度等）。
+  // 空备份（无任何记录）不触发同步删除，避免畸形包把本机清空。
+  let removedRecordsCount = 0;
   if (restoredRecords.length > 0) {
-    await localPrivateStore.restore({
+    const syncTypes = new Set<string>(restoredRecords.map((record) => record.type));
+    for (const div of caseTypes) syncTypes.add(`${div}_case`);
+    ({ removedRecordsCount } = await localPrivateStore.restore({
       schemaVersion: 2,
       exportedAt: new Date().toISOString(),
       records: restoredRecords,
-    });
+    }, { syncTypes }));
   }
 
-  // 执行 AI 对话历史增量合并恢复
-  if (restoredSessions.length > 0) {
-    aiChatHistoryService.importSessions(restoredSessions, 'merge');
+  // 备份包含对话历史文件时按备份覆盖本机对应术数的会话；
+  // 备份未含对话历史（打包时关闭了该选项）则保留本机会话，不做增删。
+  // ponytail: 源端某术数会话为空数组时该术数类型不进 replace 集合，本机会话残留；
+  // 升级路径：让 importSessions 接收备份中声明的全部术数类型。
+  if (hasChatHistoryFiles) {
+    aiChatHistoryService.importSessions(restoredSessions, 'replace');
   }
 
   return {
@@ -313,6 +324,7 @@ export async function unpackAndRestoreBackup(
     restoredRecordsCount: restoredRecords.length,
     restoredSessionsCount: restoredSessions.length,
     restoredCaseTypes: Array.from(caseTypes),
+    removedRecordsCount,
     // manifest 优先（准确记录打包端），旧包回退到文件名后缀
     sourcePlatform: manifestPlatform ?? (filename ? platformFromFilename(filename) : null),
   };

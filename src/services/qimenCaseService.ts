@@ -18,6 +18,12 @@ export interface QimenCase {
   description?: string;
   feedback?: string;
   analysis?: string;
+  /**
+   * 案例正文的完整顺序流（提问/回答/断法，含断法归属）。
+   * 上面三个字段是它的文本投影，供列表卡片/导出/备份使用；
+   * 界面读写以本字段为准，否则断法挂在哪条回答下会丢。
+   */
+  dialog_lines?: { kind: 'q' | 'a' | 'r'; text: string; answerId?: string }[];
   qimen_data?: Record<string, unknown>;
   /** 保存案例时使用的排盘方式（旧数据可能缺失） */
   pai_pan_method?: PaiPanMethod;
