@@ -9,9 +9,17 @@ import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { detectBackupPlatform, platformFromFilename, PLATFORM_LABELS } from '../../services/remoteBackupShared';
 import { webDavBackupService, type WebDavConfig } from '../../services/webdavBackupService';
 import { s3BackupService, type S3Config } from '../../services/s3BackupService';
+import { unpackBackup, estimateRestoreImpact, restoreUnpackedBackup, type UnpackedBackup } from '../../services/backupPackageService';
 import type { RemoteBackupMethod } from '../../services/remoteBackupService';
 import type { RemoteBackupMeta } from '../../services/remoteBackupShared';
 import type { RestoreSummary } from '../../services/backupPackageService';
+
+/** 待恢复项：备份元信息 + 已下载解包的内容 + 恢复影响预估（确认弹窗展示用） */
+interface PendingRestoreItem {
+  backup: RemoteBackupMeta;
+  unpacked: UnpackedBackup;
+  impact: { removedRecordsCount: number; removedSessionsCount: number };
+}
 
 interface RemoteBackupManagerModalProps {
   isOpen: boolean;
@@ -43,9 +51,9 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
   const [backups, setBackups] = useState<RemoteBackupMeta[]>([]);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
-  const [busy, setBusy] = useState<'load' | 'restore' | 'delete' | null>(null);
+  const [busy, setBusy] = useState<'load' | 'preview' | 'restore' | 'delete' | null>(null);
   const { toast, showToast } = useToast();
-  const [pendingRestore, setPendingRestore] = useState<RemoteBackupMeta | null>(null);
+  const [pendingRestore, setPendingRestore] = useState<PendingRestoreItem | null>(null);
   const [pendingDeletePaths, setPendingDeletePaths] = useState<string[] | null>(null);
 
   const pageCount = Math.max(1, Math.ceil(backups.length / PAGE_SIZE));
@@ -111,12 +119,32 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
       setBusy(null);
     }
   };
-  const restore = async (backup: RemoteBackupMeta) => {
+  /**
+   * 点「恢复」先下载并解包备份、预估恢复影响，再打开确认弹窗。
+   * 覆盖同步不可逆（备份外的本机记录会被删除），确认前必须让用户看到将删除多少条；
+   * 已下载的数据缓存在 pendingRestore 里，确认后直接恢复，不二次下载。
+   */
+  const startRestorePreview = async (backup: RemoteBackupMeta) => {
+    setBusy('preview');
+    try {
+      const downloaded = method === 's3'
+        ? await s3BackupService.downloadBackup(config as S3Config, backup.path)
+        : await webDavBackupService.downloadBackup(config as WebDavConfig, backup.path);
+      const unpacked = unpackBackup(downloaded.data, downloaded.filename);
+      const impact = await estimateRestoreImpact(unpacked);
+      setPendingRestore({ backup, unpacked, impact });
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : '下载备份失败，无法预览恢复影响', 'error');
+    } finally {
+      setBusy(null);
+    }
+  };
+  const confirmRestore = async () => {
+    if (!pendingRestore) return;
+    const { backup, unpacked } = pendingRestore;
     setBusy('restore');
     try {
-      const summary = method === 's3'
-        ? await s3BackupService.restore(config as S3Config, backup.path)
-        : await webDavBackupService.restore(config as WebDavConfig, backup.path);
+      const summary = await restoreUnpackedBackup(unpacked);
       onRestored(backup.filename, summary);
       onClose();
     } catch (error) {
@@ -124,12 +152,6 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
     } finally {
       setBusy(null);
     }
-  };
-  const confirmRestore = async () => {
-    if (!pendingRestore) return;
-    const backup = pendingRestore;
-    await restore(backup);
-    setPendingRestore(null);
   };
   const confirmDelete = async () => {
     if (!pendingDeletePaths) return;
@@ -139,17 +161,27 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
   };
 
   /**
-   * 恢复确认文案：多端共用一个备份目录时，先让用户看清这份备份来自哪台设备。
+   * 恢复确认文案：先报恢复影响预估（将删除多少条本机记录/对话），再让用户看清备份来自哪台设备。
    * 旧备份文件名没有端后缀，无法从列表识别来源，只能提示"未标注"。
    */
   const renderRestoreDescription = () => {
     if (!pendingRestore) return undefined;
-    const source = platformFromFilename(pendingRestore.filename);
+    const { backup, impact } = pendingRestore;
+    const source = platformFromFilename(backup.filename);
     const current = detectBackupPlatform();
     const crossDevice = source !== null && source !== current;
+    const willRemove = impact.removedRecordsCount > 0 || impact.removedSessionsCount > 0;
+    const removeParts: string[] = [];
+    if (impact.removedRecordsCount > 0) removeParts.push(`${impact.removedRecordsCount} 条记录`);
+    if (impact.removedSessionsCount > 0) removeParts.push(`${impact.removedSessionsCount} 段对话`);
     return (
       <>
-        <span className="block">将恢复备份“{pendingRestore.filename}”。恢复后本机数据将与该备份保持一致，备份之外的本地记录会被删除。</span>
+        <span className="block">将恢复备份“{backup.filename}”，恢复后本机数据与该备份保持一致。</span>
+        <span className={`mt-2 block ${willRemove ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
+          {willRemove
+            ? `将删除本机 ${removeParts.join('、')}（不在该备份中的数据），此操作不可撤销。`
+            : '预计不会删除本机任何记录与对话。'}
+        </span>
         <span className={`mt-2 block ${crossDevice ? 'font-medium text-destructive' : 'text-muted-foreground'}`}>
           {source === null
             ? '此备份未标注来源设备（旧版本创建）。'
@@ -207,7 +239,7 @@ export default function RemoteBackupManagerModal({ isOpen, method, config, onClo
                 <span className="md:text-left md:text-sm">{formatSize(backup.size)}</span>
               </div>
               <div className="-mr-2 mt-1.5 flex items-center justify-end gap-1 md:mr-0 md:mt-0 md:justify-start">
-                <button type="button" onClick={() => setPendingRestore(backup)} disabled={busy !== null} className="min-h-10 rounded-md px-2.5 py-1.5 text-sm text-primary hover:bg-primary/10 disabled:opacity-50 md:min-h-0 md:px-2"><Download className="mr-1 inline h-3.5 w-3.5" />{busy === 'restore' ? '恢复中' : '恢复'}</button>
+                <button type="button" onClick={() => void startRestorePreview(backup)} disabled={busy !== null} className="min-h-10 rounded-md px-2.5 py-1.5 text-sm text-primary hover:bg-primary/10 disabled:opacity-50 md:min-h-0 md:px-2"><Download className="mr-1 inline h-3.5 w-3.5" />{busy === 'preview' ? '预览中' : busy === 'restore' ? '恢复中' : '恢复'}</button>
                 <button type="button" onClick={() => setPendingDeletePaths([backup.path])} disabled={busy !== null} className="min-h-10 rounded-md px-2.5 py-1.5 text-sm text-destructive hover:bg-destructive/10 disabled:opacity-50 md:min-h-0 md:px-2">删除</button>
               </div>
             </div>

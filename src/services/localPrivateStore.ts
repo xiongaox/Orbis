@@ -40,7 +40,8 @@ type LegacySnapshot = { schemaVersion: number; exportedAt: string; records: Lega
 const DB_NAME = 'orbis-private.db';
 const IDB_NAME = 'orbis-private';
 const IDB_STORE = 'records';
-const SCHEMA_VERSION = 2;
+/** 备份快照 schema 版本；导出供备份解包层校验旧格式快照 */
+export const SCHEMA_VERSION = 2;
 const DEFAULT_WORKSPACE = 'default';
 
 type TauriDatabase = Awaited<ReturnType<typeof Database.load>>;

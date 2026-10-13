@@ -287,7 +287,8 @@ export const s3BackupService = {
     return parseBackupList(response.body, prefix);
   },
 
-  async restore(config: S3Config, backupPath: string): Promise<RestoreSummary> {
+  /** 下载指定备份版本的原始字节（供确认弹窗预览与恢复复用，避免二次下载） */
+  async downloadBackup(config: S3Config, backupPath: string): Promise<{ data: Uint8Array | string; filename: string }> {
     const normalized = normalizeConfig(config);
     assertRemoteConfig(normalized);
     const path = assertBackupPath(normalized.backupPrefix, backupPath);
@@ -298,7 +299,12 @@ export const s3BackupService = {
       readBody: true,
       readBinary: true,
     });
-    return await unpackAndRestoreBackup(response.binaryBody ?? response.body, filename);
+    return { data: response.binaryBody ?? response.body, filename };
+  },
+
+  async restore(config: S3Config, backupPath: string, downloaded?: { data: Uint8Array | string; filename: string }): Promise<RestoreSummary> {
+    const { data, filename } = downloaded ?? await this.downloadBackup(config, backupPath);
+    return await unpackAndRestoreBackup(data, filename);
   },
 
   async deleteBackup(config: S3Config, backupPath: string) {

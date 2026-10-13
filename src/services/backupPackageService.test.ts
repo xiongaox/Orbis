@@ -5,9 +5,11 @@ const mocks = vi.hoisted(() => ({
   localPrivateStore: {
     snapshot: vi.fn(),
     restore: vi.fn(),
+    list: vi.fn().mockResolvedValue([]),
   },
   // 测试用 mock 模块需补齐真实模块的常量导出
   DEVICE_LOCAL_CONFIG_RECORD_TYPES: new Set(['webdav_config', 's3_config', 'backup_method']),
+  SCHEMA_VERSION: 2,
   aiChatHistoryService: {
     getAllSessions: vi.fn(),
     importSessions: vi.fn(),
@@ -20,6 +22,8 @@ vi.mock('./aiChatHistoryService', () => mocks);
 import {
   packBackupZip,
   unpackAndRestoreBackup,
+  unpackBackup,
+  estimateRestoreImpact,
   isZipArchive,
 } from './backupPackageService';
 
@@ -186,6 +190,37 @@ describe('backupPackageService 多模块 ZIP 备份与恢复', () => {
     const [, legacyOptions] = mocks.localPrivateStore.restore.mock.calls[0] as [unknown, { syncTypes: Set<string> }];
     expect([...(legacyOptions?.syncTypes ?? [])]).toEqual(['bazi_case']);
     expect(mocks.aiChatHistoryService.importSessions).not.toHaveBeenCalled();
+  });
+
+  it('恢复影响预估：确认前算出将删除本机多少条记录与多少段对话', async () => {
+    mocks.localPrivateStore.snapshot.mockResolvedValue({
+      schemaVersion: 2,
+      exportedAt: '2026-09-15T00:00:00.000Z',
+      records: [
+        { id: 'bazi-1', type: 'bazi_case', payload: { title: '备份案例' }, createdAt: '2026-01-01', updatedAt: '2026-01-01' },
+      ],
+    });
+    mocks.aiChatHistoryService.getAllSessions.mockReturnValue([
+      { id: 's-1', divinationType: 'bazi', caseName: '会话1', messages: [] },
+    ]);
+    const packResult = await packBackupZip({ includeChatHistory: true });
+
+    const unpacked = unpackBackup(packResult.data, 'orbis_20260915_150000_000_win.zip');
+    // 本机比备份多：案例 extra-1 会被删；qimen 会话不在备份导入类型里，不会被删
+    mocks.localPrivateStore.list.mockImplementation(async (type: string) => type === 'bazi_case'
+      ? [
+        { id: 'bazi-1', type: 'bazi_case', payload: {}, createdAt: '', updatedAt: '' },
+        { id: 'extra-1', type: 'bazi_case', payload: {}, createdAt: '', updatedAt: '' },
+      ]
+      : []);
+    mocks.aiChatHistoryService.getAllSessions.mockReturnValue([
+      { id: 's-1', divinationType: 'bazi', caseName: '会话1', messages: [] },
+      { id: 's-2', divinationType: 'qimen', caseName: '其他会话', messages: [] },
+    ]);
+
+    const impact = await estimateRestoreImpact(unpacked);
+    expect(impact.removedRecordsCount).toBe(1);
+    expect(impact.removedSessionsCount).toBe(1);
   });
 
   it('覆盖同步删除的本机多余记录数透传到恢复摘要', async () => {

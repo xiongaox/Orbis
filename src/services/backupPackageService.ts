@@ -11,7 +11,13 @@
 */
 
 import { zipSync, unzipSync, strToU8, strFromU8 } from 'fflate';
-import { localPrivateStore, DEVICE_LOCAL_CONFIG_RECORD_TYPES, type PrivateRecord } from './localPrivateStore';
+import {
+  localPrivateStore,
+  DEVICE_LOCAL_CONFIG_RECORD_TYPES,
+  SCHEMA_VERSION,
+  type PrivateRecord,
+  type PrivateRecordType,
+} from './localPrivateStore';
 import { aiChatHistoryService, type AiChatSession } from './aiChatHistoryService';
 import { detectBackupPlatform, isBackupPlatform, platformFromFilename, type BackupPlatform } from './remoteBackupShared';
 
@@ -185,45 +191,41 @@ export function isZipArchive(data: Uint8Array | string, filename?: string): bool
   return false;
 }
 
+/** 解包后的备份内容（纯内存结构，不落盘），供预览与恢复复用 */
+export interface UnpackedBackup {
+  format: RestoreSummary['format'];
+  records: PrivateRecord[];
+  sessions: AiChatSession[];
+  /** 备份中声明的案例术数类型（每个 *_cases.json 都算，即使内容为空数组） */
+  caseTypes: string[];
+  /** 备份是否包含对话历史文件（决定恢复时是否覆盖本机会话） */
+  hasChatHistoryFiles: boolean;
+  sourcePlatform: BackupPlatform | null;
+}
+
 /**
- * 解包并恢复备份（兼容多 JSON 的 ZIP 与旧版单一 JSON）
+ * 解包备份（兼容多 JSON 的 ZIP 与旧版单一 JSON），不写入本机。
  */
-export async function unpackAndRestoreBackup(
-  rawInput: Uint8Array | string,
-  filename?: string,
-): Promise<RestoreSummary> {
-  const isZip = isZipArchive(rawInput, filename);
-
-  if (!isZip) {
+export function unpackBackup(rawInput: Uint8Array | string, filename?: string): UnpackedBackup {
+  if (!isZipArchive(rawInput, filename)) {
     // -------------------------------------------------------------
-    // 兼容模式：恢复旧版单一 JSON 快照
+    // 兼容模式：旧版单一 JSON 快照
     // -------------------------------------------------------------
-    let jsonText: string;
-    if (typeof rawInput === 'string') {
-      jsonText = rawInput;
-    } else {
-      jsonText = new TextDecoder('utf-8').decode(rawInput);
+    const jsonText = typeof rawInput === 'string' ? rawInput : new TextDecoder('utf-8').decode(rawInput);
+    const snapshot = JSON.parse(jsonText) as { schemaVersion?: number; records?: PrivateRecord[] } | null;
+    if (!snapshot || !Array.isArray(snapshot.records) || ![1, SCHEMA_VERSION].includes(snapshot.schemaVersion as number)) {
+      throw new Error('备份文件版本不受支持');
     }
-
-    const snapshot = JSON.parse(jsonText) as { records?: PrivateRecord[] };
-    // 旧版快照是全量导出：恢复即按快照内容同步本机（快照里出现过的类型，本机多余记录会被清理）
-    const { removedRecordsCount } = await localPrivateStore.restore(snapshot as never, {
-      syncTypes: new Set((snapshot.records || []).map((record) => record.type)),
-    });
-
     const caseTypes = new Set<string>();
-    for (const r of snapshot.records || []) {
-      if (r.type.endsWith('_case')) {
-        caseTypes.add(r.type.replace('_case', ''));
-      }
+    for (const r of snapshot.records) {
+      if (r.type.endsWith('_case')) caseTypes.add(r.type.replace('_case', ''));
     }
-
     return {
       format: 'legacy_json',
-      restoredRecordsCount: snapshot.records?.length || 0,
-      restoredSessionsCount: 0,
-      restoredCaseTypes: Array.from(caseTypes),
-      removedRecordsCount,
+      records: snapshot.records,
+      sessions: [],
+      caseTypes: Array.from(caseTypes),
+      hasChatHistoryFiles: false,
       // 旧版单一 JSON 快照没有端信息，只能靠文件名后缀
       sourcePlatform: filename ? platformFromFilename(filename) : null,
     };
@@ -232,17 +234,11 @@ export async function unpackAndRestoreBackup(
   // -------------------------------------------------------------
   // 新版模式：解包 ZIP 并分模块还原
   // -------------------------------------------------------------
-  let zipBytes: Uint8Array;
-  if (typeof rawInput === 'string') {
-    zipBytes = strToU8(rawInput);
-  } else {
-    zipBytes = rawInput;
-  }
-
+  const zipBytes = typeof rawInput === 'string' ? strToU8(rawInput) : rawInput;
   const unzipped = unzipSync(zipBytes);
 
-  const restoredRecords: PrivateRecord[] = [];
-  const restoredSessions: AiChatSession[] = [];
+  const records: PrivateRecord[] = [];
+  const sessions: AiChatSession[] = [];
   const caseTypes = new Set<string>();
   let hasChatHistoryFiles = false;
   let manifestPlatform: BackupPlatform | null = null;
@@ -273,7 +269,7 @@ export async function unpackAndRestoreBackup(
       const div = entryPath.replace('_cases.json', '');
       caseTypes.add(div);
       if (Array.isArray(parsed)) {
-        restoredRecords.push(...(parsed as PrivateRecord[]));
+        records.push(...(parsed as PrivateRecord[]));
       }
       continue;
     }
@@ -281,7 +277,7 @@ export async function unpackAndRestoreBackup(
     // 2. 账户与配置：account_settings.json
     if (entryPath === 'account_settings.json') {
       if (Array.isArray(parsed)) {
-        restoredRecords.push(...(parsed as PrivateRecord[]));
+        records.push(...(parsed as PrivateRecord[]));
       }
       continue;
     }
@@ -290,42 +286,107 @@ export async function unpackAndRestoreBackup(
     if (entryPath.endsWith('_chat_history.json')) {
       hasChatHistoryFiles = true;
       if (Array.isArray(parsed)) {
-        restoredSessions.push(...(parsed as AiChatSession[]));
+        sessions.push(...(parsed as AiChatSession[]));
       }
       continue;
     }
   }
 
-  // 执行案例与配置恢复：恢复即按备份覆盖同步——
-  // 需要完全同步的类型 = 备份中每个 *_cases.json 对应的案例类型（即使备份里该类型为空数组，
-  // 也要清掉本机多余案例）+ 备份记录中出现的其他类型（profile、收藏、进度等）。
-  // 空备份（无任何记录）不触发同步删除，避免畸形包把本机清空。
+  return {
+    format: 'zip',
+    records,
+    sessions,
+    caseTypes: Array.from(caseTypes),
+    hasChatHistoryFiles,
+    // manifest 优先（准确记录打包端），旧包回退到文件名后缀
+    sourcePlatform: manifestPlatform ?? (filename ? platformFromFilename(filename) : null),
+  };
+}
+
+/** 覆盖同步时会被同步的类型清单（与 restore 的 syncTypes 规则一致） */
+function collectSyncTypes(unpacked: UnpackedBackup): Set<string> {
+  const syncTypes = new Set<string>(unpacked.records.map((record) => record.type));
+  for (const div of unpacked.caseTypes) syncTypes.add(`${div}_case`);
+  return syncTypes;
+}
+
+/**
+ * 预估恢复影响：按 restore 的覆盖同步规则，计算确认后将删除本机多少条记录/多少段会话。
+ * 确认弹窗在用户点「确认恢复」之前展示该数字，防止误恢复不可逆地清掉本机数据。
+ */
+export async function estimateRestoreImpact(unpacked: UnpackedBackup): Promise<{ removedRecordsCount: number; removedSessionsCount: number }> {
+  // 空备份不触发同步删除（与 restore 行为一致），预估同样为 0
+  if (unpacked.records.length === 0) return { removedRecordsCount: 0, removedSessionsCount: 0 };
+
+  const syncedIds = new Map<string, Set<string>>();
+  for (const record of unpacked.records) {
+    let ids = syncedIds.get(record.type);
+    if (!ids) {
+      ids = new Set<string>();
+      syncedIds.set(record.type, ids);
+    }
+    ids.add(record.id);
+  }
+
   let removedRecordsCount = 0;
-  if (restoredRecords.length > 0) {
-    const syncTypes = new Set<string>(restoredRecords.map((record) => record.type));
-    for (const div of caseTypes) syncTypes.add(`${div}_case`);
+  for (const type of collectSyncTypes(unpacked)) {
+    if (DEVICE_LOCAL_CONFIG_RECORD_TYPES.has(type)) continue;
+    const keepIds = syncedIds.get(type) ?? new Set<string>();
+    for (const local of await localPrivateStore.list(type as PrivateRecordType)) {
+      if (!keepIds.has(local.id)) removedRecordsCount += 1;
+    }
+  }
+
+  let removedSessionsCount = 0;
+  // importSessions 在会话列表为空时直接返回（不删本机），预估保持一致
+  if (unpacked.hasChatHistoryFiles && unpacked.sessions.length > 0) {
+    const importedTypes = new Set(unpacked.sessions.map((session) => session.divinationType));
+    removedSessionsCount = aiChatHistoryService.getAllSessions().filter((session) => importedTypes.has(session.divinationType)).length;
+  }
+
+  return { removedRecordsCount, removedSessionsCount };
+}
+
+/**
+ * 执行解包后备份的恢复：恢复即按备份覆盖同步——
+ * 需要完全同步的类型 = 每个 *_cases.json 对应的案例类型（即使备份里该类型为空数组，
+ * 也要清掉本机多余案例）+ 备份记录中出现的其他类型（profile、收藏、进度等）。
+ * 空备份（无任何记录）不触发同步删除，避免畸形包把本机清空。
+ */
+export async function restoreUnpackedBackup(unpacked: UnpackedBackup): Promise<RestoreSummary> {
+  let removedRecordsCount = 0;
+  if (unpacked.records.length > 0) {
     ({ removedRecordsCount } = await localPrivateStore.restore({
-      schemaVersion: 2,
+      schemaVersion: SCHEMA_VERSION,
       exportedAt: new Date().toISOString(),
-      records: restoredRecords,
-    }, { syncTypes }));
+      records: unpacked.records,
+    }, { syncTypes: collectSyncTypes(unpacked) }));
   }
 
   // 备份包含对话历史文件时按备份覆盖本机对应术数的会话；
   // 备份未含对话历史（打包时关闭了该选项）则保留本机会话，不做增删。
   // ponytail: 源端某术数会话为空数组时该术数类型不进 replace 集合，本机会话残留；
   // 升级路径：让 importSessions 接收备份中声明的全部术数类型。
-  if (hasChatHistoryFiles) {
-    aiChatHistoryService.importSessions(restoredSessions, 'replace');
+  if (unpacked.hasChatHistoryFiles) {
+    aiChatHistoryService.importSessions(unpacked.sessions, 'replace');
   }
 
   return {
-    format: 'zip',
-    restoredRecordsCount: restoredRecords.length,
-    restoredSessionsCount: restoredSessions.length,
-    restoredCaseTypes: Array.from(caseTypes),
+    format: unpacked.format,
+    restoredRecordsCount: unpacked.records.length,
+    restoredSessionsCount: unpacked.sessions.length,
+    restoredCaseTypes: [...unpacked.caseTypes],
     removedRecordsCount,
-    // manifest 优先（准确记录打包端），旧包回退到文件名后缀
-    sourcePlatform: manifestPlatform ?? (filename ? platformFromFilename(filename) : null),
+    sourcePlatform: unpacked.sourcePlatform,
   };
+}
+
+/**
+ * 解包并恢复备份（兼容多 JSON 的 ZIP 与旧版单一 JSON）
+ */
+export async function unpackAndRestoreBackup(
+  rawInput: Uint8Array | string,
+  filename?: string,
+): Promise<RestoreSummary> {
+  return await restoreUnpackedBackup(unpackBackup(rawInput, filename));
 }
