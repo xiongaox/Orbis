@@ -183,7 +183,9 @@ export default function QimenPadLayout(props: QimenLayoutProps) {
                         setCurrentCase(caseItem);
                         setIsCaseListOpen(false);
                         if (caseItem.test_date) {
-                            calculateQimenByDate(new Date(caseItem.test_date));
+                            // 点哪个案例就按它的盘式排：旧案例无 pai_pan_method 时沿用当前盘式
+                            if (caseItem.pai_pan_method) setPaiPanMethod(caseItem.pai_pan_method);
+                            calculateQimenByDate(new Date(caseItem.test_date), undefined, caseItem.pai_pan_method);
                         }
                     }}
                     onOpenDatePicker={() => {

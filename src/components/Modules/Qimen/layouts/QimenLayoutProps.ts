@@ -20,7 +20,7 @@ export interface QimenLayoutProps {
     setPaiPanMethod: (m: PaiPanMethod) => void;
     selectedDate: Date;
     calculateNow: () => void;
-    calculateQimenByDate: (d: Date) => void;
+    calculateQimenByDate: (d: Date, juOverride?: number, methodOverride?: PaiPanMethod) => void;
     handlePrevHour: () => void;
     handleNextHour: () => void;
 
