@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Loader2, Calendar as CalendarIcon, Plus } from 'lucide-react';
 import TagSelector from '../../Common/TagSelector';
 import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
+import GenderSegment from './components/GenderSegment';
 import { baziCaseService, type CaseTag, type CreateCaseInput, type BaziCase } from '../../../services/baziCaseService';
 import { calculateBazi } from '../../../services/bazi/caseHelper';
 import BaseModal from '../../UI/BaseModal';
@@ -182,28 +183,7 @@ export default function CreateCaseModal({ isOpen, onClose, onCreated, onPreview 
                 {/* 性别 */}
                 <div className="modal-field">
                     <label className="modal-label">性别 *</label>
-                    <div className="grid grid-cols-2 gap-2">
-                        <button
-                            type="button"
-                            onClick={() => setGender('male')}
-                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg border text-sm transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${gender === 'male'
-                                ? 'border-primary bg-primary/10 text-primary font-medium ring-1 ring-primary/20'
-                                : 'border-border hover:border-primary/50 hover:bg-secondary/50 text-muted-foreground hover:text-foreground'
-                                }`}
-                        >
-                            <span>男</span>
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setGender('female')}
-                            className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg border text-sm transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${gender === 'female'
-                                ? 'border-primary bg-primary/10 text-primary font-medium ring-1 ring-primary/20'
-                                : 'border-border hover:border-primary/50 hover:bg-secondary/50 text-muted-foreground hover:text-foreground'
-                                }`}
-                        >
-                            <span>女</span>
-                        </button>
-                    </div>
+                    <GenderSegment value={gender} onChange={setGender} disabled={loading} />
                 </div>
 
                 {/* 出生日期 */}

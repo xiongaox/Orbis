@@ -174,7 +174,9 @@ export default function BaseCaseList({
                 className={`flex-1 min-h-0 select-none overflow-y-auto ${variant === 'drawer' ? 'px-1.5 py-2' : 'p-4'}`}
                 onContextMenu={(e) => e.preventDefault()}
             >
-                {isLoading ? (
+                {/* 加载占位只在「还没有列表内容」时出现：刷新（如删完一条重新拉取）期间若用占位
+                    替换列表，内容高度会塌缩，浏览器把 scrollTop 夹到 0，删除后跳回顶部 */}
+                {isLoading && isEmpty ? (
                     <div className="text-center text-xs text-muted-foreground py-6">
                         加载中...
                     </div>

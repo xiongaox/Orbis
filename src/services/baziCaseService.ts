@@ -7,6 +7,20 @@ export const CASE_TAGS = [
 
 export type CaseTag = typeof CASE_TAGS[number];
 
+/**
+ * 生平时间记录：一条大运或一个流年上发生的事。
+ * 用「年份」而非大运 index 锚定：出生日期改动会重算大运导致 index 错位，
+ * 年份能按新区间重新归位（归不上的在时间轴末尾单列，不静默丢数据）。
+ */
+export interface LifeEvent {
+  kind: 'dayun' | 'liunian';
+  /** 大运取起始年、流年取该年，统一转字符串 */
+  ref: string;
+  /** 冗余存干支：案例重排盘后仍能显示记录当时的干支 */
+  ganZhi: string;
+  text: string;
+}
+
 export interface BaziCase {
   id: string;
   name: string;
@@ -15,6 +29,8 @@ export interface BaziCase {
   tags: CaseTag[];
   notes?: string;
   bazi_data?: Record<string, unknown>;
+  /** 生平时间轴记录（大运/流年事件） */
+  life_events?: LifeEvent[];
   sort_order?: number;
   created_at: string;
   updated_at: string;

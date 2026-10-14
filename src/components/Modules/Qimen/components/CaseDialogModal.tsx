@@ -339,7 +339,10 @@ export default function CaseDialogModal({
 
         const footerContent = (
             <div className="flex w-full flex-col">
-                <div className="flex shrink-0 gap-2 pb-1">
+                {/* 下间距与外壳 footer 上间距按端对齐：移动端 SubPage py-3 → pb-2 + 输入区 pt-1 = 12px，
+                    桌面 BaseModal p-4 → pb-4 + pt-1 = 20px；曾统一只有 8px，
+                    选中断法（primary 边框）且输入框聚焦（focus:border-primary/50）时两条同色边框视觉粘连 */}
+                <div className={`flex shrink-0 gap-2 ${isMobile ? 'pb-2' : 'pb-4'}`}>
                         {(['q', 'a', 'r'] as CaseDialogKind[]).map((item) => (
                             <button
                                 key={item}

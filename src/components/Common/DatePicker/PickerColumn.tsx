@@ -19,16 +19,30 @@ export default function PickerColumn({ items, value, onChange, label, formatItem
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     // 当前选中下标：wheel 步进期间 scrollTop 还在 smooth 动画中，直接按 scrollTop 取整会滞后错位
     const indexRef = useRef(0);
+    // 程序性定位（初始化 / 外部同步）期间置位：这类滚动不产生中间态，也不允许回写值
+    const programmaticRef = useRef(false);
+    // 用户是否正在手动拖动（触摸/拖拽）。容器的 scroll-behavior 是 smooth，
+    // 程序性定位同样会走动画；若不区分，onScroll 会在动画中途采样出错误项并回写（年份跨度大时最明显）
+    const userInteractingRef = useRef(false);
+
+    /** 瞬时定位到某下标：必须用 behavior: 'instant'，否则会被容器的 scroll-behavior: smooth 拉成动画 */
+    const jumpToIndex = (index: number) => {
+        const el = scrollRef.current;
+        if (!el) return;
+        indexRef.current = index;
+        programmaticRef.current = true;
+        el.scrollTo({ top: index * ITEM_HEIGHT, behavior: 'instant' });
+        requestAnimationFrame(() => { programmaticRef.current = false; });
+    };
 
     // Initial scroll
     useEffect(() => {
-        if (scrollRef.current) {
-            const index = items.indexOf(value);
-            if (index !== -1) {
-                indexRef.current = index;
-                scrollRef.current.scrollTop = index * ITEM_HEIGHT;
-            }
-        }
+        if (!scrollRef.current) return;
+        const index = items.indexOf(value);
+        if (index === -1) return;
+        // 已在位就不重复滚动，避免每次渲染都触发一次滚动动画
+        if (indexRef.current === index && Math.abs(scrollRef.current.scrollTop - index * ITEM_HEIGHT) <= 5) return;
+        jumpToIndex(index);
     }, [items, value]);
 
     // Sync external value change
@@ -36,8 +50,7 @@ export default function PickerColumn({ items, value, onChange, label, formatItem
         if (!isScrolling.current && scrollRef.current) {
             const index = items.indexOf(value);
             if (index !== -1 && Math.abs(scrollRef.current.scrollTop - index * ITEM_HEIGHT) > 5) {
-                indexRef.current = index;
-                scrollRef.current.scrollTop = index * ITEM_HEIGHT;
+                jumpToIndex(index);
             }
         }
     }, [value, items]);
@@ -67,6 +80,8 @@ export default function PickerColumn({ items, value, onChange, label, formatItem
     }, [items, value, onChange]);
 
     const handleScroll = () => {
+        // 程序性定位产生的滚动：直接忽略，不回写
+        if (programmaticRef.current) return;
         isScrolling.current = true;
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
@@ -84,9 +99,12 @@ export default function PickerColumn({ items, value, onChange, label, formatItem
                 behavior: 'smooth'
             });
 
-            if (items[clampedIndex] !== value) {
+            // 只有用户手动拖动（触摸/拖拽）才由这里回写值；
+            // 滚轮与点击都自带 onChange，程序性定位更不该回写——否则动画中途的位置会被当成选择结果
+            if (userInteractingRef.current && items[clampedIndex] !== value) {
                 onChange(items[clampedIndex]);
             }
+            userInteractingRef.current = false;
         }, 150);
     };
 
@@ -96,6 +114,9 @@ export default function PickerColumn({ items, value, onChange, label, formatItem
                 ref={scrollRef}
                 className="h-full overflow-y-scroll no-scrollbar py-[80px]"
                 onScroll={handleScroll}
+                // 只有用户自己拖动/触摸滚出来的，才允许 onScroll 回写选中值
+                onPointerDown={() => { userInteractingRef.current = true; }}
+                onTouchStart={() => { userInteractingRef.current = true; }}
                 style={{ scrollSnapType: 'y mandatory', scrollBehavior: 'smooth' }}
             >
                 {items.map(item => (

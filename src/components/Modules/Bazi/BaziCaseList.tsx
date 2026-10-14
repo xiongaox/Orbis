@@ -1,7 +1,6 @@
 import { useMemo, useState, useEffect, useCallback, useSyncExternalStore } from 'react';
 import { baziCaseService, type BaziCase, type CaseTag, type CreateCaseInput } from '../../../services/baziCaseService';
 import type { Case } from '../../../types';
-import ConfirmModal from '../../Common/ConfirmModal';
 import CreateCaseModal from './CreateCaseModal';
 import { BAZI_CASES_CHANGED_EVENT } from '../../../data/caseConstants';
 import EditCaseModal from './EditCaseModal';
@@ -49,8 +48,6 @@ export default function CaseList({
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCase, setEditingCase] = useState<BaziCase | null>(null);
-  const [deletingCaseId, setDeletingCaseId] = useState<string | null>(null);
-  const [caseToDelete, setCaseToDelete] = useState<BaziCase | null>(null);
   const [selectedTag, setSelectedTag] = useState<CaseTag | null>(null);
   // 字段排序（年龄/分组/性别）：field 为 null 表示默认
   const [sort, setSort] = useState<SortState>({ field: null, dir: 'desc' });
@@ -136,9 +133,18 @@ export default function CaseList({
     });
   }, [cases, search, selectedTag, sort]);
 
-  const handleDeleteCase = (id: string) => {
-    const target = cases.find(c => c.id === id);
-    if (target) setCaseToDelete(target);
+  // 删除案例：左滑即删，无二次确认（可批量连删，跳过确认弹窗以免每次重新定位）
+  const handleDeleteCase = async (id: string) => {
+    try {
+      await baziCaseService.deleteCase(id);
+      if (selectedCaseId === id) {
+        onSelectCase?.(null);
+      }
+      window.dispatchEvent(new CustomEvent(BAZI_CASES_CHANGED_EVENT));
+    } catch (error) {
+      console.error('删除案例失败:', error);
+      alert('删除失败');
+    }
   };
 
   // AI 研判任务状态：研判中 / 未读研判（跨组件登记，见 aiTaskStatusService）
@@ -157,25 +163,6 @@ export default function CaseList({
   const handleEditCase = (id: string) => {
     const target = cases.find(c => c.id === id);
     if (target) setEditingCase(target);
-  };
-
-  const executeDelete = async () => {
-    if (!caseToDelete) return; // double check
-
-    setDeletingCaseId(caseToDelete.id);
-    try {
-      await baziCaseService.deleteCase(caseToDelete.id);
-      if (selectedCaseId === caseToDelete.id) {
-        onSelectCase?.(null);
-      }
-      window.dispatchEvent(new CustomEvent(BAZI_CASES_CHANGED_EVENT));
-      setCaseToDelete(null);
-    } catch (error) {
-      console.error('删除案例失败:', error);
-      alert('删除失败');
-    } finally {
-      setDeletingCaseId(null);
-    }
   };
 
   return (
@@ -203,16 +190,6 @@ export default function CaseList({
         <>
           <CreateCaseModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} onCreated={handleCaseCreated} onPreview={onPreviewCase ? handlePreviewCase : undefined} />
           {editingCase && <EditCaseModal isOpen caseData={editingCase} onClose={() => setEditingCase(null)} onSaved={() => setEditingCase(null)} />}
-          <ConfirmModal
-            isOpen={!!caseToDelete}
-            onClose={() => setCaseToDelete(null)}
-            onConfirm={executeDelete}
-            title="删除确认"
-            description={<>确定要删除案例 <span className="font-medium text-foreground">「{caseToDelete?.name}」</span> 吗？此操作无法撤销。</>}
-            confirmText="删除"
-            variant="destructive"
-            loading={!!deletingCaseId}
-          />
         </>
       }
     >

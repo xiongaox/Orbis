@@ -257,7 +257,8 @@ export default function CaseLibraryModal<T extends { id: string }>({
 
                     {/* 右侧案例列表 */}
                     <div className="flex-1 min-w-0 overflow-y-auto">
-                        {loading ? (
+                        {/* 同 BaseCaseList：刷新期间保留列表，避免占位替换内容导致滚动位置归零 */}
+                        {loading && filteredCases.length === 0 ? (
                             <div className="text-center text-muted-foreground py-12">加载中...</div>
                         ) : filteredCases.length === 0 ? (
                             <div className="text-center text-muted-foreground py-12 rounded-lg border border-dashed border-border bg-secondary/20">
