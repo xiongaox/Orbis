@@ -1,4 +1,5 @@
 import { localPrivateStore } from './localPrivateStore';
+import { readSetting, writeSetting } from './appSettingStore';
 import type { PaiPanMethod } from '../lib/csp-qimen/qimenService';
 
 export const QIMEN_CATEGORIES = [
@@ -77,3 +78,27 @@ export const qimenCaseService = {
     await localPrivateStore.clear('qimen_case');
   },
 };
+
+/**
+ * 一次性迁移：把存量奇门案例的标题补进正文首句（description 首段）。
+ * 背景：此前新建案例只存标题，正文要进详情一个个手填；
+ * 新逻辑（见 QimenNewCaseModal）已让新建案例自带标题为首句。
+ * 跳过已有正文的案例（description 非空，或已有 dialog_lines 记录流），
+ * 迁移标志存 app_setting，幂等：失败不置位，下次启动重试。
+ * 返回实际补写的案例数。
+ */
+export async function migrateQimenTitlesIntoDescription(): Promise<number> {
+  if (readSetting<boolean>('qimen_title_desc_migrated', false)) return 0;
+  const cases = await qimenCaseService.getCases();
+  let migrated = 0;
+  for (const c of cases) {
+    // 已有填充数据（正文或记录流）的案例不动
+    if ((c.description ?? '').trim() || (c.dialog_lines ?? []).length > 0) continue;
+    const title = c.title.trim();
+    if (!title) continue;
+    await qimenCaseService.updateCase(c.id, { description: title });
+    migrated += 1;
+  }
+  writeSetting('qimen_title_desc_migrated', true);
+  return migrated;
+}

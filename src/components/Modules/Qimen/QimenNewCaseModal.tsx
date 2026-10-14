@@ -78,10 +78,13 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
                 };
                 await qimenCaseService.updateCase(initialData.id, updateInput);
             } else {
+                // 新建即把标题作为正文首句（提问）：案例详情首行自动带上题目，
+                // 不必再逐个手填；后续在详情里追加的问答会接在它后面
                 const createInput: CreateQimenCaseInput = {
                     title,
                     test_date: date.toISOString(),
                     category,
+                    description: title.trim(),
                     ...(paiPanMethod ? { pai_pan_method: paiPanMethod } : {}),
                 };
                 await qimenCaseService.createCase(createInput);

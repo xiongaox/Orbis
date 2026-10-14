@@ -8,6 +8,7 @@ import { preloadAiChatSessions } from './services/aiChatHistoryService'
 import { preloadAiResearchStatuses } from './services/aiTaskStatusService'
 import { preloadAutoBackupState } from './services/remoteBackupService'
 import { preloadTheme } from './services/themeService'
+import { migrateQimenTitlesIntoDescription } from './services/qimenCaseService'
 
 // 启动预热：把 SQLite 里的设置/对话历史/研判状态/备份时间戳载入内存缓存。
 // 必须在首屏渲染前完成，否则各处的同步读（readSetting/getAllSessions 等）只会拿到空默认值。
@@ -20,6 +21,8 @@ async function bootstrap() {
   await Promise.all([
     preloadAiChatSessions(),
     preloadAutoBackupState(),
+    // 存量奇门案例：标题补进正文首句（一次性，幂等）
+    migrateQimenTitlesIntoDescription(),
   ])
 }
 
