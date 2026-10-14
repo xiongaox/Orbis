@@ -40,6 +40,7 @@ import AppChangelogList, { ChangelogItems } from '../Common/AppChangelogList';
 import { type AppChangelogEntry } from '../../lib/appChangelog';
 import { popBackHandler, pushBackHandler } from '../../utils/androidBackButton';
 import { profileService } from '../../services/profileService';
+import { persistTheme } from '../../services/themeService';
 import { getUserAvatar } from '../../utils/userUtil';
 import { publicCaseLibraryService } from '../../services/publicCaseLibraryService';
 import { webDavBackupService, WEBDAV_CONFIG_CHANGE_EVENT } from '../../services/webdavBackupService';
@@ -239,8 +240,7 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
     const handleToggleTheme = () => {
         setIsDark((prev) => {
             const next = !prev;
-            document.documentElement.classList.toggle('dark', next);
-            localStorage.setItem('theme', next ? 'dark' : 'light');
+            persistTheme(next);
             return next;
         });
     };

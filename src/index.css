@@ -57,6 +57,11 @@
   --success-foreground: 144 61% 20%;
   --success-primary: 142 72% 29%;
   --success-primary-foreground: 138 76% 97%;
+  /* 状态前景色：供 Toast 等反馈层直接做图标/文字颜色，深浅主题各一套；
+     与 --success/--destructive 这类「淡底色」语义不同，勿混用 */
+  --status-success: 146 83% 29%;
+  --status-destructive: 0 73% 50%;
+  --status-info: 162 44% 48%;
   --warning: 32 86% 88%;
   --warning-foreground: 15 81% 26%;
   --warning-primary: 25 98% 44%;
@@ -144,6 +149,10 @@
   --accent-foreground: 42 22% 87%;
   --destructive: 4 55% 57%;
   --destructive-foreground: 42 22% 87%;
+  /* 状态前景色（暗色提亮版，见 :root 注释） */
+  --status-success: 143 54% 51%;
+  --status-destructive: 0 55% 64%;
+  --status-info: 158 22% 64%;
   --border: 240 4% 16%;
   --input: 240 4% 16%;
   --ring: 37 42% 67%;

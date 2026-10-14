@@ -19,6 +19,9 @@ import {
   type PrivateRecordType,
 } from './localPrivateStore';
 import { aiChatHistoryService, type AiChatSession } from './aiChatHistoryService';
+import { preloadAppSettings } from './appSettingStore';
+import { preloadTheme } from './themeService';
+import { preloadAiResearchStatuses } from './aiTaskStatusService';
 import { detectBackupPlatform, isBackupPlatform, platformFromFilename, type BackupPlatform } from './remoteBackupShared';
 
 export interface BackupContentOptions {
@@ -83,6 +86,11 @@ export async function packBackupZip(options: BackupContentOptions = DEFAULT_BACK
   for (const record of allRecords) {
     // 打包排除设备本地配置（备份凭据不跨设备覆盖）
     if (DEVICE_LOCAL_CONFIG_RECORD_TYPES.has(record.type)) {
+      continue;
+    }
+    // AI 对话历史单独经 getAllSessions() 打进 *_chat_history.json（受 includeChatHistory 控制），
+    // 此处排除记录本体以免重复打包
+    if (record.type === 'ai_chat_sessions') {
       continue;
     }
 
@@ -370,6 +378,12 @@ export async function restoreUnpackedBackup(unpacked: UnpackedBackup): Promise<R
   if (unpacked.hasChatHistoryFiles) {
     aiChatHistoryService.importSessions(unpacked.sessions, 'replace');
   }
+
+  // app_setting 类记录（主题/布局/隐私/导航槽/锁定盘/研判状态/角色 prompt）恢复后已写入 SQLite，
+  // 但内存缓存仍是恢复前的旧值；重载缓存及其派生态（theme DOM、研判状态），让恢复即时生效而非等重启。
+  await preloadAppSettings();
+  preloadTheme();
+  preloadAiResearchStatuses();
 
   return {
     format: unpacked.format,

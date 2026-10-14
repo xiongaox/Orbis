@@ -115,7 +115,7 @@ export default function QimenPadLayout(props: QimenLayoutProps) {
                 {/* 案例标题 - 有案例时显示在盘式上方 */}
                 {currentCase?.title && (
                     <div className="shrink-0 flex items-center justify-center gap-2 h-10 px-3 -mx-1 -mt-1 mb-1 bg-card/60 border-b border-border/60">
-                        <span className="text-base font-serif text-foreground font-medium leading-none line-clamp-1">
+                        <span className={`text-base font-serif text-foreground font-medium leading-none line-clamp-1 ${isCasePrivacyMode ? 'select-none blur-[6px]' : ''}`}>
                             【求测】：{currentCase.title}
                         </span>
                     </div>

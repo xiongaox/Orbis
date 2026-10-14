@@ -11,6 +11,7 @@
  */
 /* eslint-disable react-refresh/only-export-components -- context 定义、Provider 与读取 hook 同文件是 React 惯例；拆回多文件仅为迁就 HMR 导出检查，属过度分层（同 BaziContext / MobileNavContext） */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { readSetting, writeSetting } from '../services/appSettingStore';
 
 interface CasePrivacyContextValue {
     /** 是否处于隐藏（打码）状态 */
@@ -22,11 +23,7 @@ const STORAGE_KEY = 'orbis_case_privacy';
 
 /** 读取持久化的隐藏开关；存储不可用时按「不隐藏」处理 */
 function readStoredPrivacy(): boolean {
-    try {
-        return localStorage.getItem(STORAGE_KEY) === '1';
-    } catch {
-        return false;
-    }
+    return readSetting<string>(STORAGE_KEY, '0') === '1';
 }
 
 const CasePrivacyContext = createContext<CasePrivacyContextValue>({
@@ -39,11 +36,7 @@ export function CasePrivacyProvider({ children }: { children: ReactNode }) {
     const [isPrivacyMode, setIsPrivacyMode] = useState(readStoredPrivacy);
 
     useEffect(() => {
-        try {
-            localStorage.setItem(STORAGE_KEY, isPrivacyMode ? '1' : '0');
-        } catch {
-            // 存储不可用时静默降级：本次会话内状态仍在
-        }
+        writeSetting(STORAGE_KEY, isPrivacyMode ? '1' : '0');
     }, [isPrivacyMode]);
 
     const togglePrivacy = useCallback(() => setIsPrivacyMode((current) => !current), []);

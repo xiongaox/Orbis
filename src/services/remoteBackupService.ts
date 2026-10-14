@@ -7,18 +7,38 @@ export type RemoteBackupMethod = 'webdav' | 's3';
 const METHOD_TYPE = 'backup_method';
 const METHOD_CHANGE_EVENT = 'orbis-backup-method-change';
 // 自动备份调度：距上次成功自动备份满间隔才执行。
-// 记录在 localStorage（设备本地的调度状态，不进备份快照）——
-// 否则「启动即补跑」无法去重，应用每天短会话使用时永远等不满 setInterval 的间隔。
-const LAST_AUTO_BACKUP_KEY = 'orbis_last_auto_backup_at';
+// 记录存 SQLite（auto_backup_state，属设备本地配置，不进备份快照、恢复时也不覆盖本机）——
+// 否则「启动即补跑」无法去重，应用每天短会话使用时永远等不满 setInterval 的间隔；
+// 也正因设备本地，才不会出现「手机的时间戳覆盖桌面而跳过补跑」。
+const AUTO_BACKUP_STATE_TYPE = 'auto_backup_state';
+const AUTO_BACKUP_STATE_ID = 'auto_backup_state';
+
+// 上次成功备份时间的内存缓存：isAutoBackupDue 为同步调用，需读缓存；启动时由 preload 填充。
+let lastAutoBackupAt = 0;
+
+/** 启动预热：从 SQLite 读入上次备份时间戳（localStorage 旧值一次性迁移后删除）。 */
+export async function preloadAutoBackupState(): Promise<void> {
+  const record = await localPrivateStore.get(AUTO_BACKUP_STATE_TYPE, AUTO_BACKUP_STATE_ID);
+  let stored = Number(record?.payload.lastAutoBackupAt ?? 0);
+  if (!record && typeof localStorage !== 'undefined') {
+    // 迁移旧 localStorage 值
+    try {
+      stored = Number(localStorage.getItem('orbis_last_auto_backup_at') || 0);
+      if (stored) localStorage.removeItem('orbis_last_auto_backup_at');
+    } catch { /* 忽略 */ }
+  }
+  lastAutoBackupAt = Number.isFinite(stored) ? stored : 0;
+}
 
 function isAutoBackupDue(intervalMinutes: number): boolean {
-  let last = 0;
-  try { last = Number(localStorage.getItem(LAST_AUTO_BACKUP_KEY) || 0); } catch { /* 存储不可用时按从未备份处理 */ }
-  return Date.now() - last >= intervalMinutes * 60 * 1_000;
+  return Date.now() - lastAutoBackupAt >= intervalMinutes * 60 * 1_000;
 }
 
 function markAutoBackupDone(): void {
-  try { localStorage.setItem(LAST_AUTO_BACKUP_KEY, String(Date.now())); } catch { /* 忽略 */ }
+  lastAutoBackupAt = Date.now();
+  void localPrivateStore
+    .put(AUTO_BACKUP_STATE_TYPE, { lastAutoBackupAt }, AUTO_BACKUP_STATE_ID)
+    .catch((error: unknown) => console.warn('记录自动备份时间失败', error));
 }
 
 let autoRunInFlight = false;

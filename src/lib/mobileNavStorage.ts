@@ -9,6 +9,7 @@
  * - 尚未上线的术数仅在「重选菜单」网格中露出，不可选中
 */
 import type { ChartType } from '../types';
+import { readSetting, writeSetting } from '../services/appSettingStore';
 
 export const MOBILE_NAV_SLOTS_STORAGE_KEY = 'orbis_mobile_nav_slots';
 
@@ -55,25 +56,16 @@ export function mobileNavModuleName(chart: ChartType): string {
 
 /** 读取已固定槽位；存储缺失或非法时回退默认值 */
 export function readMobileNavSlots(): ChartType[] {
-    try {
-        const stored = localStorage.getItem(MOBILE_NAV_SLOTS_STORAGE_KEY);
-        if (!stored) return [...DEFAULT_MOBILE_NAV_SLOTS];
-        const parsed: unknown = JSON.parse(stored);
-        if (!Array.isArray(parsed)) return [...DEFAULT_MOBILE_NAV_SLOTS];
-        const slots = parsed.filter(
-            (value): value is ChartType => typeof value === 'string' && CANDIDATE_IDS.includes(value),
-        );
-        return [...new Set(slots)].slice(0, MOBILE_NAV_MAX_SLOTS);
-    } catch {
-        return [...DEFAULT_MOBILE_NAV_SLOTS];
-    }
+    const stored = readSetting<unknown>(MOBILE_NAV_SLOTS_STORAGE_KEY, null);
+    if (!stored) return [...DEFAULT_MOBILE_NAV_SLOTS];
+    if (!Array.isArray(stored)) return [...DEFAULT_MOBILE_NAV_SLOTS];
+    const slots = stored.filter(
+        (value): value is ChartType => typeof value === 'string' && CANDIDATE_IDS.includes(value),
+    );
+    return [...new Set(slots)].slice(0, MOBILE_NAV_MAX_SLOTS);
 }
 
 /** 持久化已固定槽位（调用方负责上限校验） */
 export function writeMobileNavSlots(slots: ChartType[]): void {
-    try {
-        localStorage.setItem(MOBILE_NAV_SLOTS_STORAGE_KEY, JSON.stringify(slots));
-    } catch {
-        // 存储不可用时静默降级：本次会话内状态仍在
-    }
+    writeSetting(MOBILE_NAV_SLOTS_STORAGE_KEY, slots);
 }

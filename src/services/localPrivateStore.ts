@@ -7,7 +7,11 @@
 import Database from '@tauri-apps/plugin-sql';
 import { BAZI_CASES_CHANGED_EVENT, QIMEN_CASES_CHANGED_EVENT, SANYUAN_CASES_CHANGED_EVENT } from '../data/caseConstants';
 
-export type PrivateRecordType = 'bazi_case' | 'qimen_case' | 'sanyuan_case' | 'profile' | 'ai_model_service' | 'case_favorite' | 'case_progress' | 'webdav_config' | 's3_config' | 'backup_method';
+export type PrivateRecordType = 'bazi_case' | 'qimen_case' | 'sanyuan_case' | 'profile' | 'ai_model_service' | 'case_favorite' | 'case_progress' | 'webdav_config' | 's3_config' | 'backup_method'
+  // 以下为从 localStorage 迁入 SQLite 的本地持久化数据
+  | 'app_setting' // 通用设置：theme、布局、隐私开关、导航槽位、锁定盘、研判状态、AI 角色 prompt 等
+  | 'ai_chat_sessions' // AI 研判对话历史（单条记录存整份会话数组）
+  | 'auto_backup_state'; // 自动备份调度状态（设备本地，不进备份）
 
 export interface PrivateRecord {
   id: string;
@@ -32,6 +36,8 @@ export const DEVICE_LOCAL_CONFIG_RECORD_TYPES = new Set<string>([
   'webdav_config',
   's3_config',
   'backup_method',
+  // 自动备份时间戳：跨设备覆盖会让一台设备的备份节奏干扰另一台（读到他人时间戳而跳过补跑），故不进备份
+  'auto_backup_state',
 ]);
 
 type LegacyPrivateRecord = PrivateRecord & { userId?: string; user_id?: string };

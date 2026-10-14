@@ -92,6 +92,8 @@ export const PRESET_ROLE_TEMPLATES: AiRoleTemplate[] = [
   },
 ];
 
+import { readSetting, writeSetting } from './appSettingStore';
+
 const STORAGE_PREFIX = 'orbis_ai_role_prompt_v1_';
 const LISTENERS: Array<() => void> = [];
 
@@ -119,13 +121,9 @@ export const aiRolePromptService = {
    */
   getSystemPrompt(moduleName: string = '八字'): string {
     const key = `${STORAGE_PREFIX}${moduleName}`;
-    try {
-      const saved = localStorage.getItem(key);
-      if (saved && saved.trim()) {
-        return saved;
-      }
-    } catch {
-      // 忽略
+    const saved = readSetting<string>(key, '');
+    if (saved && saved.trim()) {
+      return saved;
     }
 
     // 默认回退
@@ -142,7 +140,7 @@ export const aiRolePromptService = {
   saveSystemPrompt(moduleName: string = '八字', prompt: string): void {
     const key = `${STORAGE_PREFIX}${moduleName}`;
     try {
-      localStorage.setItem(key, prompt.trim());
+      writeSetting(key, prompt.trim());
       notifyListeners();
     } catch (err) {
       console.error('Failed to save AI role prompt:', err);

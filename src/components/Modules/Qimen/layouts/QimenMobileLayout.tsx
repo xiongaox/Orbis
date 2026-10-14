@@ -133,7 +133,7 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
                         className="px-3 py-1.5 border-b border-border/40 bg-primary/5 flex items-center gap-2 text-left"
                     >
                         <span className="w-0.5 h-3.5 rounded-full bg-primary/60 flex-shrink-0" />
-                        <span className="text-sm text-primary/90 font-serif truncate">【求测】：{currentCase.title}</span>
+                        <span className={`text-sm text-primary/90 font-serif truncate ${isCasePrivacyMode ? 'select-none blur-[6px]' : ''}`}>【求测】：{currentCase.title}</span>
                     </button>
                 )}
 

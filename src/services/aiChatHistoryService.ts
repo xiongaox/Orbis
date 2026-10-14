@@ -62,62 +62,76 @@ function notifyListeners() {
 
 import { extractSmartTitleFromQuestion } from './aiChatService';
 import { exportTextFile } from '../utils/fileExportUtil';
+import { localPrivateStore } from './localPrivateStore';
+
+const SESSIONS_RECORD_TYPE = 'ai_chat_sessions';
+const SESSIONS_RECORD_ID = 'ai_chat_sessions';
 
 let cachedSessions: AiChatSession[] | null = null;
 
-function loadAllSessionsFromStorage(): AiChatSession[] {
-  if (cachedSessions) return cachedSessions;
-  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-    cachedSessions = [];
-    return cachedSessions;
-  }
+/** 一次性迁移：localStorage 里的旧会话搬进 SQLite 后删除，避免双份。 */
+async function migrateLegacySessionsFromLocalStorage(): Promise<AiChatSession[] | null> {
+  if (typeof localStorage === 'undefined') return null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      cachedSessions = [];
-      return cachedSessions;
-    }
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      cachedSessions = (parsed as AiChatSession[])
-        .map((s) => {
-          // 纠正存量数据中直接使用 caseName 作为会话标题的缺陷
-          if (!s.title || s.title === s.caseName) {
-            const firstUserMsg = s.messages?.find((m) => m.role === 'user');
-            if (firstUserMsg) {
-              s.title = extractSmartTitleFromQuestion(firstUserMsg.content, s.divinationType);
-            } else {
-              s.title = '命理综合研判';
-            }
-          }
-          return s;
-        })
-        .sort((a, b) => b.updatedAt - a.updatedAt);
-      return cachedSessions;
-    }
-    cachedSessions = [];
-    return cachedSessions;
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return null;
+    localStorage.removeItem(STORAGE_KEY);
+    return parsed as AiChatSession[];
   } catch (err) {
-    console.warn('Failed to load AI chat sessions from localStorage:', err);
-    cachedSessions = [];
-    return cachedSessions;
+    console.warn('迁移旧 AI 对话历史失败：', err);
+    return null;
   }
+}
+
+/**
+ * 启动预热：把会话从 SQLite 载入内存缓存（并迁移 localStorage 旧数据）。
+ * 必须在首屏渲染前 await 完成，否则同步的 getAllSessions 只会拿到空数组。
+ */
+export async function preloadAiChatSessions(): Promise<void> {
+  const record = await localPrivateStore.get(SESSIONS_RECORD_TYPE, SESSIONS_RECORD_ID);
+  let loaded = (record?.payload.value as AiChatSession[] | undefined) ?? null;
+  if (!loaded) {
+    loaded = await migrateLegacySessionsFromLocalStorage();
+  }
+  cachedSessions = normalizeSessions(loaded ?? []);
+  notifyListeners();
+}
+
+function normalizeSessions(list: AiChatSession[]): AiChatSession[] {
+  return list
+    .map((s) => {
+      // 纠正存量数据中直接使用 caseName 作为会话标题的缺陷
+      if (!s.title || s.title === s.caseName) {
+        const firstUserMsg = s.messages?.find((m) => m.role === 'user');
+        if (firstUserMsg) {
+          s.title = extractSmartTitleFromQuestion(firstUserMsg.content, s.divinationType);
+        } else {
+          s.title = '命理综合研判';
+        }
+      }
+      return s;
+    })
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+function loadAllSessionsFromStorage(): AiChatSession[] {
+  if (cachedSessions) return cachedSessions;
+  // 预热未完成（极端时序）时退化为空，避免读到未初始化的 null
+  cachedSessions = [];
+  return cachedSessions;
 }
 
 function saveAllSessionsToStorage(sessions: AiChatSession[]): void {
   // 必须换新数组引用：订阅方（useSyncExternalStore）以 Object.is 比较快照，
   // 原引用入库会导致收藏等原地修改后界面不刷新。
   cachedSessions = [...sessions];
-  if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
-    notifyListeners();
-    return;
-  }
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-    notifyListeners();
-  } catch (err) {
-    console.error('Failed to save AI chat sessions to localStorage:', err);
-  }
+  // 异步落盘 SQLite；内存缓存已更新，界面即时反映，不等待写盘
+  void localPrivateStore
+    .put(SESSIONS_RECORD_TYPE, { value: sessions }, SESSIONS_RECORD_ID)
+    .catch((err) => console.error('保存 AI 对话历史失败：', err));
+  notifyListeners();
 }
 
 export const aiChatHistoryService = {

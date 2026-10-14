@@ -30,6 +30,10 @@ export default {
         "success-foreground": "hsl(var(--success-foreground))",
         "success-primary": "hsl(var(--success-primary))",
         "success-primary-foreground": "hsl(var(--success-primary-foreground))",
+        // 状态前景色（Toast 等反馈层的图标/文字颜色，深浅主题各一套）
+        "status-success": "hsl(var(--status-success))",
+        "status-destructive": "hsl(var(--status-destructive))",
+        "status-info": "hsl(var(--status-info))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

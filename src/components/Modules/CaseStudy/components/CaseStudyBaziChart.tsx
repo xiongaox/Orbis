@@ -80,7 +80,8 @@ function SimplePillarCard({
             <div className={`${isMobile ? 'h-7' : 'h-10'} flex items-center justify-center border-b border-border`}>
                 <span className={`${isMobile ? 'text-[12px]' : 'text-sm'} text-muted-foreground text-center line-clamp-1`}>{pillar.naYin}</span>
             </div>
-            <div className={`flex-1 ${isMobile ? 'py-1 px-0.5 gap-1' : 'px-1 py-1 gap-2'} ${shenshaCollapsed ? '' : isMobile ? 'min-h-[70px]' : 'min-h-[100px]'} flex flex-col items-center justify-start`}>
+            {/* 收起态内容少，垂直居中；展开态从顶部往下排 */}
+            <div className={`flex-1 ${isMobile ? 'py-1 px-0.5 gap-1' : 'px-1 py-1 gap-2'} ${shenshaCollapsed ? '' : isMobile ? 'min-h-[70px]' : 'min-h-[100px]'} flex flex-col items-center ${shenshaCollapsed ? 'justify-center' : 'justify-start'}`}>
                 {visibleShensha.map((s, i) => (
                     <span key={i} className={`${isMobile ? 'text-[11px]' : 'text-xs'} text-foreground text-center`}>{s}</span>
                 ))}
@@ -248,20 +249,19 @@ export default function CaseStudyBaziChart({
                                 <span className={`${isMobile ? 'text-[12px]' : 'text-xs'} text-muted-foreground`}>{label}</span>
                             </div>
                         ))}
-                        <div className={`flex-1 flex items-start justify-center bg-muted/30 ${isShenshaCollapsed ? '' : isMobile ? 'min-h-[70px]' : 'min-h-[100px]'}`}>
+                        <div className={`flex-1 flex justify-center py-2 bg-muted/30 ${isShenshaCollapsed ? 'items-center' : 'items-start'} ${isShenshaCollapsed ? '' : isMobile ? 'min-h-[70px]' : 'min-h-[100px]'}`}>
                             <button
                                 type="button"
                                 onClick={() => setIsShenshaCollapsed((previous) => !previous)}
                                 aria-expanded={!isShenshaCollapsed}
                                 title={isShenshaCollapsed ? '展开全部神煞' : '收起神煞，只显示第一位'}
-                                className={`mt-1 inline-flex items-center justify-center rounded px-1 ${isMobile ? 'text-[12px]' : 'text-xs'} text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40`}
+                                className={`inline-flex flex-col items-center justify-center rounded px-1 ${isMobile ? 'text-[12px]' : 'text-xs'} text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40`}
                             >
-                                {/* 左侧留出与右侧「间距 + 三角」等宽的空位，使「神煞」二字与「纳音」等列标题中心对齐 */}
-                                <span aria-hidden="true" className="w-[13px]" />
                                 <span>神煞</span>
+                                {/* 三角放在文字下方，避免窄列里左右布局挤压「神煞」变形；收起时向上、展开时向下 */}
                                 <span
                                     aria-hidden="true"
-                                    className={`ml-1 w-0 h-0 border-x-[4.5px] border-x-transparent border-t-[5px] border-t-current transition-transform ${isShenshaCollapsed ? '-rotate-90' : ''}`}
+                                    className={`mt-0.5 w-0 h-0 border-x-[4.5px] border-x-transparent border-t-[5px] border-t-current transition-transform ${isShenshaCollapsed ? 'rotate-180' : ''}`}
                                 />
                             </button>
                         </div>

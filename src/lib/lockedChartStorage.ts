@@ -1,6 +1,7 @@
 import type { QimenCase } from '../services/qimenCaseService';
 import type { PaiPanMethod } from './csp-qimen/qimenService';
 import type { Case, ChartType } from '../types';
+import { readSetting, writeSetting } from '../services/appSettingStore';
 
 export const LOCKED_CHARTS_STORAGE_KEY = 'orbis_locked_charts';
 export const LOCKED_CHART_SNAPSHOTS_STORAGE_KEY = 'orbis_locked_chart_snapshots';
@@ -56,12 +57,8 @@ function isLockableChart(value: unknown): value is ChartType {
 }
 
 function readJson(key: string): unknown {
-    try {
-        const stored = localStorage.getItem(key);
-        return stored ? JSON.parse(stored) : null;
-    } catch {
-        return null;
-    }
+    // 值以结构化对象存于 SQLite（app_setting），无需再 JSON.parse
+    return readSetting<unknown>(key, null);
 }
 
 function isBaziSnapshot(value: unknown): value is BaziLockedSnapshot {
@@ -101,7 +98,7 @@ export function readLockedCharts(): ChartType[] {
 }
 
 export function writeLockedCharts(charts: ChartType[]) {
-    localStorage.setItem(LOCKED_CHARTS_STORAGE_KEY, JSON.stringify(charts));
+    writeSetting(LOCKED_CHARTS_STORAGE_KEY, charts);
 }
 
 export function readLockedChartSnapshots(): LockedChartSnapshots {
@@ -116,6 +113,6 @@ export function readLockedChartSnapshots(): LockedChartSnapshots {
 }
 
 export function writeLockedChartSnapshots(snapshots: LockedChartSnapshots) {
-    localStorage.setItem(LOCKED_CHART_SNAPSHOTS_STORAGE_KEY, JSON.stringify(snapshots));
+    writeSetting(LOCKED_CHART_SNAPSHOTS_STORAGE_KEY, snapshots);
 }
 

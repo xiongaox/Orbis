@@ -13,6 +13,7 @@ import { NavButton, type NavItemType } from './NavButton';
 import AiIntegrationModal from '../Common/AiIntegrationModal';
 import PrivateDataBackupModal from '../Common/PrivateDataBackupModal';
 import { startRemoteAutoBackup } from '../../services/remoteBackupService';
+import { persistTheme } from '../../services/themeService';
 import ProfileCenterModal from '../Auth/ProfileCenterModal';
 import AiChatHistoryModal from '../Common/AiChatHistoryModal';
 
@@ -77,8 +78,7 @@ export default function Navbar({
   const handleToggleTheme = () => {
     setIsDark((prev) => {
       const next = !prev;
-      document.documentElement.classList.toggle('dark', next);
-      localStorage.setItem('theme', next ? 'dark' : 'light');
+      persistTheme(next);
       return next;
     });
   };

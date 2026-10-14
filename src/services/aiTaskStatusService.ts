@@ -3,9 +3,11 @@
  * - 登记每个案例的 AI 研判任务状态：研判中（running）/ 未读研判（unread）
  * - 关闭研判抽屉不会中止生成；结果落盘后用户不在该会话则标记未读，
  *   供首页案例列表在姓名后展示状态按钮并一键跳转研判抽屉
- * - 状态以案例 ID 为键写入 localStorage 跨启动保留；启动时清理残留的 running
+ * - 状态以案例 ID 为键存入 SQLite（app_setting）跨启动保留；启动时清理残留的 running
  *   （生成不随进程存活，上一进程留下的 running 即脏数据）
 */
+
+import { readSetting, writeSetting } from './appSettingStore';
 
 export type AiResearchStatus = 'running' | 'unread';
 
@@ -22,31 +24,24 @@ interface StatusEntry {
 
 type StatusMap = Record<string, StatusEntry>;
 
-function readFromStorage(): StatusMap {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return {};
-        const parsed = JSON.parse(raw) as StatusMap;
-        // running 不随进程存活：启动时只保留未读标记
-        const cleaned: StatusMap = {};
-        for (const [key, entry] of Object.entries(parsed)) {
-            if (entry?.status === 'unread') cleaned[key] = entry;
-        }
-        return cleaned;
-    } catch {
-        return {};
-    }
-}
+let cache: StatusMap = {};
 
-let cache: StatusMap = readFromStorage();
+/**
+ * 启动预热：从 SQLite 载入研判状态，并清理残留 running。
+ * running 不随进程存活：上一进程留下的 running 即脏数据，启动时只保留未读标记。
+ */
+export function preloadAiResearchStatuses(): void {
+    const stored = readSetting<StatusMap>(STORAGE_KEY, {});
+    const cleaned: StatusMap = {};
+    for (const [key, entry] of Object.entries(stored)) {
+        if (entry?.status === 'unread') cleaned[key] = entry;
+    }
+    cache = cleaned;
+}
 
 function persist(next: StatusMap) {
     cache = next;
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-        // 隐私模式/配额不足时仅保留内存态
-    }
+    writeSetting(STORAGE_KEY, next);
     window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
 }
 

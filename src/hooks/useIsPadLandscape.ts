@@ -2,6 +2,7 @@
 import { useMemo } from 'react';
 
 import { useMediaQuery } from './useMediaQuery';
+import { readSetting } from '../services/appSettingStore';
 
 export function useIsPadLandscape() {
   const isLandscape = useMediaQuery('(orientation: landscape)');
@@ -13,7 +14,7 @@ export function useIsPadLandscape() {
     try {
       const params = new URLSearchParams(window.location.search);
       if (params.get('layout') === 'pad') return true;
-      return localStorage.getItem('orbis_layout') === 'pad';
+      return readSetting<string>('orbis_layout', '') === 'pad';
     } catch {
       return false;
     }

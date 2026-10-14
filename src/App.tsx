@@ -23,8 +23,6 @@ import type { ChartType } from './types';
 import { INSIGHT_BOOKS, DEFAULT_BOOK_ID } from './data/booksConfig';
 import { MOBILE_NAV_HOME_CHART, readMobileNavSlots, writeMobileNavSlots } from './lib/mobileNavStorage';
 import {
-  LOCKED_CHARTS_STORAGE_KEY,
-  LOCKED_CHART_SNAPSHOTS_STORAGE_KEY,
   LOCKED_CHARTS_MAX,
   readLockedCharts,
   readLockedChartSnapshots,
@@ -92,23 +90,6 @@ function AppShell() {
   useEffect(() => {
     writeMobileNavSlots(navSlots);
   }, [navSlots]);
-
-  useEffect(() => {
-    const handleStorage = (event: StorageEvent) => {
-      if (event.storageArea !== localStorage) return;
-
-      if (event.key === LOCKED_CHARTS_STORAGE_KEY) {
-        setLockedCharts(readLockedCharts());
-      }
-
-      if (event.key === LOCKED_CHART_SNAPSHOTS_STORAGE_KEY) {
-        setLockedSnapshots(readLockedChartSnapshots());
-      }
-    };
-
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, []);
 
   const handleQimenSnapshotChange = useCallback((snapshot: QimenLockedSnapshot) => {
     setQimenLiveSnapshot(snapshot);
