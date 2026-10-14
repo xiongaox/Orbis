@@ -34,7 +34,7 @@ export default function QimenPage({ lockedSnapshot, onSnapshotChange }: QimenPag
         isNewCaseModalOpen, editingCase, setIsNewCaseModalOpen, setEditingCase, setRefreshTrigger,
         selectedPattern, setSelectedPattern,
         isCustomJuModalOpen, setIsCustomJuModalOpen, header, setCustomJu,
-        isAiModalOpen, setIsAiModalOpen, palaces, globalPatterns, selectedPalace, paiPanMethod, lockSnapshot,
+        isAiModalOpen, setIsAiModalOpen, palaces, globalPatterns, selectedPalace, paiPanMethod, setPaiPanMethod, lockSnapshot,
         currentCase,
     } = qimenState;
 
@@ -74,11 +74,12 @@ export default function QimenPage({ lockedSnapshot, onSnapshotChange }: QimenPag
                         setIsNewCaseModalOpen(false);
                         setEditingCase(null);
                     }}
-                    onPreview={(date) => {
-                        // 「立即排盘」：不落库，只把盘面切到这个时间
+                    onPreview={(date, method) => {
+                        // 「立即排盘」：不落库，只把盘面切到这个时间与所选盘式
                         setIsNewCaseModalOpen(false);
                         setEditingCase(null);
-                        calculateQimenByDate(date);
+                        if (method) setPaiPanMethod(method);
+                        calculateQimenByDate(date, undefined, method);
                     }}
                     onConfirm={(data) => {
                         setIsNewCaseModalOpen(false);

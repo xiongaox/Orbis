@@ -4,6 +4,7 @@ import BaseModal from '../../UI/BaseModal';
 import SubPage from '../../UI/SubPage';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import AdvancedDatePicker from '../../Common/AdvancedDatePicker';
+import { PAI_PAN_METHOD_OPTIONS } from './panMethodOptions';
 import { qimenCaseService, type CreateQimenCaseInput, type UpdateQimenCaseInput, type QimenCategory, type QimenCase } from '../../../services/qimenCaseService';
 import type { PaiPanMethod } from '../../../lib/csp-qimen/qimenService';
 
@@ -31,8 +32,8 @@ interface QimenNewCaseModalProps {
         analysis?: string;
     }) => void;
     initialData?: QimenCase | null; // Added prop for edit mode
-    /** 「立即排盘」：用当前表单时间直接排盘。只有奇门主页有排盘上下文，案例库弹窗不传 */
-    onPreview?: (date: Date) => void;
+    /** 「立即排盘」：用当前表单时间与所选盘式直接排盘。只有奇门主页有排盘上下文，案例库弹窗不传 */
+    onPreview?: (date: Date, method: PaiPanMethod) => void;
     /** 当前页面的排盘方式，随案例一起保存（列表「盘式」标签的数据来源） */
     paiPanMethod?: PaiPanMethod;
 }
@@ -43,6 +44,10 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
     const [category, setCategory] = useState<QimenCategory>(initialData?.category || 'work');
+    // 盘式：编辑时沿用案例保存的盘式（旧案例缺字段则回退当前页面盘式）
+    const [method, setMethod] = useState<PaiPanMethod>(
+        initialData?.pai_pan_method ?? paiPanMethod ?? 'zhirun',
+    );
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // 移动端检测：与全应用统一走 useLayoutMode
@@ -54,7 +59,8 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
         setTitle(initialData?.title || '');
         setDate(initialData ? new Date(initialData.test_date) : new Date());
         setCategory(initialData?.category || 'work');
-    }, [isOpen, initialData]);
+        setMethod(initialData?.pai_pan_method ?? paiPanMethod ?? 'zhirun');
+    }, [isOpen, initialData, paiPanMethod]);
 
     if (!isOpen) return null;
 
@@ -74,7 +80,7 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
                     title,
                     test_date: date.toISOString(),
                     category,
-                    ...(paiPanMethod ? { pai_pan_method: paiPanMethod } : {}),
+                    pai_pan_method: method,
                 };
                 await qimenCaseService.updateCase(initialData.id, updateInput);
             } else {
@@ -85,7 +91,7 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
                     test_date: date.toISOString(),
                     category,
                     description: title.trim(),
-                    ...(paiPanMethod ? { pai_pan_method: paiPanMethod } : {}),
+                    pai_pan_method: method,
                 };
                 await qimenCaseService.createCase(createInput);
             }
@@ -114,7 +120,7 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
                 {onPreview && (
                     <button
                         type="button"
-                        onClick={() => onPreview(date)}
+                        onClick={() => onPreview(date, method)}
                         disabled={isSubmitting}
                         className="modal-btn hover:bg-primary/5 hover:border-primary/50 hover:text-primary transition-colors text-primary border-primary/30 focus-ring"
                     >
@@ -178,6 +184,28 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
                         </span>
                         <Calendar className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
                     </button>
+                </div>
+
+                {/* 盘式：置润 / 阴盘 / 拆补，随案例保存（茅山法修复前暂不上架） */}
+                <div className="space-y-2">
+                    <label className="text-sm text-muted-foreground">
+                        盘式
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                        {PAI_PAN_METHOD_OPTIONS.map((m) => (
+                            <button
+                                key={m.value}
+                                type="button"
+                                onClick={() => setMethod(m.value)}
+                                className={`grow whitespace-nowrap text-center px-3 py-1 text-xs rounded-md border transition-all focus-ring ${method === m.value
+                                    ? 'bg-primary/20 border-primary text-primary'
+                                    : 'bg-muted/30 border-border text-muted-foreground hover:border-primary/30 hover:text-foreground'
+                                    }`}
+                            >
+                                {m.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 {/* 标签分类 */}

@@ -2,22 +2,7 @@ import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { PaiPanMethod } from '../../../../lib/csp-qimen/qimenService';
 import type { GlobalPattern } from '../../../../lib/csp-qimen/patternDetector';
-
-// 茅山法上游内核存在定元 bug（恒输出下元局），修复合入前暂时下架，
-// 回加条件与验收见 docs/qimen-panmethod-fix-plan.md P4/P5
-const METHODS: { value: PaiPanMethod; label: string }[] = [
-    { value: 'zhirun', label: '时家转盘置润' },
-    { value: 'yinpan', label: '时家转盘阴盘' },
-    { value: 'chaibu', label: '时家转盘拆补' },
-];
-
-// 当前盘式名称用全量映射：历史锁盘快照可能仍是 maoshan，需正常显示名称
-const METHOD_LABELS: Record<PaiPanMethod, string> = {
-    zhirun: '时家转盘置润',
-    yinpan: '时家转盘阴盘',
-    chaibu: '时家转盘拆补',
-    maoshan: '时家茅山',
-};
+import { PAI_PAN_METHOD_OPTIONS, PAI_PAN_METHOD_LABELS } from '../panMethodOptions';
 
 interface InfoItem {
     label: string;
@@ -254,14 +239,14 @@ export default function QimenHeader({
                 <div className="flex items-center gap-1 2xl:gap-2">
                     <div className="relative">
                         <button type="button" onClick={() => setIsMethodOpen(!isMethodOpen)} className="flex items-center gap-1 pl-3 pr-2 py-1 rounded-lg border border-border text-muted-foreground text-xs 2xl:text-sm font-serif hover:bg-muted/10 transition-colors">
-                            <span>{METHOD_LABELS[method]}</span>
+                            <span>{PAI_PAN_METHOD_LABELS[method]}</span>
                             <svg className={`h-3 w-3 fill-current text-muted-foreground transition-transform ${isMethodOpen ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
                         </button>
                         {isMethodOpen && (
                             <>
                                 <div className="fixed inset-0 z-40" onClick={() => setIsMethodOpen(false)} />
                                 <div className="absolute top-full mt-1 left-0 z-50 w-max bg-card border border-border/80 rounded-xl shadow-xl py-1.5 animate-in fade-in zoom-in-95 duration-200 ring-1 ring-black/5">
-                                    {METHODS.map((m) => (
+                                    {PAI_PAN_METHOD_OPTIONS.map((m) => (
                                         <button key={m.value} type="button" onClick={() => { onMethodChange?.(m.value); setIsMethodOpen(false); }} className={`block w-full text-left px-3.5 py-2 text-xs 2xl:text-sm font-serif whitespace-nowrap transition-colors ${method === m.value ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'}`}>{m.label}</button>
                                     ))}
                                 </div>
