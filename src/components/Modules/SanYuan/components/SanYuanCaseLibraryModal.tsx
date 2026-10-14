@@ -11,6 +11,8 @@ import {
 import ConfirmModal from '../../../Common/ConfirmModal';
 import BaseModal from '../../../UI/BaseModal';
 import CustomSelect from '../../../UI/CustomSelect';
+import Toast from '../../../Common/Toast';
+import { useToast } from '../../../../hooks/useToast';
 import SanYuanCaseCard from './SanYuanCaseCard';
 import SanYuanCaseModal from './SanYuanCaseModal';
 
@@ -37,10 +39,9 @@ export default function SanYuanCaseLibraryModal({
     const [selectedType, setSelectedType] = useState<SanYuanCaseType | 'all'>('all');
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [editingCase, setEditingCase] = useState<SanYuanCase | null>(null);
-    const [caseToDelete, setCaseToDelete] = useState<SanYuanCase | null>(null);
-    const [isDeleting, setIsDeleting] = useState(false);
     const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
     const [isClearing, setIsClearing] = useState(false);
+    const { toast, showToast } = useToast();
 
     const loadCases = useCallback(async () => {
         setIsLoading(true);
@@ -98,22 +99,17 @@ export default function SanYuanCaseLibraryModal({
         window.dispatchEvent(new CustomEvent(SANYUAN_CASES_CHANGED_EVENT));
     };
 
-    const executeDelete = async () => {
-        if (!caseToDelete) return;
-
-        setIsDeleting(true);
+    // 删除案例：左滑即删，无二次确认（与侧栏列表一致，可批量连删）
+    const handleDeleteCase = async (id: string) => {
         try {
-            await sanyuanCaseService.deleteCase(caseToDelete.id);
-            if (caseToDelete.id === selectedCaseId) {
+            await sanyuanCaseService.deleteCase(id);
+            if (id === selectedCaseId) {
                 onClearSelectedCase();
             }
-            setCaseToDelete(null);
             window.dispatchEvent(new CustomEvent(SANYUAN_CASES_CHANGED_EVENT));
         } catch (error) {
             console.error('删除三元案例失败:', error);
-            alert('删除失败');
-        } finally {
-            setIsDeleting(false);
+            showToast('删除失败，请重试', 'error');
         }
     };
 
@@ -196,7 +192,7 @@ export default function SanYuanCaseLibraryModal({
                                                 onClose();
                                             }}
                                             onEdit={() => setEditingCase(caseData)}
-                                            onDelete={() => setCaseToDelete(caseData)}
+                                            onDelete={() => handleDeleteCase(caseData.id)}
                                         />
                                     ))}
                                 </div>
@@ -204,6 +200,9 @@ export default function SanYuanCaseLibraryModal({
                         </div>
                     </>
             </BaseModal>
+
+            {/* 删除失败等操作反馈（portal 到 body，弹窗内任意位置均可） */}
+            <Toast toast={toast} />
 
             <SanYuanCaseModal
                 isOpen={isCreateOpen || !!editingCase}
@@ -214,17 +213,6 @@ export default function SanYuanCaseLibraryModal({
                 chartInput={chartInput}
                 initialCase={editingCase}
                 onSaved={handleSaved}
-            />
-
-            <ConfirmModal
-                isOpen={!!caseToDelete}
-                onClose={() => setCaseToDelete(null)}
-                onConfirm={() => void executeDelete()}
-                title="删除确认"
-                description={<>确定要删除案例 <span className="font-medium text-foreground">「{caseToDelete?.title}」</span> 吗？此操作无法撤销。</>}
-                confirmText="删除"
-                variant="destructive"
-                loading={isDeleting}
             />
 
             <ConfirmModal

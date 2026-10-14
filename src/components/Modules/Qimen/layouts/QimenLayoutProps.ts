@@ -4,6 +4,7 @@ import { type QimenHeader, type PaiPanMethod } from '../../../../lib/csp-qimen/q
 import { type GlobalPattern } from '../../../../lib/csp-qimen/patternDetector';
 import { type QimenCase } from '../../../../services/qimenCaseService';
 import { type PillarKey } from '../QimenJuInfo';
+import { type ToastState } from '../../../../hooks/useToast';
 
 export interface QimenLayoutProps {
     // 基础数据
@@ -31,6 +32,8 @@ export interface QimenLayoutProps {
     handleEditCase: (c: QimenCase) => void;
     refreshTrigger: number;
     setRefreshTrigger: React.Dispatch<React.SetStateAction<number>>;
+    /** 删除失败反馈：经侧栏列表壳的 feedback 展示 */
+    caseListToast: ToastState | null;
 
     // UI 选中与弹窗开关
     selectedPalace: number | null;

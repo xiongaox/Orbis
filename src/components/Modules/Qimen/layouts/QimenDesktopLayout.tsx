@@ -16,7 +16,7 @@ export default function QimenDesktopLayout(props: QimenLayoutProps) {
         paiPanMethod, setPaiPanMethod, calculateNow, calculateQimenByDate,
         handlePrevHour, handleNextHour, selectedDate,
         selectedCaseId, setSelectedCaseId, setCurrentCase,
-        handleDeleteCase, handleEditCase, refreshTrigger, setRefreshTrigger,
+        handleDeleteCase, handleEditCase, refreshTrigger, setRefreshTrigger, caseListToast,
         selectedPalace, setSelectedPalace,
         setIsDatePickerOpen, setIsNewCaseModalOpen, setEditingCase,
         setIsCustomJuModalOpen, setSelectedPattern, setIsAiModalOpen,
@@ -115,6 +115,7 @@ export default function QimenDesktopLayout(props: QimenLayoutProps) {
                         setIsNewCaseModalOpen(true);
                     }}
                     onDeleteCase={handleDeleteCase}
+                    feedback={caseListToast}
                     onEditCase={handleEditCase}
                     refreshTrigger={refreshTrigger}
                 />

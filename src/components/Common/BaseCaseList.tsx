@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { Search, ArrowUpFromLine, ArrowDownToLine, Eye, EyeOff } from 'lucide-react';
 import { useCasePrivacy } from '../../contexts/CasePrivacyContext';
+import Toast from './Toast';
+import type { ToastState } from '../../hooks/useToast';
 
 // 案例列表在移动端 / Pad 端装在 SideDrawer 里，抽屉关闭即整体卸载，重开后滚动位置归零。
 // 这里按 scrollKey 在模块级缓存各列表的滚动位置，跨卸载/重挂载保留。
@@ -36,6 +38,10 @@ interface BaseCaseListProps {
 
     // Side Modals
     modals?: ReactNode;
+
+    /** 删除失败等操作反馈：各模块自己的反馈（如左滑即删失败）经此冒泡到列表壳，
+     *  与删除同层呈现——Toast 本体 portal 到 body，列表壳只是持有状态 */
+    feedback?: ToastState | null;
 }
 
 export default function BaseCaseList({
@@ -53,7 +59,8 @@ export default function BaseCaseList({
     isEmpty,
     emptyText,
     children,
-    modals
+    modals,
+    feedback
     }: BaseCaseListProps) {
     const scrollRef = useRef<HTMLDivElement | null>(null);
     // 每次挂载只定位一次（恢复位置或滚到选中案例），之后不干扰用户滚动
@@ -193,6 +200,9 @@ export default function BaseCaseList({
 
             {/* 各类附属弹窗 */}
             {modals}
+
+            {/* 列表级操作反馈（左滑即删失败等） */}
+            <Toast toast={feedback ?? null} />
         </aside>
     );
 }

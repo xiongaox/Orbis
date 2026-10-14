@@ -2,9 +2,11 @@
 import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { Search, Plus, Trash2, Upload, Library } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
+import Toast from './Toast';
 import BaseModal from '../UI/BaseModal';
 import SubPage from '../UI/SubPage';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
+import { useToast } from '../../hooks/useToast';
 
 export interface CategorySpec {
     id: string | null;
@@ -47,8 +49,6 @@ export interface CaseLibraryModalProps<T extends { id: string }> {
         cases: T[];
     }) => ReactNode;
 
-    getItemName: (item: T) => string;
-
     /** 操作栏自定义动作（如导出按钮），渲染在导入之后 */
     extraActions?: ReactNode;
 
@@ -72,7 +72,6 @@ export default function CaseLibraryModal<T extends { id: string }>({
     filterFn,
     renderCard,
     renderSubModals,
-    getItemName,
     extraActions,
     clearCases,
 }: CaseLibraryModalProps<T>) {
@@ -85,10 +84,9 @@ export default function CaseLibraryModal<T extends { id: string }>({
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [editingCase, setEditingCase] = useState<T | null>(null);
-    const [caseToDelete, setCaseToDelete] = useState<T | null>(null);
-    const [deletingCaseId, setDeletingCaseId] = useState<string | null>(null);
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [clearingCases, setClearingCases] = useState(false);
+    const { toast, showToast } = useToast();
 
     // 移动端检测：与全应用统一走 useLayoutMode
     const { isMobile } = useLayoutMode();
@@ -127,23 +125,18 @@ export default function CaseLibraryModal<T extends { id: string }>({
         return cases.filter(item => filterFn(item, search, selectedCategory));
     }, [cases, search, selectedCategory, filterFn]);
 
-    // 删除案例
-    const executeDelete = async () => {
-        if (!caseToDelete) return;
-        setDeletingCaseId(caseToDelete.id);
+    // 删除案例：左滑即删，无二次确认（与侧栏列表一致，可批量连删）
+    const executeDelete = async (id: string) => {
         try {
-            await deleteCase(caseToDelete.id);
-            if (selectedCaseId === caseToDelete.id) {
+            await deleteCase(id);
+            if (selectedCaseId === id) {
                 onSelectCase?.(null);
             }
             window.dispatchEvent(new CustomEvent(refreshEventName));
-            setCaseToDelete(null);
             loadCases();
         } catch (error) {
             console.error('删除案例失败:', error);
-            alert('删除失败');
-        } finally {
-            setDeletingCaseId(null);
+            showToast('删除失败，请重试', 'error');
         }
     };
 
@@ -278,7 +271,7 @@ export default function CaseLibraryModal<T extends { id: string }>({
                                         if (isMobile) onClose();
                                     },
                                     onEdit: () => setEditingCase(caseData),
-                                    onDelete: () => setCaseToDelete(caseData),
+                                    onDelete: () => void executeDelete(caseData.id),
                                 }))}
                             </div>
                         )}
@@ -290,6 +283,9 @@ export default function CaseLibraryModal<T extends { id: string }>({
     // 子弹窗节点：两种壳下都渲染
     const subModals = (
         <>
+            {/* 删除失败等操作反馈（portal 到 body） */}
+            <Toast toast={toast} />
+
             {/* 子弹窗渲染器 */}
             {renderSubModals({
                 showCreateModal,
@@ -301,17 +297,6 @@ export default function CaseLibraryModal<T extends { id: string }>({
                 refreshData: loadCases,
                 cases
             })}
-
-            <ConfirmModal
-                isOpen={!!caseToDelete}
-                onClose={() => setCaseToDelete(null)}
-                onConfirm={executeDelete}
-                title="删除确认"
-                description={<>确定要删除案例 <span className="font-medium text-foreground">「{caseToDelete ? getItemName(caseToDelete) : ''}」</span> 吗？此操作无法撤销。</>}
-                confirmText="删除"
-                variant="destructive"
-                loading={!!deletingCaseId}
-            />
 
             <ConfirmModal
                 isOpen={showClearConfirm}

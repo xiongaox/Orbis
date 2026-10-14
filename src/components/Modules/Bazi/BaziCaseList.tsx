@@ -8,6 +8,7 @@ import CaseCard from './components/CaseList/CaseCard';
 import CaseTagFilter from './components/CaseList/CaseTagFilter';
 import BaseCaseList from '../../Common/BaseCaseList';
 import SortFieldButton, { type SortState } from '../../Common/SortFieldButton';
+import { useToast } from '../../../hooks/useToast';
 import { BAZI_SORT_OPTIONS, compareBaziCase } from './caseSort';
 import {
   OPEN_AI_CHAT_EVENT,
@@ -51,6 +52,7 @@ export default function CaseList({
   const [selectedTag, setSelectedTag] = useState<CaseTag | null>(null);
   // 字段排序（年龄/分组/性别）：field 为 null 表示默认
   const [sort, setSort] = useState<SortState>({ field: null, dir: 'desc' });
+  const { toast, showToast } = useToast();
 
   // 加载案例
   const loadCases = useCallback(async () => {
@@ -143,7 +145,7 @@ export default function CaseList({
       window.dispatchEvent(new CustomEvent(BAZI_CASES_CHANGED_EVENT));
     } catch (error) {
       console.error('删除案例失败:', error);
-      alert('删除失败');
+      showToast('删除失败，请重试', 'error');
     }
   };
 
@@ -186,6 +188,7 @@ export default function CaseList({
       isLoading={loading}
       isEmpty={displayCases.length === 0}
       emptyText="暂无案例，点击上方按钮新建"
+      feedback={toast}
       modals={
         <>
           <CreateCaseModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} onCreated={handleCaseCreated} onPreview={onPreviewCase ? handlePreviewCase : undefined} />

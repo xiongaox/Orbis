@@ -8,6 +8,7 @@ import QimenCaseCard from './QimenCaseCard';
 import SortFieldButton, { type SortState } from '../../Common/SortFieldButton';
 import { QIMEN_SORT_OPTIONS, compareQimenCase } from './caseSort';
 import type { PaiPanMethod } from '../../../lib/csp-qimen/qimenService';
+import type { ToastState } from '../../../hooks/useToast';
 
 interface QimenCaseListProps {
     selectedCaseId: string | null;
@@ -19,6 +20,8 @@ interface QimenCaseListProps {
     variant?: 'sidebar' | 'drawer';
     /** 当前页面排盘方法：旧案例盘状态的兜底计算依据 */
     paiPanMethod?: PaiPanMethod;
+    /** 删除失败反馈：由页面 hook 持有，侧栏列表壳展示 */
+    feedback?: ToastState | null;
 }
 
 export default function QimenCaseList({
@@ -29,7 +32,8 @@ export default function QimenCaseList({
     onEditCase,
     refreshTrigger = 0,
     variant = 'sidebar',
-    paiPanMethod = 'zhirun'
+    paiPanMethod = 'zhirun',
+    feedback
 }: QimenCaseListProps) {
     const [search, setSearch] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -104,6 +108,7 @@ export default function QimenCaseList({
             isLoading={isLoading}
             isEmpty={sortedCases.length === 0}
             emptyText="暂无案例"
+            feedback={feedback}
             modals={
                 <>
                     <QimenCaseLibraryModal

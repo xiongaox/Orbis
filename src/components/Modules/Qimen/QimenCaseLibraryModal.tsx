@@ -49,7 +49,6 @@ export default function QimenCaseLibraryModal({
                 const matchesCategory = categoryId === 'all' || item.category === categoryId;
                 return matchesSearch && matchesCategory;
             }}
-            getItemName={(item) => item.title}
             extraActions={
                 <button
                     type="button"

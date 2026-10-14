@@ -13,6 +13,7 @@ import { type GlobalPattern } from '../../../../lib/csp-qimen/patternDetector';
 import { type PillarKey } from '../QimenJuInfo';
 import { getXunKong, ZHI_PALACE_MAP, MA_XING_MAP } from '../utils/qimenInfoUtils';
 import { useLayoutMode } from '../../../../hooks/useLayoutMode';
+import { useToast } from '../../../../hooks/useToast';
 import type { QimenLockedSnapshot } from '../../../../lib/lockedChartStorage';
 
 // 默认空的宫位数据
@@ -47,6 +48,8 @@ interface UseQimenStateOptions {
 
 export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
     const { isPadLandscape, useDesktopLayout } = useLayoutMode();
+    // 删除失败反馈：随返回值下发到侧栏列表（列表壳持有展示位置）
+    const { toast, showToast } = useToast();
     const initialLockedSnapshotRef = useRef(lockedSnapshot);
     const initialLockedSnapshot = initialLockedSnapshotRef.current;
     const [selectedCaseId, setSelectedCaseId] = useState<string | null>(initialLockedSnapshot?.selectedCaseId ?? null);
@@ -248,9 +251,8 @@ export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
         customJu,
     ]);
 
-    // 删除案例
+    // 删除案例：左滑即删，无二次确认（与八字/三元侧栏一致，可批量连删）
     const handleDeleteCase = async (id: string) => {
-        if (!window.confirm('确定要删除这个案例吗？')) return;
         try {
             await qimenCaseService.deleteCase(id);
             setRefreshTrigger(prev => prev + 1);
@@ -259,7 +261,7 @@ export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
             }
         } catch (e) {
             console.error(e);
-            alert('删除失败');
+            showToast('删除失败，请重试', 'error');
         }
     };
 
@@ -288,6 +290,8 @@ export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
         handleNextHour,
         handleDeleteCase,
         handleEditCase,
+        /** 删除等操作失败的反馈状态（各端列表壳经 feedback 消费） */
+        caseListToast: toast,
 
         // Form & Params
         paiPanMethod, setPaiPanMethod,

@@ -51,7 +51,6 @@ export default function BaziCaseLibraryModal({
                 const matchesTag = !categoryId || (item.tags && item.tags.includes(categoryId as CaseTag));
                 return matchesSearch && !!matchesTag;
             }}
-            getItemName={(item) => item.name}
             extraActions={
                 <button
                     type="button"
