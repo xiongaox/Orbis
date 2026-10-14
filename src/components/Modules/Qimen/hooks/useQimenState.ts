@@ -218,8 +218,14 @@ export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
         await calculateQimenByDate(newDate);
     }, [selectedDate, calculateQimenByDate]);
 
-    // 初始化 WASM 并恢复锁定快照或计算当前时间的盘
+    // 初始化 WASM 并恢复锁定快照或计算当前时间的盘。
+    // 只执行一次：依赖里的 calculateQimenByDate / calculateNow 会随盘式与局数变化重建引用，
+    // 若不加守卫，选中案例切换盘式时会重跑初始化，用「当前时间」覆盖掉刚要展示的案例时间。
+    // initialLockedSnapshot 本身来自 ref（进程内恒定），不存在需要重新初始化的输入。
+    const didInitRef = useRef(false);
     useEffect(() => {
+        if (didInitRef.current) return;
+        didInitRef.current = true;
         const init = async () => {
             await initCspWasm();
             if (initialLockedSnapshot) {
