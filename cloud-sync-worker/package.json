@@ -1,0 +1,19 @@
+{
+  "name": "orbis-cloud-sync-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Orbis 云同步 Worker（用户自部署组件，Cloudflare Worker + D1）",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
+    "typescript": "~5.9.3",
+    "vitest": "^4.1.10",
+    "wrangler": "^4.121.0"
+  }
+}

@@ -1,0 +1,8 @@
+# Wrangler 本地状态（.wrangler/ 下是独占写入的 sqlite，属 vite.config.ts 注释里记录过的 EBUSY 同类风险）
+.wrangler/
+
+# 真实部署配置：由 wrangler.toml.example 复制后填入真实 database_id（见 README），不入库
+wrangler.toml
+
+node_modules/
+dist/

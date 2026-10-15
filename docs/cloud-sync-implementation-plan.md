@@ -268,7 +268,7 @@ cloud_sync_versions  每条记录最近已知的服务端版本镜像（record_t
 **前置**：T00。
 
 **子步骤**
-1. 建目录 `cloud-sync-worker/`：`src/index.ts`、`wrangler.toml`、`package.json`、`tsconfig.json`、`migrations/0001_init.sql`、`README.md`。
+1. 建目录 `cloud-sync-worker/`：`src/index.ts`、`wrangler.toml.example`（模板，`database_id` 占位符；真实 `wrangler.toml` 由其复制且 gitignore、不入库——wrangler 4.121 不支持 toml 内环境变量插值，已实测）、`package.json`、`tsconfig.json`、`vitest.config.ts`、`migrations/0001_init.sql`、`README.md`。
 2. `migrations/0001_init.sql` 落第 4.2 节三张表与索引。
 3. 实现 `GET /health`（返回服务名与版本，便于客户端「测试连接」）。
 4. 写本地开发说明：`wrangler d1 migrations apply`（本地/远端）、`wrangler dev`、`wrangler deploy`、`wrangler secret put SYNC_TOKEN`。
@@ -287,7 +287,7 @@ cd cloud-sync-worker && npx wrangler dev   # 手动访问 /health 一次
 
 **验收**：`/health` 返回 200；migration 可重复执行不报错；前端四项自检无新增告警或失败。
 
-**提交边界**：`cloud-sync-worker/**` + `eslint.config.js` + `vite.config.ts`（仅排除项）+ `package.json`（仅 test 脚本）+ `docs/`。`wrangler.toml` 的 `database_id` 用占位符，真实值只存本机 gitignored 覆盖文件（第 5 节部署侧边界）。
+**提交边界**：`cloud-sync-worker/**`（含 `wrangler.toml.example`，不含 gitignored 真实 `wrangler.toml`）+ `eslint.config.js` + `vite.config.ts`（仅排除项）+ `package.json`（仅 test 脚本）+ `docs/`。真实 `database_id` 只存在于本机 gitignored 的 `wrangler.toml`（第 5 节部署侧边界）。
 
 **回滚**：整目录删除 + 还原两个配置文件的排除项。
 
@@ -650,5 +650,5 @@ cd cloud-sync-worker && npx tsc --noEmit && npx vitest run
 
 ### 12.5 本机部署侧已备（不入库）
 
-- D1 数据库 `orbis` 已于本机创建（region APAC），`database_id` 仅记录于本机部署侧（按第 5 节边界不进仓库、不进客户端；可随时 `wrangler d1 list` 重新查到，无丢失风险）。T01 的 `wrangler.toml` 用占位符 + 本机 gitignored 覆盖文件。
+- D1 数据库 `orbis` 已于本机创建（region APAC），`database_id` 仅记录于本机部署侧（按第 5 节边界不进仓库、不进客户端；可随时 `wrangler d1 list` 重新查到，无丢失风险）。T01 采用 example 模板模式：入库 `wrangler.toml.example`（`database_id` 占位符），本机复制出 gitignored 的真实 `wrangler.toml`（wrangler 4.121 不支持 toml 环境变量插值，已实测，故不用 `${VAR}` 方案）。
 - 首期工作区标识：`xiongaox`（逻辑工作区，`workspace_id` 列隔离；一个 D1 可容纳多工作区，无需每工作区建库）。

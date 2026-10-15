@@ -28,6 +28,7 @@ const nonFrontendDirs = [
   '**/src-tauri/**',   // Rust 源码、target、gen/android、各类打包产物
   '**/dist-cases/**',  // cases:pack 生成的加密案例包
   '**/keys/**',        // 作者端密钥材料
+  '**/cloud-sync-worker/**',  // 用户自部署云同步 Worker（.wrangler/ 下是独占写入的 sqlite）
   '**/*.tmp',          // 原子写入的中间产物（编辑器保存、AI 工具改文件）
   '**/*.tmpdir/**',    // 同上：原子写入使用的临时目录
 ]

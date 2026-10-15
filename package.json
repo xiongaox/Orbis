@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "deploy": "node scripts/deploy.mjs",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "vitest run --exclude 'cloud-sync-worker/**'",
     "cases:import": "tsx scripts/import-case-library.ts",
     "cases:verify": "tsx scripts/verify-case-library.ts",
     "cases:verify:full": "tsx scripts/verify-case-library-full.ts",

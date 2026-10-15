@@ -1,0 +1,13 @@
+name = "orbis-cloud-sync"
+main = "src/index.ts"
+compatibility_date = "2026-10-15"
+
+# 部署配置模板。部署时：
+#   cp wrangler.toml.example wrangler.toml
+# 把 database_id / preview_database_id 换成你的真实值（wrangler d1 list 可查）。
+# 真实 wrangler.toml 已 gitignore，不入库（实施方案 §5 部署侧边界）。
+[[d1_databases]]
+binding = "DB"
+database_name = "orbis"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+preview_database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
