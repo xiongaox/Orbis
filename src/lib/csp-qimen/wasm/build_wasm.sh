@@ -76,8 +76,12 @@ echo "✅ WASM build complete: csp_qimen.js and csp_qimen.wasm"
 mkdir -p ../../../../public/wasm
 
 # Record upstream kernel version for traceability
+# 末尾附上游 tag（如 " (v1.5.5)"）：回归基线 scripts/qimen-kernel-baseline.json 的 kernel 字段
+# 直接取本文件内容，缺 tag 会让基线对比失去版本锚点。
 if [ -d "${CSP_ROOT}/.git" ]; then
     CSP_VERSION_LINE=$(git -C "${CSP_ROOT}" log -1 --format='%h %ad %s' --date=short)
+    CSP_TAG=$(git -C "${CSP_ROOT}" describe --tags 2>/dev/null || true)
+    [ -n "${CSP_TAG}" ] && CSP_VERSION_LINE="${CSP_VERSION_LINE} (${CSP_TAG})"
     echo "${CSP_VERSION_LINE}" > ../../../../public/wasm/UPSTREAM_VERSION
     echo "CSP kernel: ${CSP_VERSION_LINE}"
 fi

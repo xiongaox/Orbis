@@ -7,6 +7,7 @@ vi.stubGlobal('indexedDB', undefined);
 import { localPrivateStore } from './localPrivateStore';
 import { qimenCaseService } from './qimenCaseService';
 import { migrateQimenTitlesIntoDescription } from './qimenCaseService';
+import { migrateQimenTimezoneShift } from './qimenCaseService';
 import { preloadAppSettings, writeSetting } from './appSettingStore';
 
 const FLAG = 'qimen_title_desc_migrated';
@@ -49,5 +50,30 @@ describe('migrateQimenTitlesIntoDescription', () => {
     it('纯空白标题的案例跳过，不产生空正文', async () => {
         await qimenCaseService.createCase({ ...baseInput, title: '   ' });
         expect(await migrateQimenTitlesIntoDescription()).toBe(0);
+    });
+});
+
+describe('migrateQimenTimezoneShift', () => {
+    beforeEach(async () => {
+        await preloadAppSettings();
+        await localPrivateStore.clear('qimen_case');
+    });
+
+    it('按旧值精确回正 8 小时，未命中的案例不动，且幂等', async () => {
+        await qimenCaseService.createCase({
+            ...baseInput, title: '爷爷什么时候去世？', test_date: '2026-07-09T19:58:00.000Z',
+        });
+        await qimenCaseService.createCase({
+            ...baseInput, title: '正常案例', test_date: '2026-07-09T19:58:01.000Z',
+        });
+
+        expect(await migrateQimenTimezoneShift()).toBe(1);
+
+        const byTitle = new Map((await qimenCaseService.getCases()).map((c) => [c.title, c]));
+        expect(byTitle.get('爷爷什么时候去世？')?.test_date).toBe('2026-07-10T03:58:00.000Z');
+        expect(byTitle.get('正常案例')?.test_date).toBe('2026-07-09T19:58:01.000Z');
+
+        // 旧值已被替换，第二次执行不再命中
+        expect(await migrateQimenTimezoneShift()).toBe(0);
     });
 });

@@ -107,8 +107,12 @@ export function parseQimenImportData(jsonData: unknown[] | unknown): CreateQimen
 
         // 处理时间
         if (caseInput.test_date) {
-            // 尝试标准化时间格式
-            const dateStr = String(caseInput.test_date).replace(' ', 'T'); // "2023-01-01 12:00" -> ISO like
+            // 尝试标准化时间格式：先补 T 让 "2023-01-01 12:00" 变成可解析的 ISO-like；
+            // 再补时区偏移的分钟位——"2026-08-24 14:03:24.839+00" 这种导出格式（Supabase 导出的
+            // CSV 就是它）只写到 "+00"，Date 构造会判为 Invalid 并整条跳过，导入凭空丢记录。
+            const dateStr = String(caseInput.test_date).trim()
+                .replace(' ', 'T')
+                .replace(/([+-]\d{2})$/, '$1:00');
             const date = new Date(dateStr);
             if (!isNaN(date.getTime())) {
                 caseInput.test_date = date.toISOString();

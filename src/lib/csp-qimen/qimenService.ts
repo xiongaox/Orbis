@@ -462,13 +462,13 @@ function convertToQimenResult(parsed: CspParsedData, time: QimenTime): QimenResu
         const palace: QimenPalace = {
             position: pos,
             gongName: GONG_NAMES[pos],
-            // 中宫（天禽寄坤宫）：只保留地盘干，其他数据清空
+            // 中宫（天禽寄坤宫）：只保留地盘干与暗干，其他数据清空
             tianPan: pos === 5 ? '' : (cspPalace?.tianPan || ''),
             diPan: pos === 5 ? (parsed.zhongGongDiPan || '') : (cspPalace?.diPan || ''),
             men: pos === 5 ? '' : (cspPalace?.men ? `${cspPalace.men}门` : ''),
             xing: pos === 5 ? '' : (cspPalace?.xing === '天芮' ? '禽芮' : (cspPalace?.xing || '')),
             shen: pos === 5 ? '' : (cspPalace?.shen || ''),
-            anGan: pos === 5 ? '' : (cspPalace?.anGan || ''),
+            anGan: cspPalace?.anGan || '',
             // 寄宫干支
             jiGongTianPan: pos === 5 ? '' : (cspPalace?.tianPanJi || ''),
             jiGongDiPan: pos === 5 ? '' : (cspPalace?.diPanJi || ''),

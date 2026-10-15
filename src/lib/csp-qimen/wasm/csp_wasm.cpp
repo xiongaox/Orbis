@@ -90,15 +90,16 @@ static std::string run_json_impl(const CmdParam& param)
         p["isKong"] = (g == qmd.kongw[0] || g == qmd.kongw[1]);
         p["isMa"] = (g == qmd.maxing);
         if (g == 8) {
-            // 中宫：无星无门无神无暗干，仅地盘干参与（天禽寄宫信息由寄干体现）
+            // 中宫：无星无门无神，天盘/寄干不参与（天禽寄宫信息由寄干体现）；
+            // 地盘干与暗干保留——暗干由 gen_angan_v1() 布九干时同样落在中宫，是有效值
             p["xing"] = "";
             p["tianPan"] = "";
             p["tianPanJi"] = "";
             p["men"] = "";
             p["shen"] = "";
-            p["anGan"] = "";
             p["diPan"] = csp::CZhData::gan(qmd.dp[g]);
             p["diPanJi"] = "";
+            p["anGan"] = csp::CZhData::gan(qmd.angan[g]);
         } else {
             p["xing"] = csp::CZhData::jx(qmd.jiuxr[g]);
             p["tianPan"] = csp::CZhData::gan(qmd.tp[g]);
