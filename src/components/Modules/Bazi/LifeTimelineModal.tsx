@@ -140,6 +140,9 @@ export default function LifeTimelineModal({
                 : null;
         })();
 
+    /** 输入面板是否展开：打开时收起，点某个流年/切换到大运 tab 才出现，记下之后收起 */
+    const [composerOpen, setComposerOpen] = useState(false);
+
     /** 切换选中时段：草稿在该时段的已存文本与空白之间切换（回填放这里，不放 effect） */
     const selectDayun = (nextRef: string) => {
         setDayunRef(nextRef);
@@ -149,14 +152,20 @@ export default function LifeTimelineModal({
     const selectLiunian = (nextRef: string) => {
         setLiunianRef(nextRef);
         setDraft(events.find((e) => e.kind === 'liunian' && e.ref === nextRef)?.text ?? '');
+        setComposerOpen(true);
     };
     const selectMode = (nextMode: 'dayun' | 'liunian') => {
         setMode(nextMode);
+        // 打开输入面板：大运 tab 直接展开（默认选中项明确），流年展开后由下面选中具体年份
+        if (nextMode === 'dayun') setComposerOpen(true);
         // 切到流年时，若当前流年不在新大运范围内则退到该段第一年
         const nextRef = nextMode === 'dayun'
             ? dayunRef
             : String((scopedLiuNian.find((l) => String(l.year) === liunianRef) ?? scopedLiuNian[0])?.year ?? '');
-        if (nextMode === 'liunian' && nextRef) setLiunianRef(nextRef);
+        if (nextMode === 'liunian' && nextRef) {
+            setComposerOpen(true);
+            setLiunianRef(nextRef);
+        }
         setDraft(nextRef ? events.find((e) => e.kind === nextMode && e.ref === nextRef)?.text ?? '' : '');
     };
 
@@ -181,13 +190,12 @@ export default function LifeTimelineModal({
     const commit = () => {
         if (!currentItem || !ref) return;
         const text = draft.trim();
-        if (!text) {
-            // 已有记录 + 草稿被清空 = 删掉这条（按钮此时显示「删除」，点了就是确认，不需要额外弹窗）
-            if (hasRecord(mode, ref)) removeEvent(mode, ref);
-            return;
-        }
+        // 空文本不写入也不删除：删除走面板里的独立按钮，避免误触丢内容
+        if (!text) return;
         const rest = events.filter((e) => !(e.kind === mode && e.ref === ref));
         onChange([...rest, { kind: mode, ref, ganZhi: currentItem.ganZhi, text }]);
+        // 记完就把面板收起来，视线回到时间轴；再点某个流年/大运即重新展开
+        setComposerOpen(false);
     };
 
     const removeEvent = (kind: LifeEvent['kind'], eventRef: string) => {
@@ -267,7 +275,7 @@ export default function LifeTimelineModal({
                             key={item}
                             type="button"
                             onClick={() => selectMode(item)}
-                            className={`border-b-[1.5px] pb-0.5 text-[12.5px] transition-colors focus-ring cursor-pointer ${mode === item
+                            className={`border-b-[1.5px] pb-1 text-[15px] transition-colors focus-ring cursor-pointer ${mode === item
                                 ? 'border-primary font-semibold text-primary'
                                 : 'border-transparent text-muted-foreground hover:text-foreground'
                                 }`}
@@ -287,11 +295,11 @@ export default function LifeTimelineModal({
                                 selectDayun(String(rangeList[next].startYear));
                             }}
                             aria-label="上一步大运"
-                            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary focus-ring cursor-pointer"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary focus-ring cursor-pointer"
                         >
-                            <ChevronLeft className="h-3 w-3" />
+                            <ChevronLeft className="h-4 w-4" />
                         </button>
-                        <span className="flex-1 truncate text-center text-[12px] text-muted-foreground">
+                        <span className="flex-1 truncate text-center text-[15px] text-muted-foreground">
                             {activeDaYun
                                 ? `所属 ${isPreYun(activeDaYun.ganZhi) ? '起运前' : `${activeDaYun.ganZhi} 大运`} ${activeDaYun.startYear}–${activeDaYun.endYear}`
                                 : '—'}
@@ -303,18 +311,18 @@ export default function LifeTimelineModal({
                                 selectDayun(String(rangeList[next].startYear));
                             }}
                             aria-label="下一步大运"
-                            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary focus-ring cursor-pointer"
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary focus-ring cursor-pointer"
                         >
-                            <ChevronRight className="h-3 w-3" />
+                            <ChevronRight className="h-4 w-4" />
                         </button>
                     </div>
                 )}
 
                 {mode === 'liunian' ? (
-                    /* 流年平铺：干支上下结构 + 底部岁数，点选比逐格步进直接；
-                       一排放下整段大运（10 年），手机屏宽不够时退回两排；
+                    /* 流年平铺：干支上下结构 + 底部岁数与年份，点选比逐格步进直接；
+                       一排 5 格放两年，格子够宽、干支和年份读得清；
                        右上角圆点标出已经记过的年份 */
-                    <div className={`mb-2.5 grid gap-1.5 ${isMobile ? 'grid-cols-5' : 'grid-cols-10'}`}>
+                    <div className="mb-2.5 grid grid-cols-5 gap-1.5">
                         {scopedLiuNian.map((item) => {
                             const itemRef = String(item.year);
                             const selected = itemRef === liunianRef;
@@ -325,20 +333,25 @@ export default function LifeTimelineModal({
                                     type="button"
                                     onClick={() => selectLiunian(itemRef)}
                                     title={`${item.ganZhi} ${item.year}`}
-                                    className={`relative flex flex-col items-center rounded-lg border px-0.5 py-1.5 transition-colors focus-ring cursor-pointer ${selected
+                                    className={`relative flex flex-col items-center rounded-lg border px-0.5 py-2 transition-colors focus-ring cursor-pointer ${selected
                                         ? 'border-primary bg-primary/10'
                                         : 'border-border/60 hover:border-primary/40 hover:bg-secondary/40'
                                         }`}
                                 >
-                                    <span className={`font-serif text-[15px] font-semibold leading-[1.15] ${selected ? 'text-primary' : 'text-foreground'}`}>
+                                    <span className={`font-serif text-[17px] font-semibold leading-[1.15] ${selected ? 'text-primary' : 'text-foreground'}`}>
                                         {item.ganZhi[0] ?? ''}
                                     </span>
-                                    <span className={`font-serif text-[15px] font-semibold leading-[1.15] ${selected ? 'text-primary' : 'text-foreground'}`}>
+                                    <span className={`font-serif text-[17px] font-semibold leading-[1.15] ${selected ? 'text-primary' : 'text-foreground'}`}>
                                         {item.ganZhi[1] ?? ''}
                                     </span>
-                                    <span className="mt-0.5 font-mono text-[12px] tabular-nums text-muted-foreground">
+                                    <span className="mt-1 font-mono text-[13px] tabular-nums text-muted-foreground">
                                         {item.age !== undefined ? `${item.age}岁` : item.year}
                                     </span>
+                                    {item.age !== undefined && (
+                                        <span className="font-mono text-[13px] tabular-nums leading-tight text-muted-foreground">
+                                            {item.year}
+                                        </span>
+                                    )}
                                     {recorded && <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-primary" />}
                                 </button>
                             );
@@ -378,33 +391,59 @@ export default function LifeTimelineModal({
 
                 {/* 流年平铺时网格本身已高亮选中项，不再重复说明 */}
 
-                <textarea
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    rows={3}
-                    placeholder="这段时间发生了什么…"
-                    className="w-full resize-none rounded-lg border border-border bg-secondary/50 px-2.5 py-2 text-[13px] leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/50 focus-ring"
-                />
-                <div className="mt-2 flex justify-end gap-2">
+                {/* 收起态：只留一句引导，点选流年（或大运 tab）后展开输入面板 */}
+                {!composerOpen ? (
                     <button
                         type="button"
-                        onClick={() => setDraft('')}
-                        className="rounded-md px-2.5 py-1 text-[12px] text-muted-foreground transition-colors hover:text-foreground focus-ring cursor-pointer"
+                        onClick={() => setComposerOpen(true)}
+                        className="flex w-full items-center rounded-lg border border-dashed border-border px-3 py-2.5 text-left text-[13px] text-muted-foreground/70 transition-colors hover:border-primary/40 hover:text-muted-foreground focus-ring cursor-pointer"
                     >
-                        清空
+                        点选上方时段即可记录…
                     </button>
-                    <button
-                        type="button"
-                        onClick={commit}
-                        disabled={!draft.trim() && !hasRecord(mode, ref)}
-                        className={`rounded-md px-3 py-1 text-[12px] font-medium transition-colors disabled:cursor-default disabled:opacity-40 focus-ring cursor-pointer ${draft.trim()
-                            ? 'border border-primary/30 bg-primary/15 text-primary hover:bg-primary/25'
-                            : 'bg-destructive text-destructive-foreground hover:opacity-90'
-                            }`}
-                    >
-                        {hasRecord(mode, ref) ? (draft.trim() ? '更新' : '删除') : '记下'}
-                    </button>
-                </div>
+                ) : (
+                    <>
+                        <textarea
+                            value={draft}
+                            onChange={(e) => setDraft(e.target.value)}
+                            rows={3}
+                            placeholder="这段时间发生了什么…"
+                            className="w-full resize-none rounded-lg border border-border bg-secondary/50 px-3 py-2.5 text-[14px] leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-primary/50 focus-ring"
+                        />
+                        <div className="mt-2 flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setDraft('')}
+                                className="rounded-md px-3.5 py-2 text-[14px] text-muted-foreground transition-colors hover:text-foreground focus-ring cursor-pointer"
+                            >
+                                清空
+                            </button>
+                            {/* 删除是独立操作：主按钮只负责写入，不再兼职「清空草稿再提交」 */}
+                            {hasRecord(mode, ref) && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        removeEvent(mode, ref);
+                                        setComposerOpen(false);
+                                    }}
+                                    className="rounded-md border border-destructive/40 px-4 py-2 text-[14px] font-medium text-destructive transition-colors hover:bg-destructive/10 focus-ring cursor-pointer"
+                                >
+                                    删除
+                                </button>
+                            )}
+                            <button
+                                type="button"
+                                onClick={commit}
+                                disabled={!draft.trim()}
+                                className={`rounded-md px-4 py-2 text-[14px] font-medium transition-colors disabled:cursor-default disabled:opacity-40 focus-ring cursor-pointer ${hasRecord(mode, ref)
+                                    ? 'border border-primary/30 bg-primary/15 text-primary hover:bg-primary/25'
+                                    : 'bg-primary text-primary-foreground hover:opacity-90'
+                                    }`}
+                            >
+                                {hasRecord(mode, ref) ? '更新' : '记下'}
+                            </button>
+                        </div>
+                    </>
+                )}
             </div>
 
             {/* 时间轴（D1 排布）：轴线由外层统一提供，这里只放节点。
@@ -533,8 +572,9 @@ export default function LifeTimelineModal({
     );
 
     if (isMobile) {
+        // 5 列网格在窄屏要留够格宽，移动端内边距收窄到 12px
         return (
-            <SubPage isOpen onClose={onClose} title="生平记事" bodyClassName="p-4" footer={footer}>
+            <SubPage isOpen onClose={onClose} title="生平记事" bodyClassName="px-3 py-4" footer={footer}>
                 {bodyContent}
             </SubPage>
         );
