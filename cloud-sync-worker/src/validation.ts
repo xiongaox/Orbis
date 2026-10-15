@@ -1,9 +1,11 @@
 import { ApiError } from './errors';
 import {
+  DEFAULT_PULL_LIMIT,
   MAX_BATCH_TOTAL_BYTES,
   MAX_ID_LENGTH,
   MAX_MUTATIONS_PER_BATCH,
   MAX_PAYLOAD_BYTES,
+  MAX_PULL_LIMIT,
   SYNCABLE_RECORD_TYPES,
   WORKSPACE_ID_MAX_LENGTH,
   WORKSPACE_ID_PATTERN,
@@ -142,4 +144,24 @@ function validateMutation(mutation: unknown): void {
       );
     }
   }
+}
+
+/** pull 分页参数（T03 子步骤 6） */
+export interface PullParams {
+  after: number;
+  limit: number;
+}
+
+export function parsePullParams(searchParams: URLSearchParams): PullParams {
+  const afterRaw = searchParams.get('after');
+  const after = afterRaw === null ? 0 : Number(afterRaw);
+  if (!Number.isInteger(after) || after < 0) {
+    throw new ApiError('INVALID_REQUEST', 'after 必须是非负整数', 400);
+  }
+  const limitRaw = searchParams.get('limit');
+  const limit = limitRaw === null ? DEFAULT_PULL_LIMIT : Number(limitRaw);
+  if (!Number.isInteger(limit) || limit < 1 || limit > MAX_PULL_LIMIT) {
+    throw new ApiError('INVALID_REQUEST', `limit 必须是 1 到 ${MAX_PULL_LIMIT} 的整数`, 400);
+  }
+  return { after, limit };
 }

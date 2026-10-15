@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from './errors';
-import { validatePushRequest, validateWorkspaceId } from './validation';
+import { parsePullParams, validatePushRequest, validateWorkspaceId } from './validation';
 
 const baseMutation = {
   type: 'qimen_case',
@@ -110,5 +110,26 @@ describe('validatePushRequest 边界', () => {
     );
     expectApiError(() => validatePushRequest(null, 100), 'INVALID_REQUEST', 400);
     expectApiError(() => validatePushRequest([], 100), 'INVALID_REQUEST', 400);
+  });
+});
+
+describe('parsePullParams', () => {
+  it('缺省 after=0、limit=默认值 100', () => {
+    expect(parsePullParams(new URLSearchParams(''))).toEqual({ after: 0, limit: 100 });
+  });
+
+  it('接受显式分页参数与边界值', () => {
+    expect(parsePullParams(new URLSearchParams('after=42&limit=50'))).toEqual({ after: 42, limit: 50 });
+    expect(parsePullParams(new URLSearchParams('after=0&limit=1'))).toEqual({ after: 0, limit: 1 });
+    expect(parsePullParams(new URLSearchParams('limit=200'))).toEqual({ after: 0, limit: 200 });
+  });
+
+  it('拒绝非法 after 与 limit', () => {
+    expectApiError(() => parsePullParams(new URLSearchParams('after=-1')), 'INVALID_REQUEST', 400);
+    expectApiError(() => parsePullParams(new URLSearchParams('after=abc')), 'INVALID_REQUEST', 400);
+    expectApiError(() => parsePullParams(new URLSearchParams('after=1.5')), 'INVALID_REQUEST', 400);
+    expectApiError(() => parsePullParams(new URLSearchParams('limit=0')), 'INVALID_REQUEST', 400);
+    expectApiError(() => parsePullParams(new URLSearchParams('limit=201')), 'INVALID_REQUEST', 400);
+    expectApiError(() => parsePullParams(new URLSearchParams('limit=abc')), 'INVALID_REQUEST', 400);
   });
 });

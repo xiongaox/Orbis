@@ -53,6 +53,7 @@
 # （Cannot read properties of null (reading 'edgesOut')），需加 --legacy-peer-deps
 npm install --legacy-peer-deps
 cp wrangler.toml.example wrangler.toml   # 首次：本地模式不校验 database_id，占位符即可
+echo "SYNC_TOKEN=local-dev-token" > .dev.vars  # 本地开发密钥（gitignored）
 npm run dev        # wrangler dev（本地模式，默认 http://127.0.0.1:8787）
 npm test           # vitest run（本目录独立运行，不影响主仓前端测试）
 npm run typecheck  # tsc --noEmit
@@ -64,8 +65,27 @@ migration 应用到本地 D1（不需要真实 database_id）：
 npx wrangler d1 migrations apply orbis --local
 ```
 
+## 集成测试
+
+在真实 D1（本地模式）上跑协议场景矩阵（幂等、tombstone、分页、冲突、
+内容一致恢复、跨 workspace 隔离、records↔changes 一致性、bootstrap）：
+
+```bash
+node scripts/integration-test.mjs
+```
+
+脚本会自动启动/停止 `wrangler dev --local`（端口 8792）、清理本地 D1
+数据并应用 migration，可重复运行。`.dev.vars` 缺失时会写入默认测试令牌。
+
 ## 目录结构
 
-- `src/index.ts` —— Worker 入口（路由与健康检查）
+- `src/index.ts` —— Worker 入口（路由、鉴权前置、统一错误）
+- `src/auth.ts` —— Bearer 鉴权（常量时间比较）
+- `src/validation.ts` —— 请求体与分页参数校验
+- `src/errors.ts` —— ApiError 与统一错误结构
+- `src/constants.ts` —— 常量（限额、白名单、服务信息）
+- `src/d1.ts` —— D1 数据访问层（原子 batch 写入、增量拉取、bootstrap）
+- `src/sync.ts` —— 同步语义（幂等、乐观并发、内容一致恢复）
+- `scripts/integration-test.mjs` —— 集成测试（见上文）
 - `migrations/` —— D1 migrations（`0001_init.sql` 见实施方案 §4.2）
 - `wrangler.toml.example` —— 部署配置模板（`database_id` 占位符）

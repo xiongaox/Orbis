@@ -4,5 +4,9 @@
 # 真实部署配置：由 wrangler.toml.example 复制后填入真实 database_id（见 README），不入库
 wrangler.toml
 
+# 本地开发密钥（wrangler dev 读取，wrangler 4.x 使用带点前缀的 .dev.vars）
+# 集成测试脚本也会在缺失时写入默认令牌
+.dev.vars
+
 node_modules/
 dist/

@@ -162,10 +162,39 @@ GET  /sync/bootstrap             新设备首次全量拉取（不含 changes �
 - `baseVersion`：该记录最近已知服务端版本；从未同步为 `null`（见 4.3 第 8 条）。
 - `payload`：`upsert` 必填（对象）；`delete` 忽略。
 
-**GET /sync/pull**：`?workspaceId=<标识>&after=<seq>&limit=<n>`（游标校验与响应结构见 T03）。
-**GET /sync/bootstrap**：`?workspaceId=<标识>`。
+**GET /sync/pull**：`?workspaceId=<标识>&after=<seq>&limit=<n>`（`after` 默认 0、`limit` 默认 100、上限 200，均须为非负整数）。响应 200：
 
-**统一错误响应**：`{ "error": { "code": "<错误码>", "message": "<中文说明>" } }`；错误码词汇：`UNAUTHORIZED`(401)、`INVALID_WORKSPACE` / `INVALID_JSON` / `INVALID_REQUEST` / `INVALID_RECORD_TYPE` / `INVALID_OPERATION`(400)、`PAYLOAD_TOO_LARGE` / `BATCH_TOO_LARGE`(413)、`METHOD_NOT_ALLOWED`(405)、`NOT_FOUND`(404)、`NOT_IMPLEMENTED`(501，T02 边界)、`CONFLICT`(409，T03 起)、`RATE_LIMITED`(429，预留)。
+```json
+{
+  "changes": [
+    { "sequence": 12, "type": "bazi_case", "recordId": "<记录 id>", "serverVersion": 3, "deleted": 0, "payload": {} }
+  ],
+  "hasMore": true,
+  "nextCursor": 12,
+  "currentSequence": 47
+}
+```
+
+- 按 `sequence` 升序；`deleted=1` 的条目 `payload` 为 `null`（tombstone）。
+- `hasMore=true` 时 `nextCursor` 为本页最后一条的 `sequence`，作为下页 `after`。
+- `currentSequence`：该工作区当前最大 `sequence`（客户端游标持久化用）。
+
+**GET /sync/bootstrap**：`?workspaceId=<标识>`。响应 200：
+
+```json
+{
+  "records": [
+    { "type": "bazi_case", "recordId": "<记录 id>", "payload": {}, "serverVersion": 3 }
+  ],
+  "currentSequence": 47
+}
+```
+
+- 仅含 `deleted=0` 的有效记录。
+
+**POST /sync/push 响应**：全部应用时 200 `{ "results": [{ "mutationId": "<id>", "status": "applied | idempotent | duplicate_content", "serverVersion": 3 }] }`；存在冲突时 409，响应体为 `{ "error": { "code": "CONFLICT", "message": "..." }, "results": [...], "conflicts": [{ "mutationId", "type", "recordId", "serverVersion", "deleted", "payload" }] }`——`results` 为已应用条目（客户端可清出 outbox），`conflicts` 为冲突条目（客户端按 §4.3 第 5 条分类型处理）。
+
+**统一错误响应**：`{ "error": { "code": "<错误码>", "message": "<中文说明>" } }`；错误码词汇：`UNAUTHORIZED`(401)、`INVALID_WORKSPACE` / `INVALID_JSON` / `INVALID_REQUEST` / `INVALID_RECORD_TYPE` / `INVALID_OPERATION`(400)、`PAYLOAD_TOO_LARGE` / `BATCH_TOO_LARGE`(413)、`METHOD_NOT_ALLOWED`(405)、`NOT_FOUND`(404)、`CONFLICT`(409)、`INTERNAL_ERROR`(500，详情仅记服务端日志)、`RATE_LIMITED`(429，预留)。
 
 **上限取值**（§4.3 第 6 条的落地冻结）：单批 ≤ 50 条；单批总字节 ≤ 512 KB；单条 payload ≤ 256 KB（单批总字节的一半留量，保证至少两条大记录可同批）；`workspaceId` ≤ 64 字符且仅含字母、数字、`-`、`_`；`recordId` / `mutationId` / `deviceId` ≤ 512 字符（防滥用 sanity 上限）。
 
@@ -369,7 +398,7 @@ cd cloud-sync-worker && npx wrangler dev   # 手动访问 /health 一次
 
 **验收**：上述五个场景全部通过；`records` 与 `changes` 状态一致。
 
-**提交边界**：`cloud-sync-worker/**`。
+**提交边界**：`cloud-sync-worker/**` + `docs/`（§4.1.1 增补 push/pull/bootstrap 响应结构与错误码词汇：纯增量细化，不改第 4 节既有协议语义）。
 
 **回滚**：还原 push/pull/bootstrap 实现与测试；D1 本地库可直接重建。
 
@@ -684,4 +713,5 @@ cd cloud-sync-worker && npx tsc --noEmit && npx vitest run
 ### 12.5 本机部署侧已备（不入库）
 
 - D1 数据库 `orbis` 已于本机创建（region APAC），`database_id` 仅记录于本机部署侧（按第 5 节边界不进仓库、不进客户端；可随时 `wrangler d1 list` 重新查到，无丢失风险）。T01 采用 example 模板模式：入库 `wrangler.toml.example`（`database_id` 占位符），本机复制出 gitignored 的真实 `wrangler.toml`（wrangler 4.121 不支持 toml 环境变量插值，已实测，故不用 `${VAR}` 方案）。
+- 本机 wrangler 实为 4.151.0：本地开发密钥文件是带点前缀的 `.dev.vars`（实测 `dev.vars` 不被加载，`wrangler dev --help` 亦注明读 `.env` 与 `.dev.vars`）；`wrangler d1 execute` 无 `--json` 选项，stdout 为「横幅 + JSON 数组」，需从第一个 `[` 起解析。集成测试 `cloud-sync-worker/scripts/integration-test.mjs` 已按此实测行为实现。
 - 首期工作区标识：`xiongaox`（逻辑工作区，`workspace_id` 列隔离；一个 D1 可容纳多工作区，无需每工作区建库）。

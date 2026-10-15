@@ -28,5 +28,9 @@ export const MAX_PAYLOAD_BYTES = 256 * 1024;
 export const WORKSPACE_ID_MAX_LENGTH = 64;
 export const WORKSPACE_ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 
+/** pull 分页默认值与上限（T03 子步骤 6） */
+export const DEFAULT_PULL_LIMIT = 100;
+export const MAX_PULL_LIMIT = 200;
+
 /** recordId / mutationId / deviceId 的防滥用 sanity 上限 */
 export const MAX_ID_LENGTH = 512;

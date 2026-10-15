@@ -12,8 +12,8 @@
  * - BATCH_TOO_LARGE      413  单批条数或总字节超限
  * - METHOD_NOT_ALLOWED   405
  * - NOT_FOUND            404
- * - NOT_IMPLEMENTED      501  T02 边界：push/pull/bootstrap 的写入逻辑由 T03 实现
- * - CONFLICT             409  版本冲突（T03 起）
+ * - CONFLICT             409  版本冲突（push 部分成功时，results 为已应用条目，conflicts 为冲突条目）
+ * - INTERNAL_ERROR       500  服务端内部错误（详情仅写入服务端日志）
  * - RATE_LIMITED         429  限流（预留）
  */
 

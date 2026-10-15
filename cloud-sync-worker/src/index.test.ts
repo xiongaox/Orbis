@@ -96,12 +96,14 @@ describe('POST /sync/push 输入边界（T02 子步骤 2/3/4）', () => {
     expect(response.status).toBe(401);
   });
 
-  it('合法请求通过全部输入校验，到达 T02 边界（501）', async () => {
+  it('合法请求通过输入校验并进入 D1 写入层（单测无 DB，500 INTERNAL_ERROR）', async () => {
     const response = await worker.fetch(
       jsonRequest('/sync/push', { method: 'POST', body: validPush }),
       env,
     );
-    expect(response.status).toBe(501);
+    expect(response.status).toBe(500);
+    const body = await errorBodyOf(response);
+    expect(body.error.code).toBe('INTERNAL_ERROR');
   });
 
   it('非法 JSON 返回 400 INVALID_JSON', async () => {
@@ -198,7 +200,7 @@ describe('POST /sync/push 输入边界（T02 子步骤 2/3/4）', () => {
     expect(body.error.code).toBe('BATCH_TOO_LARGE');
   });
 
-  it('恰好 50 条通过批量校验（到达 501）', async () => {
+  it('恰好 50 条通过批量校验（进入 D1 写入层，500）', async () => {
     const mutations = Array.from({ length: 50 }, (_, index) => ({
       ...validMutation,
       recordId: `case-${index}`,
@@ -208,7 +210,7 @@ describe('POST /sync/push 输入边界（T02 子步骤 2/3/4）', () => {
       jsonRequest('/sync/push', { method: 'POST', body: { ...validPush, mutations } }),
       env,
     );
-    expect(response.status).toBe(501);
+    expect(response.status).toBe(500);
   });
 
   it('超大 payload（> 256 KB）返回 413 PAYLOAD_TOO_LARGE', async () => {
@@ -317,7 +319,7 @@ describe('GET /sync/pull 与 /sync/bootstrap 输入边界', () => {
     expect(body.error.code).toBe('INVALID_WORKSPACE');
   });
 
-  it('pull 合法请求到达 T02 边界（501）', async () => {
+  it('pull 合法请求进入 D1 读取层（单测无 DB，500 INTERNAL_ERROR）', async () => {
     const response = await worker.fetch(
       new Request(
         'https://sync.example.com/sync/pull?workspaceId=xiongaox&after=0&limit=100',
@@ -325,7 +327,9 @@ describe('GET /sync/pull 与 /sync/bootstrap 输入边界', () => {
       ),
       env,
     );
-    expect(response.status).toBe(501);
+    expect(response.status).toBe(500);
+    const body = await errorBodyOf(response);
+    expect(body.error.code).toBe('INTERNAL_ERROR');
   });
 
   it('bootstrap 缺 workspaceId 返回 400 INVALID_WORKSPACE', async () => {
@@ -338,14 +342,16 @@ describe('GET /sync/pull 与 /sync/bootstrap 输入边界', () => {
     expect(body.error.code).toBe('INVALID_WORKSPACE');
   });
 
-  it('bootstrap 合法请求到达 T02 边界（501）', async () => {
+  it('bootstrap 合法请求进入 D1 读取层（单测无 DB，500 INTERNAL_ERROR）', async () => {
     const response = await worker.fetch(
       new Request('https://sync.example.com/sync/bootstrap?workspaceId=xiongaox', {
         headers: authHeaders,
       }),
       env,
     );
-    expect(response.status).toBe(501);
+    expect(response.status).toBe(500);
+    const body = await errorBodyOf(response);
+    expect(body.error.code).toBe('INTERNAL_ERROR');
   });
 });
 
