@@ -714,4 +714,5 @@ cd cloud-sync-worker && npx tsc --noEmit && npx vitest run
 
 - D1 数据库 `orbis` 已于本机创建（region APAC），`database_id` 仅记录于本机部署侧（按第 5 节边界不进仓库、不进客户端；可随时 `wrangler d1 list` 重新查到，无丢失风险）。T01 采用 example 模板模式：入库 `wrangler.toml.example`（`database_id` 占位符），本机复制出 gitignored 的真实 `wrangler.toml`（wrangler 4.121 不支持 toml 环境变量插值，已实测，故不用 `${VAR}` 方案）。
 - 本机 wrangler 实为 4.151.0：本地开发密钥文件是带点前缀的 `.dev.vars`（实测 `dev.vars` 不被加载，`wrangler dev --help` 亦注明读 `.env` 与 `.dev.vars`）；`wrangler d1 execute` 无 `--json` 选项，stdout 为「横幅 + JSON 数组」，需从第一个 `[` 起解析。集成测试 `cloud-sync-worker/scripts/integration-test.mjs` 已按此实测行为实现。
+- T04 将客户端 `SCHEMA_VERSION` 由 2 升至 3（新增 cloud_sync_versions / cloud_sync_outbox 独立表与 IDB store；快照记录格式未变）。`localPrivateStore.restore` 与 `backupPackageService.unpackJson` 的版本校验同步改为 `1..SCHEMA_VERSION` 区间语义，保证 v1/v2 旧备份在升级后仍可恢复（原 `[1, SCHEMA_VERSION]` 枚举校验会在升版后拒绝 v2 快照）。
 - 首期工作区标识：`xiongaox`（逻辑工作区，`workspace_id` 列隔离；一个 D1 可容纳多工作区，无需每工作区建库）。

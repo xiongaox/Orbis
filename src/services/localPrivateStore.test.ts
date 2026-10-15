@@ -95,3 +95,146 @@ describe('本地私有数据备份', () => {
     });
   });
 });
+
+describe('云同步元数据（设备本地，T04）', () => {
+  beforeEach(() => {
+    vi.stubGlobal('window', undefined);
+    vi.stubGlobal('indexedDB', undefined);
+  });
+
+  // 快照不含同步元数据（含版本镜像与 outbox）；既有设备本地配置仍进快照（既有断言保持）
+  it('快照不含云同步元数据，但含普通案例与既有设备本地配置', async () => {
+    await localPrivateStore.put('bazi_case', { title: '应被导出的案例' }, 'snap-case-1');
+    await localPrivateStore.put('webdav_config', { endpoint: 'https://dav.example.com' }, 'webdav_config');
+    await localPrivateStore.put('cloud_sync_config', {
+      enabled: true, workerUrl: 'https://sync.example.com', syncToken: 'secret', workspaceId: 'xiongaox',
+    }, 'cloud_sync_config');
+    await localPrivateStore.put('cloud_sync_state', {
+      deviceId: 'device-1', lastPulledSequence: 0, lastSyncAt: null, lastSyncError: null,
+    }, 'cloud_sync_state');
+    await localPrivateStore.setSyncVersion('bazi_case', 'snap-case-1', 3);
+    await localPrivateStore.enqueueOutbox({
+      mutationId: 'snap-m-1', type: 'bazi_case', recordId: 'snap-case-1',
+      operation: 'upsert', payload: { id: 'snap-case-1' }, baseVersion: 2,
+    });
+
+    const snapshot = await localPrivateStore.snapshot();
+    const types = snapshot.records.map((record) => record.type);
+    expect(types).toContain('bazi_case');
+    expect(types).toContain('webdav_config');
+    expect(types).not.toContain('cloud_sync_config');
+    expect(types).not.toContain('cloud_sync_state');
+  });
+
+  // 恢复为覆盖同步：云同步元数据是设备本地状态，恢复既不覆盖也不删除
+  // （快照本不含它们；此处防御外部手工构造的备份包混入）
+  it('恢复备份不覆盖、不同步元数据', async () => {
+    await localPrivateStore.put('cloud_sync_config', {
+      enabled: true, workerUrl: 'https://sync.example.com', syncToken: 'local-secret', workspaceId: 'xiongaox',
+    }, 'cloud_sync_config');
+
+    await localPrivateStore.restore({
+      schemaVersion: 2,
+      exportedAt: '2026-08-26T00:00:00.000Z',
+      records: [{
+        id: 'cloud_sync_config',
+        type: 'cloud_sync_config',
+        payload: { enabled: true, workerUrl: 'https://evil.example.com', syncToken: 'evil', workspaceId: 'other' },
+        createdAt: '2026-08-26T00:00:00.000Z',
+        updatedAt: '2026-08-26T00:00:00.000Z',
+      }],
+    }, { syncTypes: ['cloud_sync_config'] });
+
+    const record = await localPrivateStore.get('cloud_sync_config', 'cloud_sync_config');
+    expect(record?.payload).toMatchObject({ syncToken: 'local-secret', workspaceId: 'xiongaox' });
+  });
+
+  it('cloud_sync_versions 镜像读写与按类型批量读取', async () => {
+    expect(await localPrivateStore.getSyncVersion('bazi_case', 'ver-case-1')).toBeNull();
+    await localPrivateStore.setSyncVersion('bazi_case', 'ver-case-1', 2);
+    await localPrivateStore.setSyncVersion('bazi_case', 'ver-case-2', 5);
+    await localPrivateStore.setSyncVersion('qimen_case', 'ver-case-1', 3);
+
+    expect(await localPrivateStore.getSyncVersion('bazi_case', 'ver-case-1')).toBe(2);
+    // 覆盖写
+    await localPrivateStore.setSyncVersion('bazi_case', 'ver-case-1', 4);
+    expect(await localPrivateStore.getSyncVersion('bazi_case', 'ver-case-1')).toBe(4);
+
+    const bazi = await localPrivateStore.listSyncVersions('bazi_case');
+    expect(bazi).toEqual(expect.arrayContaining([
+      { recordType: 'bazi_case', recordId: 'ver-case-1', serverVersion: 4 },
+      { recordType: 'bazi_case', recordId: 'ver-case-2', serverVersion: 5 },
+    ]));
+    expect(bazi).not.toContainEqual({ recordType: 'qimen_case', recordId: 'ver-case-1', serverVersion: 3 });
+
+    // 跨用例共享内存状态：只断言本用例写入的镜像条目
+    const all = await localPrivateStore.listSyncVersions();
+    const mine = all.filter((entry) => ['ver-case-1', 'ver-case-2'].includes(entry.recordId));
+    expect(mine).toHaveLength(3);
+  });
+
+  it('outbox：入队、批量取、按 mutationId 删除、清空、计数', async () => {
+    await localPrivateStore.clearOutbox();
+    expect(await localPrivateStore.countOutbox()).toBe(0);
+    await localPrivateStore.enqueueOutbox({
+      mutationId: 'box-m-1', type: 'bazi_case', recordId: 'box-case-1',
+      operation: 'upsert', payload: { id: 'box-case-1' }, baseVersion: null,
+    });
+    await localPrivateStore.enqueueOutbox({
+      mutationId: 'box-m-2', type: 'bazi_case', recordId: 'box-case-2',
+      operation: 'delete', baseVersion: 1,
+    });
+
+    expect(await localPrivateStore.countOutbox()).toBe(2);
+    const entries = await localPrivateStore.listOutbox();
+    expect(entries.map((entry) => entry.mutationId)).toEqual(['box-m-1', 'box-m-2']);
+    expect(entries[0].payload).toEqual({ id: 'box-case-1' });
+    expect(entries[1].payload).toBeUndefined();
+
+    await localPrivateStore.removeOutboxEntry('box-m-1');
+    expect(await localPrivateStore.countOutbox()).toBe(1);
+
+    await localPrivateStore.clearOutbox();
+    expect(await localPrivateStore.countOutbox()).toBe(0);
+    expect(await localPrivateStore.listOutbox()).toEqual([]);
+  });
+
+  it('outbox 入队幂等：同一 mutationId 重复入队不产生重复项', async () => {
+    await localPrivateStore.clearOutbox();
+    const entry = {
+      mutationId: 'box-m-dup', type: 'bazi_case', recordId: 'box-case-dup',
+      operation: 'upsert' as const, payload: { id: 'box-case-dup' }, baseVersion: null,
+    };
+    await localPrivateStore.enqueueOutbox(entry);
+    await localPrivateStore.enqueueOutbox(entry);
+    expect(await localPrivateStore.countOutbox()).toBe(1);
+    await localPrivateStore.clearOutbox();
+  });
+
+  it('schema 升级（v3）后既有记录不变：快照恢复往返', async () => {
+    await localPrivateStore.clear('bazi_case');
+    await localPrivateStore.put('bazi_case', { title: '升级前案例' }, 'legacy-1');
+    const snapshot = await localPrivateStore.snapshot();
+    expect(snapshot.schemaVersion).toBe(3);
+    const recordCount = snapshot.records.length;
+
+    await localPrivateStore.clear('bazi_case');
+    const { writtenRecordsCount } = await localPrivateStore.restore(snapshot, { syncTypes: ['bazi_case'] });
+    expect(writtenRecordsCount).toBe(recordCount);
+    await expect(localPrivateStore.get('bazi_case', 'legacy-1')).resolves.toMatchObject({
+      payload: { title: '升级前案例' },
+    });
+  });
+
+  it('恢复接受 v1/v2 旧格式快照（老备份平滑兼容）', async () => {
+    const { writtenRecordsCount } = await localPrivateStore.restore({
+      schemaVersion: 2,
+      exportedAt: '2026-08-26T00:00:00.000Z',
+      records: [{
+        id: 'old-1', type: 'bazi_case', payload: { title: '旧版备份' },
+        createdAt: '2026-08-26T00:00:00.000Z', updatedAt: '2026-08-26T00:00:00.000Z',
+      }],
+    });
+    expect(writtenRecordsCount).toBe(1);
+  });
+});

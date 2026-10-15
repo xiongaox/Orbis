@@ -225,7 +225,11 @@ export function unpackBackup(rawInput: Uint8Array | string, filename?: string): 
     // -------------------------------------------------------------
     const jsonText = typeof rawInput === 'string' ? rawInput : new TextDecoder('utf-8').decode(rawInput);
     const snapshot = JSON.parse(jsonText) as { schemaVersion?: number; records?: PrivateRecord[] } | null;
-    if (!snapshot || !Array.isArray(snapshot.records) || ![1, SCHEMA_VERSION].includes(snapshot.schemaVersion as number)) {
+    // 区间校验：SCHEMA_VERSION 递增（v2 → v3，新增云同步元数据独立表）后，
+    // v1/v2 旧备份仍可恢复；快照记录格式未变，无需迁移
+    const legacySchemaVersion = snapshot?.schemaVersion;
+    if (!snapshot || !Array.isArray(snapshot.records) || typeof legacySchemaVersion !== 'number'
+      || legacySchemaVersion < 1 || legacySchemaVersion > SCHEMA_VERSION) {
       throw new Error('备份文件版本不受支持');
     }
     const caseTypes = new Set<string>();
