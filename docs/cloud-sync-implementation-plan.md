@@ -731,3 +731,42 @@ cd cloud-sync-worker && npx tsc --noEmit && npx vitest run
   - 已知限制（子步骤 5，已写入 `docs/cloud-sync-deployment.md` §五）：静态密钥风险（SYNC_TOKEN 等同工作区钥匙，泄露即换密钥）；AI 对话历史（`ai_chat_sessions`）不同步；无端到端加密（Worker 可见明文 payload）；changes 表首期不清理（避免 tombstone 复活风险）；进程退出即停（不承诺 OS 级后台常驻）。
   - 用户部署文档：`docs/cloud-sync-deployment.md`（注册 Cloudflare → `wrangler d1 create` → 填 `wrangler.toml` → `migrations apply --remote` → `wrangler secret put SYNC_TOKEN` → `wrangler deploy` → 两台设备填同一 Worker 地址/密钥/工作区标识 → 测试连接），并含使用说明（自动调度行为、冲突副本语义、失败重试与暂停）与本地开发自测章节。
 - 首期工作区标识：`xiongaox`（逻辑工作区，`workspace_id` 列隔离；一个 D1 可容纳多工作区，无需每工作区建库）。
+
+## 13. 变更说明与发布前检查（T10，2026-10-15）
+
+### 13.1 变更说明（用户可读）
+
+**新增：云同步（用户自部署）**
+
+- 入口：桌面端「头像菜单 → 云同步」（「数据备份」旁）；移动端「个人中心 → 数据与服务 → 云同步」。
+- 作用：两台设备间增量同步案例（八字/奇门/三元）、资料档案、案例收藏与学习进度；本地 SQLite/IndexedDB 仍是离线兜底，断网可用。
+- 需自行部署：Cloudflare Worker + D1（免费版即可），从零部署步骤见 `docs/cloud-sync-deployment.md`；数据与费用由用户自己的 Cloudflare 账号承担。
+- 冲突处理：案例类并发修改保留两份（本机内容存为带「冲突副本」标记的新记录，远端原样保留）；资料档案/收藏/进度采用最后写入优先。
+- 隐私：同步密钥只存本机、密码态输入永不回显、不进日志与备份包；Worker 可见明文 payload（无端到端加密，已知限制见部署文档 §五）。
+
+**未变：WebDAV/S3 备份体系（冻结边界成立）**
+
+- `webdavBackupService` / `s3BackupService` / `remoteBackupService` / `remoteBackupShared` 累计 diff 为零；备份协议、配置格式、ZIP 包格式不变。
+- 唯一相邻改动：`backupPackageService` 解包版本校验由「仅 v1/v2」放宽为「v1..v3 区间」——快照记录格式未变，只为 SCHEMA_VERSION 升 3 后旧备份仍可恢复。
+- 云同步元数据（配置/状态/版本镜像/outbox）不进快照、不进 ZIP 导出、不随备份恢复（外部备份包无法覆盖设备本地同步配置）。
+
+**自检结果（发布前全量）**
+
+- 前端：`npm run lint` 0 错误（仅 1 条既有 `useCaseStudy.ts` 警告，与本方案无关）；`npx tsc -b` 通过；`npm test` 153 项通过（含 WebDAV/S3/ZIP 恢复四个既有测试文件，断言未削弱）。
+- Worker：`npx tsc --noEmit` 通过；`npx vitest run` 39 项通过；`node scripts/integration-test.mjs` 真实 D1 本地模式 49 项检查全绿（含双设备端到端场景 10）。
+
+**提交记录（T00–T09，每点一提交，仅暂存该点文件）**
+
+`ee81511`（T00）→ `360a229`（T01）→ `88ee085`（T02）→ `dc4ddc7`（T03）→ `33bf83d`（T04）→ `e863ec2`（T05）→ `3187679`（T06）→ `7a43976`（T07）→ `12b5c7a`（T08）→ `c33e51b`（T09）。
+
+**未提交（按 T00 登记与 git 纪律）**：`.zcode/`（代理会话状态）；本机 `cloud-sync-worker/wrangler.toml`、`.dev.vars`、`keys/`、`dist-cases/`（均 gitignored）。
+
+### 13.2 后续计划（二期，见 §11）
+
+- AI 对话同步：先把 `ai_chat_sessions` 从「整份数组一条」拆成一会话一条。
+- R2 长期归档与附件：作为备份/对象存储侧扩展，不进 D1 同步链路。
+- 密钥轮换、设备级 Token：替代首期静态共享密钥。
+- payload 端到端加密：客户端加密后存入 D1，代价是服务端无法检索。
+- `app_setting` 按 key 白名单同步：先区分设备相关项与业务项。
+
+**回滚**：按任务点逐级 revert（T09→T00）；冻结的备份子系统无需回退。不构建安装包（构建由用户确认后自行触发）。
