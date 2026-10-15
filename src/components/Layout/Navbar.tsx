@@ -15,6 +15,7 @@ import CloudSyncModal from '../Common/CloudSyncModal';
 import PrivateDataBackupModal from '../Common/PrivateDataBackupModal';
 import { startRemoteAutoBackup } from '../../services/remoteBackupService';
 import { persistTheme } from '../../services/themeService';
+import { useCloudSyncScheduler } from '../../hooks/useCloudSyncScheduler';
 import ProfileCenterModal from '../Auth/ProfileCenterModal';
 import AiChatHistoryModal from '../Common/AiChatHistoryModal';
 
@@ -69,6 +70,9 @@ export default function Navbar({
   }, []);
 
   useEffect(() => startRemoteAutoBackup(), []);
+  // 云同步自动调度：与远端自动备份同构位置挂载，与布局断点无关地运行；
+  // 未配置或未启用时调度直接退出，不产生任何网络请求。
+  useCloudSyncScheduler();
 
   const displayBirthDate = birthDate;
 

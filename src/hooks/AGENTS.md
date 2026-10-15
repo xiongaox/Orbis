@@ -11,6 +11,7 @@
 | 布局判定 | `useLayoutMode.ts` `useIsPadLandscape.ts` | 多端 UI 分流基线 |
 | 基础能力 hook | `useMediaQuery.ts` | 可复用基础逻辑 |
 | 左滑展开点空白收起 | `useSwipeDismiss.ts` | 侧栏 CaseCard 与案例库 SortableCaseCard 共用 |
+| 云同步自动调度 | `useCloudSyncScheduler.ts` | 挂载/回前台/网络恢复/写入去抖/低频轮询触发；门控在 `cloudSyncService.syncNowAuto` |
 
 ## CONVENTIONS
 - hook 负责“状态与副作用”，纯函数计算优先下沉 `src/lib/*`。

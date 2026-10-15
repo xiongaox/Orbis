@@ -40,6 +40,14 @@ const PULL_PAGE_SIZE = 100;
 /** 单次请求超时（毫秒），与 S3 远程备份一致 */
 const SYNC_TIMEOUT_MS = 15_000;
 
+// 自动调度参数（T08）：指数退避与连续失败上限
+/** 首次失败后的退避基数（毫秒），此后每次翻倍 */
+const AUTO_SYNC_BACKOFF_BASE_MS = 30_000;
+/** 退避上限（毫秒） */
+const AUTO_SYNC_BACKOFF_MAX_MS = 600_000;
+/** 连续失败上限：超过则停止自动重试，仅保留手动「立即同步」 */
+export const AUTO_SYNC_MAX_FAILURES = 5;
+
 /** 冲突副本标记字段：案例类冲突时，本机内容另存为新记录并携带此字段指向原记录 */
 export const CONFLICT_COPY_FIELD = 'conflict_copy_of';
 
@@ -188,9 +196,18 @@ export async function getStatus(): Promise<CloudSyncStatus> {
 
 let syncInFlight = false;
 
+// 自动调度记账（T08）：由 syncNow 的成败维护，syncNowAuto 据此门控
+let consecutiveFailures = 0;
+let lastFailureAt = 0;
+let autoSyncPaused = false;
+
 /**
  * 立即执行一次同步：push 队列 → pull 增量 → 推进游标。
  * 同一时刻只允许一次同步在跑（防重入）。
+ *
+ * 同时维护自动调度状态：成功（含幂等空跑）清零失败计数并解除暂停；
+ * 401（密钥错误）立即暂停自动同步；其余错误累计连续失败，
+ * 达到上限后同样暂停自动同步。手动「立即同步」成功后自动恢复。
  */
 export async function syncNow(): Promise<SyncRunResult> {
   const config = await readConfig();
@@ -212,6 +229,9 @@ export async function syncNow(): Promise<SyncRunResult> {
       lastSyncAt: new Date().toISOString(),
       lastSyncError: null,
     });
+    consecutiveFailures = 0;
+    lastFailureAt = 0;
+    autoSyncPaused = false;
     return { status: 'ok', pushed, pulled, conflicts };
   } catch (error) {
     const message = error instanceof Error ? error.message : '同步失败';
@@ -219,10 +239,36 @@ export async function syncNow(): Promise<SyncRunResult> {
     if (state) {
       await saveCloudSyncState({ ...state, lastSyncError: message });
     }
+    if (error instanceof CloudSyncHttpError && error.code === 'UNAUTHORIZED') {
+      // 401：密钥错误，自动重试无意义，暂停自动同步直到用户修正后手动同步成功
+      autoSyncPaused = true;
+    } else {
+      consecutiveFailures += 1;
+      lastFailureAt = Date.now();
+      if (consecutiveFailures >= AUTO_SYNC_MAX_FAILURES) {
+        autoSyncPaused = true;
+      }
+    }
     throw error;
   } finally {
     syncInFlight = false;
   }
+}
+
+/**
+ * 自动调度触发的同步入口：在 syncNow 基础上按退避与暂停状态门控。
+ * 返回 null 表示本次触发被跳过（已暂停或处于退避窗口内）。
+ */
+export async function syncNowAuto(): Promise<SyncRunResult | null> {
+  if (autoSyncPaused) return null;
+  const backoffMs = Math.min(
+    AUTO_SYNC_BACKOFF_BASE_MS * 2 ** Math.min(consecutiveFailures, 6),
+    AUTO_SYNC_BACKOFF_MAX_MS,
+  );
+  if (lastFailureAt > 0 && Date.now() - lastFailureAt < backoffMs) {
+    return null;
+  }
+  return syncNow();
 }
 
 // ---------------------------------------------------------------------------

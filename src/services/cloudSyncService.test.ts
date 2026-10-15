@@ -10,10 +10,12 @@ import {
   saveCloudSyncState,
 } from './cloudSyncStore';
 import {
+  AUTO_SYNC_MAX_FAILURES,
   CloudSyncHttpError,
   CONFLICT_COPY_FIELD,
   getStatus,
   syncNow,
+  syncNowAuto,
   testConnection,
 } from './cloudSyncService';
 import { MAX_RETRIES } from './remoteBackupShared';
@@ -500,5 +502,102 @@ describe('云同步编排（cloudSyncService，T06）', () => {
       lastSyncError: null,
       pendingCount: 1,
     });
+  });
+});
+
+describe('自动调度门控（syncNowAuto，T08）', () => {
+  beforeEach(async () => {
+    vi.stubGlobal('window', {
+      setTimeout: globalThis.setTimeout,
+      clearTimeout: globalThis.clearTimeout,
+    });
+    vi.stubGlobal('indexedDB', undefined);
+    await resetEnvironment();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  /** 成功的 push/pull 回执（echo 模式） */
+  const stubSuccessFetch = () => {
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      if (pathOf(url) === '/sync/push') {
+        const body = parsePushBody(init);
+        return jsonResponse({
+          results: body.mutations.map((mutation) => ({
+            mutationId: mutation.mutationId,
+            status: 'applied',
+            serverVersion: 1,
+          })),
+        });
+      }
+      return emptySyncPage();
+    }));
+  };
+
+  it('401 后自动同步暂停且不产生网络请求，手动同步成功后恢复', async () => {
+    await configure();
+    await localPrivateStore.put('bazi_case', { title: '甲' }, 'case-1');
+
+    // 制造一次 401
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      jsonResponse({ error: { code: 'UNAUTHORIZED', message: '鉴权失败' } }, 401)));
+    await expect(syncNow()).rejects.toMatchObject({ code: 'UNAUTHORIZED' });
+
+    // 自动触发被跳过：不产生任何网络请求
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await syncNowAuto()).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // 用户修正密钥后手动同步成功（界面「立即同步」走 syncNow，不过门控）→ 自动调度恢复
+    stubSuccessFetch();
+    await expect(syncNow()).resolves.toMatchObject({ status: 'ok' });
+    // 成功后状态已重置：后续自动触发正常执行
+    await expect(syncNowAuto()).resolves.toMatchObject({ status: 'ok' });
+  });
+
+  it('失败退避窗口内自动触发被跳过', async () => {
+    await configure();
+    await localPrivateStore.put('bazi_case', { title: '甲' }, 'case-1');
+
+    // 先驱动一次成功，清零失败状态
+    stubSuccessFetch();
+    await expect(syncNow()).resolves.toMatchObject({ status: 'ok' });
+
+    // 制造一次失败（400 立即失败，不走重试等待）
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      jsonResponse({ error: { code: 'INVALID_REQUEST', message: '请求非法' } }, 400)));
+    await expect(syncNow()).rejects.toMatchObject({ status: 400 });
+
+    // 退避窗口内：自动触发跳过，不产生网络请求
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await syncNowAuto()).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('连续失败达上限后暂停自动同步，手动成功后恢复', async () => {
+    await configure();
+    await localPrivateStore.put('bazi_case', { title: '甲' }, 'case-1');
+
+    // 连续失败达上限（400 立即失败，快速驱动）
+    vi.stubGlobal('fetch', vi.fn(async () =>
+      jsonResponse({ error: { code: 'INVALID_REQUEST', message: '请求非法' } }, 400)));
+    for (let i = 0; i < AUTO_SYNC_MAX_FAILURES; i += 1) {
+      await expect(syncNow()).rejects.toMatchObject({ status: 400 });
+    }
+
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await syncNowAuto()).toBeNull(); // 已暂停
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // 手动同步成功后自动恢复（syncNow 不过门控）
+    stubSuccessFetch();
+    await expect(syncNow()).resolves.toMatchObject({ status: 'ok' });
+    await expect(syncNowAuto()).resolves.toMatchObject({ status: 'ok' });
   });
 });
