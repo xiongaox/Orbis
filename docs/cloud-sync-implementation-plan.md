@@ -722,4 +722,5 @@ cd cloud-sync-worker && npx tsc --noEmit && npx vitest run
   - **HTTP 错误分类**：`CloudSyncHttpError`（status/code/retryable）——401 与其余 4xx 立即抛出不重试（T08 据 `code === 'UNAUTHORIZED'` 停止自动重试）；429/5xx/网络错误按 `MAX_RETRIES` 指数退避（500ms×2^n，与 S3 备份一致）。
   - **TS 两个坑**：`erasableSyntaxOnly` 禁止构造函数参数属性（`constructor(public readonly x)`），须显式声明字段；`pullChanges` 中无标注的 `let cursor` 与 `page`/`changes` 形成循环类型推断（TS7022），`cursor` 与 `page` 必须显式标注类型。
   - **测试环境**：`fetchWithTimeout`/`wait` 用 `window.setTimeout`，测试里 `window` 桩须带 `setTimeout`/`clearTimeout`（不能 stub 成 undefined，否则超时计时器崩溃）；`indexedDB` stub 为 undefined 走内存模式；内存模式数据跨同文件用例残留，`beforeEach` 必须清空 config/state/outbox。
+- T07 设置界面（`src/components/Common/CloudSyncModal.tsx`）：桌面 `BaseModal` + 移动 `SubPage` 双壳（正文抽成 `bodyContent` 共用）；三处入口——`Navbar`→`UserMenu` 菜单（「数据备份」旁新增「云同步」项）、`MobileProfileCenter`「数据与服务」区设置行；`PrivateDataBackupModal` 的 WebDAV/S3 表单零改动，云同步配置不进既有备份配置的导出/导入。敏感字段约定：同步密钥密码态输入、永不回显（界面留空表示保持已保存值，已保存值只存内存不渲染）；「测试连接 / 立即同步」先走同一份 `persistConfig` 校验落盘，保证测试与同步用的永远是已保存配置；披露文案注明需自行部署 Worker、密钥等价于工作区钥匙、数据与费用由用户自己的 Cloudflare 账号承担。
 - 首期工作区标识：`xiongaox`（逻辑工作区，`workspace_id` 列隔离；一个 D1 可容纳多工作区，无需每工作区建库）。

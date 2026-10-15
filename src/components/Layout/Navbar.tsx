@@ -11,6 +11,7 @@ import { profileService } from '../../services/profileService';
 import UserMenu from './UserMenu';
 import { NavButton, type NavItemType } from './NavButton';
 import AiIntegrationModal from '../Common/AiIntegrationModal';
+import CloudSyncModal from '../Common/CloudSyncModal';
 import PrivateDataBackupModal from '../Common/PrivateDataBackupModal';
 import { startRemoteAutoBackup } from '../../services/remoteBackupService';
 import { persistTheme } from '../../services/themeService';
@@ -57,6 +58,7 @@ export default function Navbar({
   const [showAiIntegrationModal, setShowAiIntegrationModal] = useState(false);
   const [showAiChatHistoryModal, setShowAiChatHistoryModal] = useState(false);
   const [showPrivateDataBackupModal, setShowPrivateDataBackupModal] = useState(false);
+  const [showCloudSyncModal, setShowCloudSyncModal] = useState(false);
 
   const [birthDate, setBirthDate] = useState<Date | undefined>(undefined);
 
@@ -194,6 +196,7 @@ export default function Navbar({
                 onShowAiIntegration={handleShowAiIntegration}
                 onShowAiChatHistory={() => setShowAiChatHistoryModal(true)}
                 onShowPrivateDataBackup={() => setShowPrivateDataBackupModal(true)}
+                onShowCloudSync={() => setShowCloudSyncModal(true)}
                 birthDate={displayBirthDate}
               />
             </div>
@@ -241,6 +244,11 @@ export default function Navbar({
       <PrivateDataBackupModal
         isOpen={showPrivateDataBackupModal}
         onClose={() => setShowPrivateDataBackupModal(false)}
+      />
+
+      <CloudSyncModal
+        isOpen={showCloudSyncModal}
+        onClose={() => setShowCloudSyncModal(false)}
       />
 
       {showAiChatHistoryModal && (
