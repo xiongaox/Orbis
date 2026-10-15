@@ -50,7 +50,7 @@ describe('云同步元数据（cloudSyncStore，T04）', () => {
     expect(second).toBe(first);
     const state = await loadCloudSyncState();
     expect(state?.deviceId).toBe(first);
-    expect(state?.lastPulledSequence).toBe(0);
+    expect(state?.lastPulledSequence).toBeNull();
     expect(state?.lastSyncAt).toBeNull();
   });
 });

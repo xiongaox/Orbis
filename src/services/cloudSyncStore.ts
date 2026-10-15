@@ -25,8 +25,8 @@ export interface CloudSyncConfig {
 export interface CloudSyncState {
   /** 本设备唯一标识，首次生成后固定 */
   deviceId: string;
-  /** 已拉取到的最大服务端 sequence（pull 游标） */
-  lastPulledSequence: number;
+  /** 已拉取到的最大服务端 sequence（pull 游标）；从未同步为 null */
+  lastPulledSequence: number | null;
   /** 最近一次同步时间；从未同步为 null */
   lastSyncAt: string | null;
   /** 最近一次同步失败摘要；成功为 null */
@@ -75,7 +75,7 @@ export async function getOrCreateDeviceId(): Promise<string> {
   const deviceId = createDeviceId();
   await saveCloudSyncState({
     deviceId,
-    lastPulledSequence: 0,
+    lastPulledSequence: null,
     lastSyncAt: null,
     lastSyncError: null,
   });

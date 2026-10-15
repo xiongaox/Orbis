@@ -715,4 +715,11 @@ cd cloud-sync-worker && npx tsc --noEmit && npx vitest run
 - D1 数据库 `orbis` 已于本机创建（region APAC），`database_id` 仅记录于本机部署侧（按第 5 节边界不进仓库、不进客户端；可随时 `wrangler d1 list` 重新查到，无丢失风险）。T01 采用 example 模板模式：入库 `wrangler.toml.example`（`database_id` 占位符），本机复制出 gitignored 的真实 `wrangler.toml`（wrangler 4.121 不支持 toml 环境变量插值，已实测，故不用 `${VAR}` 方案）。
 - 本机 wrangler 实为 4.151.0：本地开发密钥文件是带点前缀的 `.dev.vars`（实测 `dev.vars` 不被加载，`wrangler dev --help` 亦注明读 `.env` 与 `.dev.vars`）；`wrangler d1 execute` 无 `--json` 选项，stdout 为「横幅 + JSON 数组」，需从第一个 `[` 起解析。集成测试 `cloud-sync-worker/scripts/integration-test.mjs` 已按此实测行为实现。
 - T04 将客户端 `SCHEMA_VERSION` 由 2 升至 3（新增 cloud_sync_versions / cloud_sync_outbox 独立表与 IDB store；快照记录格式未变）。`localPrivateStore.restore` 与 `backupPackageService.unpackJson` 的版本校验同步改为 `1..SCHEMA_VERSION` 区间语义，保证 v1/v2 旧备份在升级后仍可恢复（原 `[1, SCHEMA_VERSION]` 枚举校验会在升版后拒绝 v2 快照）。
+- T06 客户端编排实现要点（`src/services/cloudSyncService.ts`）：
+  - **LWW 冲突无需单记录拉取**：409 意味着远端版本 > 本地镜像版本，而该远端写入的 sequence 必大于当前 pull 游标（否则早先的 pull 已把它落库、镜像不会是旧值），因此同一轮 syncNow 的 pull 阶段会自然拉回远端版本——放弃本地修改后只要移除队列项即可。
+  - **案例类冲突副本**：本机内容以新 UUID 另存为新记录，payload 带 `conflict_copy_of` 标记字段（`CONFLICT_COPY_FIELD`，指向原 recordId）；副本经普通 `put` 入队，下轮同步推送。删除意图的冲突（本地待删除、远端有更新）直接放弃本地删除，远端内容经 pull 保留（最少数据丢失）。
+  - **CloudSyncState.lastPulledSequence 改为 `number | null`**：null 表示从未同步（走 bootstrap），0 表示已同步到空工作区——区分两者避免空工作区每轮重复 bootstrap。
+  - **HTTP 错误分类**：`CloudSyncHttpError`（status/code/retryable）——401 与其余 4xx 立即抛出不重试（T08 据 `code === 'UNAUTHORIZED'` 停止自动重试）；429/5xx/网络错误按 `MAX_RETRIES` 指数退避（500ms×2^n，与 S3 备份一致）。
+  - **TS 两个坑**：`erasableSyntaxOnly` 禁止构造函数参数属性（`constructor(public readonly x)`），须显式声明字段；`pullChanges` 中无标注的 `let cursor` 与 `page`/`changes` 形成循环类型推断（TS7022），`cursor` 与 `page` 必须显式标注类型。
+  - **测试环境**：`fetchWithTimeout`/`wait` 用 `window.setTimeout`，测试里 `window` 桩须带 `setTimeout`/`clearTimeout`（不能 stub 成 undefined，否则超时计时器崩溃）；`indexedDB` stub 为 undefined 走内存模式；内存模式数据跨同文件用例残留，`beforeEach` 必须清空 config/state/outbox。
 - 首期工作区标识：`xiongaox`（逻辑工作区，`workspace_id` 列隔离；一个 D1 可容纳多工作区，无需每工作区建库）。

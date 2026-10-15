@@ -121,7 +121,7 @@ const isTauriRuntime = () => typeof window !== 'undefined' && Boolean(
 
 const now = () => new Date().toISOString();
 
-function createId() {
+export function createId() {
   return typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
     : `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
