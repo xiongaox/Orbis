@@ -52,6 +52,10 @@ export interface BackupManifest {
 
 export interface RestoreSummary {
   format: 'zip' | 'legacy_json';
+  /**
+   * 实际写入本机的记录数（由写入操作累计，非取自包内条数）。
+   * 修复前该值直接等于包内记录数，因此「整包因时间戳被判旧而跳过」时仍谎报成功。
+   */
   restoredRecordsCount: number;
   restoredSessionsCount: number;
   restoredCaseTypes: string[];
@@ -362,9 +366,10 @@ export async function estimateRestoreImpact(unpacked: UnpackedBackup): Promise<{
  * 空备份（无任何记录）不触发同步删除，避免畸形包把本机清空。
  */
 export async function restoreUnpackedBackup(unpacked: UnpackedBackup): Promise<RestoreSummary> {
+  let writtenRecordsCount = 0;
   let removedRecordsCount = 0;
   if (unpacked.records.length > 0) {
-    ({ removedRecordsCount } = await localPrivateStore.restore({
+    ({ writtenRecordsCount, removedRecordsCount } = await localPrivateStore.restore({
       schemaVersion: SCHEMA_VERSION,
       exportedAt: new Date().toISOString(),
       records: unpacked.records,
@@ -387,7 +392,7 @@ export async function restoreUnpackedBackup(unpacked: UnpackedBackup): Promise<R
 
   return {
     format: unpacked.format,
-    restoredRecordsCount: unpacked.records.length,
+    restoredRecordsCount: writtenRecordsCount,
     restoredSessionsCount: unpacked.sessions.length,
     restoredCaseTypes: [...unpacked.caseTypes],
     removedRecordsCount,

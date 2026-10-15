@@ -30,8 +30,12 @@ import {
 describe('backupPackageService 多模块 ZIP 备份与恢复', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // restore 是覆盖同步实现，返回删除计数；mock 需要返回该结构供 summary 汇总
-    mocks.localPrivateStore.restore.mockResolvedValue({ removedRecordsCount: 0 });
+    // restore 是覆盖同步实现，返回「写入数 + 删除数」；mock 按传入快照条数计写入数，
+    // 与真实实现（备份为权威、逐条写入）一致
+    mocks.localPrivateStore.restore.mockImplementation(async (snapshot: { records: unknown[] }) => ({
+      writtenRecordsCount: snapshot.records.length,
+      removedRecordsCount: 0,
+    }));
   });
 
   it('打包为模块化 ZIP，分离账户配置、各术数案例与对话历史', async () => {
@@ -232,7 +236,7 @@ describe('backupPackageService 多模块 ZIP 备份与恢复', () => {
       ],
     });
     mocks.aiChatHistoryService.getAllSessions.mockReturnValue([]);
-    mocks.localPrivateStore.restore.mockResolvedValue({ removedRecordsCount: 2 });
+    mocks.localPrivateStore.restore.mockResolvedValue({ writtenRecordsCount: 1, removedRecordsCount: 2 });
 
     const packResult = await packBackupZip({ includeChatHistory: false });
     const restoreSummary = await unpackAndRestoreBackup(packResult.data, 'orbis_20260915_140000_000.zip');

@@ -281,7 +281,10 @@ export const localPrivateStore = {
   /**
    * 恢复备份。
    *
-   * 写入规则：备份内的记录按 updatedAt 优先合并写入。
+   * 写入规则：备份为权威，备份内记录一律写入（覆盖本机同 id 记录）。
+   * 早期实现按 updatedAt 比较、本机较新则跳过；但 updatedAt 来自各设备本地时钟，
+   * 手机时钟偏差会让「本机较新」恒成立，备份被整包静默跳过而界面仍报成功。
+   * 恢复的语义是「还原到该备份的时点」，故不再比较时间戳。
    * 同步规则（options.syncTypes）：调用方声明需要完全同步的类型下，
    * 本机有、备份没有的记录会被删除，使恢复结果与备份一致
    * （避免多端各自累积、案例库越并越乱）；设备本地配置类型永不删除。
@@ -289,7 +292,7 @@ export const localPrivateStore = {
   async restore(
     snapshot: PrivateDataSnapshot | LegacySnapshot,
     options?: { syncTypes?: Iterable<string> },
-  ): Promise<{ removedRecordsCount: number }> {
+  ): Promise<{ writtenRecordsCount: number; removedRecordsCount: number }> {
     if (!snapshot || !Array.isArray(snapshot.records) || ![1, SCHEMA_VERSION].includes(snapshot.schemaVersion)) throw new Error('备份文件版本不受支持');
     const records = snapshot.records.map((record) => normalizeRecord({
       ...record,
@@ -305,9 +308,12 @@ export const localPrivateStore = {
       }
       ids.add(record.id);
     }
+    // 备份为权威：一律写入。这里不再比较 updatedAt —— 该值由各设备本地时钟生成，
+    // 跨设备比较在时钟有偏差时必然误判（手机慢几小时就会导致整包被跳过）。
+    let writtenRecordsCount = 0;
     for (const record of records) {
-      const existing = await this.get(record.type, record.id);
-      if (!existing || existing.updatedAt <= record.updatedAt) await this.put(record.type, record.payload, record.id, record.sortOrder);
+      await this.put(record.type, record.payload, record.id, record.sortOrder);
+      writtenRecordsCount += 1;
     }
     let removedRecordsCount = 0;
     for (const type of options?.syncTypes ?? []) {
@@ -327,7 +333,7 @@ export const localPrivateStore = {
         window.dispatchEvent(new CustomEvent(eventName));
       }
     }
-    return { removedRecordsCount };
+    return { writtenRecordsCount, removedRecordsCount };
   },
 };
 

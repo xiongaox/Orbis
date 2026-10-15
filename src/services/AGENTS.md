@@ -22,6 +22,8 @@
 - 公共案例库走 Tauri IPC（Rust 层 `src-tauri/src/cases/`），验签、下载解密与落盘加密全在 Rust；前端不得把明文正文持久化。
 - 远程备份服务（WebDAV/S3）共用 `remoteBackupShared.ts` 的备份文件命名、路径校验与重试语义；新增备份方式时先扩展共享层，并在 `localPrivateStore` 的 `PrivateRecordType` 与快照类型清单中登记配置记录。
 - 备份恢复是**覆盖同步**：以备份为权威全集，本机有、备份没有的记录会被删除（`localPrivateStore.restore` 的 `syncTypes`）；`DEVICE_LOCAL_CONFIG_RECORD_TYPES`（webdav/s3/backup_method）永不进备份、恢复时也永不删除。备份含对话历史文件时会话按备份覆盖（replace），不含则保留本机。
+  - **写入侧一律覆盖，禁止按 `updatedAt` 比较后跳过**：该时间戳由各设备本地时钟生成（`new Date().toISOString()`），跨设备比较在时钟有偏差时必然误判——手机慢几小时就会让「本机较新」恒成立，整包备份被静默跳过而界面仍提示恢复成功。恢复的语义是「还原到该备份的时点」，不是双向合并。
+  - `restore` 返回的 `writtenRecordsCount` 必须来自实际写入操作；`RestoreSummary.restoredRecordsCount` 用它而非包内条数，否则不可靠的恢复仍会谎报成功。
 
 ## ANTI-PATTERNS
 - 不要新增 service 时绕开共享类型并返回不稳定数据形状。

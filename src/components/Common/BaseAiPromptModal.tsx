@@ -152,13 +152,18 @@ export default function BaseAiPromptModal({
                             </div>
                         </div>
 
-                        {/* 问题输入 */}
-                        <div className="rounded-xl border border-border/60 bg-muted/30 focus-within:border-primary/50 transition-colors">
+                        {/* 问题输入：本容器提供边框与聚焦态，textarea 透明、不自带边框。
+                            两点缺一不可，否则聚焦时会出现两层错位的框：
+                            1) flex 消除 textarea 作为 inline-block 的基线间隙（实测约 6px，底边间距 7px）；
+                            2) 禁用全局 textarea:focus-visible 的 ring —— 它的 2px offset 用不透明页面底色
+                               绘制，叠在本容器的 bg-muted/30 上会显出一圈更暗的内层框。
+                            与 AiChatDrawer 底部输入框同款写法。 */}
+                        <div className="rounded-xl border border-border/60 bg-muted/30 focus-within:border-primary/50 transition-colors flex flex-col">
                             <textarea
                                 value={userQuestion}
                                 onChange={(e) => setUserQuestion(e.target.value)}
                                 placeholder={placeholder}
-                                className="w-full min-h-[84px] resize-none bg-transparent border-none outline-none p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-ring"
+                                className="w-full min-h-[84px] resize-none bg-transparent border-none p-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 !ring-0 !ring-offset-0"
                             />
                         </div>
 

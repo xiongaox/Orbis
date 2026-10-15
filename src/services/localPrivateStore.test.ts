@@ -70,4 +70,28 @@ describe('本地私有数据备份', () => {
     // 备份凭据不进备份包，覆盖同步也不能删
     await expect(localPrivateStore.get('webdav_config', 'webdav_config')).resolves.not.toBeNull();
   });
+
+  // 回归：备份记录的 updatedAt 由各设备本地时钟生成，跨设备比较不可靠 ——
+  // 手机时钟偏慢时「本机较新」恒成立，早期实现据此跳过写入，整包备份被静默丢弃而界面仍报成功。
+  it('备份记录时间戳早于本机时仍覆盖写入，不按 updatedAt 跳过', async () => {
+    await localPrivateStore.clear('bazi_case');
+    await localPrivateStore.put('bazi_case', { title: '本机较新' }, 'case-1');
+
+    const { writtenRecordsCount } = await localPrivateStore.restore({
+      schemaVersion: 2,
+      exportedAt: '2026-08-26T00:00:00.000Z',
+      records: [{
+        id: 'case-1',
+        type: 'bazi_case',
+        payload: { title: '备份里的旧时间戳' },
+        createdAt: '2026-08-26T00:00:00.000Z',
+        updatedAt: '2026-08-26T00:00:00.000Z',
+      }],
+    }, { syncTypes: ['bazi_case'] });
+
+    expect(writtenRecordsCount).toBe(1);
+    await expect(localPrivateStore.get('bazi_case', 'case-1')).resolves.toMatchObject({
+      payload: { title: '备份里的旧时间戳' },
+    });
+  });
 });
