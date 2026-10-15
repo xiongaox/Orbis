@@ -155,6 +155,15 @@ export default function BaziCaseInfo({
             {/* 可折叠内容：操作按钮 */}
             {!mobileCollapsed && (
               <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowAiPrompt(true)}
+                  disabled={!baziData}
+                  className="flex-1 h-8 text-xs rounded-lg border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 text-amber-500 flex items-center justify-center gap-1 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  AI
+                </button>
                 {!caseData && (
                   <button
                     type="button"
@@ -182,15 +191,6 @@ export default function BaziCaseInfo({
                 >
                   <ArrowRightLeft className="w-3.5 h-3.5" />
                   流通
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAiPrompt(true)}
-                  disabled={!baziData}
-                  className="flex-1 h-8 text-xs rounded-lg border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 text-amber-500 flex items-center justify-center gap-1 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  AI
                 </button>
               </div>
             )}
