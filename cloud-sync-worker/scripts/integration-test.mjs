@@ -67,6 +67,30 @@ const dev = spawn(wranglerBin, ['dev', '--port', String(PORT)], {
   stdio: ['ignore', 'pipe', 'pipe'],
   detached: true,
 });
+
+// 任何退出路径（含未捕获异常）都清理 wrangler dev 进程组，避免残留占用端口
+function stopDev() {
+  try {
+    process.kill(-dev.pid, 'SIGTERM');
+  } catch {
+    try {
+      dev.kill('SIGTERM');
+    } catch {
+      // 进程已退出
+    }
+  }
+}
+process.on('exit', stopDev);
+process.on('uncaughtException', (error) => {
+  console.error('未捕获异常：', error);
+  stopDev();
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('未处理的 Promise 拒绝：', reason);
+  stopDev();
+  process.exit(1);
+});
 let devOutput = '';
 dev.stdout.on('data', (chunk) => {
   devOutput += chunk;
@@ -101,24 +125,35 @@ if (!ready) {
 
 // ---------- 工具 ----------
 async function api(method, path, { body, authToken = token } = {}) {
-  const response = await fetch(`${BASE}${path}`, {
-    method,
-    headers: {
-      ...(authToken !== null ? { Authorization: `Bearer ${authToken}` } : {}),
-      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  const text = await response.text();
-  let json = null;
-  if (text.length > 0) {
+  // wrangler dev 会关闭空闲的 keep-alive 连接，而 d1Query（execFileSync）
+  // 会阻塞事件循环——这期间客户端可能复用已被服务端关闭的 socket
+  // （ECONNRESET）。网络层错误（TypeError: fetch failed）重试一次即可，
+  // 真正的服务端故障会在重试时再次失败。
+  for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      json = JSON.parse(text);
-    } catch {
-      json = null;
+      const response = await fetch(`${BASE}${path}`, {
+        method,
+        headers: {
+          ...(authToken !== null ? { Authorization: `Bearer ${authToken}` } : {}),
+          ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        },
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
+      const text = await response.text();
+      let json = null;
+      if (text.length > 0) {
+        try {
+          json = JSON.parse(text);
+        } catch {
+          json = null;
+        }
+      }
+      return { status: response.status, json };
+    } catch (error) {
+      if (attempt === 1 || !(error instanceof TypeError)) throw error;
     }
   }
-  return { status: response.status, json };
+  throw new Error('不可达');
 }
 
 let mutationCounter = 0;
@@ -146,7 +181,11 @@ const remove = (type, recordId, baseVersion) => ({
 });
 
 async function push(workspaceId, mutations) {
-  return api('POST', '/sync/push', { body: { workspaceId, deviceId: DEVICE, mutations } });
+  return pushDevice(workspaceId, mutations, DEVICE);
+}
+
+async function pushDevice(workspaceId, mutations, deviceId) {
+  return api('POST', '/sync/push', { body: { workspaceId, deviceId, mutations } });
 }
 
 async function pull(workspaceId, after = 0, limit = 100) {
@@ -375,12 +414,75 @@ const OTHER_WORKSPACE = `${WORKSPACE}-x`;
   check('参数：limit=201 超上限拒绝（400）', overLimit.status === 400, JSON.stringify(overLimit));
 }
 
-// ---------- 清理 ----------
-try {
-  process.kill(-dev.pid, 'SIGTERM');
-} catch {
-  dev.kill('SIGTERM');
+// 场景 10：双设备端到端（T09 验收模拟：deviceA / deviceB 两台设备同一工作区）
+{
+  const WS = 'e2e-workspace';
+  const DEVICE_A = 'device-a';
+  const DEVICE_B = 'device-b';
+
+  // 1. A 建记录 x-1 → B 首次同步（bootstrap）可见
+  let response = await pushDevice(WS, [upsert('bazi_case', 'x-1', { id: 'x-1', title: 'A 创建' }, null)], DEVICE_A);
+  check('双设备：A 建 x-1 成功', response.status === 200, JSON.stringify(response));
+  const x1VersionAfterA = response.json.results[0].serverVersion;
+
+  const bBootstrap = await bootstrap(WS);
+  check('双设备：B 首次同步 bootstrap 含 x-1', bBootstrap.json.records.some((record) => record.recordId === 'x-1'), JSON.stringify(bBootstrap.json.records.map((record) => record.recordId)));
+  const bCursor = bBootstrap.json.currentSequence;
+
+  // 2. B 建记录 x-2 → A 增量 pull 可见（A 建 B 建）
+  response = await pushDevice(WS, [upsert('bazi_case', 'x-2', { id: 'x-2', title: 'B 创建' }, null)], DEVICE_B);
+  check('双设备：B 建 x-2 成功', response.status === 200, JSON.stringify(response));
+  const aPull = await pull(WS, bCursor);
+  check('双设备：A 增量 pull 见到 B 的 x-2', aPull.json.changes.some((change) => change.recordId === 'x-2'), JSON.stringify(aPull.json.changes));
+
+  // 3. A 改 x-1（正确 baseVersion）→ B pull 可见新内容（A 改 B 收）
+  response = await pushDevice(WS, [upsert('bazi_case', 'x-1', { id: 'x-1', title: 'A 修改' }, x1VersionAfterA)], DEVICE_A);
+  check('双设备：A 改 x-1 成功（serverVersion=2）', response.status === 200 && response.json.results[0].serverVersion === 2, JSON.stringify(response));
+  const bPull = await pull(WS, bCursor);
+  const x1Change = bPull.json.changes.find((change) => change.recordId === 'x-1');
+  check('双设备：B pull 见到 A 对 x-1 的修改', x1Change?.payload?.title === 'A 修改', JSON.stringify(x1Change));
+
+  // 4. A 删 x-2（正确 baseVersion）→ B pull 拿到 tombstone，bootstrap 不复活（A 删 B 上线）
+  response = await pushDevice(WS, [remove('bazi_case', 'x-2', 1)], DEVICE_A);
+  check('双设备：A 删 x-2 成功', response.status === 200, JSON.stringify(response));
+  const bPull2 = await pull(WS, bCursor);
+  const x2Tombstone = bPull2.json.changes.find((change) => change.recordId === 'x-2' && change.deleted === 1);
+  check('双设备：B pull 拿到 x-2 tombstone（deleted=1，payload=null）', x2Tombstone !== undefined && x2Tombstone.payload === null, JSON.stringify(bPull2.json.changes));
+  const bootAfterDelete = await bootstrap(WS);
+  check('双设备：删除后 bootstrap 不含 x-2（不复活）', !bootAfterDelete.json.records.some((record) => record.recordId === 'x-2'), JSON.stringify(bootAfterDelete.json.records.map((record) => record.recordId)));
+
+  // 5. B 用过期 baseVersion 改 x-1（B 改 vs A 改）→ 409 且回执带当前版本与内容（客户端据此生成冲突副本）
+  response = await pushDevice(WS, [upsert('bazi_case', 'x-1', { id: 'x-1', title: 'B 并发修改' }, 1)], DEVICE_B);
+  check('双设备：B 过期 baseVersion 改 x-1 返回 409', response.status === 409, JSON.stringify(response));
+  check(
+    '双设备：409 回执含当前版本与内容（冲突副本素材）',
+    response.json.conflicts?.[0]?.serverVersion === 2 && response.json.conflicts?.[0]?.payload?.title === 'A 修改',
+    JSON.stringify(response.json?.conflicts?.[0]),
+  );
+
+  // 6. 重复 push：内容一致的过期推送走 duplicate_content 恢复（不产生新 change）；
+  //    同一 mutationId 重放 → 幂等（网络重试不重复生效）
+  const replay = {
+    type: 'bazi_case',
+    recordId: 'x-1',
+    operation: 'upsert',
+    payload: { id: 'x-1', title: 'A 修改' },
+    mutationId: 'e2e-replay-1',
+    baseVersion: 1, // 过期版本 + 内容与当前一致 → 恢复路径
+  };
+  response = await pushDevice(WS, [replay], DEVICE_A);
+  check('双设备：内容一致的过期推送走 duplicate_content 恢复', response.status === 200 && response.json.results[0].status === 'duplicate_content', JSON.stringify(response));
+  response = await pushDevice(WS, [replay], DEVICE_A);
+  check('双设备：同一 mutationId 重放返回 idempotent', response.status === 200 && response.json.results[0].status === 'idempotent', JSON.stringify(response));
+
+  // 7. 续传：游标之后的 pull 不再返回已同步 change（中途退出再启动续传）
+  const lastSeq = bPull2.json.changes[bPull2.json.changes.length - 1].sequence;
+  const resumePull = await pull(WS, lastSeq);
+  check('双设备：游标续传不重复返回已同步 change', resumePull.json.changes.length === 0, JSON.stringify(resumePull.json.changes));
 }
+
+// ---------- 清理 ----------
+stopDev();
 
 console.log('');
 if (failures.length > 0) {
