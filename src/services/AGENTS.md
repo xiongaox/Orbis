@@ -20,6 +20,7 @@
 ## CONVENTIONS
 - case 服务沿用“日志 + throw Error”模式，调用方用 try/catch 兜底。
 - 私有业务数据统一通过 `localPrivateStore` 读写；Tauri 使用 SQLite，浏览器使用 IndexedDB。
+- `localPrivateStore` 的写入口（`put`/`remove`/`clear`）统一拦截 `SYNCABLE_RECORD_TYPES` 白名单类型生成待同步 outbox 条目：同一记录待推送期间只保留最终状态（合并，baseVersion 取自 `cloud_sync_versions` 镜像）；`clear` 展开为逐条删除；`remoteOrigin: true` 的写入（pull 回灌）不入队以防同步回环。新增可同步类型时在此白名单与 Worker 端 `SYNCABLE_RECORD_TYPES` 同步登记。
 - 公共案例库走 Tauri IPC（Rust 层 `src-tauri/src/cases/`），验签、下载解密与落盘加密全在 Rust；前端不得把明文正文持久化。
 - 远程备份服务（WebDAV/S3）共用 `remoteBackupShared.ts` 的备份文件命名、路径校验与重试语义；新增备份方式时先扩展共享层，并在 `localPrivateStore` 的 `PrivateRecordType` 与快照类型清单中登记配置记录。
 - 云同步元数据（实施方案 §4.4 四类：`cloud_sync_config`/`cloud_sync_state`/`cloud_sync_outbox`/`cloud_sync_versions`）是**设备本地数据**：config/state 存于 `private_records` 但被 `snapshot()` 与打包层排除，outbox/versions 为 `localPrivateStore` 内独立表/独立 IDB store；一律不进备份包、不参与恢复（`restore` 对 `CLOUD_SYNC_METADATA_RECORD_TYPES` 既不写入也不删除）。同步密钥（syncToken）等价于整个工作区的钥匙，禁止出现在日志、错误提示、备份导出与 toast 中。

@@ -238,3 +238,110 @@ describe('云同步元数据（设备本地，T04）', () => {
     expect(writtenRecordsCount).toBe(1);
   });
 });
+
+describe('本地写入接入 outbox（T05）', () => {
+  beforeEach(async () => {
+    vi.stubGlobal('window', undefined);
+    vi.stubGlobal('indexedDB', undefined);
+    // 跨用例共享内存状态：清空待推送队列，保证计数断言从零开始
+    await localPrivateStore.clearOutbox();
+  });
+
+  it('白名单类型写入产生 1 条队列项，再次写入合并为同一条', async () => {
+    await localPrivateStore.put('bazi_case', { title: '案例' }, 'outbox-case-1');
+    let entries = await localPrivateStore.listOutbox();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      type: 'bazi_case', recordId: 'outbox-case-1', operation: 'upsert', baseVersion: null,
+    });
+    expect(entries[0].mutationId).toBeTruthy();
+    expect(entries[0].payload).toMatchObject({ title: '案例' });
+
+    // 再次写入：合并为同一条，内容更新，baseVersion 不变
+    await localPrivateStore.put('bazi_case', { title: '案例改' }, 'outbox-case-1');
+    entries = await localPrivateStore.listOutbox();
+    expect(entries).toHaveLength(1);
+    expect(entries[0].payload).toMatchObject({ title: '案例改' });
+    expect(entries[0].baseVersion).toBeNull();
+  });
+
+  it('已同步记录更新后入队携带镜像版本作为 baseVersion', async () => {
+    await localPrivateStore.setSyncVersion('profile', 'profile', 7);
+    await localPrivateStore.put('profile', { name: '甲' }, 'profile');
+    const entries = await localPrivateStore.listOutbox();
+    expect(entries).toHaveLength(1);
+    expect(entries[0].baseVersion).toBe(7);
+    await localPrivateStore.removeOutboxEntry(entries[0].mutationId);
+  });
+
+  it('非白名单类型不产生队列项', async () => {
+    await localPrivateStore.put('webdav_config', { endpoint: 'x' }, 'webdav_config');
+    await localPrivateStore.put('s3_config', { endpoint: 'x' }, 's3_config');
+    await localPrivateStore.put('backup_method', { method: 'webdav' }, 'backup_method');
+    await localPrivateStore.put('auto_backup_state', { last: 'x' }, 'auto_backup_state');
+    await localPrivateStore.put('app_setting', { value: 1 }, 'app-setting-1');
+    await localPrivateStore.put('ai_chat_sessions', { sessions: [] }, 'chat-1');
+    await localPrivateStore.put('cloud_sync_config', { enabled: false }, 'cloud_sync_config');
+    await localPrivateStore.put('cloud_sync_state', { deviceId: 'd' }, 'cloud_sync_state');
+    expect(await localPrivateStore.countOutbox()).toBe(0);
+  });
+
+  it('删除产生对应删除项；clear 为每条现存记录生成删除操作', async () => {
+    await localPrivateStore.put('qimen_case', { title: 'a' }, 'q-1');
+    await localPrivateStore.put('qimen_case', { title: 'b' }, 'q-2');
+    await localPrivateStore.put('qimen_case', { title: 'c' }, 'q-3');
+    await localPrivateStore.clearOutbox();
+    expect(await localPrivateStore.countOutbox()).toBe(0);
+
+    await localPrivateStore.remove('qimen_case', 'q-1');
+    let entries = await localPrivateStore.listOutbox();
+    expect(entries).toHaveLength(1);
+    expect(entries[0].operation).toBe('delete');
+    expect(entries[0].payload).toBeUndefined();
+
+    // clear：q-2/q-3 仍在，各生成一条删除项
+    await localPrivateStore.clearOutbox();
+    await localPrivateStore.clear('qimen_case');
+    entries = await localPrivateStore.listOutbox();
+    expect(entries.map((entry) => entry.recordId).sort()).toEqual(['q-2', 'q-3']);
+    expect(entries.every((entry) => entry.operation === 'delete')).toBe(true);
+    await localPrivateStore.clearOutbox();
+  });
+
+  it('remote-origin 写入不产生队列项（pull 回灌防环）', async () => {
+    await localPrivateStore.put('bazi_case', { title: '远端' }, 'ro-1', undefined, { remoteOrigin: true });
+    expect(await localPrivateStore.countOutbox()).toBe(0);
+    await localPrivateStore.remove('bazi_case', 'ro-1', { remoteOrigin: true });
+    expect(await localPrivateStore.countOutbox()).toBe(0);
+    await localPrivateStore.clear('bazi_case', { remoteOrigin: true });
+    expect(await localPrivateStore.countOutbox()).toBe(0);
+  });
+
+  it('删除后重建合并为最终状态（待推送删除被 upsert 覆盖）', async () => {
+    await localPrivateStore.setSyncVersion('sanyuan_case', 'sr-1', 3);
+    await localPrivateStore.remove('sanyuan_case', 'sr-1');
+    await localPrivateStore.put('sanyuan_case', { title: '重建' }, 'sr-1');
+    const entries = await localPrivateStore.listOutbox();
+    expect(entries).toHaveLength(1);
+    expect(entries[0].operation).toBe('upsert');
+    expect(entries[0].baseVersion).toBe(3);
+    await localPrivateStore.removeOutboxEntry(entries[0].mutationId);
+  });
+
+  it('恢复备份默认入队（T00 结论：恢复结果同步到其他设备）', async () => {
+    await localPrivateStore.restore({
+      schemaVersion: 3,
+      exportedAt: '2026-10-15T00:00:00.000Z',
+      records: [{
+        id: 'rs-1', type: 'bazi_case', payload: { title: '恢复案例' },
+        createdAt: '2026-10-15T00:00:00.000Z', updatedAt: '2026-10-15T00:00:00.000Z',
+      }],
+    });
+    const entries = await localPrivateStore.listOutbox();
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      type: 'bazi_case', recordId: 'rs-1', operation: 'upsert',
+    });
+    await localPrivateStore.removeOutboxEntry(entries[0].mutationId);
+  });
+});

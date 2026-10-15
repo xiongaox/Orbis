@@ -50,6 +50,25 @@ export interface SyncVersionEntry {
 }
 
 /**
+ * 可同步记录类型白名单（与 Worker 端 SYNCABLE_RECORD_TYPES 一致，
+ * 实施方案 §4.3）。其余类型（配置、会话、应用设置等）为设备本地，
+ * 不进同步队列。
+ */
+export const SYNCABLE_RECORD_TYPES = new Set<string>([
+  'bazi_case',
+  'qimen_case',
+  'sanyuan_case',
+  'profile',
+  'case_favorite',
+  'case_progress',
+]);
+
+/** 写入口选项：remoteOrigin 标记远端回灌写入（pull 落库），不产生 outbox（防同步回环） */
+export interface WriteOptions {
+  remoteOrigin?: boolean;
+}
+
+/**
  * 设备本地配置类型：不进备份包，恢复其他设备的备份时也绝不删除本机这些记录
  * （备份里没有它们，覆盖式同步不能把本机备份凭据删掉）。
  */
@@ -294,7 +313,7 @@ export const localPrivateStore = {
     return records.find((record) => record.id === id) ?? null;
   },
 
-  async put(type: PrivateRecordType, payload: Record<string, unknown>, id = String(payload.id ?? createId()), sortOrder?: number): Promise<PrivateRecord> {
+  async put(type: PrivateRecordType, payload: Record<string, unknown>, id = String(payload.id ?? createId()), sortOrder?: number, options?: WriteOptions): Promise<PrivateRecord> {
     const previous = await this.get(type, id);
     const record: PrivateRecord = {
       id,
@@ -312,44 +331,52 @@ export const localPrivateStore = {
          ON CONFLICT(id) DO UPDATE SET user_id = excluded.user_id, payload = excluded.payload, updated_at = excluded.updated_at, sort_order = excluded.sort_order`,
         [record.id, DEFAULT_WORKSPACE, record.type, JSON.stringify(record.payload), record.createdAt, record.updatedAt, record.sortOrder ?? null],
       );
-      return record;
-    }
-    if (typeof indexedDB === 'undefined') {
+    } else if (typeof indexedDB === 'undefined') {
       memoryRecords.set(record.id, record);
-      return record;
+    } else {
+      await withIndexedStore('readwrite', IDB_STORE, (store) => store.put({ ...record, userId: DEFAULT_WORKSPACE }));
     }
-    await withIndexedStore('readwrite', IDB_STORE, (store) => store.put({ ...record, userId: DEFAULT_WORKSPACE }));
+    // 本地写入成功后入队待同步变更（远端回灌写入除外）
+    if (!options?.remoteOrigin) {
+      await enqueueSyncMutation(type, id, 'upsert', record.payload);
+    }
     return record;
   },
 
-  async remove(type: PrivateRecordType, id: string) {
+  async remove(type: PrivateRecordType, id: string, options?: WriteOptions) {
     if (isTauriRuntime()) {
       const db = await getTauriDatabase();
       await db.execute('DELETE FROM private_records WHERE id = $1 AND record_type = $2', [id, type]);
-      return;
-    }
-    if (typeof indexedDB === 'undefined') {
+    } else if (typeof indexedDB === 'undefined') {
       memoryRecords.delete(id);
-      return;
+    } else {
+      await withIndexedStore('readwrite', IDB_STORE, (store) => store.delete(id));
     }
-    await withIndexedStore('readwrite', IDB_STORE, (store) => store.delete(id));
+    if (!options?.remoteOrigin) {
+      await enqueueSyncMutation(type, id, 'delete', undefined);
+    }
   },
 
-  async clear(type: PrivateRecordType) {
+  async clear(type: PrivateRecordType, options?: WriteOptions) {
+    // clear 语义：为每条现存记录生成删除操作；清空后无法再列举，故先取
+    const existing = !options?.remoteOrigin && SYNCABLE_RECORD_TYPES.has(type)
+      ? await this.list(type)
+      : [];
     if (isTauriRuntime()) {
       const db = await getTauriDatabase();
       await db.execute('DELETE FROM private_records WHERE record_type = $1', [type]);
-      return;
-    }
-    if (typeof indexedDB === 'undefined') {
+    } else if (typeof indexedDB === 'undefined') {
       for (const [id, record] of memoryRecords) if (record.type === type) memoryRecords.delete(id);
-      return;
+    } else {
+      const records = await withIndexedStore<StoredRecord[]>('readonly', IDB_STORE, (store) => store.getAll());
+      await withIndexedStore('readwrite', IDB_STORE, (store) => {
+        for (const record of records) if (record.type === type) store.delete(record.id);
+        return store.getAll();
+      });
     }
-    const records = await withIndexedStore<StoredRecord[]>('readonly', IDB_STORE, (store) => store.getAll());
-    await withIndexedStore('readwrite', IDB_STORE, (store) => {
-      for (const record of records) if (record.type === type) store.delete(record.id);
-      return store.getAll();
-    });
+    for (const record of existing) {
+      await enqueueSyncMutation(type, record.id, 'delete', undefined);
+    }
   },
 
   /** 读取某条记录最近同步到的服务端版本；从未同步为 null */
@@ -593,6 +620,40 @@ export const localPrivateStore = {
     return { writtenRecordsCount, removedRecordsCount };
   },
 };
+
+/**
+ * 拦截本地写入生成待同步变更（T05，实施方案 §4.3）。
+ *
+ * 合并语义：同一记录在待推送期间只保留最终状态——后一次写入覆盖前一次
+ * 的内容与操作（删除后重建合并为 upsert），baseVersion 始终取自版本镜像
+ * （镜像只在推送成功后更新）。若不合并，同一记录的多次本地写入会携带
+ * 相同的过期 baseVersion，在服务端批量推送时集体 409。
+ *
+ * 恢复备份走默认入队（T00 结论：恢复结果也应同步到其他设备）。
+ */
+async function enqueueSyncMutation(
+  type: string,
+  recordId: string,
+  operation: 'upsert' | 'delete',
+  payload: Record<string, unknown> | undefined,
+): Promise<void> {
+  if (!SYNCABLE_RECORD_TYPES.has(type)) return;
+  const baseVersion = await localPrivateStore.getSyncVersion(type, recordId);
+  const pending = await localPrivateStore.listOutbox();
+  for (const entry of pending) {
+    if (entry.type === type && entry.recordId === recordId) {
+      await localPrivateStore.removeOutboxEntry(entry.mutationId);
+    }
+  }
+  await localPrivateStore.enqueueOutbox({
+    mutationId: createId(),
+    type,
+    recordId,
+    operation,
+    payload,
+    baseVersion,
+  });
+}
 
 function normalizeLegacyPayload(record: LegacyPrivateRecord) {
   const payload = sanitizePayload(record.payload);
