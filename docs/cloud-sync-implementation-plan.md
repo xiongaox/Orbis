@@ -136,6 +136,39 @@ GET  /sync/bootstrap             新设备首次全量拉取（不含 changes �
 
 `/sync/bootstrap` 是必需的：`changes` 表会随时间无限增长，新设备首次同步不能靠回放全部历史。
 
+### 4.1.1 请求/响应载荷格式（T02 冻结）
+
+**鉴权**：所有路由（含 `/health`）均需 `Authorization: Bearer <SYNC_TOKEN>`；失败返回 401 与中文可读信息。
+
+**POST /sync/push** 请求体（字段名与客户端 outbox 条目 §4.4 一致）：
+
+```json
+{
+  "workspaceId": "xiongaox",
+  "deviceId": "<设备 UUID>",
+  "mutations": [
+    {
+      "type": "bazi_case",
+      "recordId": "<记录 id>",
+      "operation": "upsert | delete",
+      "payload": {},
+      "mutationId": "<UUID>",
+      "baseVersion": 3
+    }
+  ]
+}
+```
+
+- `baseVersion`：该记录最近已知服务端版本；从未同步为 `null`（见 4.3 第 8 条）。
+- `payload`：`upsert` 必填（对象）；`delete` 忽略。
+
+**GET /sync/pull**：`?workspaceId=<标识>&after=<seq>&limit=<n>`（游标校验与响应结构见 T03）。
+**GET /sync/bootstrap**：`?workspaceId=<标识>`。
+
+**统一错误响应**：`{ "error": { "code": "<错误码>", "message": "<中文说明>" } }`；错误码词汇：`UNAUTHORIZED`(401)、`INVALID_WORKSPACE` / `INVALID_JSON` / `INVALID_REQUEST` / `INVALID_RECORD_TYPE` / `INVALID_OPERATION`(400)、`PAYLOAD_TOO_LARGE` / `BATCH_TOO_LARGE`(413)、`METHOD_NOT_ALLOWED`(405)、`NOT_FOUND`(404)、`NOT_IMPLEMENTED`(501，T02 边界)、`CONFLICT`(409，T03 起)、`RATE_LIMITED`(429，预留)。
+
+**上限取值**（§4.3 第 6 条的落地冻结）：单批 ≤ 50 条；单批总字节 ≤ 512 KB；单条 payload ≤ 256 KB（单批总字节的一半留量，保证至少两条大记录可同批）；`workspaceId` ≤ 64 字符且仅含字母、数字、`-`、`_`；`recordId` / `mutationId` / `deviceId` ≤ 512 字符（防滥用 sanity 上限）。
+
 ### 4.2 D1 表结构（三张表 + 索引）
 
 ```sql
@@ -310,7 +343,7 @@ cd cloud-sync-worker && npx wrangler dev   # 手动访问 /health 一次
 
 **验收**：所有非法输入均被拒且不写库（用本地 D1 查询确认无残留行）。
 
-**提交边界**：`cloud-sync-worker/**`。
+**提交边界**：`cloud-sync-worker/**` + `docs/`（新增 §4.1.1 请求/响应载荷格式：纯增量细化，不改第 4 节既有协议语义）。
 
 **回滚**：还原 `src/index.ts` 与相关测试。
 
