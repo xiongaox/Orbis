@@ -8,13 +8,13 @@
  * 日干/时干经 getJiaDunStem 甲遁六仪映射后比对，与盘面 PalaceCell 高亮逻辑一致。
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { MouseEvent as ReactMouseEvent } from 'react';
+import type { MouseEvent as ReactMouseEvent, ReactNode } from 'react';
 import { BookOpen } from 'lucide-react';
 import BaseModal from '../../../UI/BaseModal';
 import SubPage from '../../../UI/SubPage';
 import { useLayoutMode } from '../../../../hooks/useLayoutMode';
 import PalaceCell from './PalaceCell';
-import { getJiaDunStem } from '../../../../lib/csp-qimen/qimenUtils';
+import { getJiaDunStem, getGanChangShengNote } from '../../../../lib/csp-qimen/qimenUtils';
 import { MEN_YINYANG, XING_YINYANG } from '../../../../lib/csp-qimen/constants';
 import type { QimenPalace } from '../QimenChart';
 
@@ -61,12 +61,19 @@ const FALLBACK_PALACE: QimenPalace = {
 
 type GuideZone = 'top' | 'left' | 'right' | 'bottom';
 
+/** 辅助行（歌诀 / 规则 / 长生注记）：左侧细线小字，src 为可选出处前缀 */
+interface GuideNote {
+    src?: string;
+    body: ReactNode;
+}
+
 interface GuideItem {
     id: string;
     n: number;
     zone: GuideZone;
     title: string;
     desc: string;
+    notes?: GuideNote[];
 }
 
 export default function QimenGuideModal({
@@ -93,7 +100,6 @@ export default function QimenGuideModal({
     // 日干/时干为甲时按甲遁六仪映射后再比对（盘面无明甲）
     const dayStem = getJiaDunStem(siZhu?.day?.[0] || '', siZhu?.day?.[1] || '');
     const hourStem = getJiaDunStem(siZhu?.hour?.[0] || '', siZhu?.hour?.[1] || '');
-    const monthBranch = siZhu?.month?.[1] || '';
 
     // 马/空显示与 PalaceCell 同源：局信息面板选中柱的动态值优先，否则用宫位自带标记
     const maKongDisplay = useMemo(() => {
@@ -115,81 +121,108 @@ export default function QimenGuideModal({
         const p = display;
         const path = p.menPoPath;
         const hasJiGong = !!(p.jiGongTianPan || p.jiGongDiPan);
-        // 八门/九星阴阳注记：门之阴阳随宫卦（阳门开休生伤、阴门杜景死惊）；禽芮为合星单独说明
-        const menYinyangNote = MEN_YINYANG[p.men]
-            ? `；${p.men}为${MEN_YINYANG[p.men]}门（阳门：开、休、生、伤；阴门：杜、景、死、惊）`
-            : '';
-        const xingYinyangNote = p.xing === '禽芮'
-            ? '；禽芮为天禽（阳星）与天芮（阴星）之合星'
-            : XING_YINYANG[p.xing]
-                ? `；${p.xing}为${XING_YINYANG[p.xing]}星（阳星：蓬、冲、禽、心、任；阴星：芮、辅、柱、英）`
-                : '';
+        // 精简文案：正文只留「是什么＋取象」，歌诀/规则/长生注记走 notes（左侧细线小字行）
+        const [xingGong, xingMonth] = (p.xingWang || '丨').split('丨');
+        const [menGong, menMonth] = (p.menWang || '丨').split('丨');
+        // 九星/八门阴阳注记：禽芮为合星单独说明
+        const xingYin = p.xing === '禽芮'
+            ? '，禽芮为禽（阳）芮（阴）合星'
+            : XING_YINYANG[p.xing] ? `，${p.xing}为${XING_YINYANG[p.xing]}星` : '';
+        const menYin = MEN_YINYANG[p.men] ? `${p.men}为${MEN_YINYANG[p.men]}门。` : '';
+        // 天干长生注记（天盘干、地盘干两条）：长生位与行度由领域层反查，中宫无小字时为 null
+        const csNote = (gan: string): GuideNote | null => {
+            const info = getGanChangShengNote(gan, p.position);
+            if (!info) return null;
+            return {
+                body: (
+                    <>
+                        {gan}（{info.yinYang}）天干，
+                        <b className="font-semibold text-primary">
+                            长生在{info.zhi}，<span className="text-accent">{info.dir}</span>
+                        </b>
+                        ；本宫含 {info.zhiList.join('、')} →{' '}
+                        {info.states.map((s, i) => `${s}（${info.zhiList[i]}）`).join(' + ')}
+                    </>
+                ),
+            };
+        };
+        const tianCs = p.tianPan ? csNote(p.tianPan) : null;
+        const diCs = p.diPan ? csNote(p.diPan) : null;
         const items: (Omit<GuideItem, 'n'> | null)[] = [
             path ? {
                 id: 'sangua', zone: 'top' as const,
                 title: `宫顶三卦「${path.from} → ${path.to} → ${path.final}」`,
-                desc: `${path.from}是${path.to}宫方位上的先天卦；${path.to}是本宫后天卦；${path.final}是穿宫卦——${path.to}的先天位在${path.final}位，故「${path.to}穿${path.final}」，供飞宫变易参考`,
+                desc: `${path.to}为本宫后天卦，${path.from}为${path.to}位先天卦，${path.final}为穿宫卦（${path.to}穿${path.final}）。`,
+                notes: [{ body: '飞宫变易时参考，不作主象。' }],
             } : null,
             p.anGan ? {
                 id: 'anGan', zone: 'top' as const,
                 title: `暗干（${p.anGan}）`,
-                desc: '按暗干规则派生的隐藏天干，不排入九宫明盘，取象时作暗中的推动因素',
+                desc: '值使门加临时干派生，不入明盘，取象时作暗中的推动因素。',
             } : null,
             maKongDisplay ? {
                 id: 'ma', zone: 'top' as const,
                 title: `马/空标记（${maKongDisplay}）`,
-                desc: '〇为空亡（旬空两支所落之宫），马为驿马所落之宫，主动象与落空',
+                desc: '〇＝空亡，马＝驿马，两者同落写作「〇/马」。',
             } : null,
             hasJiGong ? {
                 id: 'jiGong', zone: 'left' as const,
                 title: `寄宫干（${p.jiGongTianPan || '—'} / ${p.jiGongDiPan || '—'}）与小字`,
-                desc: '中宫天禽无专属宫位寄坤宫——中宫天/地盘干随寄宫显示在卡左列：上格为寄宫天盘干、下格为寄宫地盘干（紫框为击刑/入墓状态标识），小字为该干的十二长生状态',
+                desc: '中宫寄坤宫，左列上格为中宫天盘干、下格为地盘干。',
+                notes: [{ body: <>紫框＝<b className="font-semibold text-primary">击刑 / 入墓</b></> }],
             } : null,
             p.shen ? {
                 id: 'shen', zone: 'left' as const,
                 title: `八神（${p.shen}）`,
-                desc: '神盘自值符起布，随遁顺逆排布（值符、螣蛇、太阴、六合、白虎、玄武、九地、九天）',
+                desc: '自值符宫起布，阳遁顺布、阴遁逆布。',
+                notes: [{ body: '定吉凶的性质与氛围，不独主吉凶。' }],
             } : null,
             p.xing ? {
                 id: 'xing', zone: 'left' as const,
                 title: `九星（${p.xing}）与小字「${p.xingWang || '—'}」`,
-                desc: `「${(p.xingWang || '丨').split('丨')[0]}」是星五行对落宫五行的旺衰，出自《烟波钓叟歌》：与我同行即为相，我生之月诚为旺，废于父母休于财，囚于鬼兮真不旺；「月X」是同一规则对${monthBranch || '月'}令${xingYinyangNote}`,
+                desc: `「${xingGong}」＝星对本宫${xingMonth ? `，「${xingMonth}」＝星对月令` : ''}${xingYin}。`,
+                notes: [{ src: '《烟波钓叟歌》', body: '与我同行即为相，我生之月诚为旺，废于父母休于财，囚于鬼兮真不旺。' }],
             } : null,
             p.tianPan ? {
                 id: 'tianPan', zone: 'right' as const,
                 title: `天盘干（${p.tianPan}）与小字「${p.tianPanShiErCS || '—'}」`,
-                desc: '值符随时干转动后落在本宫的天盘三奇六仪，为显现在上之象；小字为该干在宫支的十二长生状态',
+                desc: '值符随时干转动后落在本宫的三奇六仪。',
+                notes: tianCs ? [tianCs] : undefined,
             } : null,
             p.men ? {
                 id: 'men', zone: 'right' as const,
                 title: `八门（${p.men}）与小字「${p.menWang || '—'}」`,
-                desc: `「${(p.menWang || '丨').split('丨')[0]}」是门五行对落宫五行的旺相休囚死（同我旺、生我相、我生休、我克囚即门迫、克我死）；「月X」是同一规则对${monthBranch || '月'}令；门克落宫即为门迫，界面以红色门名标识${menYinyangNote}`,
+                desc: `「${menGong}」＝门对本宫${menMonth ? `，「${menMonth}」＝门对月令` : ''}。`,
+                notes: [{ body: <>门克宫＝<b className="font-semibold text-primary">门迫</b>，以红字门名标出。{menYin}</> }],
             } : null,
             p.diPan ? {
                 id: 'diPan', zone: 'right' as const,
                 title: `地盘干（${p.diPan}）与小字「${p.diPanShiErCS || '—'}」`,
-                desc: '三奇六仪按局数布于九宫（阳遁顺布、阴遁逆布），是固定地基；小字为该干在宫支的十二长生状态',
+                desc: '三奇六仪按局数布宫，阳遁顺布、阴遁逆布；排定后不再随天盘转动，是整盘的固定地基。',
+                notes: diCs ? [diCs] : undefined,
             } : null,
             p.palaceMeta ? {
                 id: 'num', zone: 'bottom' as const,
                 title: `底部数字「${p.palaceMeta.number}」`,
-                desc: '宫位四数依次为：后天数、先天数、河图生数、河图成数（10 显示为「`10」）',
+                desc: '依次为后天数、先天数、河图生数、河图成数（10 显示作「`10」）。',
             } : null,
             p.palaceMeta ? {
                 id: 'wang', zone: 'bottom' as const,
                 title: `宫位「【 ${p.palaceMeta.wangShuai} 】」`,
-                desc: '宫位五行对月令的旺相休囚死',
+                desc: '本宫五行对月令的旺衰。',
+                notes: [{ body: '同我者旺，生我者相，我生者休，我克者囚，克我者死。' }],
             } : null,
             p.palaceMeta ? {
                 id: 'panType', zone: 'bottom' as const,
                 title: p.palaceMeta.panType,
-                desc: '阳遁：坎、艮、震、巽四宫为内盘，离、坤、兑、乾四宫为外盘；阴遁相反；中宫寄坤宫随坤宫',
+                desc: '阳遁：坎艮震巽为内盘；阴遁内外对调。',
+                notes: [{ body: '中宫寄坤宫，随坤宫。' }],
             } : null,
         ];
         return items
             .filter((item): item is Omit<GuideItem, 'n'> => item !== null)
             .map((item, index) => ({ ...item, n: index + 1 }));
-    }, [display, monthBranch, maKongDisplay]);
+    }, [display, maKongDisplay]);
 
     // 内容区宽度测量：>=480px 用环绕布局（宫位居中、词条四周环绕），
     // 更窄（手机竖屏）物理上放不下环绕，降级为「卡在上 + 单列列表」
@@ -268,8 +301,15 @@ export default function QimenGuideModal({
                     : 'border-border hover:border-primary/50 hover:bg-primary/10'
             }`}
         >
-            <div className="mb-0.5 text-[12.5px] font-semibold leading-snug text-primary">{g.n}. {g.title}</div>
-            <div className="text-[11.5px] leading-relaxed text-foreground/75">{g.desc}</div>
+            {/* 移动端 SubPage 字号整体放大一档（标题 14 / 正文 13 / 注记 12.5），桌面弹窗维持原密度 */}
+            <div className={`mb-0.5 font-semibold leading-snug text-primary ${isMobilePage ? 'text-[14px]' : 'text-[12.5px]'}`}>{g.n}. {g.title}</div>
+            <div className={`leading-relaxed text-foreground/75 ${isMobilePage ? 'text-[13px]' : 'text-[11.5px]'}`}>{g.desc}</div>
+            {g.notes?.map((nt, i) => (
+                <div key={i} className={`mt-1 border-l-2 border-primary/30 pl-2 leading-relaxed text-foreground/60 ${isMobilePage ? 'text-[12.5px]' : 'text-[11px]'}`}>
+                    {nt.src && <span className="text-muted-foreground">{nt.src}：</span>}
+                    {nt.body}
+                </div>
+            ))}
         </div>
     );
 

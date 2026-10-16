@@ -261,6 +261,43 @@ export function getGanShiErCS(gan: string, gongPosition: number): string {
     return results.join('');
 }
 
+/** 十二地支顺序（长生行度推算用） */
+const ZHI_ORDER = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+
+/**
+ * 天干长生注记数据：长生位、行度（顺/逆）、本宫地支的十二长生。
+ * 长生位与行度由 SHI_ER_ZHANG_SHENG 反查得出，不写死「乙长生在午」类结论；
+ * 行度判定：长生位后一位为沐浴即顺行，为养即逆行（十天干必居其一）。
+ * 中宫（5，寄坤）与盘面小字口径一致（小字为空），不返回注记。
+ *
+ * @param gan 天干
+ * @param gongPosition 宫位（洛书数 1-9）
+ * @returns 注记数据；干无长生位或中宫时返回 null
+ */
+export function getGanChangShengNote(gan: string, gongPosition: number): {
+    yinYang: string;
+    zhi: string;    // 长生地支
+    dir: string;    // 顺行 / 逆行
+    zhiList: string[];  // 本宫所含地支
+    states: string[];   // 各地支对应的十二长生全称，与 zhiList 一一对应
+} | null {
+    if (!gan || gongPosition === 5) return null;
+    const idx = ZHI_ORDER.findIndex((z) => SHI_ER_ZHANG_SHENG[gan + z] === '长生');
+    if (idx < 0) return null;
+    const next = SHI_ER_ZHANG_SHENG[gan + ZHI_ORDER[(idx + 1) % 12]];
+    const zhiList = GONG_TO_ZHI[gongPosition] || [];
+    if (zhiList.length === 0) return null;
+    const states = zhiList.map((z) => SHI_ER_ZHANG_SHENG[gan + z] || '');
+    if (states.some((s) => !s)) return null;
+    return {
+        yinYang: '甲丙戊庚壬'.includes(gan) ? '阳' : '阴',
+        zhi: ZHI_ORDER[idx],
+        dir: next === '沐浴' ? '顺行' : '逆行',
+        zhiList,
+        states,
+    };
+}
+
 /**
  * 获取宫位月令旺衰（旺相休囚死）
  * @param gongPosition 宫位
