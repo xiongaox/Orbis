@@ -10,7 +10,8 @@ import { BAZI_CASES_CHANGED_EVENT, QIMEN_CASES_CHANGED_EVENT, SANYUAN_CASES_CHAN
 export type PrivateRecordType = 'bazi_case' | 'qimen_case' | 'sanyuan_case' | 'profile' | 'ai_model_service' | 'case_favorite' | 'case_progress' | 'webdav_config' | 's3_config' | 'backup_method'
   // 以下为从 localStorage 迁入 SQLite 的本地持久化数据
   | 'app_setting' // 通用设置：theme、布局、隐私开关、导航槽位、锁定盘、研判状态、AI 角色 prompt 等
-  | 'ai_chat_sessions' // AI 研判对话历史（单条记录存整份会话数组）
+  | 'ai_chat_session' // AI 研判对话历史（每会话一条记录，recordId = sessionId）
+  | 'ai_chat_sessions' // 遗留：旧版整份会话数组单条记录，启动预载时迁移拆分后删除
   | 'auto_backup_state' // 自动备份调度状态（设备本地，不进备份）
   // 以下为云同步元数据（设备本地，实施方案 §4.4）
   | 'cloud_sync_config' // 云同步配置：启用开关、Worker 地址、同步密钥、工作区标识
@@ -61,6 +62,16 @@ export const SYNCABLE_RECORD_TYPES = new Set<string>([
   'profile',
   'case_favorite',
   'case_progress',
+]);
+
+/**
+ * 仅手动同步的记录类型（实施方案 §4.3 第 11 条）：进 Worker 白名单可推送，
+ * 但写入口不自动入队、seedOutboxFromLocal 不补推——平时不进 15 秒轮询通道，
+ * 只经对话历史弹窗的「同步」按钮显式入队后随 syncNow 上云。
+ * `ai_chat_session` 为每会话一条，recordId = sessionId。
+ */
+export const SYNC_MANUAL_TYPES = new Set<string>([
+  'ai_chat_session',
 ]);
 
 /** 写入口选项：remoteOrigin 标记远端回灌写入（pull 落库），不产生 outbox（防同步回环） */
@@ -336,8 +347,8 @@ export const localPrivateStore = {
     } else {
       await withIndexedStore('readwrite', IDB_STORE, (store) => store.put({ ...record, userId: DEFAULT_WORKSPACE }));
     }
-    // 本地写入成功后入队待同步变更（远端回灌写入除外）
-    if (!options?.remoteOrigin) {
+    // 本地写入成功后入队待同步变更（远端回灌写入、手动同步类型除外）
+    if (!options?.remoteOrigin && !SYNC_MANUAL_TYPES.has(type)) {
       await enqueueSyncMutation(type, id, 'upsert', record.payload);
     }
     return record;
@@ -352,7 +363,7 @@ export const localPrivateStore = {
     } else {
       await withIndexedStore('readwrite', IDB_STORE, (store) => store.delete(id));
     }
-    if (!options?.remoteOrigin) {
+    if (!options?.remoteOrigin && !SYNC_MANUAL_TYPES.has(type)) {
       await enqueueSyncMutation(type, id, 'delete', undefined);
     }
   },
@@ -651,7 +662,9 @@ export async function enqueueSyncMutation(
   operation: 'upsert' | 'delete',
   payload: Record<string, unknown> | undefined,
 ): Promise<void> {
-  if (!SYNCABLE_RECORD_TYPES.has(type)) return;
+  // 手动同步类型（ai_chat_session）也允许入队，但只由「同步」按钮显式调用；
+  // 写入口已按 SYNC_MANUAL_TYPES 排除自动入队（§4.3 第 11 条）
+  if (!SYNCABLE_RECORD_TYPES.has(type) && !SYNC_MANUAL_TYPES.has(type)) return;
   const baseVersion = await localPrivateStore.getSyncVersion(type, recordId);
   const pending = await localPrivateStore.listOutbox();
   for (const entry of pending) {

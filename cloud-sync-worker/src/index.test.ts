@@ -213,8 +213,8 @@ describe('POST /sync/push 输入边界（T02 子步骤 2/3/4）', () => {
     expect(response.status).toBe(500);
   });
 
-  it('超大 payload（> 256 KB）返回 413 PAYLOAD_TOO_LARGE', async () => {
-    const hugePayload = { id: 'case-1', name: 'x'.repeat(256 * 1024 + 16) };
+  it('超大 payload（> 1 MB）返回 413 PAYLOAD_TOO_LARGE', async () => {
+    const hugePayload = { id: 'case-1', name: 'x'.repeat(1024 * 1024 + 16) };
     const response = await worker.fetch(
       jsonRequest('/sync/push', {
         method: 'POST',
@@ -227,12 +227,12 @@ describe('POST /sync/push 输入边界（T02 子步骤 2/3/4）', () => {
     expect(body.error.code).toBe('PAYLOAD_TOO_LARGE');
   });
 
-  it('单批总字节超限（50 条 × 20 KB）返回 413 BATCH_TOO_LARGE', async () => {
+  it('单批总字节超限（50 条 × 50 KB = 2.5 MB）返回 413 BATCH_TOO_LARGE', async () => {
     const mutations = Array.from({ length: 50 }, (_, index) => ({
       ...validMutation,
       recordId: `case-${index}`,
       mutationId: `mutation-${index}`,
-      payload: { id: `case-${index}`, name: 'x'.repeat(20 * 1024) },
+      payload: { id: `case-${index}`, name: 'x'.repeat(50 * 1024) },
     }));
     const response = await worker.fetch(
       jsonRequest('/sync/push', { method: 'POST', body: { ...validPush, mutations } }),

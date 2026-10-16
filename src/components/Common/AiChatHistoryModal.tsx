@@ -28,6 +28,8 @@ import {
   Compass,
   MessageSquare,
   Grid3X3,
+  RefreshCw,
+  Loader2,
   X,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -35,6 +37,8 @@ import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import BaseModal from '../UI/BaseModal';
 import SubPage from '../UI/SubPage';
+import Toast from './Toast';
+import { useToast } from '../../hooks/useToast';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { drawerMarkdownComponents } from './markdownComponents';
 import {
@@ -43,6 +47,7 @@ import {
   type AiChatSession,
 } from '../../services/aiChatHistoryService';
 import { extractSmartTitleFromQuestion } from '../../services/aiChatService';
+import { syncChatSessionsNow } from '../../services/cloudSyncService';
 
 const DIVINATION_TYPE_ICONS: Record<string, typeof Compass> = {
   all: Layers,
@@ -433,6 +438,37 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
   const handleClearAll = () => {
     aiChatHistoryService.clearSessions(activeTypeTab === 'all' ? undefined : activeTypeTab);
     setShowClearAllConfirm(false);
+  };
+
+  const { toast, showToast } = useToast();
+
+  // 手动云同步（§4.3 第 11 条）：对话历史不进自动同步通道，只由此按钮触发。
+  // 手动触发必给反馈：有数据流动报条数，无变化报「已是最新」。
+  const [syncState, setSyncState] = useState<'idle' | 'busy'>('idle');
+  const handleSyncChatSessions = async () => {
+    if (syncState === 'busy') return;
+    setSyncState('busy');
+    try {
+      const run = await syncChatSessionsNow();
+      if (run.status === 'disabled') {
+        showToast('云同步未启用：请先在「数据备份 → 云同步」中完成配置', 'error');
+      } else if (run.status === 'skipped') {
+        showToast('已有同步正在进行，请稍候再试', 'info');
+      } else {
+        const parts: string[] = [];
+        if (run.pushed > 0) parts.push(`推送 ${run.pushed} 条`);
+        if (run.pulled > 0) parts.push(`拉取 ${run.pulled} 条`);
+        if (run.conflicts > 0) parts.push(`冲突 ${run.conflicts} 条`);
+        showToast(
+          parts.length > 0 ? `同步完成：${parts.join('，')}` : '已是最新，无需同步',
+          parts.length > 0 ? 'success' : 'info',
+        );
+      }
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : '同步失败，请稍后重试', 'error');
+    } finally {
+      setSyncState('idle');
+    }
   };
 
   // 导出 Markdown
@@ -853,7 +889,21 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
 
               {/* 底部操作条 */}
               <div className="shrink-0 px-3.5 py-3 border-t border-border bg-card/60 flex items-center justify-between text-xs text-muted-foreground">
-                <span>当前筛选 {filteredSessions.length} 条</span>
+                <div className="flex items-center gap-2">
+                  <span>当前筛选 {filteredSessions.length} 条</span>
+                  <button
+                    type="button"
+                    onClick={handleSyncChatSessions}
+                    disabled={syncState === 'busy'}
+                    title="把本机对话历史同步到云端（手动触发，平时不自动同步）"
+                    className="px-2 py-1 rounded text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {syncState === 'busy'
+                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      : <RefreshCw className="w-3.5 h-3.5" />}
+                    <span>{syncState === 'busy' ? '同步中' : '同步'}</span>
+                  </button>
+                </div>
 
                 {filteredSessions.length > 0 && (
                   <div className="relative" ref={clearAllRef}>
@@ -919,6 +969,7 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
           confirmText="删除"
           variant="destructive"
         />
+        <Toast toast={toast} />
       </SubPage>
     );
   }
@@ -1158,7 +1209,21 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
 
           {/* 中间栏底部操作区 */}
           <div className="p-2 border-t border-border bg-card/60 flex items-center justify-between text-xs text-muted-foreground">
-            <span>当前筛选 {filteredSessions.length} 条</span>
+            <div className="flex items-center gap-2">
+              <span>当前筛选 {filteredSessions.length} 条</span>
+              <button
+                type="button"
+                onClick={handleSyncChatSessions}
+                disabled={syncState === 'busy'}
+                title="把本机对话历史同步到云端（手动触发，平时不自动同步）"
+                className="px-2 py-1 rounded text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {syncState === 'busy'
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <RefreshCw className="w-3.5 h-3.5" />}
+                <span>{syncState === 'busy' ? '同步中' : '同步'}</span>
+              </button>
+            </div>
 
             {filteredSessions.length > 0 && (
               <div className="relative" ref={clearAllRef}>
@@ -1258,6 +1323,7 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
           )}
         </div>
       </div>
+      <Toast toast={toast} />
     </BaseModal>
   );
 }

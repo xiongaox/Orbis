@@ -93,8 +93,8 @@ export async function packBackupZip(options: BackupContentOptions = DEFAULT_BACK
       continue;
     }
     // AI 对话历史单独经 getAllSessions() 打进 *_chat_history.json（受 includeChatHistory 控制），
-    // 此处排除记录本体以免重复打包
-    if (record.type === 'ai_chat_sessions') {
+    // 此处排除记录本体以免重复打包（含旧版整份数组记录）
+    if (record.type === 'ai_chat_session' || record.type === 'ai_chat_sessions') {
       continue;
     }
 

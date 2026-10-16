@@ -3,9 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@tauri-apps/plugin-sql', () => ({ default: { load: vi.fn() } }));
 vi.mock('@tauri-apps/plugin-http', () => ({ fetch: vi.fn() }));
 
-import { localPrivateStore, SYNCABLE_RECORD_TYPES } from './localPrivateStore';
+import { localPrivateStore, SYNCABLE_RECORD_TYPES, SYNC_MANUAL_TYPES } from './localPrivateStore';
 import type { PrivateRecordType } from './localPrivateStore';
 import {
+  AI_CHAT_SESSIONS_CHANGED_EVENT,
   BAZI_CASES_CHANGED_EVENT,
   QIMEN_CASES_CHANGED_EVENT,
   SANYUAN_CASES_CHANGED_EVENT,
@@ -20,6 +21,7 @@ import {
   CloudSyncHttpError,
   CONFLICT_COPY_FIELD,
   getStatus,
+  syncChatSessionsNow,
   syncNow,
   syncNowAuto,
   testConnection,
@@ -64,6 +66,12 @@ async function resetEnvironment() {
   // 让 pushOutbox 循环不收敛。remoteOrigin 清理不入队。
   await localPrivateStore.clearSyncVersions();
   for (const type of SYNCABLE_RECORD_TYPES) {
+    for (const record of await localPrivateStore.list(type as PrivateRecordType)) {
+      await localPrivateStore.remove(type as PrivateRecordType, record.id, { remoteOrigin: true });
+    }
+  }
+  // 手动同步类型（ai_chat_sessions）不在 SYNCABLE_RECORD_TYPES 中，需单独清理
+  for (const type of SYNC_MANUAL_TYPES) {
     for (const record of await localPrivateStore.list(type as PrivateRecordType)) {
       await localPrivateStore.remove(type as PrivateRecordType, record.id, { remoteOrigin: true });
     }
@@ -582,6 +590,240 @@ describe('云同步编排（cloudSyncService，T06）', () => {
 
     expect(result).toMatchObject({ status: 'ok', pulled: 0 });
     expect(dispatchMock).not.toHaveBeenCalled();
+  });
+
+  it('对话历史写入口不自动入队，自动同步也不推送（仅手动触发）', async () => {
+    await configure();
+    await localPrivateStore.put(
+      'ai_chat_session',
+      { value: { id: 'session-1', updatedAt: 1, messages: [] } },
+      'session-1',
+    );
+    // 写入口按 SYNC_MANUAL_TYPES 排除：日常对话不产生队列项
+    expect(await localPrivateStore.countOutbox()).toBe(0);
+
+    const fetchMock = stubFetch(() => emptySyncPage());
+    const result = await syncNow();
+
+    // 按需补推只扫 SYNCABLE_RECORD_TYPES，不含手动类型：本轮无 push 请求
+    expect(result).toMatchObject({ status: 'ok', pushed: 0, pulled: 0 });
+    expect(fetchMock.mock.calls.filter((call) => pathOf(String(call[0])) === '/sync/push')).toHaveLength(0);
+  });
+
+  it('手动同步：每会话一条记录逐条入队推送', async () => {
+    await configure();
+    await localPrivateStore.put(
+      'ai_chat_session',
+      { value: { id: 'session-1', updatedAt: 1, messages: [] } },
+      'session-1',
+    );
+    await localPrivateStore.put(
+      'ai_chat_session',
+      { value: { id: 'session-2', updatedAt: 2, messages: [] } },
+      'session-2',
+    );
+    const pushed: Array<{ type: string; recordId: string }> = [];
+    stubFetch(async (url, init) => {
+      if (pathOf(url) === '/sync/push') {
+        const body = parsePushBody(init);
+        pushed.push(
+          ...body.mutations.map((mutation) => ({ type: mutation.type, recordId: mutation.recordId })),
+        );
+        return jsonResponse({
+          results: body.mutations.map((mutation) => ({
+            mutationId: mutation.mutationId,
+            status: 'applied',
+            serverVersion: 1,
+          })),
+        });
+      }
+      return emptySyncPage();
+    });
+
+    const result = await syncChatSessionsNow();
+
+    expect(result).toMatchObject({ status: 'ok', pushed: 2, pulled: 0 });
+    expect(pushed).toEqual([
+      { type: 'ai_chat_session', recordId: 'session-1' },
+      { type: 'ai_chat_session', recordId: 'session-2' },
+    ]);
+    expect(await localPrivateStore.countOutbox()).toBe(0);
+  });
+
+  it('手动同步：本机已删的会话补 delete 墓碑（删除传播）', async () => {
+    await configure();
+    // 镜像存在但本机已无该会话：模拟本机删除后镜像残留
+    await localPrivateStore.setSyncVersion('ai_chat_session', 'gone-1', 3);
+    const pushed: Array<{ recordId: string; operation: string }> = [];
+    stubFetch(async (url, init) => {
+      if (pathOf(url) === '/sync/push') {
+        const body = parsePushBody(init);
+        pushed.push(
+          ...body.mutations.map((mutation) => ({
+            recordId: mutation.recordId,
+            operation: mutation.operation,
+          })),
+        );
+        return jsonResponse({
+          results: body.mutations.map((mutation) => ({
+            mutationId: mutation.mutationId,
+            status: 'applied',
+            serverVersion: 4,
+          })),
+        });
+      }
+      return emptySyncPage();
+    });
+
+    const result = await syncChatSessionsNow();
+
+    // 不发墓碑则 B 端下次拉取会把已删会话原样拉回来
+    expect(result).toMatchObject({ status: 'ok', pushed: 1 });
+    expect(pushed).toEqual([{ recordId: 'gone-1', operation: 'delete' }]);
+  });
+
+  it('拉回远端会话：落库并广播缓存失效事件', async () => {
+    await configure();
+    await saveCloudSyncState({
+      deviceId: 'device-1',
+      workerUrl: WORKER_URL,
+      workspaceId: 'test-workspace',
+      lastPulledSequence: 5,
+      lastSyncAt: null,
+      lastSyncError: null,
+    });
+    const dispatchMock = vi.fn();
+    vi.stubGlobal('window', {
+      setTimeout: globalThis.setTimeout,
+      clearTimeout: globalThis.clearTimeout,
+      dispatchEvent: dispatchMock,
+    });
+    stubFetch(async (url) => {
+      if (pathOf(url) === '/sync/pull') {
+        return jsonResponse({
+          changes: [
+            change(6, 'ai_chat_session', 'session-1', 6, {
+              value: { id: 'session-1', updatedAt: 1, messages: [] },
+            }),
+          ],
+          hasMore: false,
+          currentSequence: 6,
+        });
+      }
+      return emptySyncPage();
+    });
+
+    const result = await syncNow();
+
+    expect(result).toMatchObject({ status: 'ok', pulled: 1 });
+    const eventNames = dispatchMock.mock.calls.map((call) => String((call[0] as CustomEvent).type));
+    expect(eventNames).toContain(AI_CHAT_SESSIONS_CHANGED_EVENT);
+    expect(await localPrivateStore.get('ai_chat_session', 'session-1')).toBeTruthy();
+  });
+
+  it('会话 409 冲突：会话内消息合并（双方问答都保留）并重推', async () => {
+    await configure();
+    await localPrivateStore.put(
+      'ai_chat_session',
+      {
+        value: {
+          id: 'session-1',
+          title: '本机标题',
+          updatedAt: 5,
+          messages: [{ id: 'm-local', timestamp: 2, role: 'user', content: '本机追问' }],
+        },
+      },
+      'session-1',
+    );
+
+    let pushCall = 0;
+    let resentBaseVersion: number | null | undefined;
+    stubFetch(async (url, init) => {
+      if (pathOf(url) === '/sync/push') {
+        pushCall += 1;
+        const body = parsePushBody(init);
+        if (pushCall === 1) {
+          return jsonResponse(
+            {
+              error: { code: 'CONFLICT', message: '版本冲突' },
+              results: [],
+              conflicts: body.mutations.map((mutation) => ({
+                mutationId: mutation.mutationId,
+                type: mutation.type,
+                recordId: mutation.recordId,
+                serverVersion: 3,
+                deleted: 0,
+                payload: {
+                  value: {
+                    id: 'session-1',
+                    title: '远端标题',
+                    updatedAt: 9,
+                    messages: [{ id: 'm-remote', timestamp: 1, role: 'assistant', content: '远端回答' }],
+                  },
+                },
+              })),
+            },
+            409,
+          );
+        }
+        resentBaseVersion = body.mutations[0]?.baseVersion;
+        return jsonResponse({
+          results: body.mutations.map((mutation) => ({
+            mutationId: mutation.mutationId,
+            status: 'applied',
+            serverVersion: 4,
+          })),
+        });
+      }
+      return emptySyncPage();
+    });
+
+    const result = await syncChatSessionsNow();
+
+    expect(result).toMatchObject({ status: 'ok', pushed: 1, conflicts: 1 });
+    expect(pushCall).toBe(2);
+    // 重推前镜像已对齐到回执的 serverVersion，否则会再次 409
+    expect(resentBaseVersion).toBe(3);
+    expect(await localPrivateStore.countOutbox()).toBe(0);
+    // 合并结果写回本机：双方消息按 timestamp 排序都在；元数据取 updatedAt 较新者（远端）
+    const record = await localPrivateStore.get('ai_chat_session', 'session-1');
+    const merged = (record?.payload as {
+      value: { title: string; updatedAt: number; messages: Array<{ id: string }> };
+    }).value;
+    expect(merged.messages.map((message) => message.id)).toEqual(['m-remote', 'm-local']);
+    expect(merged.title).toBe('远端标题');
+    expect(merged.updatedAt).toBe(9);
+  });
+
+  it('push 按字节分批：大记录不与其他条目混批撞服务端总量上限', async () => {
+    await configure();
+    // 每条 ~800KB（旧实现只按 50 条分批，三条会合成一批 ~2.4MB 被服务端拒绝）
+    const big = 'x'.repeat(800 * 1024);
+    await localPrivateStore.put('bazi_case', { title: big }, 'big-1');
+    await localPrivateStore.put('bazi_case', { title: big }, 'big-2');
+    await localPrivateStore.put('bazi_case', { title: big }, 'big-3');
+    const batchSizes: number[] = [];
+    stubFetch(async (url, init) => {
+      if (pathOf(url) === '/sync/push') {
+        const body = parsePushBody(init);
+        batchSizes.push(body.mutations.length);
+        return jsonResponse({
+          results: body.mutations.map((mutation) => ({
+            mutationId: mutation.mutationId,
+            status: 'applied',
+            serverVersion: 1,
+          })),
+        });
+      }
+      return emptySyncPage();
+    });
+
+    const result = await syncNow();
+
+    expect(result).toMatchObject({ status: 'ok', pushed: 3 });
+    // 两条成批（~1.6MB < 2MB 批上限），第三条另起一批
+    expect(batchSizes).toEqual([2, 1]);
+    expect(await localPrivateStore.countOutbox()).toBe(0);
   });
 
   it('增量同步：镜像存在的记录不重复补推', async () => {

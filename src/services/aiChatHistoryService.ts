@@ -63,11 +63,23 @@ function notifyListeners() {
 import { extractSmartTitleFromQuestion } from './aiChatService';
 import { exportTextFile } from '../utils/fileExportUtil';
 import { localPrivateStore } from './localPrivateStore';
+import { AI_CHAT_SESSIONS_CHANGED_EVENT } from '../data/caseConstants';
 
-const SESSIONS_RECORD_TYPE = 'ai_chat_sessions';
-const SESSIONS_RECORD_ID = 'ai_chat_sessions';
+/** 每会话一条记录（recordId = sessionId），云同步按会话粒度手动推送（§4.3 第 11 条） */
+const SESSIONS_RECORD_TYPE = 'ai_chat_session';
+/** 遗留：旧版把整份会话数组存成一条记录，预载时迁移拆分后删除 */
+const LEGACY_SESSIONS_RECORD_TYPE = 'ai_chat_sessions';
+const LEGACY_SESSIONS_RECORD_ID = 'ai_chat_sessions';
 
 let cachedSessions: AiChatSession[] | null = null;
+
+/**
+ * 「已落盘内容」快照（sessionId → JSON），差量落盘的比较基准。
+ * 必须是内容字符串而非对象引用：调用方（updateSessionMessages/toggleFavorite 等）
+ * 是原地修改会话对象的，而 loadAllSessionsFromStorage 返回的就是内存缓存本身，
+ * 持有引用会让基准被同步改掉，差量判断失效（全部跳过、什么都不写盘）。
+ */
+let persistedSnapshot = new Map<string, string>();
 
 /** 一次性迁移：localStorage 里的旧会话搬进 SQLite 后删除，避免双份。 */
 async function migrateLegacySessionsFromLocalStorage(): Promise<AiChatSession[] | null> {
@@ -86,17 +98,67 @@ async function migrateLegacySessionsFromLocalStorage(): Promise<AiChatSession[] 
 }
 
 /**
- * 启动预热：把会话从 SQLite 载入内存缓存（并迁移 localStorage 旧数据）。
+ * 从本地存储载入全部会话：新格式（每会话一条）优先；为空时依次回退到
+ * 旧版 SQLite 单条整份数组、localStorage 旧数据，回退来源载入后立即迁移为
+ * 新格式并删除旧数据（避免下次重复迁移与双份）。
+ */
+async function loadSessionsFromStore(): Promise<AiChatSession[]> {
+  const records = await localPrivateStore.list(SESSIONS_RECORD_TYPE);
+  const sessions = records
+    .map((record) => record.payload.value as AiChatSession | undefined)
+    .filter((session): session is AiChatSession => Boolean(session?.id));
+  if (sessions.length > 0) {
+    // 新格式已有数据：清理可能残留的旧记录（迁移中途退出过）
+    await removeLegacySessionsRecord();
+    return sessions;
+  }
+  const legacyRecord = await localPrivateStore.get(LEGACY_SESSIONS_RECORD_TYPE, LEGACY_SESSIONS_RECORD_ID);
+  const legacyList = legacyRecord?.payload.value;
+  if (Array.isArray(legacyList) && legacyList.length > 0) {
+    const migrated = legacyList as AiChatSession[];
+    await writeSessions(migrated);
+    await removeLegacySessionsRecord();
+    return migrated;
+  }
+  const fromLocalStorage = await migrateLegacySessionsFromLocalStorage();
+  if (fromLocalStorage && fromLocalStorage.length > 0) {
+    await writeSessions(fromLocalStorage);
+    return fromLocalStorage;
+  }
+  await removeLegacySessionsRecord();
+  return [];
+}
+
+async function removeLegacySessionsRecord(): Promise<void> {
+  await localPrivateStore.remove(LEGACY_SESSIONS_RECORD_TYPE, LEGACY_SESSIONS_RECORD_ID, { remoteOrigin: true });
+}
+
+/** 逐条写入会话记录（旧数据迁移用；手动同步类型不会因此自动入队） */
+async function writeSessions(sessions: AiChatSession[]): Promise<void> {
+  for (const session of sessions) {
+    await localPrivateStore.put(SESSIONS_RECORD_TYPE, { value: session }, session.id);
+  }
+}
+
+/**
+ * 启动预热：把会话从本地存储载入内存缓存（含旧数据迁移）。
  * 必须在首屏渲染前 await 完成，否则同步的 getAllSessions 只会拿到空数组。
  */
 export async function preloadAiChatSessions(): Promise<void> {
-  const record = await localPrivateStore.get(SESSIONS_RECORD_TYPE, SESSIONS_RECORD_ID);
-  let loaded = (record?.payload.value as AiChatSession[] | undefined) ?? null;
-  if (!loaded) {
-    loaded = await migrateLegacySessionsFromLocalStorage();
-  }
-  cachedSessions = normalizeSessions(loaded ?? []);
+  const loaded = await loadSessionsFromStore();
+  const normalized = normalizeSessions(loaded);
+  cachedSessions = normalized;
+  persistedSnapshot = new Map(normalized.map((session) => [session.id, JSON.stringify(session)]));
   notifyListeners();
+}
+
+/**
+ * 失效内存缓存并从本地存储重载（云同步拉回对话历史后调用，§4.3 第 11 条）。
+ * 不重载会让后续对话基于陈旧数组整体落盘，把刚拉回的内容覆盖掉。
+ */
+export async function reloadFromStore(): Promise<void> {
+  cachedSessions = null;
+  await preloadAiChatSessions();
 }
 
 function normalizeSessions(list: AiChatSession[]): AiChatSession[] {
@@ -127,11 +189,33 @@ function saveAllSessionsToStorage(sessions: AiChatSession[]): void {
   // 必须换新数组引用：订阅方（useSyncExternalStore）以 Object.is 比较快照，
   // 原引用入库会导致收藏等原地修改后界面不刷新。
   cachedSessions = [...sessions];
-  // 异步落盘 SQLite；内存缓存已更新，界面即时反映，不等待写盘
-  void localPrivateStore
-    .put(SESSIONS_RECORD_TYPE, { value: sessions }, SESSIONS_RECORD_ID)
-    .catch((err) => console.error('保存 AI 对话历史失败：', err));
+  // 逐会话差量落盘；内存缓存已更新，界面即时反映，不等待写盘
+  void persistSessionsDiff(sessions).catch((err) =>
+    console.error('保存 AI 对话历史失败：', err),
+  );
   notifyListeners();
+}
+
+/**
+ * 差量落盘（每会话一条记录）：内容与已落盘快照不同的会话逐条写、已被移除的逐条删。
+ * 旧实现每次把整份数组覆盖进单条记录——一次对话要重写全部会话（数百 KB），
+ * 且云同步只能整份推送；改为逐条后单次只写一个会话的几十 KB。
+ * 注意：写盘失败时**不更新**快照，让下一轮整体重写（幂等），避免丢改动。
+ */
+async function persistSessionsDiff(sessions: AiChatSession[]): Promise<void> {
+  const nextSnapshot = new Map<string, string>();
+  for (const session of sessions) {
+    const json = JSON.stringify(session);
+    nextSnapshot.set(session.id, json);
+    if (persistedSnapshot.get(session.id) === json) continue;
+    await localPrivateStore.put(SESSIONS_RECORD_TYPE, { value: session }, session.id);
+  }
+  for (const id of persistedSnapshot.keys()) {
+    if (!nextSnapshot.has(id)) {
+      await localPrivateStore.remove(SESSIONS_RECORD_TYPE, id);
+    }
+  }
+  persistedSnapshot = nextSnapshot;
 }
 
 export const aiChatHistoryService = {
@@ -425,3 +509,11 @@ export const aiChatHistoryService = {
     return exportTextFile({ filename, content, extension: 'md', typeLabel: 'Markdown' });
   },
 };
+
+// 云同步拉回对话历史后失效内存缓存（§4.3 第 11 条）。注册在模块级而非弹窗内：
+// 未打开对话历史界面时后台缓存同样必须及时失效，否则新对话会把拉回内容覆盖掉。
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener(AI_CHAT_SESSIONS_CHANGED_EVENT, () => {
+    void reloadFromStore();
+  });
+}

@@ -35,6 +35,7 @@ import {
   type PrivateRecordType,
 } from './localPrivateStore';
 import {
+  AI_CHAT_SESSIONS_CHANGED_EVENT,
   BAZI_CASES_CHANGED_EVENT,
   QIMEN_CASES_CHANGED_EVENT,
   SANYUAN_CASES_CHANGED_EVENT,
@@ -42,6 +43,8 @@ import {
 
 /** 与 Worker 端 MAX_MUTATIONS_PER_BATCH 一致：单次 push 的最大 mutation 数 */
 const PUSH_BATCH_SIZE = 50;
+/** 单批请求体字节上限（与 Worker MAX_BATCH_TOTAL_BYTES 一致，留少量封装余量） */
+const PUSH_BATCH_MAX_BYTES = 2 * 1024 * 1024;
 /** 与 Worker 端默认分页大小一致：单次 pull 的最大 change 数 */
 const PULL_PAGE_SIZE = 100;
 /** 单次请求超时（毫秒），与 S3 远程备份一致 */
@@ -261,6 +264,8 @@ export async function syncNow(): Promise<SyncRunResult> {
 
     let cursor: number | null = state?.lastPulledSequence ?? null;
     let pulled = 0;
+    // 本次是否落库过对话历史（bootstrap 或增量）：用于广播其缓存失效事件
+    let sawChatSessions = false;
 
     // 首次同步：bootstrap 全量拉取云端已有记录（新设备加入场景）
     if (cursor === null) {
@@ -270,6 +275,7 @@ export async function syncNow(): Promise<SyncRunResult> {
         `/sync/bootstrap?workspaceId=${encodeURIComponent(config.workspaceId)}`,
       );
       for (const record of bootstrap.records ?? []) {
+        if (record.type === 'ai_chat_session') sawChatSessions = true;
         await applyRemoteUpsert(record.type, record.recordId, record.payload, record.serverVersion);
         pulled += 1;
       }
@@ -284,6 +290,7 @@ export async function syncNow(): Promise<SyncRunResult> {
     const incremental = await pullChanges(config, cursor, pushedKeys);
     pulled += incremental.pulled;
     cursor = incremental.cursor;
+    sawChatSessions = sawChatSessions || incremental.pulledChatSessions;
 
     const latestState = await loadCloudSyncState();
     await saveCloudSyncState({
@@ -297,13 +304,16 @@ export async function syncNow(): Promise<SyncRunResult> {
     // 同步拉到的远端变更已落库：广播案例变更事件，驱动各模块列表刷新。
     // remoteOrigin 写入不触发本地写入侧的事件，UI 依赖此通知（与 restore
     // 广播同模式，localPrivateStore.ts 的 restore 先例）。
-    if (
-      pulled > 0
-      && typeof window !== 'undefined'
-      && typeof window.dispatchEvent === 'function'
-    ) {
-      for (const eventName of [BAZI_CASES_CHANGED_EVENT, QIMEN_CASES_CHANGED_EVENT, SANYUAN_CASES_CHANGED_EVENT]) {
-        window.dispatchEvent(new CustomEvent(eventName));
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      if (pulled > 0) {
+        for (const eventName of [BAZI_CASES_CHANGED_EVENT, QIMEN_CASES_CHANGED_EVENT, SANYUAN_CASES_CHANGED_EVENT]) {
+          window.dispatchEvent(new CustomEvent(eventName));
+        }
+      }
+      // 对话历史拉回后单独广播（§4.3 第 11 条）：手动同步的回声场景 pulled 可能为 0，
+      // 但落库已发生，aiChatHistoryService 的内存缓存必须失效，否则后台新对话会覆盖拉回内容
+      if (sawChatSessions) {
+        window.dispatchEvent(new CustomEvent(AI_CHAT_SESSIONS_CHANGED_EVENT));
       }
     }
     consecutiveFailures = 0;
@@ -330,6 +340,29 @@ export async function syncNow(): Promise<SyncRunResult> {
   } finally {
     syncInFlight = false;
   }
+}
+
+/**
+ * 对话历史手动同步（§4.3 第 11 条）：这是对话历史唯一的同步触发路径。
+ * ① 本机每条会话记录（`ai_chat_session`，recordId = sessionId）逐条入队 upsert；
+ * ② **删除传播**：版本镜像中存在而本机已无的 sessionId 补一条 delete 墓碑——
+ *    本机删掉的会话若不发墓碑，B 端下次拉取会把已删会话原样拉回来；
+ * ③ 走一次完整 syncNow 复用编排（顺带推送积压的其他类型队列属正确行为）。
+ * 本机从无对话时不入队，仍执行 pull 以拉取远端会话。
+ */
+export async function syncChatSessionsNow(): Promise<SyncRunResult> {
+  const localRecords = await localPrivateStore.list('ai_chat_session');
+  const localIds = new Set(localRecords.map((record) => record.id));
+  for (const record of localRecords) {
+    await enqueueSyncMutation('ai_chat_session', record.id, 'upsert', record.payload);
+  }
+  const mirrored = await localPrivateStore.listSyncVersions('ai_chat_session');
+  for (const entry of mirrored) {
+    if (!localIds.has(entry.recordId)) {
+      await enqueueSyncMutation('ai_chat_session', entry.recordId, 'delete', undefined);
+    }
+  }
+  return syncNow();
 }
 
 /**
@@ -488,6 +521,39 @@ async function seedOutboxFromLocal(): Promise<void> {
 // push：分批上传 outbox
 // ---------------------------------------------------------------------------
 
+/** 单条 outbox 条目在 push 请求体中的字节数（UTF-8 精确计数） */
+function outboxEntryBytes(entry: OutboxEntry): number {
+  const json = JSON.stringify({
+    type: entry.type,
+    recordId: entry.recordId,
+    operation: entry.operation,
+    payload: entry.payload ?? null,
+    mutationId: entry.mutationId,
+    baseVersion: entry.baseVersion,
+  });
+  return new TextEncoder().encode(json).length;
+}
+
+/**
+ * 取一批待推送条目：条数与总字节双上限（§4.3 第 6 条）。
+ * 只按条数分批时，大记录（如整份 AI 会话数组数百 KB）与小记录混批会撞
+ * 服务端的单批总字节校验；某条自身即超批总量时让它独占一批，交由服务端
+ * 给出明确的单条超限错误，而不是无声地永远推不上去。
+ */
+function takePushBatch(pending: OutboxEntry[]): OutboxEntry[] {
+  const batch: OutboxEntry[] = [];
+  let bytes = 0;
+  for (const entry of pending) {
+    if (batch.length >= PUSH_BATCH_SIZE) break;
+    const size = outboxEntryBytes(entry);
+    if (batch.length > 0 && bytes + size > PUSH_BATCH_MAX_BYTES) break;
+    batch.push(entry);
+    bytes += size;
+    if (bytes > PUSH_BATCH_MAX_BYTES) break;
+  }
+  return batch;
+}
+
 async function pushOutbox(
   config: CloudSyncConfig,
   deviceId: string,
@@ -497,7 +563,7 @@ async function pushOutbox(
   const pushedKeys = new Set<string>();
   for (;;) {
     // 每轮重新取队列：冲突处理可能产生新的待推送条目（冲突副本）
-    const batch = (await localPrivateStore.listOutbox()).slice(0, PUSH_BATCH_SIZE);
+    const batch = takePushBatch(await localPrivateStore.listOutbox());
     if (batch.length === 0) break;
     const result = await pushBatch(config, deviceId, batch);
     pushed += result.pushed;
@@ -543,22 +609,95 @@ async function pushBatch(
   for (const conflict of response.conflicts ?? []) {
     const entry = entryByMutation.get(conflict.mutationId);
     if (!entry) continue;
-    await resolveConflict(entry);
+    await resolveConflict(entry, conflict);
     conflicts += 1;
   }
   return { pushed, conflicts, pushedKeys };
 }
 
+/** 会话记录 payload（`{ value: session }`）的最小形状：仅合并所需字段 */
+interface ChatSessionMergePayload {
+  updatedAt?: number;
+  messages?: ChatMessageMergeItem[];
+}
+
+/** 会话内消息的最小形状：按 id 去重、按 timestamp 排序 */
+interface ChatMessageMergeItem {
+  id?: string;
+  timestamp?: number;
+}
+
+function chatSessionOf(payload: unknown): ChatSessionMergePayload | null {
+  const value = (payload as { value?: unknown } | null)?.value;
+  if (typeof value !== 'object' || value === null) return null;
+  return value as ChatSessionMergePayload;
+}
+
+/**
+ * 会话冲突：会话内消息合并（§4.3 第 5 条）。
+ * 两台设备继续同一会话时，把两侧 messages 按 id 去重、按 timestamp 排序合并，
+ * 会话元数据取 updatedAt 较新者——而不是整条被后写者覆盖（真实丢问答）。
+ * 合并前把镜像对齐到回执的 serverVersion，合并结果写回本机并重新入队，
+ * pushOutbox 的下一轮循环即可以正确的 baseVersion 重推，不再冲突。
+ */
+async function mergeChatSessionConflict(
+  entry: OutboxEntry,
+  conflict: PushConflictItem,
+): Promise<void> {
+  // 取本机实时记录（而非 entry.payload）：入队后用户可能又继续了对话
+  const localRecord = await localPrivateStore.get(entry.type as PrivateRecordType, entry.recordId);
+  const localSession = chatSessionOf(localRecord?.payload);
+  const remoteSession = chatSessionOf(conflict.payload);
+  const localUpdatedAt = localSession?.updatedAt ?? 0;
+  const remoteUpdatedAt = remoteSession?.updatedAt ?? 0;
+  const base = localUpdatedAt >= remoteUpdatedAt ? localSession : remoteSession;
+
+  const byId = new Map<string, ChatMessageMergeItem>();
+  const withoutId: ChatMessageMergeItem[] = [];
+  for (const message of [...(remoteSession?.messages ?? []), ...(localSession?.messages ?? [])]) {
+    const id = message.id;
+    if (!id) {
+      withoutId.push(message);
+      continue;
+    }
+    if (!byId.has(id)) byId.set(id, message);
+  }
+  const merged = {
+    ...(base ?? {}),
+    messages: [...byId.values(), ...withoutId].sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0)),
+    updatedAt: Math.max(localUpdatedAt, remoteUpdatedAt),
+  };
+  if (typeof conflict.serverVersion === 'number') {
+    await localPrivateStore.setSyncVersion(entry.type, entry.recordId, conflict.serverVersion);
+  }
+  // 合并结果写回本机（remoteOrigin：只落库，推送由下面的显式入队负责），
+  // 避免当轮 pull 落库远端版本时本机短暂只剩远端对话
+  await localPrivateStore.put(
+    entry.type as PrivateRecordType,
+    { value: merged },
+    entry.recordId,
+    undefined,
+    { remoteOrigin: true },
+  );
+  await enqueueSyncMutation(entry.type, entry.recordId, 'upsert', { value: merged });
+}
+
 /**
  * 409 冲突处理（§4.3 第 5 条，分类型）：
+ * - 对话历史（ai_chat_session，每会话一条）：会话内消息合并（见 mergeChatSessionConflict），
+ *   合并结果重新入队，由 pushOutbox 的下一轮循环重推
  * - 案例类（*_case）且本地为内容修改：保留两份——远端原样保留，
  *   本机内容另存带「冲突副本」标记的新记录（put 自动入队，下轮同步推送副本）
  * - 其余情况（profile/case_favorite/case_progress 的 LWW 类型，或删除意图）：
  *   放弃本地修改并移除队列项；冲突写入的 sequence 必大于当前 pull 游标，
  *   随后的 pull 阶段会自然拉回远端版本并更新镜像
  */
-async function resolveConflict(entry: OutboxEntry): Promise<void> {
+async function resolveConflict(entry: OutboxEntry, conflict: PushConflictItem): Promise<void> {
   await localPrivateStore.removeOutboxEntry(entry.mutationId);
+  if (entry.type === 'ai_chat_session') {
+    await mergeChatSessionConflict(entry, conflict);
+    return;
+  }
   if (entry.operation !== 'upsert' || !entry.type.endsWith('_case')) return;
   const copyId = createId();
   await localPrivateStore.put(
@@ -586,9 +725,10 @@ async function pullChanges(
   config: CloudSyncConfig,
   initialCursor: number,
   echoKeys: Set<string> = new Set(),
-): Promise<{ pulled: number; cursor: number }> {
+): Promise<{ pulled: number; cursor: number; pulledChatSessions: boolean }> {
   let cursor = initialCursor;
   let pulled = 0;
+  let pulledChatSessions = false;
 
   // 增量分页：落库成功后才推进游标（落库失败时游标保持，下一轮重新拉取）
   for (;;) {
@@ -601,6 +741,7 @@ async function pullChanges(
     const changes = page.changes ?? [];
     if (changes.length === 0) break;
     for (const change of changes) {
+      if (change.type === 'ai_chat_session') pulledChatSessions = true;
       if (change.deleted === 1) {
         await localPrivateStore.remove(change.type as PrivateRecordType, change.recordId, { remoteOrigin: true });
       } else {
@@ -614,7 +755,7 @@ async function pullChanges(
     cursor = changes[changes.length - 1].sequence;
     if (!page.hasMore) break;
   }
-  return { pulled, cursor: cursor ?? 0 };
+  return { pulled, cursor: cursor ?? 0, pulledChatSessions };
 }
 
 /** pull 落库：remote-origin 写入（不进 outbox），并同步更新版本镜像 */

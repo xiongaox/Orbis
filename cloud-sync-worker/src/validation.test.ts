@@ -72,7 +72,7 @@ describe('validatePushRequest 边界', () => {
 
   it('总字节超限抛 BATCH_TOO_LARGE（413）', () => {
     expectApiError(
-      () => validatePushRequest({ workspaceId: 'w', deviceId: 'd', mutations: [] }, 512 * 1024 + 1),
+      () => validatePushRequest({ workspaceId: 'w', deviceId: 'd', mutations: [] }, 2 * 1024 * 1024 + 1),
       'BATCH_TOO_LARGE',
       413,
     );
