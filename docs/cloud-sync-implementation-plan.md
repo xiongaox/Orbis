@@ -43,7 +43,7 @@
 | 备份方式与自动备份调度 | `src/services/remoteBackupService.ts` | 冻结 |
 | 备份命名/路径/重试共享层 | `src/services/remoteBackupShared.ts` | 冻结 |
 | ZIP 打包与覆盖式恢复 | `src/services/backupPackageService.ts` | 冻结格式与语义 |
-| 备份配置界面 | `src/components/Common/PrivateDataBackupModal.tsx` | 仅允许增加「云同步」入口，不改表单语义 |
+| 备份配置界面 | `src/components/Common/PrivateDataBackupModal.tsx` | 允许把云同步作为第三个配置 tab 并入（见 §1.2 修订）；导出/导入、自动备份等备份语义功能仍仅作用于 WebDAV/S3 |
 
 ### 1.2 明令禁止的做法
 
@@ -54,7 +54,13 @@
 ✗ 不要让云同步配置进入 backupPackageService 的打包与恢复范围
 ✗ 不要让同步失败阻塞本地读写、WebDAV 备份或 S3 备份
 ✗ 不要让恢复 ZIP 备份覆盖或删除云同步配置
-✗ 不要把「同步」和「备份」合并成同一个界面表单或同一条调度
+
+> **2026-10-15 修订（用户确认）**：界面层允许把云同步与 WebDAV/S3 合并为同一弹窗的配置
+> tab（三个 tab：WebDAV / S3 兼容存储 / 云同步），降低入口分散度。但「同步」与「备份」
+> 仍是两套独立子系统——不同调度、不同数据边界、不同持久化语义，代码与调用链不得合并。
+> 为此追加一条安全硬约束：
+
+✗ 云同步配置（尤其同步密钥）绝不进入「导出/导入配置」文件：导出/导入仅含 WebDAV/S3 凭据，云同步 tab 下不渲染导出/导入入口
 ```
 
 ### 1.3 必须成立的独立运行契约
@@ -245,6 +251,8 @@ CREATE TABLE mutations (
 6. **批量限制**：单次 push 限制条数与总字节（如 ≤ 50 条 / ≤ 512 KB），超出由客户端分片；对齐 D1 单行 2 MB、单语句 100 KB、绑定参数 100 个的平台上限。
 7. **防回环**：pull 落库走 remote-origin 通道，**不得**再写入 outbox。
 8. **baseVersion 来源**：客户端新增设备本地表 `cloud_sync_versions`（`record_type` + `record_id` → 该记录最近一次同步到的 `server_version`），与第 4.4 节同步元数据同语义（不进快照/ZIP/恢复）。`put` / `remove` 拦截入队时读取镜像作为 `baseVersion`；pull 落库且游标推进后更新镜像；从未同步过的记录 `baseVersion = null`（服务端无此记录则按新建处理，已存在则按冲突处理）。
+9. **按需补推（本机既有历史上云）**：每次同步前扫描本机白名单记录，把版本镜像（`cloud_sync_versions`）缺失的记录以 `baseVersion = null` 全量入队，随本次 push 上云——镜像缺失即「从未被当前云端确认过」，覆盖首台设备启用前的既有历史、本地调试残留（旧 state 游标失效后重新探测）、更换工作区后镜像被清空重新全量推送三类场景；镜像存在的记录不重复推送（正常增量同步零开销）。新设备加入已有工作区时 bootstrap 拉取会重建镜像，本机独有记录仍会被补推。
+10. **工作区身份**：`cloud_sync_state` 记录上次同步的 `workerUrl` 与 `workspaceId`。同步时发现身份与当前配置不一致：身份曾有记录说明明确更换了工作区——旧游标与版本镜像全部失效，清空镜像并重置游标后重新首次同步；身份无记录（旧版本状态升级）则补记身份并重置游标（重新探测云端是否空工作区），镜像保留，同工作区升级时不重复推送。
 
 ### 4.4 客户端本地新增状态
 

@@ -28,10 +28,17 @@ import {
 } from './cloudSyncStore';
 import {
   createId,
+  enqueueSyncMutation,
   localPrivateStore,
+  SYNCABLE_RECORD_TYPES,
   type OutboxEntry,
   type PrivateRecordType,
 } from './localPrivateStore';
+import {
+  BAZI_CASES_CHANGED_EVENT,
+  QIMEN_CASES_CHANGED_EVENT,
+  SANYUAN_CASES_CHANGED_EVENT,
+} from '../data/caseConstants';
 
 /** 与 Worker 端 MAX_MUTATIONS_PER_BATCH 一致：单次 push 的最大 mutation 数 */
 const PUSH_BATCH_SIZE = 50;
@@ -133,6 +140,13 @@ export interface SyncRunResult {
   conflicts: number;
 }
 
+/**
+ * 自动同步完成（有数据流动：推送/拉取任一 > 0）时广播的事件，
+ * detail 为 SyncRunResult。UI 层（AppShell 的 CloudSyncToastListener）
+ * 据此弹出「已同步」提示；无变更的同步保持静默（避免轮询噪音）。
+ */
+export const CLOUD_SYNC_DONE_EVENT = 'cloud_sync_done';
+
 export interface CloudSyncStatus {
   configured: boolean;
   enabled: boolean;
@@ -202,7 +216,8 @@ let lastFailureAt = 0;
 let autoSyncPaused = false;
 
 /**
- * 立即执行一次同步：push 队列 → pull 增量 → 推进游标。
+ * 立即执行一次同步：首次走 bootstrap（空工作区时本机历史全量入队）
+ * → push 队列 → pull 增量 → 推进游标。
  * 同一时刻只允许一次同步在跑（防重入）。
  *
  * 同时维护自动调度状态：成功（含幂等空跑）清零失败计数并解除暂停；
@@ -220,21 +235,83 @@ export async function syncNow(): Promise<SyncRunResult> {
   syncInFlight = true;
   try {
     const deviceId = await getOrCreateDeviceId();
-    const { pushed, conflicts } = await pushOutbox(config, deviceId);
-    const { pulled, cursor } = await pullChanges(config);
-    const state = await loadCloudSyncState();
+    let state = await loadCloudSyncState();
+
+    // 工作区身份检测（§4.3 第 10 条）：state 记录的上次同步身份与当前配置
+    // 不一致（含旧版本状态无身份记录）时，旧游标对新工作区失效，重置为
+    // 首次同步状态重新探测；身份曾有记录说明明确更换了工作区，旧版本镜像
+    // 同样失效，一并清空后重新全量推送
+    if (state) {
+      const identityChanged = state.workerUrl !== config.workerUrl
+        || state.workspaceId !== config.workspaceId;
+      if (identityChanged) {
+        if (state.workerUrl !== undefined) {
+          await localPrivateStore.clearSyncVersions();
+        }
+        state = {
+          ...state,
+          workerUrl: config.workerUrl,
+          workspaceId: config.workspaceId,
+          lastPulledSequence: null,
+          lastSyncError: null,
+        };
+        await saveCloudSyncState(state);
+      }
+    }
+
+    let cursor: number | null = state?.lastPulledSequence ?? null;
+    let pulled = 0;
+
+    // 首次同步：bootstrap 全量拉取云端已有记录（新设备加入场景）
+    if (cursor === null) {
+      const bootstrap = await cloudFetchJson<BootstrapResponse>(
+        config,
+        'GET',
+        `/sync/bootstrap?workspaceId=${encodeURIComponent(config.workspaceId)}`,
+      );
+      for (const record of bootstrap.records ?? []) {
+        await applyRemoteUpsert(record.type, record.recordId, record.payload, record.serverVersion);
+        pulled += 1;
+      }
+      cursor = bootstrap.currentSequence ?? 0;
+    }
+
+    // 按需补推：版本镜像缺失的本机记录从未被当前云端确认过，
+    // 全量入队后随本次 push 上云（§4.3 第 9 条）
+    await seedOutboxFromLocal();
+
+    const { pushed, conflicts, pushedKeys } = await pushOutbox(config, deviceId);
+    const incremental = await pullChanges(config, cursor, pushedKeys);
+    pulled += incremental.pulled;
+    cursor = incremental.cursor;
+
+    const latestState = await loadCloudSyncState();
     await saveCloudSyncState({
-      deviceId: state?.deviceId ?? deviceId,
+      deviceId: latestState?.deviceId ?? deviceId,
+      workerUrl: config.workerUrl,
+      workspaceId: config.workspaceId,
       lastPulledSequence: cursor,
       lastSyncAt: new Date().toISOString(),
       lastSyncError: null,
     });
+    // 同步拉到的远端变更已落库：广播案例变更事件，驱动各模块列表刷新。
+    // remoteOrigin 写入不触发本地写入侧的事件，UI 依赖此通知（与 restore
+    // 广播同模式，localPrivateStore.ts 的 restore 先例）。
+    if (
+      pulled > 0
+      && typeof window !== 'undefined'
+      && typeof window.dispatchEvent === 'function'
+    ) {
+      for (const eventName of [BAZI_CASES_CHANGED_EVENT, QIMEN_CASES_CHANGED_EVENT, SANYUAN_CASES_CHANGED_EVENT]) {
+        window.dispatchEvent(new CustomEvent(eventName));
+      }
+    }
     consecutiveFailures = 0;
     lastFailureAt = 0;
     autoSyncPaused = false;
     return { status: 'ok', pushed, pulled, conflicts };
   } catch (error) {
-    const message = error instanceof Error ? error.message : '同步失败';
+    const message = describeError(error);
     const state = await loadCloudSyncState();
     if (state) {
       await saveCloudSyncState({ ...state, lastSyncError: message });
@@ -291,6 +368,13 @@ function assertWorkerUrl(workerUrl: string): void {
 /** 构造完整请求地址（去掉 Worker 地址末尾的斜杠） */
 function joinUrl(workerUrl: string, path: string): string {
   return `${workerUrl.replace(/\/+$/, '')}${path}`;
+}
+
+/** 从错误值提取可读描述：Tauri 侧 reject 的可能是字符串而非 Error 实例，避免真实原因被吞成「未知错误」 */
+function describeError(error: unknown): string {
+    if (error instanceof Error) return error.message || error.name;
+    if (typeof error === 'string') return error;
+    return '未知错误';
 }
 
 /**
@@ -360,7 +444,7 @@ async function cloudFetchJson<T>(
   throw new CloudSyncHttpError(
     0,
     'NETWORK_ERROR',
-    `网络错误：${lastError instanceof Error ? lastError.message : '未知错误'}`,
+    `网络错误：${describeError(lastError)}`,
   );
 }
 
@@ -378,6 +462,28 @@ function errorInfoOf(json: unknown): { code: string; message: string } {
   return { code: 'UNKNOWN', message: '' };
 }
 
+/**
+ * 按需补推：本机存在但版本镜像缺失的记录（从未被当前云端确认过，§4.3 第 9 条）。
+ *
+ * 覆盖三类场景：首台设备启用云同步前的既有历史、本地调试残留
+ * （旧 state 游标失效后重新探测）、更换工作区后镜像被清空重新全量推送。
+ * 镜像缺失即 baseVersion 为 null，服务端按新建处理；镜像存在的记录
+ * 不重复推送，正常增量同步零开销。
+ *
+ * 入队复用写入口的合并语义（同记录只保留最终状态）。
+ */
+async function seedOutboxFromLocal(): Promise<void> {
+  const synced = new Set(
+    (await localPrivateStore.listSyncVersions()).map((entry) => `${entry.recordType}:${entry.recordId}`),
+  );
+  for (const type of SYNCABLE_RECORD_TYPES) {
+    for (const record of await localPrivateStore.list(type as PrivateRecordType)) {
+      if (synced.has(`${type}:${record.id}`)) continue;
+      await enqueueSyncMutation(type, record.id, 'upsert', record.payload);
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
 // push：分批上传 outbox
 // ---------------------------------------------------------------------------
@@ -385,9 +491,10 @@ function errorInfoOf(json: unknown): { code: string; message: string } {
 async function pushOutbox(
   config: CloudSyncConfig,
   deviceId: string,
-): Promise<{ pushed: number; conflicts: number }> {
+): Promise<{ pushed: number; conflicts: number; pushedKeys: Set<string> }> {
   let pushed = 0;
   let conflicts = 0;
+  const pushedKeys = new Set<string>();
   for (;;) {
     // 每轮重新取队列：冲突处理可能产生新的待推送条目（冲突副本）
     const batch = (await localPrivateStore.listOutbox()).slice(0, PUSH_BATCH_SIZE);
@@ -395,15 +502,16 @@ async function pushOutbox(
     const result = await pushBatch(config, deviceId, batch);
     pushed += result.pushed;
     conflicts += result.conflicts;
+    for (const key of result.pushedKeys) pushedKeys.add(key);
   }
-  return { pushed, conflicts };
+  return { pushed, conflicts, pushedKeys };
 }
 
 async function pushBatch(
   config: CloudSyncConfig,
   deviceId: string,
   batch: OutboxEntry[],
-): Promise<{ pushed: number; conflicts: number }> {
+): Promise<{ pushed: number; conflicts: number; pushedKeys: Set<string> }> {
   const response = await cloudFetchJson<PushResponse>(config, 'POST', '/sync/push', {
     workspaceId: config.workspaceId,
     deviceId,
@@ -419,6 +527,7 @@ async function pushBatch(
   const entryByMutation = new Map(batch.map((entry) => [entry.mutationId, entry]));
   let pushed = 0;
   let conflicts = 0;
+  const pushedKeys = new Set<string>();
   // 服务端已确认的 mutation（applied/idempotent/duplicate_content 均视为生效）：
   // 仅在此时才删除队列项并更新版本镜像
   for (const result of response.results ?? []) {
@@ -428,6 +537,7 @@ async function pushBatch(
     if (typeof result.serverVersion === 'number') {
       await localPrivateStore.setSyncVersion(entry.type, entry.recordId, result.serverVersion);
     }
+    pushedKeys.add(`${entry.type}:${entry.recordId}`);
     pushed += 1;
   }
   for (const conflict of response.conflicts ?? []) {
@@ -436,7 +546,7 @@ async function pushBatch(
     await resolveConflict(entry);
     conflicts += 1;
   }
-  return { pushed, conflicts };
+  return { pushed, conflicts, pushedKeys };
 }
 
 /**
@@ -462,26 +572,23 @@ async function resolveConflict(entry: OutboxEntry): Promise<void> {
 // pull：分页拉取增量
 // ---------------------------------------------------------------------------
 
+/**
+ * pull 增量分页：按传入游标拉取，落库成功后才推进游标
+ * （落库失败时游标保持，下一轮重新拉取）。
+ * 首次同步的 bootstrap 全量拉取由 syncNow 负责（§4.3 第 9 条）。
+ *
+ * echoKeys（本机刚推送的记录键 type:recordId）：pull 到这些键的变更
+ * 是本机推送的回声（服务端先落库再进增量流），落库与游标推进照常
+ * （不丢数据、不阻塞后续变更），但不计入 pulled——源设备的同步提示
+ * 只显示「推送 N 条」，不把回声显示为「拉取」。
+ */
 async function pullChanges(
   config: CloudSyncConfig,
+  initialCursor: number,
+  echoKeys: Set<string> = new Set(),
 ): Promise<{ pulled: number; cursor: number }> {
-  const state = await loadCloudSyncState();
-  let cursor: number | null = state?.lastPulledSequence ?? null;
+  let cursor = initialCursor;
   let pulled = 0;
-
-  // 首次同步：全量 bootstrap，把游标设为返回的最大 sequence
-  if (cursor === null) {
-    const bootstrap = await cloudFetchJson<BootstrapResponse>(
-      config,
-      'GET',
-      `/sync/bootstrap?workspaceId=${encodeURIComponent(config.workspaceId)}`,
-    );
-    for (const record of bootstrap.records ?? []) {
-      await applyRemoteUpsert(record.type, record.recordId, record.payload, record.serverVersion);
-      pulled += 1;
-    }
-    cursor = bootstrap.currentSequence ?? 0;
-  }
 
   // 增量分页：落库成功后才推进游标（落库失败时游标保持，下一轮重新拉取）
   for (;;) {
@@ -499,7 +606,9 @@ async function pullChanges(
       } else {
         await applyRemoteUpsert(change.type, change.recordId, change.payload, change.serverVersion);
       }
-      pulled += 1;
+      if (!echoKeys.has(`${change.type}:${change.recordId}`)) {
+        pulled += 1;
+      }
     }
     // 游标推进到本页最后一条已落库的 change
     cursor = changes[changes.length - 1].sequence;

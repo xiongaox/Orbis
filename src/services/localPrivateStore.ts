@@ -448,6 +448,20 @@ export const localPrivateStore = {
       .map((row) => ({ recordType: row.recordType, recordId: row.recordId, serverVersion: row.serverVersion }));
   },
 
+  /** 清空全部版本镜像（更换工作区时旧镜像失效，实施方案 §4.3 第 10 条） */
+  async clearSyncVersions(): Promise<void> {
+    if (isTauriRuntime()) {
+      const db = await getTauriDatabase();
+      await db.execute('DELETE FROM cloud_sync_versions');
+      return;
+    }
+    if (typeof indexedDB === 'undefined') {
+      memorySyncVersions.clear();
+      return;
+    }
+    await withIndexedStore('readwrite', SYNC_VERSIONS_STORE, (store) => store.clear());
+  },
+
   /** 追加一条待同步变更（同一 mutationId 重复入队不产生重复项） */
   async enqueueOutbox(entry: OutboxEntry): Promise<void> {
     if (isTauriRuntime()) {
@@ -631,7 +645,7 @@ export const localPrivateStore = {
  *
  * 恢复备份走默认入队（T00 结论：恢复结果也应同步到其他设备）。
  */
-async function enqueueSyncMutation(
+export async function enqueueSyncMutation(
   type: string,
   recordId: string,
   operation: 'upsert' | 'delete',

@@ -3,7 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@tauri-apps/plugin-sql', () => ({ default: { load: vi.fn() } }));
 vi.mock('@tauri-apps/plugin-http', () => ({ fetch: vi.fn() }));
 
-import { localPrivateStore } from './localPrivateStore';
+import { localPrivateStore, SYNCABLE_RECORD_TYPES } from './localPrivateStore';
+import type { PrivateRecordType } from './localPrivateStore';
+import {
+  BAZI_CASES_CHANGED_EVENT,
+  QIMEN_CASES_CHANGED_EVENT,
+  SANYUAN_CASES_CHANGED_EVENT,
+} from '../data/caseConstants';
 import {
   loadCloudSyncState,
   saveCloudSyncConfig,
@@ -52,6 +58,16 @@ async function resetEnvironment() {
   await localPrivateStore.clearOutbox();
   await localPrivateStore.remove('cloud_sync_config', 'cloud_sync_config');
   await localPrivateStore.remove('cloud_sync_state', 'cloud_sync_state');
+  // 内存模式跨测试残留：同步元数据之外，业务记录与版本镜像也需清空。
+  // 镜像残留会让「按需补推」误判记录已同步而跳过，破坏精确计数断言；
+  // 业务记录残留会破坏全量推送计数，并在 push mock 无回执时
+  // 让 pushOutbox 循环不收敛。remoteOrigin 清理不入队。
+  await localPrivateStore.clearSyncVersions();
+  for (const type of SYNCABLE_RECORD_TYPES) {
+    for (const record of await localPrivateStore.list(type as PrivateRecordType)) {
+      await localPrivateStore.remove(type as PrivateRecordType, record.id, { remoteOrigin: true });
+    }
+  }
 }
 
 async function configure(overrides: Partial<typeof CONFIG> = {}) {
@@ -177,12 +193,15 @@ describe('云同步编排（cloudSyncService，T06）', () => {
     await configure();
     await saveCloudSyncState({
       deviceId: 'device-1',
+      workerUrl: WORKER_URL,
+      workspaceId: 'test-workspace',
       lastPulledSequence: 5,
       lastSyncAt: null,
       lastSyncError: null,
     });
-    // 预置一条记录（remoteOrigin 不入队），验证 tombstone 删除
+    // 预置一条已同步记录（remoteOrigin 不入队，镜像已建立），验证 tombstone 删除
     await localPrivateStore.put('bazi_case', { title: '三' }, 'p-3', undefined, { remoteOrigin: true });
+    await localPrivateStore.setSyncVersion('bazi_case', 'p-3', 5);
 
     const pages = [
       jsonResponse({
@@ -243,6 +262,8 @@ describe('云同步编排（cloudSyncService，T06）', () => {
     await configure();
     await saveCloudSyncState({
       deviceId: 'device-1',
+      workerUrl: WORKER_URL,
+      workspaceId: 'test-workspace',
       lastPulledSequence: 5,
       lastSyncAt: null,
       lastSyncError: null,
@@ -416,6 +437,317 @@ describe('云同步编排（cloudSyncService，T06）', () => {
     expect(await localPrivateStore.getSyncVersion('bazi_case', 'bs-1')).toBe(3);
     expect((await loadCloudSyncState())?.lastPulledSequence).toBe(9);
     expect(fetchMock).toHaveBeenCalledTimes(2); // bootstrap + pull（空队列跳过 push）
+  });
+
+  it('首次同步：云端空工作区时本机既有历史全量推送', async () => {
+    const fetchMock = stubFetch(async (url, init) => {
+      if (pathOf(url) === '/sync/bootstrap') {
+        return jsonResponse({ records: [], currentSequence: 0 });
+      }
+      if (pathOf(url) === '/sync/push') {
+        const body = parsePushBody(init);
+        return jsonResponse({
+          results: body.mutations.map((mutation) => ({
+            mutationId: mutation.mutationId,
+            status: 'applied',
+            serverVersion: 1,
+          })),
+        });
+      }
+      return emptySyncPage();
+    });
+    await configure();
+    // 启用云同步之前就存在的历史记录（remoteOrigin 落库，不走写拦截入队）
+    await localPrivateStore.put('bazi_case', { title: '历史一' }, 'his-1', undefined, { remoteOrigin: true });
+    await localPrivateStore.put('qimen_case', { title: '历史二' }, 'his-2', undefined, { remoteOrigin: true });
+    await localPrivateStore.put('profile', { name: '档案' }, 'profile', undefined, { remoteOrigin: true });
+    // 启用后的一次新写操作（正常入队）
+    await localPrivateStore.put('bazi_case', { title: '新案例' }, 'new-1');
+
+    const result = await syncNow();
+
+    // 历史 3 条 + 新变更 1 条，全部推送
+    expect(result).toMatchObject({ status: 'ok', pushed: 4, pulled: 0, conflicts: 0 });
+    const pushedIds: string[] = [];
+    for (const call of fetchMock.mock.calls) {
+      if (pathOf(String(call[0])) !== '/sync/push') continue;
+      pushedIds.push(...parsePushBody(call[1]).mutations.map((mutation) => mutation.recordId));
+    }
+    expect(pushedIds.sort()).toEqual(['his-1', 'his-2', 'new-1', 'profile']);
+    expect(await localPrivateStore.countOutbox()).toBe(0);
+    expect(fetchMock).toHaveBeenCalledTimes(3); // bootstrap + push + pull
+  });
+
+  it('新设备加入：云端记录拉取重建镜像，本机独有记录补推', async () => {
+    const fetchMock = stubFetch(async (url, init) => {
+      if (pathOf(url) === '/sync/bootstrap') {
+        return jsonResponse({
+          records: [
+            { type: 'bazi_case', recordId: 'bs-1', payload: { id: 'bs-1', title: '云端案例' }, serverVersion: 3 },
+          ],
+          currentSequence: 9,
+        });
+      }
+      if (pathOf(url) === '/sync/push') {
+        const body = parsePushBody(init);
+        return jsonResponse({
+          results: body.mutations.map((mutation) => ({
+            mutationId: mutation.mutationId,
+            status: 'applied',
+            serverVersion: 10,
+          })),
+        });
+      }
+      return emptySyncPage();
+    });
+    await configure();
+    // 本机独有记录（从未同步到云端，remoteOrigin 落库不入队）
+    await localPrivateStore.put('bazi_case', { title: '本机独有' }, 'his-1', undefined, { remoteOrigin: true });
+    // 启用后的新写操作（正常入队）
+    await localPrivateStore.put('bazi_case', { title: '新案例' }, 'new-1');
+
+    const result = await syncNow();
+
+    // 云端记录拉取 1 条；本机独有 2 条（his-1 补推 + new-1 新变更）推送
+    expect(result).toMatchObject({ status: 'ok', pushed: 2, pulled: 1, conflicts: 0 });
+    const pushedIds: string[] = [];
+    for (const call of fetchMock.mock.calls) {
+      if (pathOf(String(call[0])) !== '/sync/push') continue;
+      pushedIds.push(...parsePushBody(call[1]).mutations.map((mutation) => mutation.recordId));
+    }
+    expect(pushedIds.sort()).toEqual(['his-1', 'new-1']);
+    // 云端记录落库且镜像建立
+    expect(await localPrivateStore.getSyncVersion('bazi_case', 'bs-1')).toBe(3);
+    expect(fetchMock).toHaveBeenCalledTimes(3); // bootstrap + push + pull
+  });
+
+  it('pull 到远端变更后广播案例列表刷新事件', async () => {
+    await configure();
+    await saveCloudSyncState({
+      deviceId: 'device-1',
+      workerUrl: WORKER_URL,
+      workspaceId: 'test-workspace',
+      lastPulledSequence: 5,
+      lastSyncAt: null,
+      lastSyncError: null,
+    });
+    const dispatchMock = vi.fn();
+    vi.stubGlobal('window', {
+      setTimeout: globalThis.setTimeout,
+      clearTimeout: globalThis.clearTimeout,
+      dispatchEvent: dispatchMock,
+    });
+    stubFetch(async (url) => {
+      if (pathOf(url) === '/sync/pull') {
+        return jsonResponse({
+          changes: [change(6, 'bazi_case', 'p-1', 6, { id: 'p-1', title: '一' })],
+          hasMore: false,
+          currentSequence: 6,
+        });
+      }
+      return emptySyncPage();
+    });
+
+    const result = await syncNow();
+
+    expect(result).toMatchObject({ status: 'ok', pulled: 1 });
+    expect(dispatchMock).toHaveBeenCalledTimes(3);
+    const eventNames = dispatchMock.mock.calls.map((call) => String((call[0] as CustomEvent).type));
+    expect(eventNames).toEqual(expect.arrayContaining([
+      BAZI_CASES_CHANGED_EVENT,
+      QIMEN_CASES_CHANGED_EVENT,
+      SANYUAN_CASES_CHANGED_EVENT,
+    ]));
+  });
+
+  it('无远端变更（pulled 为 0）时不广播刷新事件', async () => {
+    await configure();
+    await saveCloudSyncState({
+      deviceId: 'device-1',
+      workerUrl: WORKER_URL,
+      workspaceId: 'test-workspace',
+      lastPulledSequence: 5,
+      lastSyncAt: null,
+      lastSyncError: null,
+    });
+    const dispatchMock = vi.fn();
+    vi.stubGlobal('window', {
+      setTimeout: globalThis.setTimeout,
+      clearTimeout: globalThis.clearTimeout,
+      dispatchEvent: dispatchMock,
+    });
+    stubFetch(() => emptySyncPage());
+
+    const result = await syncNow();
+
+    expect(result).toMatchObject({ status: 'ok', pulled: 0 });
+    expect(dispatchMock).not.toHaveBeenCalled();
+  });
+
+  it('增量同步：镜像存在的记录不重复补推', async () => {
+    const fetchMock = stubFetch(async (url, init) => {
+      if (pathOf(url) === '/sync/push') {
+        const body = parsePushBody(init);
+        // 只有 outbox 里的新写操作（edit-1），已同步记录（synced-1）不得出现
+        expect(body.mutations.map((mutation) => mutation.recordId)).toEqual(['edit-1']);
+        return jsonResponse({
+          results: body.mutations.map((mutation) => ({
+            mutationId: mutation.mutationId,
+            status: 'applied',
+            serverVersion: 2,
+          })),
+        });
+      }
+      return emptySyncPage();
+    });
+    await configure();
+    await saveCloudSyncState({
+      deviceId: 'device-1',
+      workerUrl: WORKER_URL,
+      workspaceId: 'test-workspace',
+      lastPulledSequence: 1,
+      lastSyncAt: null,
+      lastSyncError: null,
+    });
+    // 已同步记录（镜像存在）
+    await localPrivateStore.put('bazi_case', { title: '已同步' }, 'synced-1', undefined, { remoteOrigin: true });
+    await localPrivateStore.setSyncVersion('bazi_case', 'synced-1', 1);
+    // 新写操作（正常入队）
+    await localPrivateStore.put('bazi_case', { title: '修改' }, 'edit-1');
+
+    const result = await syncNow();
+
+    expect(result).toMatchObject({ status: 'ok', pushed: 1, pulled: 0, conflicts: 0 });
+    expect(fetchMock).toHaveBeenCalledTimes(2); // push + pull（游标非空跳过 bootstrap）
+  });
+
+  it('源设备：推送回声不计入拉取（提示只显示推送）', async () => {
+    const fetchMock = stubFetch(async (url, init) => {
+      if (pathOf(url) === '/sync/push') {
+        const body = parsePushBody(init);
+        return jsonResponse({
+          results: body.mutations.map((mutation) => ({
+            mutationId: mutation.mutationId,
+            status: 'applied',
+            serverVersion: 6,
+          })),
+        });
+      }
+      if (pathOf(url) === '/sync/pull') {
+        // 回声：本机刚推送的删除进入服务端增量流
+        return jsonResponse({
+          changes: [change(6, 'bazi_case', 'echo-1', 6, null, 1)],
+          hasMore: false,
+          currentSequence: 6,
+        });
+      }
+      return emptySyncPage();
+    });
+    await configure();
+    await saveCloudSyncState({
+      deviceId: 'device-1',
+      workerUrl: WORKER_URL,
+      workspaceId: 'test-workspace',
+      lastPulledSequence: 5,
+      lastSyncAt: null,
+      lastSyncError: null,
+    });
+    // 本机删除一条案例（入队 delete）
+    await localPrivateStore.remove('bazi_case', 'echo-1');
+
+    const result = await syncNow();
+
+    // 推送 1 条；pull 到的是本机回声，不计入拉取
+    expect(result).toMatchObject({ status: 'ok', pushed: 1, pulled: 0, conflicts: 0 });
+    expect(fetchMock).toHaveBeenCalledTimes(2); // push + pull（游标非空跳过 bootstrap）
+    // 回声仍落库（幂等）且游标照常推进
+    const state = await loadCloudSyncState();
+    expect(state?.lastPulledSequence).toBe(6);
+  });
+
+  it('更换 Worker 地址后清空镜像并重新全量推送', async () => {
+    const fetchMock = stubFetch(async (url, init) => {
+      if (pathOf(url) === '/sync/bootstrap') {
+        return jsonResponse({ records: [], currentSequence: 0 });
+      }
+      if (pathOf(url) === '/sync/push') {
+        const body = parsePushBody(init);
+        return jsonResponse({
+          results: body.mutations.map((mutation) => ({
+            mutationId: mutation.mutationId,
+            status: 'applied',
+            serverVersion: 1,
+          })),
+        });
+      }
+      return emptySyncPage();
+    });
+    // 旧工作区：同步成功过（游标与镜像均有值）
+    await configure({ workerUrl: 'https://old.example.com' });
+    await saveCloudSyncState({
+      deviceId: 'device-1',
+      workerUrl: 'https://old.example.com',
+      workspaceId: 'test-workspace',
+      lastPulledSequence: 5,
+      lastSyncAt: null,
+      lastSyncError: null,
+    });
+    await localPrivateStore.put('bazi_case', { title: '历史' }, 'his-1', undefined, { remoteOrigin: true });
+    await localPrivateStore.setSyncVersion('bazi_case', 'his-1', 5);
+    // 切换到新部署的 Worker
+    await configure({ workerUrl: WORKER_URL });
+
+    const result = await syncNow();
+
+    // 镜像被清空：历史记录按新建（baseVersion null）重新全量推送
+    expect(result).toMatchObject({ status: 'ok', pushed: 1, pulled: 0, conflicts: 0 });
+    expect(await localPrivateStore.getSyncVersion('bazi_case', 'his-1')).toBe(1);
+    const state = await loadCloudSyncState();
+    expect(state?.workerUrl).toBe(WORKER_URL);
+    expect(state?.lastPulledSequence).toBe(0);
+    expect(fetchMock).toHaveBeenCalledTimes(3); // bootstrap + push + pull
+  });
+
+  it('旧版本状态无身份记录时补记身份并重置游标（本地调试残留场景）', async () => {
+    const fetchMock = stubFetch(async (url, init) => {
+      if (pathOf(url) === '/sync/bootstrap') {
+        return jsonResponse({ records: [], currentSequence: 0 });
+      }
+      if (pathOf(url) === '/sync/push') {
+        const body = parsePushBody(init);
+        return jsonResponse({
+          results: body.mutations.map((mutation) => ({
+            mutationId: mutation.mutationId,
+            status: 'applied',
+            serverVersion: 1,
+          })),
+        });
+      }
+      return emptySyncPage();
+    });
+    // 旧版本同步留下的状态：无身份记录、游标为 0、镜像为空
+    await saveCloudSyncState({
+      deviceId: 'device-1',
+      lastPulledSequence: 0,
+      lastSyncAt: '2026-10-15T16:07:00.000Z',
+      lastSyncError: null,
+    });
+    // 本机既有历史（本地调试时写入的记录，镜像为空）
+    await localPrivateStore.put('bazi_case', { title: '历史一' }, 'his-1', undefined, { remoteOrigin: true });
+    await localPrivateStore.put('qimen_case', { title: '历史二' }, 'his-2', undefined, { remoteOrigin: true });
+    await configure();
+
+    const result = await syncNow();
+
+    // 游标被重置为首次同步：镜像缺失的历史全部补推上云
+    expect(result).toMatchObject({ status: 'ok', pushed: 2, pulled: 0, conflicts: 0 });
+    const state = await loadCloudSyncState();
+    expect(state?.workerUrl).toBe(WORKER_URL);
+    expect(state?.workspaceId).toBe('test-workspace');
+    expect(state?.lastPulledSequence).toBe(0);
+    expect(await localPrivateStore.getSyncVersion('bazi_case', 'his-1')).toBe(1);
+    expect(await localPrivateStore.getSyncVersion('qimen_case', 'his-2')).toBe(1);
+    expect(fetchMock).toHaveBeenCalledTimes(3); // bootstrap + push + pull
   });
 
   it('testConnection 校验连通性、鉴权与工作区可读', async () => {

@@ -25,6 +25,10 @@ export interface CloudSyncConfig {
 export interface CloudSyncState {
   /** 本设备唯一标识，首次生成后固定 */
   deviceId: string;
+  /** 上次同步的 Worker 地址（工作区身份之一）；旧版本状态无此记录 */
+  workerUrl?: string;
+  /** 上次同步的工作区标识（工作区身份之一）；旧版本状态无此记录 */
+  workspaceId?: string;
   /** 已拉取到的最大服务端 sequence（pull 游标）；从未同步为 null */
   lastPulledSequence: number | null;
   /** 最近一次同步时间；从未同步为 null */

@@ -8,6 +8,7 @@ import { exportTextFile } from '../../utils/fileExportUtil';
 import type { RestoreSummary } from '../../services/backupPackageService';
 import { PLATFORM_LABELS } from '../../services/remoteBackupShared';
 import RemoteBackupManagerModal from './RemoteBackupManagerModal';
+import CloudSyncSettingsPanel from './CloudSyncSettingsPanel';
 import SubPage from '../UI/SubPage';
 import SubPageTabs from '../UI/SubPageTabs';
 import Toast from './Toast';
@@ -57,6 +58,12 @@ function formatInterval(minutes: number) {
 
 export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataBackupModalProps) {
   const [method, setMethod] = useState<RemoteBackupMethod>('webdav');
+  /**
+   * 配置 tab：webdav/s3 是备份方式（持久化到 remoteBackupService）；
+   * cloud 是云同步（独立子系统，仅界面层并入本弹窗，不落盘备份方式）。
+   */
+  type ConfigTab = RemoteBackupMethod | 'cloud';
+  const [activeTab, setActiveTab] = useState<ConfigTab>('webdav');
   const [webdavConfig, setWebDavConfig] = useState<WebDavConfig>(emptyWebDavConfig);
   const [s3Config, setS3Config] = useState<S3Config>(emptyS3Config);
   const [configLoaded, setConfigLoaded] = useState(false);
@@ -74,6 +81,7 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
       .then(([nextMethod, nextWebDavConfig, nextS3Config]) => {
         if (cancelled) return;
         setMethod(nextMethod);
+        setActiveTab(nextMethod);
         setWebDavConfig(nextWebDavConfig);
         setS3Config(nextS3Config);
         setConfigLoaded(true);
@@ -108,11 +116,15 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
     if (method === 's3') updateS3(key, value);
     else updateWebDav(key, value);
   };
-  const changeMethod = (next: RemoteBackupMethod) => {
-    if (next === method) return;
-    setMethod(next);
+  const changeTab = (next: ConfigTab) => {
+    if (next === activeTab) return;
+    setActiveTab(next);
     setFrequencyMenuOpen(false);
-    void remoteBackupService.saveMethod(next);
+    // 云同步不是备份方式：切到云同步 tab 不落盘备份方式配置
+    if (next !== 'cloud') {
+      setMethod(next);
+      void remoteBackupService.saveMethod(next);
+    }
   };
   /**
    * 导出当前备份配置为 JSON，便于在多台设备间复用，无需每次手填。
@@ -184,6 +196,7 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
       setWebDavConfig(nextWebDav);
       setS3Config(nextS3);
       setMethod(nextMethod);
+      setActiveTab(nextMethod);
       await Promise.all([
         webDavBackupService.saveConfig(nextWebDav),
         s3BackupService.saveConfig(nextS3),
@@ -231,10 +244,11 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
   // SubPage 页头正下方的统一 tab 条（SubPageTabs），不再占正文一节。
   const desktopMethodSection = (
     <div>
-      <p className="mb-2 text-sm text-foreground">备份方式</p>
-      <div role="tablist" aria-label="备份方式" className="grid grid-cols-2 gap-1 rounded-lg border border-border bg-muted/40 p-1">
-        <button type="button" role="tab" aria-selected={method === 'webdav'} disabled={!configLoaded} onClick={() => changeMethod('webdav')} className={`${METHOD_TAB_BASE} ${method === 'webdav' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-50`}>WebDAV</button>
-        <button type="button" role="tab" aria-selected={method === 's3'} disabled={!configLoaded} onClick={() => changeMethod('s3')} className={`${METHOD_TAB_BASE} ${method === 's3' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-50`}>S3 兼容存储</button>
+      <p className="mb-2 text-sm text-foreground">数据管理</p>
+      <div role="tablist" aria-label="数据管理" className="grid grid-cols-3 gap-1 rounded-lg border border-border bg-muted/40 p-1">
+        <button type="button" role="tab" aria-selected={activeTab === 'webdav'} disabled={!configLoaded} onClick={() => changeTab('webdav')} className={`${METHOD_TAB_BASE} ${activeTab === 'webdav' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-50`}>WebDAV</button>
+        <button type="button" role="tab" aria-selected={activeTab === 's3'} disabled={!configLoaded} onClick={() => changeTab('s3')} className={`${METHOD_TAB_BASE} ${activeTab === 's3' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'} disabled:opacity-50`}>S3 兼容存储</button>
+        <button type="button" role="tab" aria-selected={activeTab === 'cloud'} onClick={() => changeTab('cloud')} className={`${METHOD_TAB_BASE} ${activeTab === 'cloud' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>云同步</button>
       </div>
     </div>
   );
@@ -243,6 +257,11 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
   const formBody = (
     <>
       {!isMobile && desktopMethodSection}
+
+      {activeTab === 'cloud' ? (
+        <CloudSyncSettingsPanel />
+      ) : (
+      <>
 
       {method === 's3' ? (
         <div className="space-y-3">
@@ -361,6 +380,8 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
           )}
         </div>}
       </section>
+      </>
+      )}
     </>
   );
 
@@ -414,22 +435,25 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
           bodyClassName="overflow-hidden flex flex-col"
           tabBar={(
             <SubPageTabs
-              ariaLabel="备份方式"
+              ariaLabel="数据管理"
               tabs={[
                 { key: 'webdav', label: 'WebDAV', disabled: !configLoaded },
                 { key: 's3', label: 'S3 兼容存储', disabled: !configLoaded },
+                { key: 'cloud', label: '云同步' },
               ]}
-              active={method}
-              onChange={changeMethod}
+              active={activeTab}
+              onChange={changeTab}
             />
           )}
         >
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4">
             {formBody}
           </div>
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border bg-secondary/10 px-3 py-2.5">
-            {footerActions}
-          </div>
+          {activeTab !== 'cloud' && (
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border bg-secondary/10 px-3 py-2.5">
+              {footerActions}
+            </div>
+          )}
         </SubPage>
         <Toast toast={toast} />
         <RemoteBackupManagerModal isOpen={showManager} method={method} config={method === 's3' ? s3Config : webdavConfig} onClose={() => setShowManager(false)} onRestored={(filename, summary) => showToast(describeRestore(filename, summary))} />
@@ -462,9 +486,11 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 py-4">
             {formBody}
           </div>
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border bg-secondary/10 px-3 py-2.5 sm:px-5 sm:py-3">
-            {footerActions}
-          </div>
+          {activeTab !== 'cloud' && (
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border bg-secondary/10 px-3 py-2.5 sm:px-5 sm:py-3">
+              {footerActions}
+            </div>
+          )}
         </div>
       </div>
       <Toast toast={toast} />

@@ -1,6 +1,16 @@
 import { localPrivateStore } from './localPrivateStore';
 import { readSetting, writeSetting } from './appSettingStore';
+import { QIMEN_CASES_CHANGED_EVENT } from '../data/caseConstants';
 import type { PaiPanMethod } from '../lib/csp-qimen/qimenService';
+
+/** 广播案例变更：本地写入（新建/编辑/删除/清空）后驱动案例列表立即刷新。
+ *  列表组件只在挂载时取数，refreshTrigger 是主触发；事件是第二重保障——
+ *  任何写入入口（含正文弹窗内的记录编辑）都能让列表跟上。 */
+function notifyCasesChanged(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(QIMEN_CASES_CHANGED_EVENT));
+  }
+}
 
 export const QIMEN_CATEGORIES = [
   { id: 'work', name: '工作事业' }, { id: 'study', name: '求学考试' },
@@ -51,6 +61,7 @@ export const qimenCaseService = {
     const record = await localPrivateStore.put('qimen_case', {
       ...input, created_at: timestamp, updated_at: timestamp,
     });
+    notifyCasesChanged();
     return toCase(record.payload);
   },
 
@@ -66,16 +77,19 @@ export const qimenCaseService = {
       ...current.payload, ...input, id,
       created_at: current.payload.created_at, updated_at: new Date().toISOString(),
     }, id);
+    notifyCasesChanged();
     return toCase(record.payload);
   },
 
   async deleteCase(id: string): Promise<void> {
     await localPrivateStore.remove('qimen_case', id);
+    notifyCasesChanged();
   },
 
   /** 清空本模块全部案例（案例库弹窗的「清除数据」入口，仅影响奇门，不动其他术数与备份配置） */
   async clearCases(): Promise<void> {
     await localPrivateStore.clear('qimen_case');
+    notifyCasesChanged();
   },
 };
 

@@ -3,6 +3,7 @@ import { BaziProvider, useBaziContext } from './contexts/BaziContext';
 import { MobileNavProvider, useMobileNavRegistry } from './contexts/MobileNavContext';
 import { CasePrivacyProvider } from './contexts/CasePrivacyContext';
 import Navbar from './components/Layout/Navbar';
+import CloudSyncToastListener from './components/Common/CloudSyncToastListener';
 import MainLayout from './components/Layout/MainLayout';
 import MobileTabBar from './components/Layout/MobileTabBar';
 import MobileProfileCenter from './components/Layout/MobileProfileCenter';
@@ -334,6 +335,9 @@ function AppShell() {
         selectedCaseId={bazi.selectedCaseId}
         onSelectCase={bazi.handleSelectCase}
       />
+
+      {/* 云同步完成提示：自动同步有数据流动时弹出（桌面/移动统一） */}
+      <CloudSyncToastListener />
     </div>
   );
 }
