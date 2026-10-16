@@ -215,8 +215,11 @@ export function findAnswerAwaitingAnalysis(lines: CaseDialogLine[]): number {
 /**
  * 新记录该插到哪里（插入后仍会走 groupLines 归位，这里只需要一个不会错位的落点）。
  * - 提问：末尾（新的一轮）
- * - 回答：最后一个提问之后——它属于当前这一问，不能塞回上一轮
- * - 断法：缺断法的那条回答之后；全都有断法时退到最后一条回答之后
+ * - 回答：最后一个提问之后，跨过已挂在其下的断法——它属于当前这一问
+ * - 断法：缺断法的那条回答之后；全都有断法时退到末尾
+ *
+ * 共同点是**都不往已有断法前面插**：断法一旦落位，就是这条回答的结论，
+ * 后续任何记录都只能排在它后面（用户报的「断法2 卡在答1 与断法1 中间」即此）。
  *
  * answerId 是回顾补记时的显式目标：纯靠「最近的缺断法回答」会猜错——
  * `问1 答1 问2 答2` 之后补写断法 1，会被挂到答2 上（用户报的 bug）。
@@ -225,15 +228,26 @@ export function findAnswerAwaitingAnalysis(lines: CaseDialogLine[]): number {
 export function locateLine(lines: CaseDialogLine[], kind: CaseDialogKind, answerId?: string | null): number {
     if (kind === 'q') return lines.length;
     const lastQuestion = lines.map((line) => line.kind).lastIndexOf('q');
-    if (kind === 'a') return lastQuestion + 1;
+    // 回答：跨过当前这一问名下已有的回答与断法，落到它们后面。
+    // 不能只跳到 lastQuestion + 1——那个位置可能已经被答1 占着，
+    // 新的一条会插到它前面，两条测算师发言的先后就被颠倒了。
+    if (kind === 'a') {
+        let at = lastQuestion + 1;
+        while (at < lines.length && lines[at].kind !== 'q') at += 1;
+        return at;
+    }
     if (answerId) {
         const matched = lines.findIndex((line) => line.id === answerId && line.kind === 'a');
+        // 指定了目标回答就紧跟它（多条断法按先后叠在一起，是允许的）
         if (matched >= 0) return matched + 1;
     }
     const awaiting = findAnswerAwaitingAnalysis(lines);
     if (awaiting >= 0) return awaiting + 1;
+    // 所有回答都有断法了：插到末尾。
+    // 这里不能再退回「最后一条回答之后」——那条回答后面已经跟着断法，
+    // 落在它前面就是用户报的「断法2 卡在回答1 与断法1 中间」。
     const lastAnswer = lines.map((line) => line.kind).lastIndexOf('a');
-    if (lastAnswer >= 0) return lastAnswer + 1;
+    if (lastAnswer >= 0) return lines.length;
     return lastQuestion + 1;
 }
 

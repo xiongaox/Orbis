@@ -18,7 +18,6 @@ import {
     ChevronRight,
     ChevronUp,
     Cloud,
-    CloudCog,
     Compass,
     Github,
     Grid3X3,
@@ -51,7 +50,6 @@ import SubPage from '../UI/SubPage';
 import ProfileCenterModal from '../Auth/ProfileCenterModal';
 import AiIntegrationModal from '../Common/AiIntegrationModal';
 import AiChatHistoryModal from '../Common/AiChatHistoryModal';
-import CloudSyncModal from '../Common/CloudSyncModal';
 import PrivateDataBackupModal from '../Common/PrivateDataBackupModal';
 import SignerModal from '../Common/SignerModal';
 import {
@@ -148,7 +146,6 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
     const [showChatHistory, setShowChatHistory] = useState(false);
     const [showAi, setShowAi] = useState(false);
     const [showBackup, setShowBackup] = useState(false);
-    const [showCloudSync, setShowCloudSync] = useState(false);
     const [showContact, setShowContact] = useState(false);
     const [signerOpen, setSignerOpen] = useState(false);
     const [showSlotPicker, setShowSlotPicker] = useState(false);
@@ -394,7 +391,6 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
                         <SettingsRow icon={History} label="对话历史" onClick={() => setShowChatHistory(true)} />
                         <SettingsRow icon={Bot} label="AI 集成" onClick={() => setShowAi(true)} />
                         <SettingsRow icon={Cloud} label="数据备份" sub="本地私有存储 · WebDAV / S3 仅备份" onClick={() => setShowBackup(true)} />
-                        <SettingsRow icon={CloudCog} label="云同步" sub="自部署 Worker · 多设备增量同步" onClick={() => setShowCloudSync(true)} />
                         {canSign && (
                             <SettingsRow icon={KeyRound} label="签发激活码" end={<span className="text-xs text-primary">管理员</span>} onClick={() => setSignerOpen(true)} />
                         )}
@@ -511,8 +507,6 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
             )}
 
             <PrivateDataBackupModal isOpen={showBackup} onClose={() => setShowBackup(false)} />
-
-            <CloudSyncModal isOpen={showCloudSync} onClose={() => setShowCloudSync(false)} />
 
             <BaseModal isOpen={showContact} onClose={() => setShowContact(false)} title="联系作者" maxWidth="max-w-sm">
                 <div className="flex flex-col items-center justify-center p-4 gap-4">

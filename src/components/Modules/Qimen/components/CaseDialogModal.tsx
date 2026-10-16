@@ -3,6 +3,7 @@
  *
  * 定位：新建弹窗只管名称/时间/分类，正文全部收进这里，所以它要在「边看盘边补记」的
  * 场景下反复打开——历史按时间线只读成行，底部一条常驻输入条 + 三档模式。
+ * 桌面端因此走右侧抽屉而不是居中弹窗：居中会把左边的盘面整个盖住，没法对着盘写断法。
  *
  * 三档模式按「谁在说」命名：求测人 / 测算师 / 断法（断法是测算师给出的结论，
  * 单独成一档是为了让它带主色标记、并始终贴在自己那条测算师回答之后）。
@@ -416,7 +417,7 @@ export default function CaseDialogModal({
         );
 
     // 移动端：统一二级页壳（返回手势由 SubPage 接管 + 统一页头），整页推入而不是浮层；
-    // 桌面端：保留居中弹窗。
+    // 桌面端：右侧抽屉。写断法要对照左边的盘面，居中弹窗会把盘面整个盖住。
     if (isMobile) {
         return (
             <SubPage
@@ -437,9 +438,16 @@ export default function CaseDialogModal({
             onClose={onClose}
             title="案例详情"
             titleIcon={<SquarePen className="h-5 w-5" />}
-            maxWidth="max-w-md"
             bodyClassName="overflow-hidden flex flex-col"
             footer={footerContent}
+            responsiveDrawer
+            // 与右侧宫位详情栏（QimenDesktopLayout 的 w-72 xl:w-80 2xl:w-96）同宽：
+            // 更宽就会盖住九宫盘的右列，写断法时反而看不见要对照的宫位。
+            // 宽度必须带 md: 前缀——抽屉外壳同时挂着 w-full，无前缀的 w-72 与它同级，
+            // 谁生效取决于 Tailwind 的产出顺序，不可靠；带响应式前缀的规则落在
+            // @media 块里、排在所有基础工具类之后，才能稳定压过 w-full。
+            // 这个 BaseModal 只在非移动端渲染（isMobile 已提前走 SubPage），md: 及以上始终成立。
+            drawerWidth="md:w-72 xl:w-80 2xl:w-96 md:max-w-[85vw]"
         >
             {bodyContent}
         </BaseModal>

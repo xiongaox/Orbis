@@ -45,9 +45,8 @@ const PRIMARY_BUTTON_CLASS =
   'inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 focus-ring';
 
 /**
- * 云同步设置面板（T07）：无壳正文，由调用方决定承载方式——
- * 独立弹窗（CloudSyncModal 的 BaseModal / SubPage 双壳）或
- * 「数据备份」弹窗的第三个配置 tab（2026-10-15 界面合并修订）。
+ * 云同步设置面板（T07）：无壳正文，只作为「数据备份」弹窗的第三个配置 tab 出现
+ * （2026-10-15 界面合并修订；独立入口已于 2026-10 下线，同一功能不再留两处入口）。
  *
  * 敏感字段约定：同步密钥以密码态输入、不回显明文；界面留空表示保持已保存的值。
  * 配置保存与「测试连接 / 立即同步」共用同一份校验与持久化逻辑，

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Bot, CalendarDays, CloudCog, Compass, Info, KeyRound, MessageSquare, RefreshCw, User, Cloud } from 'lucide-react';
+import { Bot, CalendarDays, Compass, Info, KeyRound, MessageSquare, RefreshCw, User, Cloud } from 'lucide-react';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useUpdateChecker } from '../../hooks/useUpdateChecker';
 import { getUserAvatar } from '../../utils/userUtil';
@@ -15,11 +15,10 @@ interface UserMenuProps {
     onShowAiIntegration: () => void;
     onShowAiChatHistory: () => void;
     onShowPrivateDataBackup: () => void;
-    onShowCloudSync: () => void;
     birthDate?: Date;
 }
 
-export default function UserMenu({ onShowContact, onShowProfile, onShowAiIntegration, onShowAiChatHistory, onShowPrivateDataBackup, onShowCloudSync, birthDate }: UserMenuProps) {
+export default function UserMenu({ onShowContact, onShowProfile, onShowAiIntegration, onShowAiChatHistory, onShowPrivateDataBackup, birthDate }: UserMenuProps) {
     const { isPadLandscape, useDesktopLayout } = useLayoutMode();
     const [menuOpen, setMenuOpen] = useState(false);
     const [canSign, setCanSign] = useState(false);
@@ -66,7 +65,6 @@ export default function UserMenu({ onShowContact, onShowProfile, onShowAiIntegra
                     <button type="button" onClick={() => { onShowAiChatHistory(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"><MessageSquare className="w-4 h-4" />对话历史</button>
                     <button type="button" onClick={() => { onShowAiIntegration(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"><Bot className="w-4 h-4" />AI 集成</button>
                     <button type="button" onClick={() => { onShowPrivateDataBackup(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"><Cloud className="w-4 h-4" />数据备份</button>
-                    <button type="button" onClick={() => { onShowCloudSync(); setMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2"><CloudCog className="w-4 h-4" />云同步</button>
                     <button type="button" onClick={checkUpdate} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-secondary/50 flex items-center gap-2">
                         <RefreshCw className="w-4 h-4" />检查更新
                         {updateState !== 'idle' && (

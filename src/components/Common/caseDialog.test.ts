@@ -123,11 +123,41 @@ describe('断法必须跟在自己的回答之后', () => {
         expect(locateLine(lines, 'a')).toBe(3);
         // 断法跟最后一条回答（A1），插在它之后由 groupLines 归位到 Q1 块内
         expect(locateLine(lines, 'r')).toBe(2);
-        // 回答紧跟在 Q1 之后（此时还没有断法要避让）
+        // 回答排在 Q1 已有内容的后面：不能再插回 A1 之前，否则两条测算师发言的
+        // 先后会被颠倒（同一个人连发两条时，后发的会显示在先发的上面）
         expect(locateLine([
             { kind: 'q', text: 'Q1' },
             { kind: 'a', text: 'A1' },
-        ], 'a')).toBe(1);
+        ], 'a')).toBe(2);
+    });
+
+    it('已有断法的那条回答之后，新记录排在断法后面而不是插到它前面', () => {
+        // 用户场景：答1 下写过断法1 之后接着写断法2 / 测算师补话，
+        // 都该排在断法1 之后，而不是卡在答1 与断法1 中间
+        const lines: CaseDialogLine[] = [
+            { kind: 'q', text: '问1' },
+            { kind: 'a', text: '答1' },
+            { kind: 'r', text: '断法1', answerId: 'a-1' },
+        ];
+        expect(locateLine(lines, 'r')).toBe(3);
+
+        const appended = groupLines([
+            ...lines.slice(0, 3),
+            { kind: 'r', text: '断法2' },
+        ]);
+        expect(appended.map((line) => `${line.kind}${line.text}`)).toEqual([
+            'q问1', 'a答1', 'r断法1', 'r断法2',
+        ]);
+
+        const afterAnswer = locateLine(lines, 'a');
+        expect(afterAnswer).toBe(3);
+        expect(groupLines([
+            ...lines.slice(0, afterAnswer),
+            { kind: 'a', text: '答1补充' },
+            ...lines.slice(afterAnswer),
+        ]).map((line) => `${line.kind}${line.text}`)).toEqual([
+            'q问1', 'a答1', 'r断法1', 'a答1补充',
+        ]);
     });
 
     it('下一条建议：提问 → 回答 → 断法 → 提问', () => {
