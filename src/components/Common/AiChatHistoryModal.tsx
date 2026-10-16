@@ -754,6 +754,20 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
         onClose={handleClose}
         title="对话历史"
         bodyClassName="overflow-hidden flex flex-col"
+        actions={
+          <button
+            type="button"
+            onClick={handleSyncChatSessions}
+            disabled={syncState === 'busy'}
+            title="把本机对话历史同步到云端（手动触发，平时不自动同步）"
+            className="px-2.5 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/10 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {syncState === 'busy'
+              ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              : <RefreshCw className="w-3.5 h-3.5" />}
+            <span>{syncState === 'busy' ? '同步中' : '同步'}</span>
+          </button>
+        }
       >
         <div className="flex flex-col h-full w-full min-w-0 min-h-0 bg-background text-foreground">
           {showDetail && currentSession ? (
@@ -887,32 +901,16 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
                 )}
               </div>
 
-              {/* 底部操作条 */}
-              <div className="shrink-0 px-3.5 py-3 border-t border-border bg-card/60 flex items-center justify-between text-xs text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <span>当前筛选 {filteredSessions.length} 条</span>
-                  <button
-                    type="button"
-                    onClick={handleSyncChatSessions}
-                    disabled={syncState === 'busy'}
-                    title="把本机对话历史同步到云端（手动触发，平时不自动同步）"
-                    className="px-2 py-1 rounded text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {syncState === 'busy'
-                      ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      : <RefreshCw className="w-3.5 h-3.5" />}
-                    <span>{syncState === 'busy' ? '同步中' : '同步'}</span>
-                  </button>
-                </div>
-
-                {filteredSessions.length > 0 && (
+              {/* 底部操作条：只留清空入口并放大到整行（同步已移到页头右侧，统计已去掉） */}
+              {filteredSessions.length > 0 && (
+                <div className="shrink-0 px-3.5 py-3 border-t border-border bg-card/60">
                   <div className="relative" ref={clearAllRef}>
                     <button
                       type="button"
                       onClick={() => setShowClearAllConfirm((prev) => !prev)}
-                      className="px-2 py-1 rounded text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-1 cursor-pointer"
+                      className="w-full h-10 rounded-lg border border-destructive/40 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                       <span>全部清空</span>
                     </button>
 
@@ -945,8 +943,8 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
                       </div>
                     )}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -1210,7 +1208,6 @@ export default function AiChatHistoryModal({ isOpen, onClose }: AiChatHistoryMod
           {/* 中间栏底部操作区 */}
           <div className="p-2 border-t border-border bg-card/60 flex items-center justify-between text-xs text-muted-foreground">
             <div className="flex items-center gap-2">
-              <span>当前筛选 {filteredSessions.length} 条</span>
               <button
                 type="button"
                 onClick={handleSyncChatSessions}
