@@ -90,13 +90,21 @@ pub fn run() {
       write_text_file
     ])
     .setup(|app| {
-      if cfg!(debug_assertions) {
-        app.handle().plugin(
-          tauri_plugin_log::Builder::default()
-            .level(log::LevelFilter::Info)
-            .build(),
-        )?;
-      }
+      // 日志插件在正式包也要注册：此前用 cfg!(debug_assertions) 包裹，导致 release 构建
+      // 里 log::warn!（硬件指纹回退、激活状态读取失败等安全层告警）无 logger 承接而静默
+      // 丢弃，出问题时无从排查。落盘位置沿用插件默认的平台日志目录：
+      //   macOS ~/Library/Logs/<bundle-id>/、Windows %LOCALAPPDATA%\<bundle-id>\logs、
+      //   Android /data/data/<pkg>/logs。
+      //
+      // 轮转策略必须显式指定：插件默认 KeepAll + 单文件 40KB，正式包装在用户机器上长期
+      // 运行会无限堆积日志文件。保留最近 5 个（约 200KB 上限）足够定位问题。
+      app.handle().plugin(
+        tauri_plugin_log::Builder::default()
+          .level(log::LevelFilter::Info)
+          .max_file_size(200_000)
+          .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepSome(5))
+          .build(),
+      )?;
 
       // 窗口尺寸与"启动铺满"声明在 tauri.conf.json：
       // - minWidth/minHeight 是可拖拽下界（缩到最小时是竖屏手机态）；

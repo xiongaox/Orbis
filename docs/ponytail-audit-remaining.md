@@ -9,15 +9,15 @@
 
 ## A. 等用户/跨分支决策（不自行启动）
 
-### 1. 条6+28：废弃 Supabase 云端栈
-- **内容**：删除 `supabase/migrations/`（6 个 SQL：case_favorites、case_progress、sanyuan_cases、ai_model_services 等）与 `docs/database-schema.sql`（auth.users/profiles 时代 schema）。本分支全仓零引用。
-- **为何未做**：`main` 分支仍是 Web 线，可能在用 Supabase；在本分支删除会随将来合并影响 main。
-- **重启步骤**：① 在 `main` 分支核对 `grep -rn supabase src package.json` 与线上部署链路；② 确认废弃后，于当前分支 `git rm -r supabase docs/database-schema.sql`；③ 若 main 尚在用，改为在 main 分支单独处置，本分支不动。
+### 1. 条6+28：废弃 Supabase 云端栈 —— ✅ 已解决（2026-10 核实）
+- **现状**：`supabase/migrations/` 与 `docs/database-schema.sql` **已不在仓库**，`src/lib/supabase.ts`、`authService.ts`、`AuthContext.tsx`、`AuthModal.tsx` 均已删除，`package.json` 无 `supabase` 依赖。
+- **残留仅为历史文本**：`src/lib/appChangelog.ts` 两处更新日志（v2.0.0 说明当年从 Supabase 迁出、v2.0.5 说明清理遗产），属产品版本记录，应保留。
+- **非死代码**：`src/utils/qimenImportUtils.ts:111` 的「Supabase 导出格式」注释对应**活跃的 CSV 时间戳兼容逻辑**（`+00` 缺分钟位会导致导入丢记录）；`qimenCaseService.ts` 的 `LEGACY_UTC_SHIFTED_TEST_DATES` 是幂等数据修正。二者都不能删。
+- **结论**：无需任何动作。
 
-### 2. 条27：public/zodiac 中文名副本（12 个 svg）
-- **内容**：`public/zodiac/` 下中文文件名（马.svg 等）与英文名（horse.svg 等）成对存在，中文副本仅为兼容缓存旧代码的浏览器客户端（见 `src/utils/userUtil.ts` 的 ZODIAC_FILE_BY_NAME 注释）。
-- **为何未做**：主站旧客户端由 main 分支服务；删除影响线上兼容，且属跨分支决策。
-- **重启步骤**：① 确认线上 orbis 主站是否仍需兼容旧缓存客户端；② 不需要则删 12 个中文 svg 并简化 `userUtil.ts` 的中文名映射；③ 自检 + 用户视觉验收头像图标。
+### 2. 条27：public/zodiac 中文名副本（12 个 svg）—— ✅ 已解决
+- **已执行**：用户确认线上无需兼容旧缓存客户端，12 个中文名 svg（马.svg 等）已删除，仅保留 12 个 ASCII 名，与 `userUtil.ts` 的 `ZODIAC_FILE_BY_NAME` 映射一一对应。
+- **附带**：`userUtil.ts` 中解释「为何保留中文副本」的注释已同步移除。
 
 ---
 

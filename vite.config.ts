@@ -45,11 +45,5 @@ export default defineConfig({
     watch: {
       ignored: nonFrontendDirs,
     },
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      }
-    }
   }
 })

@@ -314,7 +314,6 @@ export default function CaseStudyDayunPanel({
                                                         </span>
                                                     </div>
                                                 </div>
-                                                {/* 小运已移除 */}
                                             </div>
 
                                             {/* 提示小圆点 - 底部居中 */}
@@ -361,8 +360,6 @@ export default function CaseStudyDayunPanel({
                         </div>
                     )}
                 </div>
-
-                {/* 流月行已移除 */}
             </div>
         </div>
     );

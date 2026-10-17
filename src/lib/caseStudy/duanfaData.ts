@@ -15,9 +15,6 @@ export interface DuanFaOutlineItem {
     level: number;  // 1 = #, 2 = ##, etc.
 }
 
-// ====== 文件名到中文名称映射 ======
-// (已移除：现在文件名直接是中文)
-
 // ====== 数据加载 ======
 
 // 使用 Vite 的 import.meta.glob 加载所有 MD 文件
@@ -62,12 +59,6 @@ export function generateOutlineFromMd(content: string): DuanFaOutlineItem[] {
         if (match) {
             const level = match[1].length;
             const title = match[2].trim();
-
-            // (已移除跳过第一个一级标题的逻辑，应用户要求展示 H1)
-            // if (level === 1 && !skippedFirst) {
-            //     skippedFirst = true;
-            //     continue;
-            // }
 
             outline.push({
                 id: `duanfa-heading-${counter}`,
