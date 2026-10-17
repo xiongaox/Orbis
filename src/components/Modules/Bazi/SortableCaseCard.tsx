@@ -203,20 +203,32 @@ export default function SortableCaseCard({
             >
                 {/* 左侧：姓名 / 性别 / 分类 / 出生日期时辰 */}
                 <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5">
                         <span className={`truncate text-sm font-medium text-foreground ${isPrivacyMode ? 'select-none blur-[6px]' : ''}`}>{caseData.name}</span>
-                        {/* 性别印章：专用性别色实底容器，同分类 chip 一套度量（demo shared.css .seal） */}
-                        <span className={`inline-flex h-[21px] w-5 shrink-0 items-center justify-center rounded-md text-xs leading-none ${caseData.gender === 'male'
-                            ? 'bg-[var(--gender-male-bg)] text-[var(--gender-male)]'
-                            : 'bg-[var(--gender-female-bg)] text-[var(--gender-female)]'
-                            }`}>
-                            {caseData.gender === 'male' ? '乾' : '坤'}
-                        </span>
-                        {tags.length > 0 && (
-                            <span className="inline-flex h-5 shrink-0 items-center rounded-[5px] bg-primary/10 px-1.5 text-[13px] leading-none text-primary">
-                                {displayTag}
+                        {/* 印章 / 分类 / 记事条数共用一个 tight 栈：三者间距压到 4px */}
+                        <div className="flex shrink-0 items-center gap-1">
+                            {/* 性别印章：专用性别色实底容器，同分类 chip 一套度量（demo shared.css .seal） */}
+                            <span className={`inline-flex h-[21px] w-5 shrink-0 items-center justify-center rounded-md text-xs leading-none ${caseData.gender === 'male'
+                                ? 'bg-[var(--gender-male-bg)] text-[var(--gender-male)]'
+                                : 'bg-[var(--gender-female-bg)] text-[var(--gender-female)]'
+                                }`}>
+                                {caseData.gender === 'male' ? '乾' : '坤'}
                             </span>
-                        )}
+                            {tags.length > 0 && (
+                                <span className="inline-flex h-5 shrink-0 items-center rounded-[5px] bg-primary/10 px-1.5 text-[13px] leading-none text-primary">
+                                    {displayTag}
+                                </span>
+                            )}
+                            {/* 生平记事条数：与左侧分类 chip 同一规格（primary/10 透明底 + primary 文字） */}
+                            {(caseData.life_events?.length ?? 0) > 0 && (
+                                <span
+                                    title={`生平记事 ${caseData.life_events!.length} 条`}
+                                    className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-[5px] bg-primary/10 px-1.5 font-mono text-[13px] leading-none text-primary"
+                                >
+                                    {caseData.life_events!.length}
+                                </span>
+                            )}
+                        </div>
                     </div>
                     <div className="mt-1 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
                         <span>{displayDate}</span>

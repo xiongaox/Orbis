@@ -131,6 +131,7 @@ export default function CaseList({
         gender: c.gender === 'male' ? '男' : '女',
         birthDate: c.birth_date,
         tags: c.tags,
+        lifeEventCount: c.life_events?.length ?? 0,
       };
     });
   }, [cases, search, selectedTag, sort]);

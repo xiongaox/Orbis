@@ -36,6 +36,7 @@ import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../../../../ut
 import { getElementTextColor } from '../../../../../lib/xuan-bazi/maps';
 import { useSwipeDismiss } from '../../../../../hooks/useSwipeDismiss';
 import { useCasePrivacy } from '../../../../../contexts/CasePrivacyContext';
+import { cn } from '../../../../../lib/utils';
 
 /** 左滑露出的操作区宽度，与案例库 SortableCaseCard 的 REVEAL_PX 保持同一度量 */
 const REVEAL_PX = 120;
@@ -49,6 +50,8 @@ interface CaseCardDisplayItem {
     gender: string;
     birthDate: string;
     tags?: string[];
+    /** 生平记事条数：有记录时在底行岁数后展示圆标 */
+    lifeEventCount?: number;
 }
 
 /** AI 研判任务状态（见 aiTaskStatusService）：研判中 / 未读研判，展示为姓名后的小状态按钮 */
@@ -99,6 +102,7 @@ export default function CaseCard({
     const displayTime = hasBirth ? `${pad(birth.getHours())}:${pad(birth.getMinutes())}` : '';
     // 岁数：复用领域层虚岁算法（当年 - 出生年 + 1），与案例库卡片同一来源
     const age = getAgeFromBirth(item.birthDate);
+    const lifeEventCount = item.lifeEventCount ?? 0;
 
     // ---- 左滑露出 编辑 / 删除 ----
     const [swipeX, setSwipeX] = useState(0);
@@ -268,6 +272,18 @@ export default function CaseCard({
                     日期仍是唯一可省略项，其余节点 shrink-0。 */}
                 <div className="mt-[4px] flex min-w-0 items-center gap-[4px] text-[12.5px] text-muted-foreground">
                     {age !== null && <span className="shrink-0 tabular-nums">{age}岁</span>}
+                    {lifeEventCount > 0 && (
+                        <span
+                            title={`生平记事 ${lifeEventCount} 条`}
+                            className={cn(
+                                // 与分类 chip 同一套：primary/10 透明底 + primary 文字，仅字号与高度更小
+                                'inline-flex h-[15px] min-w-[15px] shrink-0 items-center justify-center rounded-[4px] bg-primary/10 px-[4px] font-mono text-[9.5px] leading-none text-primary',
+                                age === null && 'ml-[2px]',
+                            )}
+                        >
+                            {lifeEventCount}
+                        </span>
+                    )}
                     <div className="ml-auto flex min-w-0 items-center gap-[1px]">
                         <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{displayDate}</span>
                         {displayTime && (
