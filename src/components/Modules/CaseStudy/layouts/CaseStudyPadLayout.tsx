@@ -15,6 +15,7 @@ import CaseStudyDayunPanel from '../components/CaseStudyDayunPanel';
 import CaseStudyQimenChart from '../components/CaseStudyQimenChart';
 import CasePreviewUnlock from '../components/CasePreviewUnlock';
 import DuanFaPage from '../DuanFaPage';
+import KnowledgePage from '../knowledge/KnowledgePage';
 import LearningPanelFAB from '../components/LearningPanelFAB';
 import FavoriteButton from '../components/FavoriteButton';
 import ReadingProgressButton from '../components/ReadingProgressButton';
@@ -49,6 +50,20 @@ export default function CaseStudyPadLayout(props: CaseStudyLayoutProps) {
                 <CategoryTabs categories={CATEGORIES} selectedId={selectedCategory} onSelect={setSelectedCategory} />
                 <div className="flex-1 flex overflow-hidden">
                     <DuanFaPage />
+                </div>
+            </div>
+        );
+    }
+
+    if (selectedCategory === 'changshi') {
+        return (
+            <div className="flex w-full h-full overflow-hidden bg-background relative">
+                <CategoryTabs categories={CATEGORIES} selectedId={selectedCategory} onSelect={setSelectedCategory} />
+                <div className="flex-1 flex overflow-hidden">
+                    <KnowledgePage
+                        initialItemId={props.changshiItemId}
+                        onItemChange={props.setChangshiItemId}
+                    />
                 </div>
             </div>
         );

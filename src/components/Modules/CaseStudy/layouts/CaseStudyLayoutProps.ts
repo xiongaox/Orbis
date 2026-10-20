@@ -90,4 +90,8 @@ export interface CaseStudyLayoutProps {
     duanFaSavedProgress: number;
     duanFaCurrentProgress: number;
     duanFaRestoreProgress: () => void;
+
+    // 常识模块状态
+    changshiItemId?: string;
+    setChangshiItemId?: (id: string) => void;
 }

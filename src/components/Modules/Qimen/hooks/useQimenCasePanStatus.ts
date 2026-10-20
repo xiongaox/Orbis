@@ -12,7 +12,7 @@
 import { useEffect, useState } from 'react';
 import { calculateQimen, type PaiPanMethod } from '../../../../lib/csp-qimen/qimenService';
 import type { GlobalPattern } from '../../../../lib/csp-qimen/patternDetector';
-import type { QimenCase } from '../../../../services/qimenCaseService';
+import { caseCustomJu, type QimenCase } from '../../../../services/qimenCaseService';
 
 /** key → 页头同款格局徽标列表；null 表示该盘不可用（时间无效 / 计算失败） */
 const STATUS_CACHE = new Map<string, GlobalPattern[] | null>();
@@ -20,11 +20,10 @@ const STATUS_CACHE = new Map<string, GlobalPattern[] | null>();
 const methodOf = (caseItem: QimenCase, fallbackMethod: PaiPanMethod) => caseItem.pai_pan_method ?? fallbackMethod;
 
 const cacheKey = (caseItem: QimenCase, fallbackMethod: PaiPanMethod) =>
-  `${methodOf(caseItem, fallbackMethod)}|${caseItem.test_date}|${caseItem.qimen_data?.custom_ju ?? 0}`;
+  `${methodOf(caseItem, fallbackMethod)}|${caseItem.test_date}|${caseCustomJu(caseItem)}`;
 
 async function computePatterns(caseItem: QimenCase, method: PaiPanMethod): Promise<GlobalPattern[] | null> {
-  const juRaw = caseItem.qimen_data?.custom_ju;
-  const customJu = typeof juRaw === 'number' ? juRaw : 0;
+  const customJu = caseCustomJu(caseItem);
   const date = new Date(caseItem.test_date);
   if (Number.isNaN(date.getTime())) return null;
   try {

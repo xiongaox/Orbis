@@ -45,6 +45,16 @@ export interface QimenCase {
 export type CreateQimenCaseInput = Omit<QimenCase, 'id' | 'created_at' | 'updated_at'>;
 export type UpdateQimenCaseInput = Partial<CreateQimenCaseInput>;
 
+/**
+ * 案例固化的自定义局数：0=按节气自动起局，正数=阳遁 1~9 局，负数=阴遁 1~9 局。
+ * 案例自带局数，选中案例排盘必须以它为准，不能沿用页面级的临时自定义局数，
+ * 否则一次手动设局会串到其他案例上。
+ */
+export const caseCustomJu = (caseItem: QimenCase): number => {
+  const raw = caseItem.qimen_data?.custom_ju;
+  return typeof raw === 'number' ? raw : 0;
+};
+
 const toCase = (payload: Record<string, unknown>) => payload as unknown as QimenCase;
 
 export const qimenCaseService = {

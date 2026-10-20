@@ -23,6 +23,10 @@ export interface QimenLayoutProps {
     calculateQimenByDate: (d: Date, juOverride?: number, methodOverride?: PaiPanMethod) => void;
     handlePrevHour: () => void;
     handleNextHour: () => void;
+    /** 选中案例：按案例自身固化的盘式与局数排盘 */
+    handleSelectCase: (id: string, caseItem: QimenCase) => Promise<void>;
+    /** 自定义局数：有选中案例时写回该案例，否则只改当前盘 */
+    handleApplyCustomJu: (ju: number) => Promise<void>;
 
     // 案例状态
     selectedCaseId: string | null;

@@ -5,6 +5,7 @@ import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { CATEGORIES } from '../../../../lib/caseStudy/constants';
+import { KNOWLEDGE_ITEMS } from '../../../../lib/caseStudy/knowledgeData';
 import SideDrawer from '../../../UI/SideDrawer';
 import CategoryTabs from '../components/CategoryTabs';
 import CaseListSidebar from '../components/CaseListSidebar';
@@ -15,6 +16,7 @@ import CaseStudyDayunPanel from '../components/CaseStudyDayunPanel';
 import CaseStudyQimenChart from '../components/CaseStudyQimenChart';
 import CasePreviewUnlock from '../components/CasePreviewUnlock';
 import DuanFaContent from '../components/DuanFaContent';
+import KnowledgePage from '../knowledge/KnowledgePage';
 import NavSidebar from '../components/NavSidebar';
 import { SHU_SHU_CATEGORIES } from '../../../../lib/caseStudy/duanfaCategories';
 import DuanFaOutline from '../components/DuanFaOutline';
@@ -49,6 +51,7 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
         isLeftPanelOpen, setIsLeftPanelOpen, isChartPanelOpen, setIsChartPanelOpen,
         duanFa, duanFaContentRef, duanFaSavedProgress, duanFaCurrentProgress, duanFaRestoreProgress,
         isPreviewMode, libraryTotal, libraryGroupTotals, previewsPerGroup, openActivation, removeActivation, isRemoving,
+        changshiItemId, setChangshiItemId,
     } = props;
 
     // 移动端底栏注册：目录（左抽屉）与 排盘信息/大纲（右抽屉）由底部导航槽位打开
@@ -196,6 +199,14 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                             <LearningPanelFAB onClick={() => setIsLearningPanelOpen(true)} />
                         </div>
                     </div>
+                ) : selectedCategory === 'changshi' ? (
+                    <div className="flex-1 flex flex-col overflow-hidden relative">
+                        <KnowledgePage
+                            initialItemId={props.changshiItemId}
+                            onItemChange={props.setChangshiItemId}
+                            outlineDrawer={{ open: isChartPanelOpen, onClose: () => setIsChartPanelOpen(false) }}
+                        />
+                    </div>
                 ) : (
                     contentColumn
                 )}
@@ -211,6 +222,28 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                                 <NavSidebar title="断法列表" widthClass="w-[160px] min-w-[160px]" items={duanFa.files.map((f) => ({ id: f.id, label: f.name }))} selectedId={duanFa.selectedFileId} onSelect={(id) => { duanFa.handleSelectFile(id); setIsLeftPanelOpen(false); }} variant="drawer" />
                             </div>
                         </div>
+                    ) : selectedCategory === 'changshi' ? (
+                        <div className="flex-1 min-h-0 overflow-y-auto p-2 scrollbar-thin knowledge-drawer-content">
+                            <div className="l2-list">
+                                {KNOWLEDGE_ITEMS.map((item, idx) => {
+                                    const isActive = item.id === (changshiItemId || 'shichen');
+                                    return (
+                                        <button
+                                            key={item.id}
+                                            type="button"
+                                            className={`l2-item-btn ${isActive ? 'active' : ''}`}
+                                            onClick={() => {
+                                                setChangshiItemId?.(item.id);
+                                                setIsLeftPanelOpen(false);
+                                            }}
+                                        >
+                                            <span>{item.name}</span>
+                                            <span className="l2-item-idx">{String(idx + 1).padStart(2, '0')}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     ) : (
                         <div className="flex-1 min-h-0 overflow-hidden">
                             <CaseListSidebar allCases={allCases} displayCases={filteredCases} selectedCategory={selectedCategory} selectedCaseId={selectedCaseId} selectedDayMaster={selectedDayMaster} searchTerm={searchTerm} currentPage={currentPage} totalPages={totalPages} onSelectCase={(id) => { handleSelectCase(id); setIsLeftPanelOpen(false); }} onSelectDayMaster={(id) => { handleSelectDayMaster(id); }} onSearchChange={setSearchTerm} onPageChange={setCurrentPage} onSelectAuthor={(author) => { handleSelectAuthor(author); setIsLeftPanelOpen(false); }} variant="drawer" hidePagination isPreviewMode={isPreviewMode} onRequestActivate={openActivation} onRemoveActivation={removeActivation} isRemoving={isRemoving} libraryGroupTotals={libraryGroupTotals} libraryTotal={libraryTotal} previewsPerGroup={previewsPerGroup} />
@@ -219,13 +252,16 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                 </div>
             </SideDrawer>
 
-            <SideDrawer open={isChartPanelOpen} title={selectedCategory === 'duanfa' ? '大纲' : '排盘信息'} side="right" size={selectedCategory === 'duanfa' ? 'xxs' : 'full'} onClose={() => setIsChartPanelOpen(false)}>
-                {selectedCategory === 'duanfa' ? (
-                    <DuanFaOutline outline={duanFa.outline} activeSectionId={duanFa.activeSectionId} onItemClick={(id) => { duanFa.handleOutlineClick(id); setIsChartPanelOpen(false); }} variant="drawer" />
-                ) : (
-                    chartPanel
-                )}
-            </SideDrawer>
+            {/* 常识分类的「大纲」抽屉由 KnowledgePage 自己渲染，这里只管断法与排盘 */}
+            {selectedCategory !== 'changshi' && (
+                <SideDrawer open={isChartPanelOpen} title={selectedCategory === 'duanfa' ? '大纲' : '排盘信息'} side="right" size={selectedCategory === 'duanfa' ? 'xxs' : 'full'} onClose={() => setIsChartPanelOpen(false)}>
+                    {selectedCategory === 'duanfa' ? (
+                        <DuanFaOutline outline={duanFa.outline} activeSectionId={duanFa.activeSectionId} onItemClick={(id) => { duanFa.handleOutlineClick(id); setIsChartPanelOpen(false); }} variant="drawer" />
+                    ) : (
+                        chartPanel
+                    )}
+                </SideDrawer>
+            )}
         </>
     );
 }

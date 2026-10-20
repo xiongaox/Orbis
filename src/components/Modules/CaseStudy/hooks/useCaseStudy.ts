@@ -82,7 +82,7 @@ export function useCaseStudy(snapshot?: CaseStudyLockedSnapshot | null) {
     const [allCases, setAllCases] = useState<CaseItem[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<string>(() => {
         const category = initialSnapshot?.selectedCategory;
-        return category && CATEGORIES.some((item) => item.id === category) ? category : 'bazi';
+        return category && CATEGORIES.some((item) => item.id === category) ? category : 'changshi';
     });
     const [selectedDayMaster, setSelectedDayMaster] = useState<string>('all');
     const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);

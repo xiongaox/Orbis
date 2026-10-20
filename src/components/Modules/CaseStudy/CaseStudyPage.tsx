@@ -54,7 +54,11 @@ export default function CaseStudyPage({ categoryIntent, lockedSnapshot, onSnapsh
 
     const openActivation = useCallback(() => setIsActivationModalOpen(true), []);
 
-    // 锁定时捕获的导航态（分类 / 当前文章 / 列表页码 / 断法选中文件）；
+    const [changshiItemId, setChangshiItemId] = useState<string>(
+        lockedSnapshot?.changshiItemId || 'shichen'
+    );
+
+    // 锁定时捕获的导航态（分类 / 当前文章 / 列表页码 / 断法选中文件 / 常识条目）；
     // 正文与排盘结果不入快照，按需重新加载
     const liveSnapshot = useMemo((): CaseStudyLockedSnapshot => ({
         version: 1,
@@ -63,11 +67,13 @@ export default function CaseStudyPage({ categoryIntent, lockedSnapshot, onSnapsh
         selectedCaseId: caseStudyState.selectedCaseId,
         currentPage: caseStudyState.currentPage,
         duanFaFileId: duanFa.selectedFileId,
+        changshiItemId,
     }), [
         caseStudyState.selectedCategory,
         caseStudyState.selectedCaseId,
         caseStudyState.currentPage,
         duanFa.selectedFileId,
+        changshiItemId,
     ]);
 
     useEffect(() => {
@@ -145,6 +151,8 @@ export default function CaseStudyPage({ categoryIntent, lockedSnapshot, onSnapsh
         duanFaSavedProgress: duanFaProgressProps.savedProgress,
         duanFaCurrentProgress: duanFaProgressProps.currentProgress,
         duanFaRestoreProgress: duanFaProgressProps.restoreProgress,
+        changshiItemId,
+        setChangshiItemId,
     };
 
     return (

@@ -18,9 +18,9 @@ const SHOW_EDGE_HANDLES = false;
 export default function QimenMobileLayout(props: QimenLayoutProps) {
     const {
         palaces, header, globalPatterns, isLoading, error, currentCase,
-        paiPanMethod, setPaiPanMethod, calculateNow, calculateQimenByDate,
-        handlePrevHour, handleNextHour, selectedDate,
-        selectedCaseId, setSelectedCaseId, setCurrentCase,
+        paiPanMethod, setPaiPanMethod, calculateNow,
+        handlePrevHour, handleNextHour, handleSelectCase, selectedDate,
+        selectedCaseId, setCurrentCase,
         handleDeleteCase, handleEditCase, refreshTrigger, setRefreshTrigger, caseListToast,
         selectedPalace, setSelectedPalace,
         setIsDatePickerOpen, setIsNewCaseModalOpen, setEditingCase,
@@ -227,14 +227,8 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
                     selectedCaseId={selectedCaseId}
                     paiPanMethod={paiPanMethod}
                     onSelectCase={(id, caseItem) => {
-                        setSelectedCaseId(id);
-                        setCurrentCase(caseItem);
                         setIsCaseListOpen(false);
-                        if (caseItem.test_date) {
-                            // 点哪个案例就按它的盘式排：旧案例无 pai_pan_method 时沿用当前盘式
-                            if (caseItem.pai_pan_method) setPaiPanMethod(caseItem.pai_pan_method);
-                            calculateQimenByDate(new Date(caseItem.test_date), undefined, caseItem.pai_pan_method);
-                        }
+                        void handleSelectCase(id, caseItem);
                     }}
                     onOpenDatePicker={() => {
                         setEditingCase(null);

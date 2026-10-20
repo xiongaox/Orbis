@@ -33,7 +33,7 @@ export default function QimenPage({ lockedSnapshot, onSnapshotChange }: QimenPag
         selectedDate, isDatePickerOpen, setIsDatePickerOpen, calculateQimenByDate,
         isNewCaseModalOpen, editingCase, setIsNewCaseModalOpen, setEditingCase, setRefreshTrigger,
         selectedPattern, setSelectedPattern,
-        isCustomJuModalOpen, setIsCustomJuModalOpen, header, setCustomJu,
+        isCustomJuModalOpen, setIsCustomJuModalOpen, header, handleApplyCustomJu, setCustomJu,
         isAiModalOpen, setIsAiModalOpen, palaces, globalPatterns, selectedPalace, paiPanMethod, setPaiPanMethod, lockSnapshot,
         currentCase,
     } = qimenState;
@@ -76,15 +76,18 @@ export default function QimenPage({ lockedSnapshot, onSnapshotChange }: QimenPag
                     }}
                     onPreview={(date, method) => {
                         // 「立即排盘」：不落库，只把盘面切到这个时间与所选盘式
+                        // 新盘不属于任何案例，局数回到自动（否则会沿用上一个案例的局数）
                         setIsNewCaseModalOpen(false);
                         setEditingCase(null);
+                        setCustomJu(0);
                         if (method) setPaiPanMethod(method);
-                        calculateQimenByDate(date, undefined, method);
+                        calculateQimenByDate(date, 0, method);
                     }}
                     onConfirm={(data) => {
                         setIsNewCaseModalOpen(false);
                         setEditingCase(null);
-                        calculateQimenByDate(data.date);
+                        setCustomJu(0);
+                        calculateQimenByDate(data.date, 0);
                         setRefreshTrigger(prev => prev + 1);
                     }}
                 />
@@ -160,9 +163,8 @@ export default function QimenPage({ lockedSnapshot, onSnapshotChange }: QimenPag
                 currentJu={header.ju}
                 onClose={() => setIsCustomJuModalOpen(false)}
                 onConfirm={(newCustomJu) => {
-                    setCustomJu(newCustomJu);
                     setIsCustomJuModalOpen(false);
-                    calculateQimenByDate(selectedDate, newCustomJu);
+                    void handleApplyCustomJu(newCustomJu);
                 }}
             />
 

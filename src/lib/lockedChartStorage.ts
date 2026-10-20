@@ -40,6 +40,7 @@ export interface CaseStudyLockedSnapshot {
     selectedCaseId: string | null;
     currentPage: number;
     duanFaFileId: string | null;
+    changshiItemId?: string | null;
 }
 
 export interface LockedChartSnapshots {

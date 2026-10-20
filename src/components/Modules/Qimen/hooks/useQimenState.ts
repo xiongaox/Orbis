@@ -8,7 +8,7 @@ import {
     type QimenHeader,
     type PaiPanMethod
 } from '../../../../lib/csp-qimen/qimenService';
-import { qimenCaseService, type QimenCase } from '../../../../services/qimenCaseService';
+import { qimenCaseService, caseCustomJu, type QimenCase } from '../../../../services/qimenCaseService';
 import { type GlobalPattern } from '../../../../lib/csp-qimen/patternDetector';
 import { type PillarKey } from '../QimenJuInfo';
 import { getXunKong, ZHI_PALACE_MAP, MA_XING_MAP } from '../utils/qimenInfoUtils';
@@ -79,8 +79,12 @@ export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
     // 全局格局弹窗状态
     const [selectedPattern, setSelectedPattern] = useState<GlobalPattern | null>(null);
 
-    // 自定义局数状态
-    const [customJu, setCustomJu] = useState<number>(initialLockedSnapshot?.customJu ?? 0);  // 0=自动计算
+    // 自定义局数状态：恢复锁定快照时以案例自身局数为准（局数属于案例，不是页面设置）
+    const [customJu, setCustomJu] = useState<number>(() => (
+        initialLockedSnapshot?.currentCase
+            ? caseCustomJu(initialLockedSnapshot.currentCase)
+            : initialLockedSnapshot?.customJu ?? 0
+    ));  // 0=自动计算
     const [isCustomJuModalOpen, setIsCustomJuModalOpen] = useState(false);
 
     // AI 提示词弹窗状态
@@ -199,11 +203,12 @@ export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
         const newDate = new Date(selectedDate);
         newDate.setHours(newDate.getHours() - 2);
 
-        // 清除案例选择状态
+        // 清除案例选择状态：局数属于案例，离开案例即回到自动局
         setSelectedCaseId(null);
         setCurrentCase(null);
+        setCustomJu(0);
 
-        await calculateQimenByDate(newDate);
+        await calculateQimenByDate(newDate, 0);
     }, [selectedDate, calculateQimenByDate]);
 
     // 下一时辰（加2小时）
@@ -211,12 +216,45 @@ export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
         const newDate = new Date(selectedDate);
         newDate.setHours(newDate.getHours() + 2);
 
-        // 清除案例选择状态
+        // 清除案例选择状态：局数属于案例，离开案例即回到自动局
         setSelectedCaseId(null);
         setCurrentCase(null);
+        setCustomJu(0);
 
-        await calculateQimenByDate(newDate);
+        await calculateQimenByDate(newDate, 0);
     }, [selectedDate, calculateQimenByDate]);
+
+    /** 选中案例：按案例自身固化的盘式与局数排盘（页面级临时自定义局数不参与） */
+    const handleSelectCase = useCallback(async (id: string, caseItem: QimenCase) => {
+        setSelectedCaseId(id);
+        setCurrentCase(caseItem);
+        if (caseItem.pai_pan_method) setPaiPanMethod(caseItem.pai_pan_method);
+        const ju = caseCustomJu(caseItem);
+        setCustomJu(ju);
+        if (caseItem.test_date) {
+            await calculateQimenByDate(new Date(caseItem.test_date), ju, caseItem.pai_pan_method);
+        }
+    }, [calculateQimenByDate]);
+
+    /**
+     * 自定义局数只作用于当前案例：有选中案例时写回该案例的 qimen_data.custom_ju，
+     * 没选中案例（临时盘）只改本次盘面。
+     */
+    const handleApplyCustomJu = useCallback(async (ju: number) => {
+        setCustomJu(ju);
+        if (currentCase) {
+            try {
+                const updated = await qimenCaseService.updateCase(currentCase.id, {
+                    qimen_data: { ...(currentCase.qimen_data ?? {}), custom_ju: ju },
+                });
+                setCurrentCase(updated);
+            } catch (e) {
+                console.error(e);
+                showToast('局数保存失败', 'error');
+            }
+        }
+        await calculateQimenByDate(selectedDate, ju);
+    }, [currentCase, selectedDate, calculateQimenByDate, showToast]);
 
     // 初始化 WASM 并恢复锁定快照或计算当前时间的盘。
     // 只执行一次：依赖里的 calculateQimenByDate / calculateNow 会随盘式与局数变化重建引用，
@@ -294,6 +332,8 @@ export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
         calculateQimenByDate,
         handlePrevHour,
         handleNextHour,
+        handleSelectCase,
+        handleApplyCustomJu,
         handleDeleteCase,
         handleEditCase,
         /** 删除等操作失败的反馈状态（各端列表壳经 feedback 消费） */

@@ -139,7 +139,7 @@ function AppShell() {
         xiaoliuren: caseStudyLiveSnapshot ?? {
           version: 1,
           capturedAt: new Date().toISOString(),
-          selectedCategory: 'bazi',
+          selectedCategory: 'changshi',
           selectedCaseId: null,
           currentPage: 1,
           duanFaFileId: null,
