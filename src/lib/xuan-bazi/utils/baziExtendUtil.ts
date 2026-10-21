@@ -139,7 +139,8 @@ export function getSolarTerms(solarDateStr: string) {
     const nextDate = nextJieQi.getSolar();
 
     // 格式化日期时间
-    const formatTime = (s: Solar) => `${s.getYear()}-${String(s.getMonth()).padStart(2, '0')}-${String(s.getDay()).padStart(2, '0')} ${String(s.getHour()).padStart(2, '0')}:${String(s.getMinute()).padStart(2, '0')}:${String(s.getSecond()).padStart(2, '0')}`;
+    // 只到分：秒对排盘没有意义，多出来的位数会把手机上的两列撑开换行
+    const formatTime = (s: Solar) => `${s.getYear()}-${String(s.getMonth()).padStart(2, '0')}-${String(s.getDay()).padStart(2, '0')} ${String(s.getHour()).padStart(2, '0')}:${String(s.getMinute()).padStart(2, '0')}`;
 
     // 计算时间差
     const calcDiff = (target: Solar, current: Solar) => {
@@ -421,8 +422,9 @@ export function getDetailedSolarTerms(solarDateStr: string): {
         const solar = Solar.fromDate(dateObj);
         const lunar = solar.getLunar();
 
-        const formatTime = (s: { getYear: () => number; getMonth: () => number; getDay: () => number; getHour: () => number; getMinute: () => number; getSecond: () => number }) =>
-            `${s.getYear()}-${String(s.getMonth()).padStart(2, '0')}-${String(s.getDay()).padStart(2, '0')} ${String(s.getHour()).padStart(2, '0')}:${String(s.getMinute()).padStart(2, '0')}:${String(s.getSecond()).padStart(2, '0')}`;
+        // 只到分（同上：秒会让手机上的两列换行）
+        const formatTime = (s: { getYear: () => number; getMonth: () => number; getDay: () => number; getHour: () => number; getMinute: () => number }) =>
+            `${s.getYear()}-${String(s.getMonth()).padStart(2, '0')}-${String(s.getDay()).padStart(2, '0')} ${String(s.getHour()).padStart(2, '0')}:${String(s.getMinute()).padStart(2, '0')}`;
 
         const calcDiff = (target: Solar, current: Solar) => {
             const d1 = new Date(target.toYmdHms().replace(/-/g, '/'));
@@ -431,8 +433,7 @@ export function getDetailedSolarTerms(solarDateStr: string): {
             const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
             const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
             const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-            const secs = Math.floor((diffMs % (1000 * 60)) / 1000);
-            return `${days}天${hours}小时${mins}分${secs}秒`;
+            return `${days}天${hours}小时${mins}分`;
         };
 
         // 获取前后"节"

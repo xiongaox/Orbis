@@ -42,6 +42,16 @@ export function resolveSwipeDirection(axis: SwipeAxis, dx: number): 'left' | 'ri
     return dx < 0 ? 'right' : 'left';
 }
 
+/**
+ * 并排式抽屉的关闭方向：顺着手势把侧栏「推回去」才算关。
+ * 左栏是从左边拉出来的，向左推才关（dx < 0）；右栏反之。
+ * 早期版本不看方向、左右滑都关，与卡片左滑露出「编辑/删除」互相打架。
+ */
+export function isPushBackClose(side: 'left' | 'right', dx: number): boolean {
+    if (Math.abs(dx) < TRIGGER_DISTANCE_PX) return false;
+    return side === 'left' ? dx < 0 : dx > 0;
+}
+
 interface MobileDrawerSwipeOptions {
     enabled: boolean;
     /**
@@ -53,20 +63,29 @@ interface MobileDrawerSwipeOptions {
     /** 打开右侧抽屉：手指向左滑（把右侧抽屉拉出来） */
     onOpenRight?: () => void;
     /**
-     * 已有并排式抽屉打开时，任意方向滑动都关闭它（原生 app 手感）。
+     * 已有并排式抽屉打开时，顺着「推回去」的方向滑动关闭它（原生 app 手感）。
      * 与「浮层打开就不介入」互补：浮层有遮罩且自身能点关，并排式无遮罩需靠手势关。
+     * side 是当前打开的那一侧：左栏向右拉出，所以向左推回才关；右栏反之。
+     * 必须成对给出，避免「只知道要关、不知道往哪边算关」的错配。
      */
-    onSwipeClose?: () => void;
+    swipeClose?: { side: 'left' | 'right'; onClose: () => void };
 }
 
-/** 起点落在可横向滚动的容器里时，横向手势属于容器滚动，不抢 */
-function inHorizontalScroller(target: EventTarget | null): boolean {
+/**
+ * 起点落在「自己消费横向手势」的元素里时不抢：
+ * - 可横向滚动的容器（表格矩阵的横滑属于容器滚动）
+ * - touch-action 只留纵向的元素：左滑露出「编辑/删除」的案例卡片属于这一类，
+ *   它的横滑由自身 pointer 事件处理。不排除的话，抽屉里左滑露出操作会被
+ *   全局手势当成「滑动关闭抽屉」，点编辑时抽屉已经被关掉了。
+ */
+function claimsHorizontalGesture(target: EventTarget | null): boolean {
     let node = target instanceof HTMLElement ? target : null;
     while (node && node !== document.body) {
-        const { overflowX } = getComputedStyle(node);
+        const { overflowX, touchAction } = getComputedStyle(node);
         if ((overflowX === 'auto' || overflowX === 'scroll') && node.scrollWidth > node.clientWidth + 2) {
             return true;
         }
+        if (touchAction.includes('pan-y') && !touchAction.includes('pan-x')) return true;
         node = node.parentElement;
     }
     return false;
@@ -76,7 +95,7 @@ export function useMobileDrawerSwipe({
     enabled,
     onOpenLeft,
     onOpenRight,
-    onSwipeClose,
+    swipeClose,
 }: MobileDrawerSwipeOptions): void {
     useEffect(() => {
         if (!enabled) return;
@@ -89,12 +108,12 @@ export function useMobileDrawerSwipe({
         const handleStart = (event: TouchEvent) => {
             if (event.touches.length !== 1) return;
             // 浮层式抽屉/弹窗有遮罩且能点关，横向手势归它内部，不介入。
-            // 并排式（inline）不渲染遮罩，靠本 hook 的 onSwipeClose 关闭，故放行。
-            if (onSwipeClose === undefined
+            // 并排式（inline）不渲染遮罩，靠本 hook 的 swipeClose 关闭，故放行。
+            if (swipeClose === undefined
                 && document.querySelector('[role="dialog"][aria-modal="true"]')) return;
             const target = event.target;
             if (target instanceof Element && target.closest('[aria-label="主导航"]')) return;
-            if (inHorizontalScroller(target)) return;
+            if (claimsHorizontalGesture(target)) return;
             tracking = true;
             axis = null;
             startX = event.touches[0].clientX;
@@ -117,18 +136,14 @@ export function useMobileDrawerSwipe({
         const handleEnd = (event: TouchEvent) => {
             if (!tracking) return;
             tracking = false;
-            // 并排式抽屉已打开：任意方向滑过阈值都关闭它
-            if (onSwipeClose) {
-                if (resolveSwipeDirection(axis, (event.changedTouches[0]?.clientX ?? startX) - startX)) {
-                    onSwipeClose();
-                }
+            const dx = (event.changedTouches[0]?.clientX ?? startX) - startX;
+            // 并排式抽屉已打开：只认「顺着手势把侧栏推回去」的方向
+            if (swipeClose) {
+                if (axis === 'x' && isPushBackClose(swipeClose.side, dx)) swipeClose.onClose();
                 return;
             }
             // resolveSwipeDirection 返回的就是「抽屉侧」，直接分派，无需再交叉映射
-            const side = resolveSwipeDirection(
-                axis,
-                (event.changedTouches[0]?.clientX ?? startX) - startX,
-            );
+            const side = resolveSwipeDirection(axis, dx);
             if (side === 'left') onOpenLeft?.();
             else if (side === 'right') onOpenRight?.();
         };
@@ -144,5 +159,5 @@ export function useMobileDrawerSwipe({
             window.removeEventListener('touchend', handleEnd);
             window.removeEventListener('touchcancel', handleEnd);
         };
-    }, [enabled, onOpenLeft, onOpenRight, onSwipeClose]);
+    }, [enabled, onOpenLeft, onOpenRight, swipeClose]);
 }

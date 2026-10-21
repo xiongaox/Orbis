@@ -23,9 +23,17 @@ import { useInsightContent } from './hooks/useInsightContent';
 import { useGanZhiLiuYi } from './hooks/useGanZhiLiuYi';
 import type { ChartType } from './types';
 import { INSIGHT_BOOKS, DEFAULT_BOOK_ID } from './data/booksConfig';
-import { MOBILE_NAV_HOME_CHART, readMobileNavSlots, writeMobileNavSlots } from './lib/mobileNavStorage';
+import {
+  MOBILE_NAV_HOME_CHART,
+  readMobileNavCaseSlots,
+  readMobileNavSlots,
+  writeMobileNavCaseSlots,
+  writeMobileNavSlots,
+  type CaseNavSlot,
+} from './lib/mobileNavStorage';
 import {
   LOCKED_CHARTS_MAX,
+  caseStudyCategoryOfLock,
   readLockedCharts,
   readLockedChartSnapshots,
   writeLockedCharts,
@@ -37,7 +45,8 @@ import {
 
 function AppShell() {
   const [activeChart, setActiveChart] = useState<ChartType>('wannianli');
-  const [lockedCharts, setLockedCharts] = useState<ChartType[]>(readLockedCharts);
+  // 锁定键：术数为 ChartType，案例学习为 xiaoliuren:<category>（每分类独立锁定）
+  const [lockedCharts, setLockedCharts] = useState<string[]>(readLockedCharts);
   const [lockedSnapshots, setLockedSnapshots] = useState<LockedChartSnapshots>(readLockedChartSnapshots);
   const [qimenLiveSnapshot, setQimenLiveSnapshot] = useState<QimenLockedSnapshot | null>(null);
   const [caseStudyLiveSnapshot, setCaseStudyLiveSnapshot] = useState<CaseStudyLockedSnapshot | null>(null);
@@ -45,11 +54,11 @@ function AppShell() {
   // 移动端底部导航：可换槽位（首页万年通历固定）与个人中心页开关
   const { isMobile } = useLayoutMode();
   const [navSlots, setNavSlots] = useState<ChartType[]>(readMobileNavSlots);
+  // 底栏第二页（案例学习层）分类槽：与术数槽同款可更换，个人中心恒在末位
+  const [caseNavSlots, setCaseNavSlots] = useState<CaseNavSlot[]>(readMobileNavCaseSlots);
   const [showMobileProfile, setShowMobileProfile] = useState(false);
   // 案例学习分类直达意图（个人中心「案例 / 断法」入口）；seq 供重复触发同一分类
   const [caseStudyIntent, setCaseStudyIntent] = useState<{ category: string; seq: number } | null>(null);
-  // 案例学习是否从个人中心进入：案例分类弹层的返回按钮据此回个人中心
-  const [caseStudyFromProfile, setCaseStudyFromProfile] = useState(false);
   const mobileDrawerRegistry = useMobileNavRegistry();
   const activeDrawers = mobileDrawerRegistry[activeChart];
 
@@ -58,8 +67,9 @@ function AppShell() {
   // 首页与个人中心没有注册抽屉，enabled 自然为 false
   const openCaseDrawer = activeDrawers?.openCase;
   const openPanelDrawer = activeDrawers?.openPanel;
-  // 并排式抽屉打开时，任意方向滑动改为关闭（原生 app 手感），不再重复开层
+  // 并排式抽屉打开时，顺着手势推回的那一侧滑动改为关闭（原生 app 手感），不再重复开层
   const inlineOpen = activeDrawers?.inlineOpen ?? false;
+  const inlineSide = activeDrawers?.inlineSide;
   const closeInlineDrawer = activeDrawers?.closeInline;
   const handleOpenLeftDrawer = useCallback(() => {
     openCaseDrawer?.();
@@ -70,19 +80,28 @@ function AppShell() {
   const handleSwipeClose = useCallback(() => {
     closeInlineDrawer?.();
   }, [closeInlineDrawer]);
+  // 只传「当前打开的侧 + 关闭动作」：方向判定交给 hook，避免这里再写一遍左右逻辑
+  const swipeClose = useMemo(
+    () => (inlineOpen && inlineSide && closeInlineDrawer
+      ? { side: inlineSide, onClose: handleSwipeClose }
+      : undefined),
+    [inlineOpen, inlineSide, closeInlineDrawer, handleSwipeClose],
+  );
   useMobileDrawerSwipe({
     enabled: isMobile && !showMobileProfile && Boolean(openCaseDrawer || openPanelDrawer || inlineOpen),
     onOpenLeft: inlineOpen ? undefined : openCaseDrawer ? handleOpenLeftDrawer : undefined,
     onOpenRight: inlineOpen ? undefined : openPanelDrawer ? handleOpenRightDrawer : undefined,
-    onSwipeClose: inlineOpen && closeInlineDrawer ? handleSwipeClose : undefined,
+    swipeClose,
   });
 
   const handleOpenCaseStudyCategory = useCallback((category?: string) => {
     if (category) setCaseStudyIntent({ category, seq: Date.now() });
-    setCaseStudyFromProfile(true);
     setShowMobileProfile(false);
     setActiveChart('xiaoliuren');
   }, []);
+
+  // 底栏第二页分类槽直达
+  const handleOpenCaseSlot = handleOpenCaseStudyCategory;
   // 默认选中的经典书籍 ID
   const [activeBookId, setActiveBookId] = useState<string>(DEFAULT_BOOK_ID);
   // 使用 Context 获取八字状态
@@ -117,6 +136,10 @@ function AppShell() {
     writeMobileNavSlots(navSlots);
   }, [navSlots]);
 
+  useEffect(() => {
+    writeMobileNavCaseSlots(caseNavSlots);
+  }, [caseNavSlots]);
+
   const handleQimenSnapshotChange = useCallback((snapshot: QimenLockedSnapshot) => {
     setQimenLiveSnapshot(snapshot);
   }, []);
@@ -125,12 +148,25 @@ function AppShell() {
     setCaseStudyLiveSnapshot(snapshot);
   }, []);
 
-  const handleToggleChartLock = (chart: ChartType) => {
-    const isLocked = lockedCharts.includes(chart);
+  // lockKey：术数模块用 ChartType（bazi / qimen），案例学习用 xiaoliuren:<category>，
+  // 这样第二页每个分类各自独立锁定
+  const handleToggleChartLock = (lockKey: string) => {
+    const chart = lockKey as ChartType;
+    const isCaseLock = lockKey.startsWith('xiaoliuren:');
+    const isLocked = lockedCharts.includes(lockKey);
 
     if (isLocked) {
-      setLockedCharts((current) => current.filter((lockedChart) => lockedChart !== chart));
+      setLockedCharts((current) => current.filter((locked) => locked !== lockKey));
       setLockedSnapshots((current) => {
+        if (isCaseLock) {
+          const category = caseStudyCategoryOfLock(lockKey);
+          const nextMap = { ...(current.xiaoliuren ?? {}) };
+          if (category) delete nextMap[category];
+          return {
+            ...current,
+            xiaoliuren: Object.keys(nextMap).length > 0 ? nextMap : undefined,
+          };
+        }
         const next = { ...current };
         delete next[chart as keyof LockedChartSnapshots];
         return next;
@@ -157,18 +193,22 @@ function AppShell() {
       }));
     }
 
-    if (chart === 'xiaoliuren') {
-      // 未访问过案例学习时直接锁定（如移动端重选菜单）：无实时态可用，从默认分类起
+    if (isCaseLock) {
+      const category = caseStudyCategoryOfLock(lockKey) ?? 'changshi';
+      // 实时快照对应当前正在看的分类；锁其他分类时从该分类默认态起
+      const snapshot: CaseStudyLockedSnapshot = (caseStudyLiveSnapshot?.selectedCategory === category
+        ? caseStudyLiveSnapshot
+        : null) ?? {
+        version: 1,
+        capturedAt: new Date().toISOString(),
+        selectedCategory: category,
+        selectedCaseId: null,
+        currentPage: 1,
+        duanFaFileId: null,
+      };
       setLockedSnapshots((current) => ({
         ...current,
-        xiaoliuren: caseStudyLiveSnapshot ?? {
-          version: 1,
-          capturedAt: new Date().toISOString(),
-          selectedCategory: 'changshi',
-          selectedCaseId: null,
-          currentPage: 1,
-          duanFaFileId: null,
-        },
+        xiaoliuren: { ...(current.xiaoliuren ?? {}), [category]: snapshot },
       }));
     }
 
@@ -177,13 +217,24 @@ function AppShell() {
     if (overflow > 0) {
       const dropped = [...lockedCharts, chart].slice(0, overflow);
       setLockedSnapshots((current) => {
-        const next = { ...current };
-        for (const old of dropped) delete next[old as keyof LockedChartSnapshots];
+        let next = { ...current };
+        for (const old of dropped) {
+          if (old.startsWith('xiaoliuren:')) {
+            const category = caseStudyCategoryOfLock(old);
+            const nextMap = { ...(next.xiaoliuren ?? {}) };
+            if (category) delete nextMap[category];
+            next = { ...next, xiaoliuren: Object.keys(nextMap).length > 0 ? nextMap : undefined };
+          } else {
+            const copy = { ...next };
+            delete copy[old as keyof LockedChartSnapshots];
+            next = copy;
+          }
+        }
         return next;
       });
     }
 
-    setLockedCharts((current) => [...current, chart].slice(-LOCKED_CHARTS_MAX));
+    setLockedCharts((current) => [...current, lockKey].slice(-LOCKED_CHARTS_MAX));
   };
 
   // 使用提取的 Hook 计算干支留意数据
@@ -215,10 +266,14 @@ function AppShell() {
   };
 
   // 渲染主内容区域
-  const mountedCharts = useMemo(
-    () => Array.from(new Set([...lockedCharts, activeChart])),
-    [activeChart, lockedCharts],
-  );
+  const mountedCharts = useMemo(() => {
+    // 锁定键里的 xiaoliuren:<category> 归并成模块本身：模块实例只有一个，
+    // 分类间的隔离由各自的快照负责
+    const charts = lockedCharts.map((key) => (
+      key.startsWith('xiaoliuren:') ? 'xiaoliuren' as ChartType : key as ChartType
+    ));
+    return Array.from(new Set([...charts, activeChart]));
+  }, [activeChart, lockedCharts]);
 
   const renderContent = (chart: ChartType) => {
     switch (chart) {
@@ -233,8 +288,11 @@ function AppShell() {
       case 'xiaoliuren':
         return (
           <CaseStudyPage
+            // key 含分类：useCaseStudy 的快照只在挂载时取一次，
+            // 切换分类槽时必须重挂载，否则锁定分类的现场恢复不了
+            key={caseStudyIntent?.category ?? 'changshi'}
             categoryIntent={caseStudyIntent}
-            lockedSnapshot={lockedSnapshots.xiaoliuren}
+            lockedSnapshot={lockedSnapshots.xiaoliuren?.[caseStudyIntent?.category ?? 'changshi']}
             onSnapshotChange={handleCaseStudySnapshotChange}
           />
         );
@@ -322,7 +380,8 @@ function AppShell() {
             <MobileProfileCenter
               slots={navSlots}
               onSlotsChange={setNavSlots}
-              onOpenCaseStudy={handleOpenCaseStudyCategory}
+              caseSlots={caseNavSlots}
+              onCaseSlotsChange={setCaseNavSlots}
               onGoHome={() => {
                 setShowMobileProfile(false);
                 setActiveChart(MOBILE_NAV_HOME_CHART);
@@ -338,18 +397,16 @@ function AppShell() {
           activeChart={activeChart}
           profileOpen={showMobileProfile}
           slots={navSlots}
+          caseSlots={caseNavSlots}
           lockedCharts={lockedCharts}
+          onToggleSlotLock={handleToggleChartLock}
           drawers={activeDrawers}
           onSelectChart={(chart) => {
-            // 从重选菜单网格进入的案例学习不属于个人中心来源
-            setCaseStudyFromProfile(false);
             setShowMobileProfile(false);
             setActiveChart(chart);
           }}
           onOpenProfile={() => setShowMobileProfile(true)}
-          onToggleChartLock={handleToggleChartLock}
-          onSelectCaseStudyCategory={handleOpenCaseStudyCategory}
-          caseStudyFromProfile={caseStudyFromProfile}
+          onSelectCaseSlot={handleOpenCaseSlot}
         />
       )}
 

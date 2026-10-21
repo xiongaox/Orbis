@@ -17,6 +17,7 @@
     "cases:previews": "tsx scripts/build-case-previews.ts",
     "preview": "vite preview",
     "tauri": "tauri",
+    "android:dev": "bash scripts/dev-android.sh",
     "android:icons": "python scripts/build-android-icons.py",
     "tauri:dev": "tauri dev",
     "tauri:dev:admin": "tauri dev --features admin-signing",

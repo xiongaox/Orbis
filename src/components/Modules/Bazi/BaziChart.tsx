@@ -134,7 +134,9 @@ export default function BaziChart({
 
         <div className="flex w-full">
           {/* 行标题 */}
-          <div className={`${isMobileLayout ? 'w-12' : isPadLandscape ? 'w-[40px]' : 'w-12'} flex-shrink-0 border-r border-border flex flex-col`}>
+          {/* 手机上标签列收到 40px：两字标签（日期/星运/纳音）刚好不挤，
+              省下的宽度让给各柱，神煞四字（天乙贵人）不换行 */}
+          <div className={`${isMobileLayout ? 'w-10' : isPadLandscape ? 'w-[40px]' : 'w-12'} flex-shrink-0 border-r border-border flex flex-col`}>
             {['日期', '主星', '天干', '地支'].map((label, i) => {
               const heightClass = i < 2 ? (i === 0 ? 'h-8' : 'h-10') : 'h-14';
               return (

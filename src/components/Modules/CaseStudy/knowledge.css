@@ -331,9 +331,10 @@
       font-size: 14px;
     }
     .shichen-card-time {
-      font-size: 14px;
-      padding: 2px 4px;
-      letter-spacing: -0.03em;
+      /* 手机上时间块要留出左右余量：撑满单元格会贴着边框，字号也要收一点 */
+      font-size: 12.5px;
+      padding: 2px 6px;
+      letter-spacing: -0.02em;
       white-space: nowrap;
     }
   }

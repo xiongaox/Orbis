@@ -132,7 +132,6 @@ export const KnowledgeOutline: React.FC<KnowledgeOutlineProps> = ({
                 onItemSelect?.();
               }}
             >
-              <span className={`color-wx-${w}`}>●</span>
               <span>纳音属{w} (12)</span>
             </button>
           ))}

@@ -66,6 +66,7 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
         panelLabel: '排盘信息',
         // 并排式抽屉状态：打开时滑动改为「关闭」，而不是再开一层
         inlineOpen: isCaseListOpen || isInfoOpen,
+        inlineSide: isCaseListOpen ? 'left' : isInfoOpen ? 'right' : undefined,
         closeInline: () => {
             setIsCaseListOpen(false);
             setIsInfoOpen(false);

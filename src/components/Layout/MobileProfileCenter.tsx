@@ -4,7 +4,8 @@
  *
  * 内容（design-demos/mobile-bottom-nav 定稿）：
  * - 头部不放用户名（项目无用户名概念）：玄枢录 + 备份信息（本地私有存储 · 远端备份状态）
- * - 底部菜单管理：首页万年通历固定，其余槽位从候选术数中更换（上限见 MOBILE_NAV_MAX_SLOTS）
+ * - 底部菜单管理：两页各一套——术数页（万年通历固定 + 可换术数槽）、第二页（可换分类槽）；
+ *   上限分别见 MOBILE_NAV_MAX_SLOTS / MOBILE_NAV_CASE_MAX_SLOTS，个人中心恒在两页末位
  * - 通用：外观（主题切换）、设置生日
  * - 数据与服务：原侧拉「菜单」与右上角菜单的条目（对话历史 / AI 集成 / 数据备份 / 联系作者 / GitHub / 签发激活码）
 */
@@ -54,8 +55,11 @@ import PrivateDataBackupModal from '../Common/PrivateDataBackupModal';
 import SignerModal from '../Common/SignerModal';
 import {
     MOBILE_NAV_CANDIDATES,
+    MOBILE_NAV_CASE_CANDIDATES,
+    MOBILE_NAV_CASE_MAX_SLOTS,
     MOBILE_NAV_MAX_SLOTS,
     mobileNavModuleName,
+    type CaseNavSlot,
 } from '../../lib/mobileNavStorage';
 
 const CANDIDATE_ICONS: Partial<Record<ChartType, ComponentType<{ className?: string }>>> = {
@@ -65,12 +69,21 @@ const CANDIDATE_ICONS: Partial<Record<ChartType, ComponentType<{ className?: str
     xiaoliuren: Sun,
 };
 
+/** 第二页分类槽图标：常识/断法为书本类，八字/奇门沿用术数图标以保持视觉一致 */
+const CASE_CANDIDATE_ICONS: Partial<Record<CaseNavSlot, ComponentType<{ className?: string }>>> = {
+    changshi: BookOpen,
+    duanfa: ScrollText,
+    bazi: Compass,
+    qimen: Grid3X3,
+};
+
 interface MobileProfileCenterProps {
     /** 已固定的可换槽位（不含首页） */
     slots: ChartType[];
     onSlotsChange: (slots: ChartType[]) => void;
-    /** 打开案例学习模块；category 缺省时保持模块当前分类，'duanfa' 直达断法 */
-    onOpenCaseStudy: (category?: string) => void;
+    /** 第二页已固定分类槽 */
+    caseSlots: CaseNavSlot[];
+    onCaseSlotsChange: (slots: CaseNavSlot[]) => void;
     /** 返回主菜单（安卓返回键 / Escape） */
     onGoHome: () => void;
 }
@@ -134,7 +147,7 @@ function SectionTitle({ title }: { title: string }) {
     return <h2 className="px-1 mb-2 text-xs tracking-[0.08em] text-muted-foreground">{title}</h2>;
 }
 
-export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseStudy, onGoHome }: MobileProfileCenterProps) {
+export default function MobileProfileCenter({ slots, onSlotsChange, caseSlots, onCaseSlotsChange, onGoHome }: MobileProfileCenterProps) {
     const [isDark, setIsDark] = useState(() => (
         typeof document === 'undefined' ? true : document.documentElement.classList.contains('dark')
     ));
@@ -149,6 +162,8 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
     const [showContact, setShowContact] = useState(false);
     const [signerOpen, setSignerOpen] = useState(false);
     const [showSlotPicker, setShowSlotPicker] = useState(false);
+    // 第二页槽位选择弹层
+    const [showCaseSlotPicker, setShowCaseSlotPicker] = useState(false);
     const [showChangelog, setShowChangelog] = useState(false);
     const [changelogDetail, setChangelogDetail] = useState<AppChangelogEntry | null>(null);
     const { updateState, latestVersion, checkUpdate } = useUpdateChecker();
@@ -164,10 +179,11 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
                         ? '检查失败，点击重试'
                         : '检查新版本';
 
-    // 安卓返回键 / Escape 分层关闭：先关术数选择弹层，再回主菜单
+    // 安卓返回键 / Escape 分层关闭：先关槽位选择弹层，再回主菜单
     useEffect(() => {
         const handler = () => {
             if (showSlotPicker) setShowSlotPicker(false);
+            else if (showCaseSlotPicker) setShowCaseSlotPicker(false);
             else onGoHome();
         };
         pushBackHandler(handler);
@@ -179,7 +195,7 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
             popBackHandler(handler);
             window.removeEventListener('keydown', onKeyDown);
         };
-    }, [onGoHome, showSlotPicker]);
+    }, [onGoHome, showSlotPicker, showCaseSlotPicker]);
 
     useEffect(() => {
         let cancelled = false;
@@ -265,6 +281,29 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
         onSlotsChange(next);
     };
 
+    // 第二页槽位：开关切换 + 上移 / 下移
+    const handleToggleCaseSlot = (id: CaseNavSlot, next: boolean) => {
+        if (next) {
+            if (caseSlots.length >= MOBILE_NAV_CASE_MAX_SLOTS || caseSlots.includes(id)) return;
+            onCaseSlotsChange([...caseSlots, id]);
+        } else {
+            onCaseSlotsChange(caseSlots.filter((slot) => slot !== id));
+        }
+    };
+
+    const moveCaseSlot = (id: CaseNavSlot, dir: -1 | 1) => {
+        const from = caseSlots.indexOf(id);
+        const to = from + dir;
+        if (from < 0 || to < 0 || to >= caseSlots.length) return;
+        const next = [...caseSlots];
+        next.splice(from, 1);
+        next.splice(to, 0, id);
+        onCaseSlotsChange(next);
+    };
+
+    const caseSlotName = (id: CaseNavSlot) =>
+        MOBILE_NAV_CASE_CANDIDATES.find((item) => item.id === id)?.name ?? id;
+
     return (
         <div className="h-full overflow-y-auto" aria-label="个人中心">
             <div className="px-4 pt-5 pb-10 max-w-md mx-auto space-y-6">
@@ -285,9 +324,9 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
                     </div>
                 </div>
 
-                {/* 底部菜单管理：管理列表（序号 + 图标 + 名称 + 把手 + 移除），为后续拖拽排序预留形态 */}
+                {/* 底部菜单管理：两页各一套（术数页 / 第二页），个人中心恒在末位 */}
                 <section>
-                    <SectionTitle title="底部菜单管理" />
+                    <SectionTitle title="底栏 · 第一页" />
                     <div className="space-y-2">
                         {/* 首页行：固定显示，不可移除、不可拖动 */}
                         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-secondary/40 border border-border">
@@ -303,8 +342,9 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
 
                         {slots.map((id, i) => {
                             const Icon = CANDIDATE_ICONS[id];
-                            const showMoveDown = i === 0 && slots.length > 1;
-                            const showMoveUp = i === slots.length - 1 && slots.length > 1;
+                            // 非末行可下移、非首行可上移：中间行两个箭头都要有
+                            const showMoveDown = i < slots.length - 1;
+                            const showMoveUp = i > 0;
                             return (
                                 <div
                                     key={id}
@@ -360,6 +400,74 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
                     </div>
                 </section>
 
+                {/* 第二页：底栏上滑后显示；槽位同样可更换，默认 术数基础 · 八字案例 · 奇门案例 */}
+                <section>
+                    <SectionTitle title="底栏 · 第二页" />
+                    <div className="space-y-2">
+                        {caseSlots.map((id, i) => {
+                            const Icon = CASE_CANDIDATE_ICONS[id];
+                            const name = caseSlotName(id);
+                            // 非末行可下移、非首行可上移：中间行两个箭头都要有
+                            const showMoveDown = i < caseSlots.length - 1;
+                            const showMoveUp = i > 0;
+                            return (
+                                <div
+                                    key={id}
+                                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-secondary/40 border border-border"
+                                >
+                                    <span className="w-4 text-center font-serif text-[13px] text-muted-foreground/70">{i + 1}</span>
+                                    <span className="w-[34px] h-[34px] shrink-0 rounded-[9px] bg-primary/10 border border-primary/50 text-primary flex items-center justify-center">
+                                        {Icon && <Icon className="w-[17px] h-[17px]" />}
+                                    </span>
+                                    <span className="flex-1 min-w-0 text-[13.5px] font-semibold text-foreground">{name}</span>
+                                    {showMoveDown && (
+                                        <button
+                                            type="button"
+                                            onClick={() => moveCaseSlot(id, 1)}
+                                            className="w-7 h-7 shrink-0 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted/40 flex items-center justify-center transition-colors focus:outline-none focus-ring"
+                                            aria-label={`下移${name}`}
+                                        >
+                                            <ChevronDown className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                    {showMoveUp && (
+                                        <button
+                                            type="button"
+                                            onClick={() => moveCaseSlot(id, -1)}
+                                            className="w-7 h-7 shrink-0 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted/40 flex items-center justify-center transition-colors focus:outline-none focus-ring"
+                                            aria-label={`上移${name}`}
+                                        >
+                                            <ChevronUp className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => handleToggleCaseSlot(id, false)}
+                                        className="w-7 h-7 shrink-0 rounded-lg bg-black/25 border border-border text-muted-foreground hover:text-red-500 hover:border-red-500/40 flex items-center justify-center transition-colors focus:outline-none focus-ring"
+                                        aria-label={`移除${name}`}
+                                    >
+                                        <X className="w-[11px] h-[11px]" />
+                                    </button>
+                                </div>
+                            );
+                        })}
+
+                        {caseSlots.length < MOBILE_NAV_CASE_MAX_SLOTS && (
+                            <button
+                                type="button"
+                                onClick={() => setShowCaseSlotPicker(true)}
+                                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-primary/50 text-[12.5px] text-primary hover:bg-primary/5 transition-colors focus:outline-none focus-ring"
+                            >
+                                <Plus className="w-3.5 h-3.5" />
+                                更换分类
+                            </button>
+                        )}
+                        <p className="px-1 text-center text-[11px] leading-5 text-muted-foreground/70">
+                            上滑切换两页 · 个人中心固定末位
+                        </p>
+                    </div>
+                </section>
+
                 {/* 通用 */}
                 <section>
                     <SectionTitle title="通用" />
@@ -372,15 +480,6 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
                             onClick={handleToggleTheme}
                         />
                         <SettingsRow icon={CalendarDays} label="设置生日" onClick={() => setShowBirthday(true)} />
-                    </div>
-                </section>
-
-                {/* 案例学习独立入口：案例 / 断法两项直达（不占术数槽位） */}
-                <section>
-                    <SectionTitle title="案例学习" />
-                    <div className="rounded-xl border border-border bg-card divide-y divide-border/60 overflow-hidden">
-                        <SettingsRow icon={BookOpen} label="案例" onClick={() => onOpenCaseStudy('bazi')} />
-                        <SettingsRow icon={ScrollText} label="断法" onClick={() => onOpenCaseStudy('duanfa')} />
                     </div>
                 </section>
 
@@ -488,6 +587,39 @@ export default function MobileProfileCenter({ slots, onSlotsChange, onOpenCaseSt
                 </div>
                 <p className="mt-3 text-center text-[11px] text-muted-foreground/70">
                     已固定 {slots.length}/{MOBILE_NAV_MAX_SLOTS}
+                </p>
+            </BaseModal>
+
+            {/* 第二页分类选择弹层：四个分类，开关式固定 */}
+            <BaseModal
+                isOpen={showCaseSlotPicker}
+                onClose={() => setShowCaseSlotPicker(false)}
+                title={<CompactModalTitle>更换第二页分类</CompactModalTitle>}
+                maxWidth="md:max-w-md"
+                bottomSheet
+                bodyClassName="p-4"
+            >
+                <div className="rounded-xl border border-border bg-background divide-y divide-border/60 overflow-hidden">
+                    {MOBILE_NAV_CASE_CANDIDATES.map((item) => {
+                        const Icon = CASE_CANDIDATE_ICONS[item.id];
+                        const on = caseSlots.includes(item.id);
+                        const disabled = !on && caseSlots.length >= MOBILE_NAV_CASE_MAX_SLOTS;
+                        return (
+                            <div key={item.id} className="flex items-center gap-3 px-3 min-h-[52px]">
+                                <span className="w-7 h-7 shrink-0 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground">
+                                    {Icon && <Icon className="w-4 h-4" />}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-sm text-foreground">{item.name}</div>
+                                    {disabled && <div className="text-[11px] text-muted-foreground">槽位已满（{MOBILE_NAV_CASE_MAX_SLOTS}），先移除一个</div>}
+                                </div>
+                                <ToggleSwitch checked={on} disabled={disabled} onChange={(next) => handleToggleCaseSlot(item.id, next)} />
+                            </div>
+                        );
+                    })}
+                </div>
+                <p className="mt-3 text-center text-[11px] text-muted-foreground/70">
+                    已固定 {caseSlots.length}/{MOBILE_NAV_CASE_MAX_SLOTS}
                 </p>
             </BaseModal>
 

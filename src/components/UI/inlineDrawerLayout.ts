@@ -12,7 +12,10 @@ export const INLINE_DRAWER_WIDTH = {
   ms: 'min(85vw, 370px)',
   lg: 'min(92vw, 520px)',
   md: 'min(92vw, 420px)',
-  full: '100%',
+  // 例外：panelSizeClass 里 full 是 w-full（浮层式贴满视口），并排式则扣掉两侧内缩，
+  // 让面板与主内容卡片左右各留 8px、圆角不被视口裁掉。主内容让位量按同一宽度算，
+  // 面板左边缘正好落在主内容右边缘上，主界面被完全挤出去。
+  full: 'calc(100% - 16px)',
 } as const;
 
 /** 面板离屏幕边距的留白（px）。 */

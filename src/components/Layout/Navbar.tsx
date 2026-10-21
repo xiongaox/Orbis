@@ -42,7 +42,8 @@ const navItems: NavItemType[] = [
 interface NavbarProps {
   activeChart: ChartType;
   onChartChange: (chart: ChartType) => void;
-  lockedCharts: ChartType[];
+  /** 锁定键：术数为 ChartType，案例学习为 xiaoliuren:<category> */
+  lockedCharts: string[];
   onToggleChartLock: (chart: ChartType) => void;
 }
 

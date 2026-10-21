@@ -1,30 +1,27 @@
 /**
  * 模块定位：
- * - 主要目标：移动端底部导航栏（方案 C · 极简文字墨栏）与「重选菜单」模块网格浮层
+ * - 主要目标：移动端底部导航栏（方案 C · 极简文字墨栏）
  *
  * 交互模型（design-demos/mobile-bottom-nav 定稿）：
- * - 主菜单层（万年通历首页 / 个人中心）：底栏 = 万年通历（首页固定）+ 可更换术数槽 + 个人中心
- * - 模块层：进入具备抽屉的术数后，底栏原地变为 案例 · 当前模块 · 参考面板 · 重选菜单；
- *   未注册抽屉的模块自动收窄为 当前模块 · 重选菜单
- * - 重选菜单：底部浮层网格（2 列），可跳任意已上线术数或返回主菜单；
- *   格子右侧锁键切换盘面锁定（与桌面端右键锁定等价）
- * - 已锁定模块的底栏槽位：顶部指示位让给切换点（两枚小圆点），点击在已锁定模块间轮换
+ * - 底栏形态恒定，不随层级变形：进模块后仍是主菜单那四槽，只是当前模块高亮。
+ *   左右抽屉改由主内容区左右滑拉开（侧栏已并排式），底栏不再承担「案例 / 排盘信息」入口
+ * - 分两页，靠底栏上下滑切换（底栏在系统手势区内，故同时保留顶边点击兜底）：
+ *   第一页 = 万年通历（首页固定）+ 可更换术数槽 + 个人中心
+ *   第二页 = 分类槽 + 个人中心（默认 术数基础 · 八字案例 · 奇门案例）
+ * - 已锁定多个模块时，点当前模块槽在它们之间轮换
  *
  * 形态：纯文字 13px 衬线高亮 + 顶部墨线，无图标；56px 高，槽间短竖线分隔。
 */
-import { useMemo, useState, type ReactNode } from 'react';
-import { Home, LockKeyhole, LockKeyholeOpen, User } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ChartType } from '../../types';
-import { CATEGORIES } from '../../lib/caseStudy/constants';
 import type { MobileModuleDrawers } from '../../contexts/MobileNavContext';
-import BaseModal, { CompactModalTitle } from '../UI/BaseModal';
 import {
-    MOBILE_NAV_CANDIDATES,
+    MOBILE_NAV_CASE_CANDIDATES,
     MOBILE_NAV_HOME_CHART,
-    MOBILE_NAV_INDEPENDENT,
     mobileNavModuleName,
+    type CaseNavSlot,
 } from '../../lib/mobileNavStorage';
-import { LOCKABLE_CHARTS } from '../../lib/lockedChartStorage';
+import { caseStudyLockKey } from '../../lib/lockedChartStorage';
 
 interface MobileTabBarProps {
     activeChart: ChartType;
@@ -32,18 +29,18 @@ interface MobileTabBarProps {
     profileOpen: boolean;
     /** 已固定的可换槽位（不含首页） */
     slots: ChartType[];
+    /** 第二页已固定分类槽；个人中心恒在末位 */
+    caseSlots: CaseNavSlot[];
     /** 当前激活模块注册的抽屉；缺省时模块层自动收窄 */
     drawers?: MobileModuleDrawers;
     onSelectChart: (chart: ChartType) => void;
-    /** 已锁定盘面的模块（八字 · 奇门）：模块槽标题下方出现切换键，可在已锁定模块间轮换 */
-    lockedCharts: ChartType[];
-    /** 锁定 / 解锁盘面（不影响底栏槽位，槽位在个人中心管理） */
-    onToggleChartLock: (chart: ChartType) => void;
+    /** 锁定键列表：术数为 ChartType，案例学习为 xiaoliuren:<category> */
+    lockedCharts: string[];
+    /** 左滑锁定 / 右滑解锁（个人中心与万年通历不可锁） */
+    onToggleSlotLock: (lockKey: string) => void;
     onOpenProfile: () => void;
-    /** 案例学习分类直达（重选菜单在案例学习内变为分类导航） */
-    onSelectCaseStudyCategory: (category: string) => void;
-    /** 案例学习是否从个人中心进入：案例分类弹层的返回按钮据此回个人中心 */
-    caseStudyFromProfile?: boolean;
+    /** 底栏第二页分类槽直达 */
+    onSelectCaseSlot: (category: CaseNavSlot) => void;
 }
 
 type BarSlot = {
@@ -51,99 +48,148 @@ type BarSlot = {
     label: string;
     active: boolean;
     onTap: () => void;
-    /** 已锁定模块槽的切换键：在全部已锁定模块间轮换（不影响锁定状态本身） */
-    onSwitch?: () => void;
+    /** 该槽位是否已锁定：文案加描边框作标记 */
+    locked: boolean;
+    /** 是否允许锁定（个人中心与万年通历除外） */
+    lockable: boolean;
+    /** 所属页：跨页轮换锁定槽时要跟着翻页 */
+    page: 0 | 1;
 };
+
+/** 底栏翻页手势阈值：纵向位移超过它、且明显大于横向位移才翻页 */
+const PAGE_SWIPE_DISTANCE_PX = 24;
+/** 纵向 / 横向位移比下限，避免斜着划时误翻页 */
+const PAGE_SWIPE_RATIO = 1.5;
+
 
 export default function MobileTabBar({
     activeChart,
     profileOpen,
     slots,
+    caseSlots,
     drawers,
     onSelectChart,
     lockedCharts,
-    onToggleChartLock,
+    onToggleSlotLock,
     onOpenProfile,
-    onSelectCaseStudyCategory,
-    caseStudyFromProfile = false,
+    onSelectCaseSlot,
 }: MobileTabBarProps) {
-    const [gridOpen, setGridOpen] = useState(false);
-    // 重选菜单双模式：案例学习内为分类导航，其余为术数模块网格；打开时按当前模块决定
-    const [casestudyMode, setCasestudyMode] = useState(false);
-    const isHomeLevel = activeChart === MOBILE_NAV_HOME_CHART || profileOpen;
-    const caseStudyLocked = lockedCharts.includes('xiaoliuren');
-    // 已锁定盘面的模块，按可锁定顺序稳定排列（八字 · 奇门），切换键据此轮换
-    const lockedList = useMemo(
-        () => LOCKABLE_CHARTS.filter((chart) => lockedCharts.includes(chart)),
-        [lockedCharts],
-    );
+    // 当前页：0 = 术数页，1 = 案例学习页。
+    // 任何层级都沿用 pageState：八字/奇门/个人中心里同样能上下翻页，页选择跨模块保留
+    const [pageState, setPageState] = useState<0 | 1>(0);
+    const page: 0 | 1 = pageState;
+    // 案例学习当前分类：第二页据此高亮对应槽位（其他模块不注册，自然为空）
+    const activeCaseSlot = drawers?.caseCategory;
+
+    // 槽位构建抽成纯函数：跨页轮换需要同时算出两页的锁定槽
+    const buildSlots = (targetPage: 0 | 1): BarSlot[] => {
+        // 个人中心恒在末位，两页都保留；首页只在第一页。二者都不可锁定
+        const profileSlot: BarSlot = {
+            key: 'profile',
+            label: '个人中心',
+            active: profileOpen,
+            onTap: onOpenProfile,
+            locked: false,
+            lockable: false,
+            page: targetPage,
+        };
+        if (targetPage === 1) {
+            // 第二页：案例学习分类槽（默认 术数基础 · 八字案例 · 奇门案例）。
+            // 每个分类独立锁定，锁定键为 xiaoliuren:<category>
+            const caseList: BarSlot[] = caseSlots.map((id) => {
+                const lockKey = caseStudyLockKey(id);
+                return {
+                    key: lockKey,
+                    label: MOBILE_NAV_CASE_CANDIDATES.find((item) => item.id === id)?.name ?? id,
+                    active: !profileOpen && activeChart === 'xiaoliuren' && id === activeCaseSlot,
+                    onTap: () => onSelectCaseSlot(id),
+                    locked: lockedCharts.includes(lockKey),
+                    lockable: true,
+                    page: 1 as const,
+                };
+            });
+            return [...caseList, profileSlot];
+        }
+        // 第一页：万年通历 + 可换术数槽 + 个人中心。模块层与主菜单层同一套槽位，
+        // 只是当前模块高亮——底栏形态不再随层级变形（开抽屉走左右滑）
+        const list: BarSlot[] = [
+            {
+                key: MOBILE_NAV_HOME_CHART,
+                label: mobileNavModuleName(MOBILE_NAV_HOME_CHART),
+                active: !profileOpen && activeChart === MOBILE_NAV_HOME_CHART,
+                onTap: () => onSelectChart(MOBILE_NAV_HOME_CHART),
+                locked: false,
+                lockable: false,
+                page: 0 as const,
+            },
+        ];
+        for (const id of slots) {
+            const isCurrent = !profileOpen && activeChart === id;
+            list.push({
+                key: id,
+                label: mobileNavModuleName(id),
+                active: isCurrent,
+                onTap: () => onSelectChart(id),
+                locked: lockedCharts.includes(id),
+                lockable: true,
+                page: 0 as const,
+            });
+        }
+        list.push(profileSlot);
+        return list;
+    };
+
+    /** 两页合起来的已锁定槽位：锁定是全局的，两页各锁一个也要联动轮换 */
+    const lockedAcrossPages = useMemo<BarSlot[]>(() => {
+        const first = buildSlots(0).filter((slot) => slot.locked);
+        const second = buildSlots(1).filter((slot) => slot.locked);
+        return [...first, ...second];
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [profileOpen, activeChart, activeCaseSlot, slots, caseSlots, lockedCharts, onSelectChart, onOpenProfile, onSelectCaseSlot]);
+
+    /** 点击当前锁定槽在「两页所有锁定槽」之间轮换，跨页时顺带翻页 */
+    const withLockCycling = (list: BarSlot[]): BarSlot[] => {
+        if (lockedAcrossPages.length < 2) return list;
+        return list.map((slot) => {
+            if (!slot.active || !slot.locked) return slot;
+            return {
+                ...slot,
+                onTap: () => {
+                    const index = lockedAcrossPages.findIndex((item) => item.key === slot.key);
+                    const next = lockedAcrossPages[(index + 1) % lockedAcrossPages.length];
+                    if (!next) return;
+                    // 目标槽在另一页时先翻过去，否则会停在本页看不到高亮
+                    if (next.page !== page) setPageState(next.page);
+                    next.onTap();
+                },
+            };
+        });
+    };
 
     const barSlots = useMemo<BarSlot[]>(() => {
-        const openCase = drawers?.openCase;
-        const openPanel = drawers?.openPanel;
+        const list = buildSlots(page);
+        return withLockCycling(list);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page, profileOpen, activeChart, activeCaseSlot, slots, caseSlots, lockedCharts, onSelectChart, onOpenProfile, onSelectCaseSlot]);
 
-        if (isHomeLevel) {
-            const list: BarSlot[] = [
-                {
-                    key: MOBILE_NAV_HOME_CHART,
-                    label: mobileNavModuleName(MOBILE_NAV_HOME_CHART),
-                    active: !profileOpen && activeChart === MOBILE_NAV_HOME_CHART,
-                    onTap: () => onSelectChart(MOBILE_NAV_HOME_CHART),
-                },
-            ];
-            for (const id of slots) {
-                list.push({
-                    key: id,
-                    label: mobileNavModuleName(id),
-                    active: !profileOpen && activeChart === id,
-                    onTap: () => onSelectChart(id),
-                });
-            }
-            list.push({ key: 'profile', label: '个人中心', active: profileOpen, onTap: onOpenProfile });
-            return list;
-        }
 
-        const list: BarSlot[] = [];
-        if (typeof openCase === 'function') {
-            // 文案由模块按当前分类注册：案例学习给「常识/断法/八字/奇门」，其余模块缺省「案例」
-            list.push({ key: 'case', label: drawers?.caseLabel ?? '案例', active: false, onTap: () => openCase() });
-        }
-        // 当前模块已锁定且存在其他已锁定模块时，标题下方出现切换键
-        const canSwitch = lockedList.length > 1 && lockedList.includes(activeChart);
-        list.push({
-            key: 'module',
-            label: mobileNavModuleName(activeChart),
-            active: true,
-            onTap: () => undefined,
-            onSwitch: canSwitch
-                ? () => {
-                    const index = lockedList.indexOf(activeChart);
-                    const next = lockedList[(index + 1) % lockedList.length];
-                    if (next) onSelectChart(next);
-                }
-                : undefined,
-        });
-        if (typeof openPanel === 'function') {
-            // 常识/断法为「大纲总览」，八字/奇门为「排盘信息」，其余模块缺省「参考面板」
-            list.push({ key: 'panel', label: drawers?.panelLabel ?? '参考面板', active: false, onTap: () => openPanel() });
-        }
-        list.push({
-            key: 'grid',
-            label: '重选菜单',
-            active: false,
-            onTap: () => {
-                setCasestudyMode(activeChart === 'xiaoliuren');
-                setGridOpen(true);
-            },
-        });
-        return list;
-    }, [isHomeLevel, profileOpen, activeChart, slots, drawers, onSelectChart, onOpenProfile, lockedList]);
+    // 手势监听在 effect 内注册，槽位变化时不该重建监听，故用 ref 读最新值
+    const slotsRef = useRef<BarSlot[]>([]);
+    useEffect(() => {
+        slotsRef.current = barSlots;
+    }, [barSlots]);
+
+    // 回调同理：锁定会改状态、引起重渲染，但手势监听不该跟着重建
+    const toggleLockRef = useRef(onToggleSlotLock);
+    useEffect(() => {
+        toggleLockRef.current = onToggleSlotLock;
+    }, [onToggleSlotLock]);
 
     const renderBar = () => {
         const nodes: ReactNode[] = [];
         barSlots.forEach((slot, index) => {
             if (index > 0) {
-                nodes.push(<span key={`sep-${slot.key}`} className="self-center h-3.5 w-px shrink-0 bg-border/60" aria-hidden="true" />);
+                nodes.push(<span key={`sep-${slot.key}`} className="self-center h-3.5 w-px shrink-0 bg-border/60 pointer-events-none" aria-hidden="true" />);
             }
             const labelClass = `relative min-w-0 h-full flex items-center justify-center text-[15px] font-medium tracking-[0.12em] indent-[0.12em] transition-colors focus:outline-none focus-ring ${
                 slot.active ? 'text-primary font-serif font-bold' : 'text-muted-foreground'
@@ -152,21 +198,20 @@ export default function MobileTabBar({
                 <button
                     key={slot.key}
                     type="button"
-                    // 已锁定模块槽：点标题本身即在已锁定模块间轮换（无切换目标时退化为普通槽位）
-                    onClick={slot.onSwitch ?? slot.onTap}
-                    className={`flex-1 ${labelClass}`}
-                    aria-label={slot.onSwitch ? '切换到另一个已锁定模块' : undefined}
-                    title={slot.onSwitch ? `在${lockedList.map(mobileNavModuleName).join(' / ')}之间切换` : undefined}
+                    onClick={slot.onTap}
+                    data-slot-key={slot.key}
+                    className={`flex-1 touch-manipulation ${labelClass}`}
                 >
                     {slot.active && (
-                        // 双盘指示：两根缩短的黄条并排，高亮位对应当前盘在已锁定列表中的位置
-                        slot.onSwitch ? (
+                        // 多个槽位锁定时用并排多段指示（高亮位对应该槽在两页锁定列表中的位置），
+                        // 否则单条墨线
+                        lockedAcrossPages.length > 1 && slot.locked ? (
                             <span className="absolute top-0 left-1/2 -translate-x-1/2 flex gap-[5px]" aria-hidden="true">
-                                {lockedList.map((chart) => (
+                                {lockedAcrossPages.map((item) => (
                                     <span
-                                        key={chart}
+                                        key={item.key}
                                         className={`w-[15px] h-[3px] rounded-b-sm ${
-                                            chart === activeChart ? 'bg-primary' : 'bg-primary/35'
+                                            item.key === slot.key ? 'bg-primary' : 'bg-primary/35'
                                         }`}
                                     />
                                 ))}
@@ -175,187 +220,139 @@ export default function MobileTabBar({
                             <span className="absolute top-0 left-1/2 -translate-x-1/2 w-[26px] h-[3px] rounded-b-sm bg-primary" aria-hidden="true" />
                         )
                     )}
-                    <span className="truncate">{slot.label}</span>
+                    <span
+                        className={`truncate ${
+                            slot.locked ? 'rounded-[6px] border border-primary/70 px-1.5 py-0.5' : ''
+                        }`}
+                    >{slot.label}</span>
                 </button>,
             );
         });
         return nodes;
     };
 
+    // 底栏翻页手势：上滑到第二页（案例学习），下滑回第一页（术数）
+    // 底栏正好压在手机系统手势区（iOS 回主屏、安卓回桌面都会抢上滑），所以：
+    // - 只在主菜单层与案例学习页接管（两页之间可来回翻）；八字/奇门等模块层不响应
+    // - 顶边那枚短横是可点按钮，系统抢走手势时仍能翻页
+    const navRef = useRef<HTMLElement | null>(null);
+    // slot：本次手势起始所在的槽位（左右滑锁定只作用于按下的那个槽）
+    const gestureRef = useRef<{ y0: number; x0: number; slot: BarSlot | null; fired: boolean } | null>(null);
+    const [pulling, setPulling] = useState(false);
+    // 翻页后要吞掉紧随其后的 click，避免松手被当成点了某个槽位。
+    // 关键在复位时机：翻页后浏览器常常根本不派发那个 click（槽位 DOM 已重建），
+    // 若只靠「click 时复位」，标记会一直为真并吞掉下一次真实点击——表现为「要点两下」。
+    // 因此每次 touchstart 都清空：只可能吞掉翻页同一触摸序列产生的 click
+    const swallowClickRef = useRef(false);
+
+    useEffect(() => {
+        const node = navRef.current;
+        if (!node) return;
+        const start = (event: TouchEvent) => {
+            const touch = event.touches[0];
+            if (!touch) return;
+            // 新手势开始即作废上一次的吞 click 标记（见 swallowClickRef 注释）
+            swallowClickRef.current = false;
+            // 左右滑锁定只作用于按下时所在的槽位
+            const target = event.target as HTMLElement | null;
+            const key = target?.closest<HTMLElement>('[data-slot-key]')?.dataset.slotKey;
+            const slot = key ? slotsRef.current.find((item) => item.key === key) ?? null : null;
+            gestureRef.current = { y0: touch.clientY, x0: touch.clientX, slot, fired: false };
+        };
+        const move = (event: TouchEvent) => {
+            const gesture = gestureRef.current;
+            const touch = event.touches[0];
+            if (!gesture || !touch || gesture.fired) return;
+            const dy = touch.clientY - gesture.y0;
+            const dx = touch.clientX - gesture.x0;
+            // 横向明显大于纵向 → 切换该槽位的锁定状态（任一方向都可）
+            const horizontal = Math.abs(dx) > Math.abs(dy) * PAGE_SWIPE_RATIO;
+            if (horizontal && Math.abs(dx) >= PAGE_SWIPE_DISTANCE_PX) {
+                gesture.fired = true;
+                swallowClickRef.current = true;
+                const slot = gesture.slot;
+                // 横滑即切换锁定：未锁定时滑一下锁上，已锁定时任一方向都解开。
+                // 不再用方向区分锁/解——方向判定在窄高度底栏里容易误判，且记不住
+                if (slot?.lockable) toggleLockRef.current(slot.key);
+                setPulling(false);
+                return;
+            }
+            // 纵向已明显大于横向即进入「正在拉」状态，短横随之变长，给出手势反馈
+            const vertical = Math.abs(dy) > Math.abs(dx) * PAGE_SWIPE_RATIO;
+            setPulling(vertical && Math.abs(dy) >= PAGE_SWIPE_DISTANCE_PX / 2);
+            if (Math.abs(dy) < PAGE_SWIPE_DISTANCE_PX) return;
+            if (!vertical) return;
+            gesture.fired = true;
+            // 第一页只有上滑翻页（下滑留给正常滚动）；第二页上下滑都回第一页——
+            // 「只能靠下滑回去」等于把唯一出口放在最容易误触的方向上
+            const next: 0 | 1 = page === 1 ? 0 : dy < 0 ? 1 : 0;
+            if (next !== page) {
+                swallowClickRef.current = true;
+                setPageState(next);
+            }
+        };
+        const end = () => {
+            gestureRef.current = null;
+            setPulling(false);
+        };
+        node.addEventListener('touchstart', start, { passive: true });
+        node.addEventListener('touchmove', move, { passive: true });
+        node.addEventListener('touchend', end, { passive: true });
+        node.addEventListener('touchcancel', end, { passive: true });
+        return () => {
+            node.removeEventListener('touchstart', start);
+            node.removeEventListener('touchmove', move);
+            node.removeEventListener('touchend', end);
+            node.removeEventListener('touchcancel', end);
+        };
+    }, [page]);
+
+    const flipPage = () => {
+        setPageState(page === 0 ? 1 : 0);
+    };
+
     return (
         <>
-            <nav className="relative shrink-0 h-14 border-t border-border bg-background" aria-label="主导航">
+            <nav
+                ref={navRef}
+                // touch-manipulation 而非 touch-pan-x：后者在手指纵向微动时会让浏览器
+                // 取消这次 click（被判定成纵向手势），表现为「只有点到文字才有反应」。
+                // manipulation 保留点击灵敏度，手势仍由下面的 passive 监听处理
+                className="relative shrink-0 h-14 border-t border-border bg-background touch-manipulation"
+                aria-label="主导航"
+                // 翻页后吞掉紧随的 click，避免松手被当成点了槽位
+                onClickCapture={(event) => {
+                    if (!swallowClickRef.current) return;
+                    swallowClickRef.current = false;
+                    event.stopPropagation();
+                    event.preventDefault();
+                }}
+            >
+                {/* 翻页提示：底边短横，主菜单层可点；上滑/下滑判定中变长变亮 */}
+                {(
+                    <button
+                        type="button"
+                        onClick={flipPage}
+                        aria-label={page === 0 ? '切换到案例学习菜单' : '切换到术数菜单'}
+                        title={page === 0 ? '上滑或点此：案例学习' : '下滑或点此：术数'}
+                        className="absolute -bottom-[3px] left-1/2 z-10 -translate-x-1/2 flex h-3 w-14 items-center justify-center focus:outline-none focus-ring"
+                    >
+                        <span
+                            className={`h-[2px] rounded-full bg-primary transition-all ${
+                                pulling ? 'w-12 opacity-100' : 'w-6 opacity-40'
+                            }`}
+                        />
+                    </button>
+                )}
                 {/* 不用毛玻璃：WKWebView 下 backdrop-filter 合成层会盖住后续 fixed 弹层（如设置生日） */}
-                <div key={isHomeLevel ? `home-${slots.join('-')}` : `module-${activeChart}`} className="flex h-full animate-fade-in">
+                {/* key 不能含 page：翻页时 key 变化会让 React 卸载重建整排槽位，
+                    松手后的 click 落在被替换的节点上，第一次点击就丢（表现为「要点两次」）。
+                    槽位本身已带 key，内容变化由 React 按 key 复用即可 */}
+                <div key="main-menu" className="flex h-full">
                     {renderBar()}
                 </div>
             </nav>
 
-            <BaseModal
-                isOpen={gridOpen}
-                onClose={() => setGridOpen(false)}
-                title={<CompactModalTitle>{casestudyMode ? '案例分类' : '选择功能模块'}</CompactModalTitle>}
-                // 底部弹层移动端始终全宽，maxWidth 仅作用于 md+ 居中形态
-                maxWidth="md:max-w-md"
-                bottomSheet
-                bodyClassName="p-4"
-            >
-                {casestudyMode ? (
-                    <>
-                        <div className="flex gap-2">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setGridOpen(false);
-                                    if (caseStudyFromProfile) onOpenProfile();
-                                    else onSelectChart(MOBILE_NAV_HOME_CHART);
-                                }}
-                                className="flex-[2] h-10 rounded-lg border border-border bg-secondary/60 text-sm text-foreground flex items-center justify-center gap-2 hover:bg-secondary transition-colors"
-                            >
-                                {caseStudyFromProfile ? <User className="w-4 h-4 text-muted-foreground" /> : <Home className="w-4 h-4 text-muted-foreground" />}
-                                {caseStudyFromProfile ? '返回个人中心' : '返回主菜单'}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setCasestudyMode(false)}
-                                className="flex-1 h-10 rounded-lg border border-border bg-secondary/60 text-sm text-muted-foreground flex items-center justify-center hover:bg-secondary hover:text-foreground transition-colors"
-                            >
-                                切换术数
-                            </button>
-                            {/* 案例学习也能锁定：锁定后切去查资料再回来，仍停在当前分类与文章 */}
-                            <button
-                                type="button"
-                                onClick={() => onToggleChartLock('xiaoliuren')}
-                                aria-pressed={caseStudyLocked}
-                                aria-label={caseStudyLocked ? '解除案例学习锁定' : '锁定案例学习'}
-                                title={caseStudyLocked ? '解除锁定' : '锁定：切走再回来仍停在当前分类与文章'}
-                                className={`w-10 h-10 shrink-0 rounded-lg border flex items-center justify-center transition-colors ${
-                                    caseStudyLocked
-                                        ? 'border-primary/50 bg-primary/10 text-primary hover:bg-primary/15'
-                                        : 'border-border bg-secondary/60 text-muted-foreground hover:text-foreground hover:bg-secondary'
-                                }`}
-                            >
-                                {caseStudyLocked
-                                    ? <LockKeyhole className="w-4 h-4" />
-                                    : <LockKeyholeOpen className="w-4 h-4" />}
-                            </button>
-                        </div>
-
-                        <div className="mt-3 grid grid-cols-3 gap-2">
-                            {CATEGORIES.map((cat) => (
-                                <button
-                                    key={cat.id}
-                                    type="button"
-                                    onClick={() => {
-                                        setGridOpen(false);
-                                        onSelectCaseStudyCategory(cat.id);
-                                    }}
-                                    className="flex items-center justify-center rounded-xl border border-border bg-background py-5 hover:bg-secondary/40 transition-colors"
-                                >
-                                    <span className="text-[13px] font-medium text-foreground">
-                                        {cat.name === '断法' ? '断法' : `${cat.name}案例`}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
-                    </>
-                ) : (
-                    <>
-                        {/* 3 列网格：万年通历 / 术数 / 案例学习 / 个人中心 共 6 格两行；
-                            格子进入目标，术数格右侧锁键切换盘面锁定 */}
-                        <div className="grid grid-cols-3 gap-2">
-                            {[
-                                MOBILE_NAV_HOME_CHART,
-                                ...MOBILE_NAV_CANDIDATES.map((item) => item.id),
-                                ...MOBILE_NAV_INDEPENDENT.map((item) => item.id),
-                            ].map((id) => {
-                                const isHome = id === MOBILE_NAV_HOME_CHART;
-                                const isIndependent = MOBILE_NAV_INDEPENDENT.some((item) => item.id === id);
-                                // 锁键只管盘面锁定；首页不可锁定（案例学习与术数一样可锁），只显示归属标签
-                                const lockable = !isHome;
-                                const locked = lockedCharts.includes(id);
-                                const active = id === activeChart && !profileOpen;
-                                return (
-                                    <div
-                                        key={id}
-                                        className={`relative flex rounded-xl border transition-colors ${
-                                            active
-                                                ? 'border-primary/50 bg-primary/10'
-                                                : 'border-border bg-background hover:bg-secondary/40'
-                                        }`}
-                                    >
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setGridOpen(false);
-                                                onSelectChart(id);
-                                            }}
-                                            className={`flex w-full min-w-0 flex-col justify-center gap-1.5 px-3 py-3 text-left focus:outline-none focus-ring min-h-[60px] ${
-                                                lockable ? 'pr-9' : ''
-                                            }`}
-                                        >
-                                            <span className={`truncate text-[13px] font-medium leading-none ${active ? 'text-primary' : 'text-foreground'}`}>
-                                                {mobileNavModuleName(id)}
-                                            </span>
-                                            {/* 副标签行：统一为「分类」语义，与个人中心的「设置」同级别；
-                                                锁定开关状态由右侧锁键表达，不在这里重复 */}
-                                            <span className={`text-[10px] leading-none ${
-                                                isHome ? 'text-primary' : 'text-muted-foreground'
-                                            }`}>
-                                                {isHome ? '首页' : isIndependent ? '案例' : '术数'}
-                                            </span>
-                                        </button>
-                                        {/* 锁键固定在格子右侧、垂直居中，不参与标题排版 */}
-                                        {lockable && (
-                                            <span
-                                                role="button"
-                                                tabIndex={0}
-                                                onClick={(event) => {
-                                                    event.stopPropagation();
-                                                    onToggleChartLock(id);
-                                                }}
-                                                onKeyDown={(event) => {
-                                                    if (event.key !== 'Enter' && event.key !== ' ') return;
-                                                    event.preventDefault();
-                                                    event.stopPropagation();
-                                                    onToggleChartLock(id);
-                                                }}
-                                                aria-label={locked ? `解除${mobileNavModuleName(id)}盘面锁定` : `锁定${mobileNavModuleName(id)}盘面`}
-                                                aria-pressed={locked}
-                                                title={locked ? '解除盘面锁定' : '锁定盘面：切走再回来盘面保持不动'}
-                                                className={`absolute right-1.5 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-md transition-colors focus:outline-none focus-ring ${
-                                                    locked
-                                                        ? 'bg-primary/10 text-primary hover:bg-primary/15'
-                                                        : 'text-muted-foreground/40 hover:bg-secondary/60 hover:text-muted-foreground'
-                                                }`}
-                                            >
-                                                {locked
-                                                    ? <LockKeyhole className="h-3.5 w-3.5" />
-                                                    : <LockKeyholeOpen className="h-3.5 w-3.5" />}
-                                            </span>
-                                        )}
-                                    </div>
-                                );
-                            })}
-
-                            {/* 第 6 格：个人中心（与模块卡片同形同两行结构，补齐两行三列） */}
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setGridOpen(false);
-                                    onOpenProfile();
-                                }}
-                                className="flex w-full min-w-0 flex-col justify-center gap-1.5 rounded-xl border border-border bg-background px-3 py-3 text-left transition-colors hover:bg-secondary/40 focus:outline-none focus-ring min-h-[60px]"
-                            >
-                                <span className="flex min-w-0 items-center gap-1">
-                                    <span className="truncate text-[13px] font-medium leading-none text-foreground">个人中心</span>
-                                </span>
-                                <span className="text-[10px] leading-none text-muted-foreground">设置</span>
-                            </button>
-                        </div>
-                    </>
-                )}
-            </BaseModal>
         </>
     );
 }

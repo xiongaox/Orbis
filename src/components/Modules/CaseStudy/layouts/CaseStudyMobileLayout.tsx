@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import { Compass, Dices } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
@@ -7,6 +8,7 @@ import remarkBreaks from 'remark-breaks';
 import { CATEGORIES } from '../../../../lib/caseStudy/constants';
 import { KNOWLEDGE_ITEMS } from '../../../../lib/caseStudy/knowledgeData';
 import SideDrawer from '../../../UI/SideDrawer';
+import { INLINE_DRAWER_WIDTH, inlineDrawerOffset } from '../../../UI/inlineDrawerLayout';
 import CategoryTabs from '../components/CategoryTabs';
 import CaseListSidebar from '../components/CaseListSidebar';
 import { caseMarkdownComponents, authorMarkdownComponents } from '../components/MarkdownRenderers';
@@ -62,11 +64,49 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
         ? '案例'
         : (CATEGORIES.find((cat) => cat.id === selectedCategory)?.name ?? '常识');
     useRegisterMobileDrawers('xiaoliuren', {
-        openCase: () => setIsLeftPanelOpen(true),
-        openPanel: () => setIsChartPanelOpen(true),
+        // 底栏槽位点击：左右抽屉互斥——打开一侧时先关掉另一侧，
+        // 否则两个并排式抽屉同时打开会互相挤压主内容的让位量。
+        // 这里的 setter 来自 props 且声明为 (v: boolean) => void，不能传函数式更新
+        openCase: () => {
+            const next = !isLeftPanelOpen;
+            setIsChartPanelOpen(false);
+            setIsLeftPanelOpen(next);
+        },
+        openPanel: () => {
+            const next = !isChartPanelOpen;
+            setIsLeftPanelOpen(false);
+            setIsChartPanelOpen(next);
+        },
         caseLabel: caseDrawerLabel,
+        // 底栏第二页据此高亮当前分类槽
+        caseCategory: selectedCategory,
         panelLabel: isChartCategory ? '排盘信息' : '大纲总览',
+        // 并排式抽屉状态：打开时滑动改为「关闭」，而不是再开一层
+        inlineOpen: isLeftPanelOpen || isChartPanelOpen,
+        inlineSide: isLeftPanelOpen ? 'left' : isChartPanelOpen ? 'right' : undefined,
+        closeInline: () => {
+            setIsLeftPanelOpen(false);
+            setIsChartPanelOpen(false);
+        },
     });
+
+    // 并排式抽屉的宿主节点：卡片会被 translate 平移，而 transform 会让它成为
+    // 绝对定位后代的包含块——常识分类的「大纲」抽屉由 KnowledgePage 渲染在卡片内部，
+    // 不 portal 出来就会跟着卡片一起被推出屏幕。这个外层容器不平移、尺寸与卡片一致，
+    // 抽屉挂在这里就和八字/奇门一样贴边对齐。
+    const [drawerHost, setDrawerHost] = useState<HTMLDivElement | null>(null);
+
+    // 并排式抽屉：主内容平移量与侧栏宽度共用 INLINE_DRAWER_WIDTH。
+    // 左栏固定 xxs（目录/案例列表）；右栏断法大纲与常识大纲是窄目录用 xxs，八字盘用 sm。
+    // 奇门盘用 full：九宫格字段密集，窄栏会把宫格挤到换行、看不清，
+    // 这里宁可把主界面整个挤出去也要给盘面足够宽度（抽屉两侧仍各留 8px 内缩）。
+    // 案例正文区自带 p-6 内边距，与八字内容区的 px-2 同属「主内容已有留白」，故不补 extraGap。
+    const panelSize = selectedCategory === 'qimen' ? 'full' : selectedCategory === 'bazi' ? 'sm' : 'xxs';
+    const inlineOffset = isLeftPanelOpen
+        ? inlineDrawerOffset(INLINE_DRAWER_WIDTH.xxs, 'left')
+        : isChartPanelOpen
+            ? inlineDrawerOffset(INLINE_DRAWER_WIDTH[panelSize], 'right')
+            : undefined;
 
     const contentColumn = (
         <div className="flex-1 flex flex-col bg-background/50 relative overflow-hidden">
@@ -181,8 +221,28 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
     );
 
     return (
-        <>
-            <div className="flex-1 flex flex-col overflow-hidden relative">
+        <div ref={setDrawerHost} className="relative flex-1 min-h-0 min-w-0 flex flex-col">
+            {/* 并排式抽屉：主内容整体平移让位（宽度不变、不重排），侧栏从侧边推出。
+                只移动不缩放，正文可读性不受影响；关闭后 transform 归零。
+                主界面与侧栏统一为浮起圆角卡片：内缩 8px + 圆角 2xl + 边框，
+                与 SideDrawer 并排式面板（top-2/bottom-2/left-2|right-2 + rounded-2xl）一致，
+                与八字/奇门移动端同款。根节点是 bg-background，内缩露出的就是应用底色。 */}
+            <div
+                className="relative flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col transition-transform duration-300 ease-out m-2 rounded-2xl border border-border bg-background"
+                style={inlineOffset ? { transform: inlineOffset } : undefined}
+            >
+                {/* 并排式抽屉打开时，主内容上的透明点击区负责关闭（无遮罩，不影响观感） */}
+                {(isLeftPanelOpen || isChartPanelOpen) && (
+                    <button
+                        type="button"
+                        aria-label="关闭侧栏"
+                        onClick={() => {
+                            setIsLeftPanelOpen(false);
+                            setIsChartPanelOpen(false);
+                        }}
+                        className="absolute inset-0 z-40"
+                    />
+                )}
                 {/* 左右竖线把手（已由底栏接管，默认隐藏） */}
                 {SHOW_EDGE_HANDLES && (
                     <button type="button" onClick={() => setIsLeftPanelOpen(true)} className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-start group focus:outline-none" aria-label="打开目录">
@@ -212,7 +272,7 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                         <KnowledgePage
                             initialItemId={props.changshiItemId}
                             onItemChange={props.setChangshiItemId}
-                            outlineDrawer={{ open: isChartPanelOpen, onClose: () => setIsChartPanelOpen(false) }}
+                            outlineDrawer={{ open: isChartPanelOpen, onClose: () => setIsChartPanelOpen(false), inline: true, portalTarget: drawerHost }}
                         />
                     </div>
                 ) : (
@@ -220,7 +280,7 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                 )}
             </div>
 
-            <SideDrawer open={isLeftPanelOpen} title="目录" side="left" size="xxs" onClose={() => setIsLeftPanelOpen(false)}>
+            <SideDrawer open={isLeftPanelOpen} title="目录" side="left" size="xxs" inline onClose={() => setIsLeftPanelOpen(false)}>
                 <div className="h-full min-h-0 overflow-hidden flex flex-col">
                     <CategoryTabs categories={CATEGORIES} selectedId={selectedCategory} onSelect={(id) => { setSelectedCategory(id); }} variant="drawer" />
                     {selectedCategory === 'duanfa' ? (
@@ -261,7 +321,7 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
 
             {/* 常识分类的「大纲」抽屉由 KnowledgePage 自己渲染，这里只管断法与排盘 */}
             {selectedCategory !== 'changshi' && (
-                <SideDrawer open={isChartPanelOpen} title={selectedCategory === 'duanfa' ? '大纲' : '排盘信息'} side="right" size={selectedCategory === 'duanfa' ? 'xxs' : 'full'} onClose={() => setIsChartPanelOpen(false)}>
+                <SideDrawer open={isChartPanelOpen} title={selectedCategory === 'duanfa' ? '大纲' : '排盘信息'} side="right" size={panelSize} inline onClose={() => setIsChartPanelOpen(false)}>
                     {selectedCategory === 'duanfa' ? (
                         <DuanFaOutline outline={duanFa.outline} activeSectionId={duanFa.activeSectionId} onItemClick={(id) => { duanFa.handleOutlineClick(id); setIsChartPanelOpen(false); }} variant="drawer" />
                     ) : (
@@ -269,6 +329,6 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                     )}
                 </SideDrawer>
             )}
-        </>
+        </div>
     );
 }

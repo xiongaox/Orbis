@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveAxis, resolveSwipeDirection } from './useMobileDrawerSwipe';
+import { isPushBackClose, resolveAxis, resolveSwipeDirection } from './useMobileDrawerSwipe';
 
 describe('移动端左右滑开抽屉的判定', () => {
     it('死区内不判方向，避免轻微抖动误判', () => {
@@ -28,5 +28,19 @@ describe('移动端左右滑开抽屉的判定', () => {
     it('纵向手势即使横向位移够大也不开抽屉', () => {
         expect(resolveSwipeDirection('y', -200)).toBeNull();
         expect(resolveSwipeDirection(null, -200)).toBeNull();
+    });
+
+    // 并排式抽屉的关闭方向：必须顺应手势，只有「把侧栏推回去」才关。
+    // 曾经不看方向、左右滑都关，导致抽屉里左滑露出「编辑/删除」时侧栏被关掉。
+    it('左抽屉只有向左推才关，右抽屉只有向右推才关', () => {
+        expect(isPushBackClose('left', -80)).toBe(true);
+        expect(isPushBackClose('left', 80)).toBe(false);
+        expect(isPushBackClose('right', 80)).toBe(true);
+        expect(isPushBackClose('right', -80)).toBe(false);
+    });
+
+    it('关闭方向也受触发阈值约束', () => {
+        expect(isPushBackClose('left', -20)).toBe(false);
+        expect(isPushBackClose('right', 20)).toBe(false);
     });
 });

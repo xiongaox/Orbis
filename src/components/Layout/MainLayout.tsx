@@ -69,6 +69,7 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, chart, c
         panelLabel: '排盘信息',
         // 并排式抽屉状态：打开时滑动改为「关闭」，而不是再开一层
         inlineOpen: inlineDrawer && (isSidebarOpen || isRightPanelOpen),
+        inlineSide: isSidebarOpen ? 'left' : isRightPanelOpen ? 'right' : undefined,
         closeInline: () => {
             setIsSidebarOpen(false);
             setIsRightPanelOpen(false);
