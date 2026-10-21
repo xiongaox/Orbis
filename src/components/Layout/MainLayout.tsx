@@ -7,6 +7,7 @@ import { cloneElement, isValidElement, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import SideDrawer from '../UI/SideDrawer';
+import { INLINE_DRAWER_WIDTH, inlineDrawerOffset } from '../UI/inlineDrawerLayout';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useRegisterMobileDrawers } from '../../contexts/MobileNavContext';
 import type { ChartType } from '../../types';
@@ -31,13 +32,47 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, chart, c
 
     const hasRightPanel = useMemo(() => Boolean(liuYiPanel || insightPanel), [liuYiPanel, insightPanel]);
 
+    // 并排式抽屉只在手机端启用；Pad 横屏保留浮层式，避免改变既有 Pad 视觉预期。
+    // 主内容的平移量直接复用侧栏宽度表达式（INLINE_DRAWER_WIDTH），无需测量 DOM：
+    // 左抽屉推出 → 主内容右移 +W；右抽屉推出 → 左移 -W；同时只可能开一个。
+    const inlineDrawer = isMobile;
+    const drawerSize = isPadLandscape ? 'xs' : 'xxs';
+    const panelSize = isPadLandscape ? 'md' : 'sm';
+    const inlineOffset = inlineDrawer
+        ? isSidebarOpen
+            ? inlineDrawerOffset(INLINE_DRAWER_WIDTH[drawerSize], 'left')
+            : isRightPanelOpen
+                ? inlineDrawerOffset(INLINE_DRAWER_WIDTH[panelSize], 'right')
+                : undefined
+        : undefined;
+
     // 移动端底栏注册：手机上「案例 / 参考面板」入口由底部导航接管
     useRegisterMobileDrawers(chart ?? null, {
-        openCase: sidebar ? () => setIsSidebarOpen(true) : undefined,
-        openPanel: hasRightPanel ? () => setIsRightPanelOpen(true) : undefined,
+        // 底栏槽位点击：左右抽屉互斥——打开一侧时先关掉另一侧，
+        // 否则两个抽屉同时打开，后渲染的那个会叠在上层盖住前一个。
+        openCase: sidebar
+            ? () => {
+                const next = !isSidebarOpen;
+                setIsRightPanelOpen(false);
+                setIsSidebarOpen(next);
+            }
+            : undefined,
+        openPanel: hasRightPanel
+            ? () => {
+                const next = !isRightPanelOpen;
+                setIsSidebarOpen(false);
+                setIsRightPanelOpen(next);
+            }
+            : undefined,
         // 排盘类模块：左抽屉是案例列表，右抽屉是排盘信息
         caseLabel: '案例',
         panelLabel: '排盘信息',
+        // 并排式抽屉状态：打开时滑动改为「关闭」，而不是再开一层
+        inlineOpen: inlineDrawer && (isSidebarOpen || isRightPanelOpen),
+        closeInline: () => {
+            setIsSidebarOpen(false);
+            setIsRightPanelOpen(false);
+        },
     });
 
     const sidebarNode = useMemo(() => {
@@ -86,7 +121,25 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, chart, c
 
     return (
         <div className="flex flex-1 min-h-0 overflow-hidden relative">
-            <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
+            {/* 并排式抽屉：主内容整体平移让位（宽度不变、不重排），侧栏从侧边推出。
+                只移动不缩放，正文可读性不受影响；关闭后 transform 归零。
+                Pad 横屏仍用浮层式，避免与既有 Pad 布局的视觉预期冲突。 */}
+            <main
+                className="relative flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col transition-transform duration-300 ease-out m-2 rounded-2xl border border-border bg-background"
+                style={inlineOffset ? { transform: inlineOffset } : undefined}
+            >
+                {/* 并排式抽屉打开时，主内容上的透明点击区负责关闭（无遮罩，所以不影响观感） */}
+                {inlineDrawer && (isSidebarOpen || isRightPanelOpen) && (
+                    <button
+                        type="button"
+                        aria-label="关闭侧栏"
+                        onClick={() => {
+                            setIsSidebarOpen(false);
+                            setIsRightPanelOpen(false);
+                        }}
+                        className="absolute inset-0 z-40"
+                    />
+                )}
                 {showTopBar && (
                     <div className="px-3 py-2 border-b border-border/40 bg-background/70 backdrop-blur-sm flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -159,8 +212,9 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, chart, c
                     open={isSidebarOpen}
                     title="案例"
                     side="left"
+                    inline={inlineDrawer}
                     hideHeader={isPadLandscape}
-                    size={isPadLandscape ? 'xs' : 'xxs'}
+                    size={drawerSize}
                     onClose={() => setIsSidebarOpen(false)}
                 >
                     {sidebarNode}
@@ -172,8 +226,9 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, chart, c
                     open={isRightPanelOpen}
                     title="参考面板"
                     side="right"
+                    inline={inlineDrawer}
                     hideHeader={isPadLandscape}
-                    size={isPadLandscape ? 'md' : 'sm'}
+                    size={panelSize}
                     onClose={() => setIsRightPanelOpen(false)}
                 >
                     {/* 整体可滚动，干支留意可以滚出视野 */}

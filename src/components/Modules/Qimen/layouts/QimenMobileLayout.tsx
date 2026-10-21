@@ -8,6 +8,7 @@ import QimenGuideModal from '../components/QimenGuideModal';
 import CaseDialogModal from '../components/CaseDialogModal';
 import type { CaseDialogKind } from '../../../Common/caseDialog';
 import SideDrawer from '../../../UI/SideDrawer';
+import { INLINE_DRAWER_WIDTH, inlineDrawerOffset } from '../../../UI/inlineDrawerLayout';
 import { useRegisterMobileDrawers } from '../../../../contexts/MobileNavContext';
 import { type QimenLayoutProps } from './QimenLayoutProps';
 import { useCasePrivacy } from '../../../../contexts/CasePrivacyContext';
@@ -47,12 +48,38 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
 
     // 移动端底栏注册：案例（左抽屉）与 局信息/宫位详情（右抽屉）由底部导航槽位打开
     useRegisterMobileDrawers('qimen', {
-        openCase: () => setIsCaseListOpen(true),
-        openPanel: () => setIsInfoOpen(true),
+        // 底栏槽位点击：左右抽屉互斥——打开一侧时先关掉另一侧，
+        // 否则两个抽屉同时打开，后渲染的那个会叠在上层盖住前一个。
+        // 这里的 setter 来自 props 且声明为 (v: boolean) => void，不能传函数式更新
+        openCase: () => {
+            const next = !isCaseListOpen;
+            setIsInfoOpen(false);
+            setIsCaseListOpen(next);
+        },
+        openPanel: () => {
+            const next = !isInfoOpen;
+            setIsCaseListOpen(false);
+            setIsInfoOpen(next);
+        },
         // 排盘类模块：左抽屉是案例列表，右抽屉是排盘信息
         caseLabel: '案例',
         panelLabel: '排盘信息',
+        // 并排式抽屉状态：打开时滑动改为「关闭」，而不是再开一层
+        inlineOpen: isCaseListOpen || isInfoOpen,
+        closeInline: () => {
+            setIsCaseListOpen(false);
+            setIsInfoOpen(false);
+        },
     });
+
+    // 并排式抽屉：主内容平移量与侧栏宽度共用 INLINE_DRAWER_WIDTH。
+    // 奇门移动端盘面是 p-0（见 QimenChart），没有八字内容区的 px-2，
+    // 所以让位量额外补 8px，两侧视觉间距才与八字一致（盘面宽度不受影响）。
+    const inlineOffset = isCaseListOpen
+        ? inlineDrawerOffset(INLINE_DRAWER_WIDTH.xxs, 'left', 8)
+        : isInfoOpen
+            ? inlineDrawerOffset(INLINE_DRAWER_WIDTH.sm, 'right', 8)
+            : undefined;
 
     // 获取选中的宫位数据
     const selectedPalaceData = selectedPalace
@@ -86,7 +113,27 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
 
     return (
         <>
-            <main className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col">
+            {/* 并排式抽屉：主内容整体平移让位（宽度不变、不重排），侧栏从侧边推出。
+                只移动不缩放，盘面可读性不受影响；关闭后 transform 归零。
+                主界面与侧栏统一为浮起圆角卡片：内缩 8px + 圆角 2xl + 边框，
+                与 SideDrawer 并排式面板（top-2/bottom-2/left-2|right-2 + rounded-2xl）一致。
+                根节点是 bg-background，内缩露出的就是应用底色。 */}
+            <main
+                className="relative flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col transition-transform duration-300 ease-out m-2 rounded-2xl border border-border bg-background"
+                style={inlineOffset ? { transform: inlineOffset } : undefined}
+            >
+                {/* 并排式抽屉打开时，主内容上的透明点击区负责关闭（无遮罩，不影响观感） */}
+                {(isCaseListOpen || isInfoOpen) && (
+                    <button
+                        type="button"
+                        aria-label="关闭侧栏"
+                        onClick={() => {
+                            setIsCaseListOpen(false);
+                            setIsInfoOpen(false);
+                        }}
+                        className="absolute inset-0 z-40"
+                    />
+                )}
                 <div className="p-2 border-b border-border/40 bg-background/70 backdrop-blur-sm">
                     <div className="grid grid-cols-5 gap-1.5">
                         <button
@@ -224,6 +271,7 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
                 title="案例"
                 side="left"
                 size="xxs"
+                inline
                 onClose={() => setIsCaseListOpen(false)}
             >
                 <QimenCaseList
@@ -251,6 +299,7 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
                 title={selectedPalaceData ? '宫位详情' : '局信息'}
                 side="right"
                 size="sm"
+                inline
                 onClose={() => setIsInfoOpen(false)}
             >
                 <div className="h-full min-h-0 overflow-hidden flex flex-col">

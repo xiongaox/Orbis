@@ -18,6 +18,10 @@ export interface MobileModuleDrawers {
     caseLabel?: string;
     /** 右抽屉在底栏的文案；缺省时用通用「参考面板」。常识/断法为「大纲总览」，排盘类为「排盘信息」 */
     panelLabel?: string;
+    /** 并排式抽屉是否打开：用于把「滑开」切换成「滑动关闭」 */
+    inlineOpen?: boolean;
+    /** 关闭并排式抽屉 */
+    closeInline?: () => void;
 }
 
 type DrawerRegistry = Partial<Record<ChartType, MobileModuleDrawers>>;
@@ -78,18 +82,20 @@ export function useRegisterMobileDrawers(chart: ChartType | null, drawers: Mobil
         drawersRef.current = drawers;
     }, [drawers]);
 
-    // 文案会随分类切换（常识/断法/八字/奇门），必须进依赖以重新注册，
-    // 否则底栏停留在首次挂载时的文案
-    const { caseLabel, panelLabel } = drawers;
+    // 文案会随分类切换（常识/断法/八字/奇门），inlineOpen 会随抽屉开关变化，
+    // 都必须进依赖以重新注册，否则底栏文案与滑动语义会停在旧值
+    const { caseLabel, panelLabel, inlineOpen } = drawers;
 
     useEffect(() => {
         if (!chart) return;
         registerDrawers(chart, {
             openCase: () => drawersRef.current.openCase?.(),
             openPanel: () => drawersRef.current.openPanel?.(),
+            closeInline: () => drawersRef.current.closeInline?.(),
             caseLabel,
             panelLabel,
+            inlineOpen,
         });
         return () => unregisterDrawers(chart);
-    }, [chart, caseLabel, panelLabel, registerDrawers, unregisterDrawers]);
+    }, [chart, caseLabel, panelLabel, inlineOpen, registerDrawers, unregisterDrawers]);
 }

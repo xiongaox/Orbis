@@ -18,6 +18,7 @@ import SanYuanPage from './components/Modules/SanYuan/SanYuanPage';
 import CaseStudyPage from './components/Modules/CaseStudy/CaseStudyPage';
 import BaziCaseLibraryModal from './components/Modules/Bazi/BaziCaseLibraryModal';
 import { useLayoutMode } from './hooks/useLayoutMode';
+import { useMobileDrawerSwipe } from './hooks/useMobileDrawerSwipe';
 import { useInsightContent } from './hooks/useInsightContent';
 import { useGanZhiLiuYi } from './hooks/useGanZhiLiuYi';
 import type { ChartType } from './types';
@@ -51,6 +52,30 @@ function AppShell() {
   const [caseStudyFromProfile, setCaseStudyFromProfile] = useState(false);
   const mobileDrawerRegistry = useMobileNavRegistry();
   const activeDrawers = mobileDrawerRegistry[activeChart];
+
+  // 移动端内容区左右滑开抽屉：替代每次点底栏槽位。
+  // 手指向右滑 → 左抽屉（案例/目录）从左边拉出；手指向左滑 → 右抽屉（排盘信息/大纲总览）从右边拉出。
+  // 首页与个人中心没有注册抽屉，enabled 自然为 false
+  const openCaseDrawer = activeDrawers?.openCase;
+  const openPanelDrawer = activeDrawers?.openPanel;
+  // 并排式抽屉打开时，任意方向滑动改为关闭（原生 app 手感），不再重复开层
+  const inlineOpen = activeDrawers?.inlineOpen ?? false;
+  const closeInlineDrawer = activeDrawers?.closeInline;
+  const handleOpenLeftDrawer = useCallback(() => {
+    openCaseDrawer?.();
+  }, [openCaseDrawer]);
+  const handleOpenRightDrawer = useCallback(() => {
+    openPanelDrawer?.();
+  }, [openPanelDrawer]);
+  const handleSwipeClose = useCallback(() => {
+    closeInlineDrawer?.();
+  }, [closeInlineDrawer]);
+  useMobileDrawerSwipe({
+    enabled: isMobile && !showMobileProfile && Boolean(openCaseDrawer || openPanelDrawer || inlineOpen),
+    onOpenLeft: inlineOpen ? undefined : openCaseDrawer ? handleOpenLeftDrawer : undefined,
+    onOpenRight: inlineOpen ? undefined : openPanelDrawer ? handleOpenRightDrawer : undefined,
+    onSwipeClose: inlineOpen && closeInlineDrawer ? handleSwipeClose : undefined,
+  });
 
   const handleOpenCaseStudyCategory = useCallback((category?: string) => {
     if (category) setCaseStudyIntent({ category, seq: Date.now() });
