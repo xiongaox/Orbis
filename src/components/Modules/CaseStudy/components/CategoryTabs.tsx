@@ -16,8 +16,8 @@ export default function CategoryTabs({ categories, selectedId, onSelect, variant
     if (variant === 'drawer') {
         return (
             <div className="w-full border-b border-border/40 bg-card/30 flex flex-col">
-                <div className="py-2 px-4 border-b border-border/40 bg-card/50 flex items-center justify-between">
-                    <span className="font-serif font-bold text-foreground/80">术数</span>
+                <div className="h-10 px-4 border-b border-border/40 bg-card/50 flex items-center justify-between">
+                    <span className="font-serif text-sm font-bold text-foreground/80">门类</span>
                     <span className="text-xs text-muted-foreground">左右滑动切换</span>
                 </div>
                 <div className="flex items-stretch overflow-x-auto scrollbar-none">
@@ -49,8 +49,9 @@ export default function CategoryTabs({ categories, selectedId, onSelect, variant
 
     return (
         <div className="w-[5%] min-w-[80px] border-r border-border/40 bg-card/30 flex flex-col">
-            <div className="py-3 text-center border-b border-border/40 bg-card/50">
-                <span className="font-serif font-bold text-foreground/80">术数</span>
+            {/* 表头：固定 40px，与常识篇目/断法列表表头等高 */}
+            <div className="h-10 flex items-center justify-center border-b border-border/40 bg-card/50">
+                <span className="font-serif text-sm font-bold text-foreground/80">门类</span>
             </div>
             {categories.map(cat => {
                 const isActive = selectedId === cat.id;

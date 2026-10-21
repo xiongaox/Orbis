@@ -35,6 +35,9 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, chart, c
     useRegisterMobileDrawers(chart ?? null, {
         openCase: sidebar ? () => setIsSidebarOpen(true) : undefined,
         openPanel: hasRightPanel ? () => setIsRightPanelOpen(true) : undefined,
+        // 排盘类模块：左抽屉是案例列表，右抽屉是排盘信息
+        caseLabel: '案例',
+        panelLabel: '排盘信息',
     });
 
     const sidebarNode = useMemo(() => {

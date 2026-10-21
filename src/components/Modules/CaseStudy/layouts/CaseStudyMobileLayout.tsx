@@ -54,10 +54,18 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
         changshiItemId, setChangshiItemId,
     } = props;
 
-    // 移动端底栏注册：目录（左抽屉）与 排盘信息/大纲（右抽屉）由底部导航槽位打开
+    // 移动端底栏注册：目录（左抽屉）与 排盘信息/大纲（右抽屉）由底部导航槽位打开。
+    // 文案跟随分类：八字/奇门是排盘类 → 左「案例」右「排盘信息」；
+    // 常识/断法是阅读类 → 左为分类名（2 字），右为「大纲总览」
+    const isChartCategory = selectedCategory === 'bazi' || selectedCategory === 'qimen';
+    const caseDrawerLabel = isChartCategory
+        ? '案例'
+        : (CATEGORIES.find((cat) => cat.id === selectedCategory)?.name ?? '常识');
     useRegisterMobileDrawers('xiaoliuren', {
         openCase: () => setIsLeftPanelOpen(true),
         openPanel: () => setIsChartPanelOpen(true),
+        caseLabel: caseDrawerLabel,
+        panelLabel: isChartCategory ? '排盘信息' : '大纲总览',
     });
 
     const contentColumn = (
@@ -225,7 +233,7 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                     ) : selectedCategory === 'changshi' ? (
                         <div className="flex-1 min-h-0 overflow-y-auto p-2 scrollbar-thin knowledge-drawer-content">
                             <div className="l2-list">
-                                {KNOWLEDGE_ITEMS.map((item, idx) => {
+                                {KNOWLEDGE_ITEMS.map((item) => {
                                     const isActive = item.id === (changshiItemId || 'shichen');
                                     return (
                                         <button
@@ -238,7 +246,6 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                                             }}
                                         >
                                             <span>{item.name}</span>
-                                            <span className="l2-item-idx">{String(idx + 1).padStart(2, '0')}</span>
                                         </button>
                                     );
                                 })}

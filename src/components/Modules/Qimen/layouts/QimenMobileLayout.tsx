@@ -49,6 +49,9 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
     useRegisterMobileDrawers('qimen', {
         openCase: () => setIsCaseListOpen(true),
         openPanel: () => setIsInfoOpen(true),
+        // 排盘类模块：左抽屉是案例列表，右抽屉是排盘信息
+        caseLabel: '案例',
+        panelLabel: '排盘信息',
     });
 
     // 获取选中的宫位数据

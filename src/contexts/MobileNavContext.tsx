@@ -14,6 +14,10 @@ import type { ChartType } from '../types';
 export interface MobileModuleDrawers {
     openCase?: () => void;
     openPanel?: () => void;
+    /** 左抽屉在底栏的文案；缺省时用通用「案例」。案例学习按分类给「常识 / 断法 / 八字 / 奇门」 */
+    caseLabel?: string;
+    /** 右抽屉在底栏的文案；缺省时用通用「参考面板」。常识/断法为「大纲总览」，排盘类为「排盘信息」 */
+    panelLabel?: string;
 }
 
 type DrawerRegistry = Partial<Record<ChartType, MobileModuleDrawers>>;
@@ -74,12 +78,18 @@ export function useRegisterMobileDrawers(chart: ChartType | null, drawers: Mobil
         drawersRef.current = drawers;
     }, [drawers]);
 
+    // 文案会随分类切换（常识/断法/八字/奇门），必须进依赖以重新注册，
+    // 否则底栏停留在首次挂载时的文案
+    const { caseLabel, panelLabel } = drawers;
+
     useEffect(() => {
         if (!chart) return;
         registerDrawers(chart, {
             openCase: () => drawersRef.current.openCase?.(),
             openPanel: () => drawersRef.current.openPanel?.(),
+            caseLabel,
+            panelLabel,
         });
         return () => unregisterDrawers(chart);
-    }, [chart, registerDrawers, unregisterDrawers]);
+    }, [chart, caseLabel, panelLabel, registerDrawers, unregisterDrawers]);
 }

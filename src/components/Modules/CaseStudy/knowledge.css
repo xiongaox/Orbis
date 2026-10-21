@@ -873,18 +873,21 @@
   .l2-item-btn {
     width: 100%;
     text-align: left;
-    padding: 10px 14px;
+    /* 固定 40px 行高与表头等高；内边距只留左右，纵向由 height + flex 居中决定，
+       避免 padding 与字体行高叠加后与断法列表差几像素 */
+    height: 40px;
+    padding: 0 14px;
     border: 0;
     background: transparent;
     cursor: pointer;
     border-bottom: 1px solid var(--border-light);
     display: flex;
     align-items: center;
-    justify-content: space-between;
     color: var(--fg);
     opacity: .75;
     font-family: var(--font-serif);
     font-size: 14px;
+    line-height: 20px;
     transition: all .15s ease;
   }
   .l2-item-btn:hover {
@@ -896,11 +899,6 @@
     color: var(--primary);
     opacity: 1;
     font-weight: 600;
-  }
-  .l2-item-idx {
-    font-family: var(--font-mono);
-    font-size: 14px;
-    color: var(--muted);
   }
 
   /* 正文阅读区 */

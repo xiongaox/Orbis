@@ -105,7 +105,8 @@ export default function MobileTabBar({
 
         const list: BarSlot[] = [];
         if (typeof openCase === 'function') {
-            list.push({ key: 'case', label: '案例', active: false, onTap: () => openCase() });
+            // 文案由模块按当前分类注册：案例学习给「常识/断法/八字/奇门」，其余模块缺省「案例」
+            list.push({ key: 'case', label: drawers?.caseLabel ?? '案例', active: false, onTap: () => openCase() });
         }
         // 当前模块已锁定且存在其他已锁定模块时，标题下方出现切换键
         const canSwitch = lockedList.length > 1 && lockedList.includes(activeChart);
@@ -123,7 +124,8 @@ export default function MobileTabBar({
                 : undefined,
         });
         if (typeof openPanel === 'function') {
-            list.push({ key: 'panel', label: '参考面板', active: false, onTap: () => openPanel() });
+            // 常识/断法为「大纲总览」，八字/奇门为「排盘信息」，其余模块缺省「参考面板」
+            list.push({ key: 'panel', label: drawers?.panelLabel ?? '参考面板', active: false, onTap: () => openPanel() });
         }
         list.push({
             key: 'grid',

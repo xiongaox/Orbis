@@ -72,7 +72,7 @@ export const KnowledgePage: React.FC<KnowledgePageProps> = ({
   // 二级栏：常识篇目列表
   const l2ListContent = (
     <div className="l2-list">
-      {KNOWLEDGE_ITEMS.map((item, idx) => {
+      {KNOWLEDGE_ITEMS.map((item) => {
         const isActive = item.id === selectedItemId;
         return (
           <button
@@ -82,7 +82,6 @@ export const KnowledgePage: React.FC<KnowledgePageProps> = ({
             onClick={() => handleSelectItem(item.id)}
           >
             <span>{item.name}</span>
-            <span className="l2-item-idx">{String(idx + 1).padStart(2, '0')}</span>
           </button>
         );
       })}

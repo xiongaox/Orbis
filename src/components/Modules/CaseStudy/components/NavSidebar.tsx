@@ -32,9 +32,9 @@ export default function NavSidebar({
 
     return (
         <div className={containerClassName}>
-            {/* 标题 */}
-            <div className="py-3 px-4 border-b border-border/40 bg-card/50 flex-shrink-0">
-                <span className="font-serif font-bold text-foreground/80">{title}</span>
+            {/* 标题：固定 40px，与常识篇目表头（.nav-header）等高 */}
+            <div className="h-10 px-4 border-b border-border/40 bg-card/50 flex-shrink-0 flex items-center">
+                <span className="font-serif text-sm font-bold text-foreground/80">{title}</span>
             </div>
 
             {/* 列表 */}
@@ -46,7 +46,7 @@ export default function NavSidebar({
                             key={item.id}
                             onClick={() => onSelect(item.id)}
                             className={`
-                                w-full text-left py-3 px-4 transition-all
+                                w-full text-left h-10 px-3.5 flex items-center transition-all
                                 border-b border-border/20 relative
                                 ${isActive
                                     ? 'bg-primary/10 text-primary font-medium'
@@ -57,7 +57,8 @@ export default function NavSidebar({
                             {isActive && showActiveBar && (
                                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r" />
                             )}
-                            <span className="font-serif text-base">{item.label}</span>
+                            {/* 字号与常识篇目（.l2-item-btn）对齐，避免同类侧栏列表忽大忽小 */}
+                            <span className="font-serif text-sm">{item.label}</span>
                         </button>
                     );
                 })}
