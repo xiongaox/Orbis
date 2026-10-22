@@ -7,6 +7,7 @@ export const DI_ZHI: string[] = [...BASE_DI_ZHI];
 export const CATEGORIES = [
     { id: 'changshi', label: '学习', name: '常识' },
     { id: 'duanfa', label: '学习', name: '断法' },
+    { id: 'tiku', label: '学习', name: '题库' },
     { id: 'bazi', label: '命理', name: '八字' },
     { id: 'qimen', label: '预测', name: '奇门' },
 ];

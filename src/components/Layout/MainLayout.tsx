@@ -124,9 +124,11 @@ export default function MainLayout({ sidebar, insightPanel, liuYiPanel, chart, c
         <div className="flex flex-1 min-h-0 overflow-hidden relative">
             {/* 并排式抽屉：主内容整体平移让位（宽度不变、不重排），侧栏从侧边推出。
                 只移动不缩放，正文可读性不受影响；关闭后 transform 归零。
+                主内容不再包内缩圆角外框：那圈 m-2 + 边框会白占 16px 间距，
+                正文自身的 px-2 已足够贴边；侧栏仍是浮起圆角卡片。
                 Pad 横屏仍用浮层式，避免与既有 Pad 布局的视觉预期冲突。 */}
             <main
-                className="relative flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col transition-transform duration-300 ease-out m-2 rounded-2xl border border-border bg-background"
+                className="relative flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col transition-transform duration-300 ease-out bg-background"
                 style={inlineOffset ? { transform: inlineOffset } : undefined}
             >
                 {/* 并排式抽屉打开时，主内容上的透明点击区负责关闭（无遮罩，所以不影响观感） */}

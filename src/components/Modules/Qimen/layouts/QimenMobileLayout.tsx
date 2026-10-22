@@ -74,12 +74,11 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
     });
 
     // 并排式抽屉：主内容平移量与侧栏宽度共用 INLINE_DRAWER_WIDTH。
-    // 奇门移动端盘面是 p-0（见 QimenChart），没有八字内容区的 px-2，
-    // 所以让位量额外补 8px，两侧视觉间距才与八字一致（盘面宽度不受影响）。
+    // 盘面区已与顶栏按钮行同样左右内缩 px-2，视觉留白由它承担，不再额外补 extraGap。
     const inlineOffset = isCaseListOpen
-        ? inlineDrawerOffset(INLINE_DRAWER_WIDTH.xxs, 'left', 8)
+        ? inlineDrawerOffset(INLINE_DRAWER_WIDTH.xxs, 'left')
         : isInfoOpen
-            ? inlineDrawerOffset(INLINE_DRAWER_WIDTH.sm, 'right', 8)
+            ? inlineDrawerOffset(INLINE_DRAWER_WIDTH.sm, 'right')
             : undefined;
 
     // 获取选中的宫位数据
@@ -116,11 +115,10 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
         <>
             {/* 并排式抽屉：主内容整体平移让位（宽度不变、不重排），侧栏从侧边推出。
                 只移动不缩放，盘面可读性不受影响；关闭后 transform 归零。
-                主界面与侧栏统一为浮起圆角卡片：内缩 8px + 圆角 2xl + 边框，
-                与 SideDrawer 并排式面板（top-2/bottom-2/left-2|right-2 + rounded-2xl）一致。
-                根节点是 bg-background，内缩露出的就是应用底色。 */}
+                主内容不再包内缩圆角外框（那圈 m-2 + 边框白占 16px 间距），
+                侧栏仍是浮起圆角卡片；内缩露出的就是根节点的应用底色。 */}
             <main
-                className="relative flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col transition-transform duration-300 ease-out m-2 rounded-2xl border border-border bg-background"
+                className="relative flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col transition-transform duration-300 ease-out bg-background"
                 style={inlineOffset ? { transform: inlineOffset } : undefined}
             >
                 {/* 并排式抽屉打开时，主内容上的透明点击区负责关闭（无遮罩，不影响观感） */}
@@ -135,59 +133,6 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
                         className="absolute inset-0 z-40"
                     />
                 )}
-                <div className="p-2 border-b border-border/40 bg-background/70 backdrop-blur-sm">
-                    <div className="grid grid-cols-5 gap-1.5">
-                        <button
-                            type="button"
-                            onClick={() => setIsAiModalOpen(true)}
-                            className="py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-xs text-amber-500 hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-1"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
-                            AI
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleMobileToggleCS}
-                            className={`py-1.5 rounded-lg border text-xs transition-colors ${mobileShowChangSheng ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card/60 text-muted-foreground'}`}
-                        >
-                            长生
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleMobileToggleSS}
-                            className={`py-1.5 rounded-lg border text-xs transition-colors ${mobileShowShiShen ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card/60 text-muted-foreground'}`}
-                        >
-                            十神
-                        </button>
-                        <button
-                            type="button"
-                            onClick={handleMobileTogglePM}
-                            className={`py-1.5 rounded-lg border text-xs transition-colors ${mobileShowPalaceMeta ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card/60 text-muted-foreground'}`}
-                        >
-                            宫位
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setGuideOpen(true)}
-                            className="py-1.5 rounded-lg border border-border bg-card/60 text-xs text-muted-foreground transition-colors"
-                        >
-                            说明
-                        </button>
-                    </div>
-                </div>
-
-                {/* 移动端案例标题：选中案例时显示，无案例时隐藏 */}
-                {currentCase?.title && (
-                    <button
-                        type="button"
-                        onClick={() => setIsCaseListOpen(true)}
-                        className="px-3 py-1.5 border-b border-border/40 bg-primary/5 flex items-center gap-2 text-left"
-                    >
-                        <span className="w-0.5 h-3.5 rounded-full bg-primary/60 flex-shrink-0" />
-                        <span className={`text-sm text-primary/90 font-serif truncate ${isCasePrivacyMode ? 'select-none blur-[6px]' : ''}`}>【求测】：{currentCase.title}</span>
-                    </button>
-                )}
-
                 <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col relative">
                     {/* 左侧竖线触发按钮 - 案例（已由底栏接管，默认隐藏） */}
                     {SHOW_EDGE_HANDLES && (
@@ -253,6 +198,60 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
                         onOpenAiModal={() => setIsAiModalOpen(true)}
                         dynamicMaKong={dynamicMaKong}
                         isMobileLayout
+                        roundedMobile
+                        // 移动端案例标题：放到信息卡顶部通栏（横线分隔），选中案例时才有
+                        headerTopSlot={currentCase?.title ? (
+                            <button
+                                type="button"
+                                onClick={() => setIsCaseListOpen(true)}
+                                className="w-full px-4 py-2 bg-primary/5 flex items-center gap-2 text-left"
+                            >
+                                <span className="w-0.5 h-3.5 rounded-full bg-primary/60 flex-shrink-0" />
+                                <span className={`text-sm text-primary/90 font-serif truncate ${isCasePrivacyMode ? 'select-none blur-[6px]' : ''}`}>【求测】：{currentCase.title}</span>
+                            </button>
+                        ) : undefined}
+                        // 移动端按钮行从页面顶栏移到信息卡下方（与信息卡、九宫盘同宽），
+                        // 与卡片的间距由 QimenChart 的 mb-2 提供
+                        headerBottomSlot={
+                            <div className="grid grid-cols-5 gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsAiModalOpen(true)}
+                                    className="py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 text-xs text-amber-500 hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-1"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3 h-3"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1-1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" /></svg>
+                                    AI
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleMobileToggleCS}
+                                    className={`py-1.5 rounded-lg border text-xs transition-colors ${mobileShowChangSheng ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card/60 text-muted-foreground'}`}
+                                >
+                                    长生
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleMobileToggleSS}
+                                    className={`py-1.5 rounded-lg border text-xs transition-colors ${mobileShowShiShen ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card/60 text-muted-foreground'}`}
+                                >
+                                    十神
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleMobileTogglePM}
+                                    className={`py-1.5 rounded-lg border text-xs transition-colors ${mobileShowPalaceMeta ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card/60 text-muted-foreground'}`}
+                                >
+                                    宫位
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setGuideOpen(true)}
+                                    className="py-1.5 rounded-lg border border-border bg-card/60 text-xs text-muted-foreground transition-colors"
+                                >
+                                    说明
+                                </button>
+                            </div>
+                        }
                         controlledShowChangSheng={mobileShowChangSheng}
                         controlledShowShiShen={mobileShowShiShen}
                         controlledShowPalaceMeta={mobileShowPalaceMeta}

@@ -53,7 +53,8 @@ export default function BaziPage() {
                 // 按 7 列（胎命身+四柱）上限取 5fr:7fr：排盘表约 467px（7 列 58px、6 列 67px），
                 // 右侧保留约 653px，与原始 2fr:3fr 的右栏宽度一致，信息不被截断。
                 'flex-1 min-h-0 min-w-0 grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] overflow-y-auto lg:overflow-hidden',
-                // 内容区内边距对齐奇门遁甲的紧凑规格（8px），把宽度让给排盘内容
+                // 内容区内边距对齐奇门遁甲的紧凑规格（8px），把宽度让给排盘内容；
+                // pb-2 保证滚到底时最后一张卡不贴死移动端底栏墨线（与奇门同档）。
                 'gap-2 px-2 pb-2'
             )}>
                 <BaziChart
@@ -67,7 +68,10 @@ export default function BaziPage() {
                     hideDetails={hideDetails}
                     onShiftHour={handleShiftShiChen}
                 />
-                <div className={cn('flex flex-col min-h-0 lg:overflow-y-auto', 'gap-2')}>
+                {/* 移动端由外层 grid 统一滚动：这里不能带 min-h-0（没有 overflow 时
+                    它会让溢出的内容不计入外层 scrollHeight，滚到底会裁掉最后一截
+                    和 pb-2 的留白）。min-h-0 / 自滚动只在桌面双栏下需要。 */}
+                <div className={cn('flex flex-col', 'gap-2', 'lg:min-h-0 lg:overflow-y-auto')}>
                     {/* 五行旺衰信息条 */}
                     <div className="flex-shrink-0">
                         <WuxingStatusBar

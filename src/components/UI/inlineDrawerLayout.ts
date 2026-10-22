@@ -13,8 +13,8 @@ export const INLINE_DRAWER_WIDTH = {
   lg: 'min(92vw, 520px)',
   md: 'min(92vw, 420px)',
   // 例外：panelSizeClass 里 full 是 w-full（浮层式贴满视口），并排式则扣掉两侧内缩，
-  // 让面板与主内容卡片左右各留 8px、圆角不被视口裁掉。主内容让位量按同一宽度算，
-  // 面板左边缘正好落在主内容右边缘上，主界面被完全挤出去。
+  // 让面板左右各留 8px、圆角不被视口裁掉。主内容让位量按同一宽度算，
+  // 面板左边缘正好落在主内容右边缘旁，主界面被完全挤出去。
   full: 'calc(100% - 16px)',
 } as const;
 
@@ -24,6 +24,7 @@ export const INLINE_INSET_PX = 8;
 /**
  * 主内容让位量 = 面板宽 + 内缩 + 与主内容之间的间距 = 面板宽 + 16px。
  * 面板本身不缩窄，所以面板内部布局（多列字段）保持原样。
+ * 主内容已不带 m-2 外框，视觉间距 = 16 - 面板内缩 8 = 8px。
  */
 export const INLINE_DRAWER_GAP_PX = INLINE_INSET_PX * 2;
 

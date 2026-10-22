@@ -38,6 +38,10 @@ interface QimenHeaderProps {
     /** 第三行右侧自定义动作区（如案例盘的长生/十神切换）：无上一局/下一局按钮时利用空闲位 */
     headerActions?: ReactNode;
     isMobileLayout?: boolean;
+    /** 移动端把信息卡也收成与九宫盘同款的圆角卡片（奇门遁甲整页用，见 QimenChart） */
+    roundedMobile?: boolean;
+    /** 卡片顶部通栏（奇门整页移动端放案例标题）：贴满卡片顶边，与信息行之间用横线隔开 */
+    topSlot?: ReactNode;
     /**
      * 紧凑档（案例学习窄侧栏）：四柱与信息区改为分行排布。
      * 默认两者同处一行（justify-between），整页排盘时宽度充裕；
@@ -60,6 +64,8 @@ export default function QimenHeader({
     onOpenAiModal,
     headerActions,
     isMobileLayout = false,
+    roundedMobile = false,
+    topSlot,
     compact = false,
 }: QimenHeaderProps) {
     const [isMethodOpen, setIsMethodOpen] = useState(false);
@@ -130,7 +136,14 @@ export default function QimenHeader({
     );
 
     return (
-        <div className={`w-full bg-card flex flex-col ${isMobileLayout ? 'p-4 gap-4' : compact ? 'border border-border p-2.5 gap-4' : 'rounded-xl border border-border p-3 2xl:p-5 gap-2 2xl:gap-4'}`}>
+        <div className={`w-full bg-card flex flex-col ${isMobileLayout ? `p-4 gap-4 ${roundedMobile ? 'rounded-xl border border-border' : ''}` : compact ? 'border border-border p-2.5 gap-4' : 'rounded-xl border border-border p-3 2xl:p-5 gap-2 2xl:gap-4'}`}>
+            {/* 通栏顶部槽（奇门整页移动端放案例标题）：负边距贴满卡片顶边，
+                底部横线与下方信息行隔开；-mb-2 把 gap-4 压到 8px，与卡片内其它行距一致。 */}
+            {topSlot && (
+                <div className={`-mx-4 -mt-4 -mb-2 border-b border-border/40 overflow-hidden ${roundedMobile ? 'rounded-t-xl' : ''}`}>
+                    {topSlot}
+                </div>
+            )}
             {/* 第一行：日期时间 + 操作按钮 */}
             <div className={`flex items-center text-sm 2xl:text-xl ${compact ? 'flex-wrap gap-y-1' : 'justify-between'}`}>
                 <div className="flex items-baseline gap-1 2xl:gap-2">

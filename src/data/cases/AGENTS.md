@@ -10,6 +10,7 @@
 cases/
 ├── bazi/      # 八字案例语料(还原产物,不入库)
 ├── qimen/     # 奇门案例与断法语料(还原产物,不入库)
+├── tiku/      # 题库语料(一届一个 Markdown,还原产物,不入库)
 ├── README.md  # 迁移与还原说明(入库)
 └── AGENTS.md  # 本文件(入库)
 ```
@@ -21,6 +22,7 @@ cases/
 | 还原命令 | `npm run cases:unpack` | 解密 `cases_v1.enc` 到本目录 |
 | 前端读取入口 | `src/components/Modules/CaseStudy` | 展示与筛选消费层 |
 | 解析层入口 | `src/lib/caseStudy/parsers.ts` | 从 Markdown 提取结构化信息 |
+| 题库解析入口 | `src/lib/caseStudy/tikuParser.ts` | 题库扁平块 → 按命例分组的卷 |
 
 ## CONVENTIONS
 - 文件名尽量表达主题与检索关键词，保持中文可读性。
@@ -32,6 +34,7 @@ cases/
 ## ANTI-PATTERNS
 - 不要把本目录语料（除 README/AGENTS）提交到 Orbis 仓库或任何公开远端。
 - 不要把结构化配置（常量/索引）直接混入语料目录。
+- `tiku/` 与 `qimen/duanfa/` 同类：客户端 `import.meta.glob` 直接读明文，不进案例库加密包。
 - 不要随意变更既有目录语义（作者层、日主层、专题层）。
 - 不要新增无法被现有解析策略识别的格式而不更新解析逻辑。
 

@@ -18,6 +18,7 @@ import CaseStudyDayunPanel from '../components/CaseStudyDayunPanel';
 import CaseStudyQimenChart from '../components/CaseStudyQimenChart';
 import CasePreviewUnlock from '../components/CasePreviewUnlock';
 import DuanFaContent from '../components/DuanFaContent';
+import TikuPage from '../TikuPage';
 import KnowledgePage from '../knowledge/KnowledgePage';
 import NavSidebar from '../components/NavSidebar';
 import { SHU_SHU_CATEGORIES } from '../../../../lib/caseStudy/duanfaCategories';
@@ -90,9 +91,9 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
         },
     });
 
-    // 并排式抽屉的宿主节点：卡片会被 translate 平移，而 transform 会让它成为
-    // 绝对定位后代的包含块——常识分类的「大纲」抽屉由 KnowledgePage 渲染在卡片内部，
-    // 不 portal 出来就会跟着卡片一起被推出屏幕。这个外层容器不平移、尺寸与卡片一致，
+    // 并排式抽屉的宿主节点：主内容会被 translate 平移，而 transform 会让它成为
+    // 绝对定位后代的包含块——常识分类的「大纲」抽屉由 KnowledgePage 渲染在主内容内部，
+    // 不 portal 出来就会跟着一起被推出屏幕。这个外层容器不平移、尺寸与主内容一致，
     // 抽屉挂在这里就和八字/奇门一样贴边对齐。
     const [drawerHost, setDrawerHost] = useState<HTMLDivElement | null>(null);
 
@@ -224,11 +225,10 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
         <div ref={setDrawerHost} className="relative flex-1 min-h-0 min-w-0 flex flex-col">
             {/* 并排式抽屉：主内容整体平移让位（宽度不变、不重排），侧栏从侧边推出。
                 只移动不缩放，正文可读性不受影响；关闭后 transform 归零。
-                主界面与侧栏统一为浮起圆角卡片：内缩 8px + 圆角 2xl + 边框，
-                与 SideDrawer 并排式面板（top-2/bottom-2/left-2|right-2 + rounded-2xl）一致，
-                与八字/奇门移动端同款。根节点是 bg-background，内缩露出的就是应用底色。 */}
+                主内容不再包内缩圆角外框（那圈 m-2 + 边框白占 16px 间距），
+                侧栏仍是浮起圆角卡片，与八字/奇门移动端同款。 */}
             <div
-                className="relative flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col transition-transform duration-300 ease-out m-2 rounded-2xl border border-border bg-background"
+                className="relative flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col transition-transform duration-300 ease-out bg-background"
                 style={inlineOffset ? { transform: inlineOffset } : undefined}
             >
                 {/* 并排式抽屉打开时，主内容上的透明点击区负责关闭（无遮罩，不影响观感） */}
@@ -257,7 +257,11 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                     </button>
                 )}
 
-                {selectedCategory === 'duanfa' ? (
+                {selectedCategory === 'tiku' ? (
+                    <div className="flex-1 flex flex-col overflow-hidden relative">
+                        <TikuPage />
+                    </div>
+                ) : selectedCategory === 'duanfa' ? (
                     <div className="flex-1 flex flex-col overflow-hidden relative">
                         <DuanFaContent ref={duanFaContentRef} content={duanFa.selectedFile?.content || ''} title={duanFa.selectedFile?.name || '奇门断法'} onOutlineChange={duanFa.setOutline} />
                         <div className="absolute right-4 bottom-4 z-10 flex flex-col items-center gap-3">
@@ -280,6 +284,7 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                 )}
             </div>
 
+            {selectedCategory !== 'tiku' && (
             <SideDrawer open={isLeftPanelOpen} title="目录" side="left" size="xxs" inline onClose={() => setIsLeftPanelOpen(false)}>
                 <div className="h-full min-h-0 overflow-hidden flex flex-col">
                     <CategoryTabs categories={CATEGORIES} selectedId={selectedCategory} onSelect={(id) => { setSelectedCategory(id); }} variant="drawer" />
@@ -318,9 +323,10 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
                     )}
                 </div>
             </SideDrawer>
+            )}
 
-            {/* 常识分类的「大纲」抽屉由 KnowledgePage 自己渲染，这里只管断法与排盘 */}
-            {selectedCategory !== 'changshi' && (
+            {/* 常识分类的「大纲」抽屉由 KnowledgePage 自己渲染，题库自带排盘抽屉；这里只管断法与八字/奇门的排盘 */}
+            {selectedCategory !== 'changshi' && selectedCategory !== 'tiku' && (
                 <SideDrawer open={isChartPanelOpen} title={selectedCategory === 'duanfa' ? '大纲' : '排盘信息'} side="right" size={panelSize} inline onClose={() => setIsChartPanelOpen(false)}>
                     {selectedCategory === 'duanfa' ? (
                         <DuanFaOutline outline={duanFa.outline} activeSectionId={duanFa.activeSectionId} onItemClick={(id) => { duanFa.handleOutlineClick(id); setIsChartPanelOpen(false); }} variant="drawer" />

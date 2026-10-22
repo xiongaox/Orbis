@@ -85,8 +85,8 @@ export default function SideDrawer({
       // 并排式是浮起的圆角卡片：四周留 8px（top/bottom/left 或 right 用内缩值，
       // 不能用 panelPosClass 的 left-0/right-0，否则两个定位类互相覆盖）。
       // 进出场用 translateX + opacity，与主内容让位动画同时长、同缓动。
-      // 并排式不加投影：主界面是同样内缩、同样圆角、同样边框的卡片且没有投影，
-      // 侧栏一加 shadow-2xl，明亮模式下就会在浅色底上糊出一圈灰晕，两边不一致。
+      // 并排式不加投影：主界面是不带外框的满幅底色，侧栏一加 shadow-2xl，
+      // 明亮模式下就会在浅色底上糊出一圈灰晕。
       className={`absolute ${inline ? `top-2 bottom-2 ${side === 'left' ? 'left-2' : 'right-2'} rounded-2xl border z-10 overflow-hidden transition-[transform,opacity] duration-300 ease-out ${open ? '' : 'pointer-events-none'}` : `${panelPosClass} top-0 h-full ${panelSizeClass} ${panelBorderClass} shadow-2xl`} border-border bg-card flex flex-col`}
       // 抽屉贴顶贴底，而浮层定位在视口上、拿不到根节点的安全区留白，
       // 头部会被安卓状态栏盖住（见 MainActivity.kt 的 --safe-area-inset-*）。

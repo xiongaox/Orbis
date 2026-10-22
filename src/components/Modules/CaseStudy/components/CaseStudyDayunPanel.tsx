@@ -35,26 +35,51 @@ export default function CaseStudyDayunPanel({
     const selectedLiuNianYear = propLiuNianYear !== undefined ? propLiuNianYear : internalLiuNianYear;
 
     // 数据提取
-    const daYun = useMemo(() => (data?.daYun ?? []).slice(0, 14), [data?.daYun]);
-
     const liuNian = useMemo(() => data?.liuNian ?? [], [data?.liuNian]);
     const pillars = useMemo(() => data?.pillars ?? [], [data?.pillars]);
     const dayMaster = pillars[2]?.tiangan || '丙';
 
     // 每页显示7个大运
     const ITEMS_PER_PAGE = 7;
-    const displayDaYun = useMemo(() => {
-        const startIdx = daYunPage * ITEMS_PER_PAGE;
-        return daYun.slice(startIdx, startIdx + ITEMS_PER_PAGE);
-    }, [daYun, daYunPage]);
 
-    const totalDaYunPages = useMemo(() => Math.ceil(daYun.length / ITEMS_PER_PAGE), [daYun]);
+    const allDaYun = useMemo(() => data?.daYun ?? [], [data?.daYun]);
+
+    // 大运分组：出生前大运（index < 0）单独占第一页，只取离出生最近的 7 段（正好一页），
+    // 年龄一律显示 0 岁。首页（默认页）从出生后第一页开始，以「小运」打头，点「上」翻到出生前页。
+    // 与八字 DayunLiunianPanel 同一条规则——计算器把出生前大运放在数组最前面，
+    // 直接按顺序分页会让小运被挤出第一页。
+    const preBirthDaYun = useMemo(() => allDaYun.filter(dy => dy.index < 0).slice(-ITEMS_PER_PAGE), [allDaYun]);
+    const mainDaYun = useMemo(() => allDaYun.filter(dy => dy.index >= 0).slice(0, 14), [allDaYun]);
+
+    const preBirthPages = preBirthDaYun.length > 0 ? 1 : 0;
+    const totalDaYunPages = preBirthPages + Math.max(1, Math.ceil(mainDaYun.length / ITEMS_PER_PAGE));
+
+    const displayDaYun = useMemo(() => {
+        const isPreBirthPage = daYunPage < preBirthPages;
+        const source = isPreBirthPage ? preBirthDaYun : mainDaYun;
+        const startIdx = (isPreBirthPage ? daYunPage : daYunPage - preBirthPages) * ITEMS_PER_PAGE;
+        const list = source.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+        // 补空格占位，保持网格列宽与边框稳定（不足一页时不会右侧留白）
+        while (list.length < ITEMS_PER_PAGE) {
+            list.push({ index: -1000 - list.length, startYear: 0, endYear: 0, startAge: 0, endAge: 0, ganZhi: '', tiangan: '', dizhi: '' });
+        }
+        return list;
+    }, [daYunPage, preBirthPages, preBirthDaYun, mainDaYun]);
+
+    // 换案例时回到「小运打头」的首页
+    useEffect(() => {
+        setDaYunPage(preBirthPages);
+    }, [data, preBirthPages]);
+
+    const handleDaYunPageChange = (pageIndex: number) => {
+        setDaYunPage(Math.min(totalDaYunPages - 1, Math.max(0, pageIndex)));
+    };
 
     // 自动确定当前大运
     const autoDaYunIndex = useMemo(() => {
-        const found = daYun.find(dy => currentYear >= dy.startYear && currentYear <= dy.endYear);
+        const found = allDaYun.find(dy => currentYear >= dy.startYear && currentYear <= dy.endYear);
         return found?.index ?? 1;
-    }, [daYun, currentYear]);
+    }, [allDaYun, currentYear]);
 
     const activeDaYunIndex = selectedDaYunIndex ?? autoDaYunIndex;
 
@@ -69,8 +94,8 @@ export default function CaseStudyDayunPanel({
 
     // 获取当前激活大运对象
     const activeDaYunObject = useMemo(() => {
-        return daYun.find(d => d.index === activeDaYunIndex);
-    }, [daYun, activeDaYunIndex]);
+        return allDaYun.find(d => d.index === activeDaYunIndex);
+    }, [allDaYun, activeDaYunIndex]);
 
     // 流年选中变化时更新提示
     useEffect(() => {
@@ -144,12 +169,12 @@ export default function CaseStudyDayunPanel({
                 {/* 大运行 - 每页8个 */}
                 <div className="border-b border-border">
                     <div className="flex items-stretch">
-                        {/* 左侧标题区 */}
-                        <div className="w-10 bg-secondary/30 border-r border-border flex flex-col items-center justify-center gap-0.5">
+                        {/* 左侧标题区（py-1.5 让上下翻页箭头不贴死格子边线） */}
+                        <div className="w-10 bg-secondary/30 border-r border-border flex flex-col items-center justify-center gap-0.5 py-1.5">
                             {/* 上一页按钮 */}
                             {totalDaYunPages > 1 && (
                                 <button
-                                    onClick={() => setDaYunPage(Math.max(0, daYunPage - 1))}
+                                    onClick={() => handleDaYunPageChange(daYunPage - 1)}
                                     disabled={daYunPage === 0}
                                     className={`w-5 h-4 flex items-center justify-center rounded text-[10px] transition-colors
                                         ${daYunPage === 0
@@ -177,7 +202,7 @@ export default function CaseStudyDayunPanel({
                             {/* 下一页按钮 */}
                             {totalDaYunPages > 1 && (
                                 <button
-                                    onClick={() => setDaYunPage(Math.min(totalDaYunPages - 1, daYunPage + 1))}
+                                    onClick={() => handleDaYunPageChange(daYunPage + 1)}
                                     disabled={daYunPage >= totalDaYunPages - 1}
                                     className={`w-5 h-4 flex items-center justify-center rounded text-[10px] transition-colors
                                         ${daYunPage >= totalDaYunPages - 1
@@ -192,9 +217,16 @@ export default function CaseStudyDayunPanel({
 
                         {/* 大运格子 - 7列 */}
                         <div className="flex-1 min-w-0 overflow-x-auto flex flex-col">
+                            {/* 大运格子 - 7列 */}
                             <div className="grid grid-cols-7 min-w-0 w-full flex-1">
                                 {displayDaYun.map((item) => {
+                                    // 空占位格（不足一页时补的）：只保留网格边框
+                                    if (!item.ganZhi) {
+                                        return <div key={`dayun-${item.index}`} className="min-w-0 border-r border-border last:border-r-0" />;
+                                    }
                                     const isActive = item.index === activeDaYunIndex;
+                                    // 出生前大运的年龄无实际意义，统一显示 0 岁（与八字面板同规则）
+                                    const isPreBirth = item.index < 0;
                                     return (
                                         <div
                                             key={`dayun-${item.index}`}
@@ -204,7 +236,7 @@ export default function CaseStudyDayunPanel({
                                             <div className="flex flex-col items-center text-center">
                                                 <div className="flex flex-col items-center gap-0.5">
                                                     <div className={`${isMobile ? 'text-[9px]' : 'text-sm'} text-muted-foreground leading-snug whitespace-nowrap`}>
-                                                        {item.startAge}岁
+                                                        {isPreBirth ? 0 : item.startAge}岁
                                                     </div>
                                                     <div className={`${isMobile ? 'text-[9px]' : 'text-sm'} text-muted-foreground leading-snug whitespace-nowrap`}>
                                                         {item.startYear}
