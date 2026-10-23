@@ -81,15 +81,15 @@ export default function TikuChartPanel({ volume, isMobile = false }: TikuChartPa
 
     return (
         <div className="h-full bg-muted/10 flex flex-col overflow-hidden">
-            <div className="px-2 py-1 border-b border-border bg-muted/20 flex justify-between items-center h-[32px] flex-shrink-0">
-                <span className="text-xs font-medium text-muted-foreground">排盘信息</span>
-                <div className="flex space-x-1">
+            <div className="px-3 py-2 border-b border-border bg-muted/20 flex justify-between items-center gap-2 min-h-[40px] flex-shrink-0">
+                <span className="text-[13px] font-medium text-muted-foreground">排盘信息</span>
+                <div className="flex gap-1.5">
                     {KINDS.map((k) => (
                         <button
                             key={k.id}
                             type="button"
                             onClick={() => setKind(k.id)}
-                            className={`text-[10px] px-2 py-0.5 rounded border transition-colors ${
+                            className={`text-[13px] px-3.5 py-1.5 rounded-md border transition-colors ${
                                 kind === k.id
                                     ? 'bg-primary text-primary-foreground border-primary'
                                     : 'bg-background text-muted-foreground border-border hover:bg-muted'

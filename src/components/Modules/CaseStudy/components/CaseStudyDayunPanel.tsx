@@ -39,37 +39,35 @@ export default function CaseStudyDayunPanel({
     const pillars = useMemo(() => data?.pillars ?? [], [data?.pillars]);
     const dayMaster = pillars[2]?.tiangan || '丙';
 
-    // 每页显示7个大运
-    const ITEMS_PER_PAGE = 7;
+    // 每页显示 10 个大运：移动端侧栏已占满主界面，一行放得下 10 列
+    const ITEMS_PER_PAGE = 10;
 
     const allDaYun = useMemo(() => data?.daYun ?? [], [data?.daYun]);
 
-    // 大运分组：出生前大运（index < 0）单独占第一页，只取离出生最近的 7 段（正好一页），
-    // 年龄一律显示 0 岁。首页（默认页）从出生后第一页开始，以「小运」打头，点「上」翻到出生前页。
-    // 与八字 DayunLiunianPanel 同一条规则——计算器把出生前大运放在数组最前面，
-    // 直接按顺序分页会让小运被挤出第一页。
-    const preBirthDaYun = useMemo(() => allDaYun.filter(dy => dy.index < 0).slice(-ITEMS_PER_PAGE), [allDaYun]);
-    const mainDaYun = useMemo(() => allDaYun.filter(dy => dy.index >= 0).slice(0, 14), [allDaYun]);
+    // 大运固定两页：第一页 = 出生前大运（整页低透明度），第二页 = 主大运（小运打头）。
+    // 主大运原来要翻两页，收成一页后不再有第三页——第三页是离命主太远的大运，没有研读价值
+    const preBirthDaYun = useMemo(() => allDaYun.filter((dy) => dy.index < 0).slice(-ITEMS_PER_PAGE), [allDaYun]);
+    const mainDaYun = useMemo(() => allDaYun.filter((dy) => dy.index >= 0).slice(0, ITEMS_PER_PAGE), [allDaYun]);
 
-    const preBirthPages = preBirthDaYun.length > 0 ? 1 : 0;
-    const totalDaYunPages = preBirthPages + Math.max(1, Math.ceil(mainDaYun.length / ITEMS_PER_PAGE));
+    const hasPreBirthPage = preBirthDaYun.length > 0;
+    // 页 0 = 出生前（有才存在），页 1 = 主大运
+    const mainPageIndex = hasPreBirthPage ? 1 : 0;
+    const totalDaYunPages = mainPageIndex + 1;
+    const isPreBirthPage = hasPreBirthPage && daYunPage === 0;
 
     const displayDaYun = useMemo(() => {
-        const isPreBirthPage = daYunPage < preBirthPages;
-        const source = isPreBirthPage ? preBirthDaYun : mainDaYun;
-        const startIdx = (isPreBirthPage ? daYunPage : daYunPage - preBirthPages) * ITEMS_PER_PAGE;
-        const list = source.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+        const list = (isPreBirthPage ? preBirthDaYun : mainDaYun).slice(0, ITEMS_PER_PAGE);
         // 补空格占位，保持网格列宽与边框稳定（不足一页时不会右侧留白）
         while (list.length < ITEMS_PER_PAGE) {
             list.push({ index: -1000 - list.length, startYear: 0, endYear: 0, startAge: 0, endAge: 0, ganZhi: '', tiangan: '', dizhi: '' });
         }
         return list;
-    }, [daYunPage, preBirthPages, preBirthDaYun, mainDaYun]);
+    }, [isPreBirthPage, preBirthDaYun, mainDaYun]);
 
-    // 换案例时回到「小运打头」的首页
+    // 默认停在主大运页：出生前那页只是备查，开卷就该看命主自己的运
     useEffect(() => {
-        setDaYunPage(preBirthPages);
-    }, [data, preBirthPages]);
+        setDaYunPage(mainPageIndex);
+    }, [data, mainPageIndex]);
 
     const handleDaYunPageChange = (pageIndex: number) => {
         setDaYunPage(Math.min(totalDaYunPages - 1, Math.max(0, pageIndex)));
@@ -215,53 +213,56 @@ export default function CaseStudyDayunPanel({
                             )}
                         </div>
 
-                        {/* 大运格子 - 7列 */}
+                        {/* 大运格子 - 10列 */}
                         <div className="flex-1 min-w-0 overflow-x-auto flex flex-col">
-                            {/* 大运格子 - 7列 */}
-                            <div className="grid grid-cols-7 min-w-0 w-full flex-1">
+                            {/* 出生前大运整页降透明度（与四柱八字把出生前大运压暗同一视觉语言）；
+                                格内不再逐格降，避免两层透明度叠加成看不清 */}
+                            <div className={`grid grid-cols-10 min-w-0 w-full flex-1 ${isPreBirthPage ? 'opacity-40' : ''}`}>
                                 {displayDaYun.map((item) => {
                                     // 空占位格（不足一页时补的）：只保留网格边框
                                     if (!item.ganZhi) {
                                         return <div key={`dayun-${item.index}`} className="min-w-0 border-r border-border last:border-r-0" />;
                                     }
                                     const isActive = item.index === activeDaYunIndex;
-                                    // 出生前大运的年龄无实际意义，统一显示 0 岁（与八字面板同规则）
+                                    // 出生前大运的年龄无实际意义，统一显示 0 岁
                                     const isPreBirth = item.index < 0;
                                     return (
                                         <div
                                             key={`dayun-${item.index}`}
-                                            className={`min-w-0 ${isMobile ? 'p-1.5' : 'p-3'} border-r border-border last:border-r-0 cursor-pointer transition-colors hover:bg-primary/10 h-full flex flex-col justify-center ${isActive ? 'bg-primary/5' : ''}`}
+                                            className={`min-w-0 ${isMobile ? 'px-0.5 py-1.5' : 'p-3'} border-r border-border last:border-r-0 cursor-pointer transition-colors hover:bg-primary/10 h-full flex flex-col justify-center ${isActive ? 'bg-primary/5' : ''}`}
                                             onClick={() => handleDaYunClick(item.index)}
                                         >
                                             <div className="flex flex-col items-center text-center">
+                                                {/* 字号对齐四柱八字菜单（DaYunRow）：10 列同宽，年份/干支/十神
+                                                    分别为 12px / 16px / 12px，靠 whitespace-nowrap 保持单行 */}
                                                 <div className="flex flex-col items-center gap-0.5">
-                                                    <div className={`${isMobile ? 'text-[9px]' : 'text-sm'} text-muted-foreground leading-snug whitespace-nowrap`}>
+                                                    <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground leading-snug whitespace-nowrap`}>
                                                         {isPreBirth ? 0 : item.startAge}岁
                                                     </div>
-                                                    <div className={`${isMobile ? 'text-[9px]' : 'text-sm'} text-muted-foreground leading-snug whitespace-nowrap`}>
+                                                    <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground leading-snug whitespace-nowrap`}>
                                                         {item.startYear}
                                                     </div>
                                                 </div>
-                                                <div className={`${isMobile ? 'mt-1.5' : 'mt-3'} space-y-1`}>
-                                                    <div className="flex items-baseline justify-center gap-x-0.5">
+                                                <div className={`${isMobile ? 'mt-1.5 space-y-0.5' : 'mt-3 space-y-1'}`}>
+                                                    <div className="flex items-baseline justify-center gap-x-0 whitespace-nowrap">
                                                         <span
-                                                            className={`font-display ${isMobile ? 'text-sm' : 'text-base'} text-foreground leading-none`}
+                                                            className={`font-display ${isMobile ? 'text-base' : 'text-lg'} text-foreground leading-none`}
                                                             style={{ color: getElementColor(item.tiangan) }}
                                                         >
                                                             {item.tiangan}
                                                         </span>
-                                                        <span className={`${isMobile ? 'text-[12px]' : 'text-sm'} text-muted-foreground leading-none`}>
+                                                        <span className={`${isMobile ? 'text-xs' : 'text-base'} text-muted-foreground leading-none`}>
                                                             {getShiShenAbbr(dayMaster, item.tiangan)}
                                                         </span>
                                                     </div>
-                                                    <div className="flex items-baseline justify-center gap-x-0.5">
+                                                    <div className="flex items-baseline justify-center gap-x-0 whitespace-nowrap">
                                                         <span
-                                                            className={`font-display ${isMobile ? 'text-sm' : 'text-base'} text-foreground leading-none`}
+                                                            className={`font-display ${isMobile ? 'text-base' : 'text-lg'} text-foreground leading-none`}
                                                             style={{ color: getElementColor(item.dizhi) }}
                                                         >
                                                             {item.dizhi}
                                                         </span>
-                                                        <span className={`${isMobile ? 'text-[12px]' : 'text-sm'} text-muted-foreground leading-none`}>
+                                                        <span className={`${isMobile ? 'text-xs' : 'text-base'} text-muted-foreground leading-none`}>
                                                             {getShiShenAbbr(dayMaster, item.dizhi)}
                                                         </span>
                                                     </div>
@@ -288,11 +289,11 @@ export default function CaseStudyDayunPanel({
 
                         {/* 流年格子 */}
                         <div className="flex-1 min-w-0 overflow-x-auto">
-                            <div className={`grid ${isMobile ? 'grid-cols-5' : 'grid-cols-10'} min-w-0 w-full relative`}>
+                            <div className="grid grid-cols-10 min-w-0 w-full relative">
                                 {displayLiuNian.map((item, idx) => {
                                     const isCurrentYear = item.year === currentYear;
                                     const isSelected = item.year === selectedLiuNianYear;
-                                    const isLastInRow = isMobile ? (idx % 5 === 4) : (idx === 9);
+                                    const isLastInRow = idx === 9;
 
                                     // 计算特殊状态
                                     const status = checkLiunianStatus(item, activeDaYunObject, pillars);
@@ -317,31 +318,32 @@ export default function CaseStudyDayunPanel({
                                     return (
                                         <div
                                             key={item.year}
-                                            className={`relative min-w-0 ${isMobile ? 'p-1 pb-5' : 'p-3 pb-6'} border-r border-border cursor-pointer transition-colors hover:bg-primary/10 ${isLastInRow ? '!border-r-0' : ''} ${isMobile && idx < 5 ? 'border-b' : ''} ${isSelected ? 'bg-primary/10' : isCurrentYear ? 'bg-primary/5' : ''}`}
+                                            className={`relative min-w-0 ${isMobile ? 'px-0.5 pt-1.5 pb-3.5' : 'p-3 pb-6'} border-r border-border cursor-pointer transition-colors hover:bg-primary/10 ${isLastInRow ? '!border-r-0' : ''} ${isSelected ? 'bg-primary/10' : isCurrentYear ? 'bg-primary/5' : ''}`}
                                             onClick={() => handleLiuNianClick(item.year)}
                                         >
                                             <div className="flex flex-col items-center text-center">
-                                                <div className={`${isMobile ? 'text-[9px]' : 'text-sm'} text-foreground leading-snug`}>{item.year}</div>
-                                                <div className={`${isMobile ? 'mt-1' : 'mt-2'} space-y-0.5`}>
-                                                    <div className="flex items-baseline justify-center gap-x-0.5">
+                                                {/* 同大运：对齐四柱八字流年行的 12px / 16px / 12px */}
+                                                <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-foreground leading-snug whitespace-nowrap`}>{item.year}</div>
+                                                <div className={`${isMobile ? 'mt-1 space-y-0.5' : 'mt-2 space-y-1'}`}>
+                                                    <div className="flex items-baseline justify-center gap-x-0 whitespace-nowrap">
                                                         <span
-                                                            className={`font-display ${isMobile ? 'text-[14px]' : 'text-base'} text-foreground leading-none`}
+                                                            className={`font-display ${isMobile ? 'text-base' : 'text-lg'} text-foreground leading-none`}
                                                             style={{ color: getElementColor(item.tiangan) }}
                                                         >
                                                             {item.tiangan}
                                                         </span>
-                                                        <span className={`${isMobile ? 'text-[12px]' : 'text-sm'} text-muted-foreground leading-none`}>
+                                                        <span className={`${isMobile ? 'text-xs' : 'text-base'} text-muted-foreground leading-none`}>
                                                             {getShiShenAbbr(dayMaster, item.tiangan)}
                                                         </span>
                                                     </div>
-                                                    <div className="flex items-baseline justify-center gap-x-0.5">
+                                                    <div className="flex items-baseline justify-center gap-x-0 whitespace-nowrap">
                                                         <span
-                                                            className={`font-display ${isMobile ? 'text-[14px]' : 'text-base'} text-foreground leading-none`}
+                                                            className={`font-display ${isMobile ? 'text-base' : 'text-lg'} text-foreground leading-none`}
                                                             style={{ color: getElementColor(item.dizhi) }}
                                                         >
                                                             {item.dizhi}
                                                         </span>
-                                                        <span className={`${isMobile ? 'text-[12px]' : 'text-sm'} text-muted-foreground leading-none`}>
+                                                        <span className={`${isMobile ? 'text-xs' : 'text-base'} text-muted-foreground leading-none`}>
                                                             {getShiShenAbbr(dayMaster, item.dizhi)}
                                                         </span>
                                                     </div>
@@ -352,7 +354,7 @@ export default function CaseStudyDayunPanel({
                                             {status && (
                                                 <div
                                                     role="button"
-                                                    className={`absolute ${isMobile ? 'bottom-0.5' : 'bottom-1.5'} left-1/2 -translate-x-1/2 cursor-pointer z-10 p-1 group`}
+                                                    className={`absolute ${isMobile ? 'bottom-0' : 'bottom-1.5'} left-1/2 -translate-x-1/2 cursor-pointer z-10 p-1 group`}
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         if (activeHint?.year === item.year) {

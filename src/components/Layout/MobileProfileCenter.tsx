@@ -33,6 +33,7 @@ import {
     Sun,
     User,
     X,
+    ClipboardList,
 } from 'lucide-react';
 import type { ChartType } from '../../types';
 import { openExternalUrl } from '../../utils/browserUtil';
@@ -73,6 +74,7 @@ const CANDIDATE_ICONS: Partial<Record<ChartType, ComponentType<{ className?: str
 const CASE_CANDIDATE_ICONS: Partial<Record<CaseNavSlot, ComponentType<{ className?: string }>>> = {
     changshi: BookOpen,
     duanfa: ScrollText,
+    tiku: ClipboardList,
     bazi: Compass,
     qimen: Grid3X3,
 };

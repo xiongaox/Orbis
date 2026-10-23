@@ -53,6 +53,10 @@ export const KnowledgePage: React.FC<KnowledgePageProps> = ({
   // 滚动容器引用
   const contentScrollerRef = useRef<HTMLDivElement>(null);
 
+  // 平板横屏：桌面的篇目栏与大纲栏被判掉后，收成两侧贴边竖线触发的抽屉（断法页 pad 端同款）
+  const [isPadCatalogOpen, setIsPadCatalogOpen] = useState(false);
+  const [isPadOutlineOpen, setIsPadOutlineOpen] = useState(false);
+
   const handleSelectItem = (id: string) => {
     setSelectedItemId(id);
     onItemChange?.(id);
@@ -78,8 +82,8 @@ export const KnowledgePage: React.FC<KnowledgePageProps> = ({
     'koujue',
   ].includes(selectedItemId);
 
-  // 二级栏：常识篇目列表
-  const l2ListContent = (
+  // 二级栏：常识篇目列表（桌面内联栏与平板抽屉共用；抽屉版选中后可额外收起）
+  const renderL2List = (onSelect?: () => void) => (
     <div className="l2-list">
       {KNOWLEDGE_ITEMS.map((item) => {
         const isActive = item.id === selectedItemId;
@@ -88,7 +92,7 @@ export const KnowledgePage: React.FC<KnowledgePageProps> = ({
             key={item.id}
             type="button"
             className={`l2-item-btn ${isActive ? 'active' : ''}`}
-            onClick={() => handleSelectItem(item.id)}
+            onClick={() => { handleSelectItem(item.id); onSelect?.(); }}
           >
             <span>{item.name}</span>
           </button>
@@ -96,6 +100,7 @@ export const KnowledgePage: React.FC<KnowledgePageProps> = ({
       })}
     </div>
   );
+  const l2ListContent = renderL2List();
 
   // 右侧大纲：桌面内联栏与移动抽屉共用同一份筛选控件，仅外壳与选中后行为不同
   const renderOutline = (variant: 'sidebar' | 'bare', onItemSelect?: () => void) => (
@@ -133,6 +138,26 @@ export const KnowledgePage: React.FC<KnowledgePageProps> = ({
           <div className="nav-header">常识篇目</div>
           {l2ListContent}
         </div>
+      )}
+
+      {/* 平板横屏：篇目与大纲收成两侧贴边竖线（断法页 pad 端同款）。
+          颜色走 knowledge-theme 自己的 token：这里 --primary 被重定义成十六进制，
+          Tailwind 的 bg-primary/35 会解析失败。 */}
+      {isPadLandscape && (
+        <>
+          <button type="button" onClick={() => setIsPadCatalogOpen(true)} className="absolute left-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-start group focus:outline-none" aria-label="打开常识篇目">
+            <span className="w-[3px] h-20 rounded-r bg-[var(--primary-border)] group-hover:bg-[var(--primary)] transition-colors" />
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="px-2 py-1 rounded-md text-xs bg-[var(--surface)] border border-[var(--border)] text-[var(--fg)] shadow-sm whitespace-nowrap">篇目</span>
+            </span>
+          </button>
+          <button type="button" onClick={() => setIsPadOutlineOpen(true)} className="absolute right-0 top-1/2 -translate-y-1/2 z-30 w-8 h-28 bg-transparent flex items-center justify-end group focus:outline-none" aria-label="打开大纲">
+            <span className="w-[3px] h-20 rounded-l bg-[var(--primary-border)] group-hover:bg-[var(--primary)] transition-colors" />
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="px-2 py-1 rounded-md text-xs bg-[var(--surface)] border border-[var(--border)] text-[var(--fg)] shadow-sm whitespace-nowrap">大纲</span>
+            </span>
+          </button>
+        </>
       )}
 
       {/* 中间正文阅读区 */}
@@ -190,6 +215,24 @@ export const KnowledgePage: React.FC<KnowledgePageProps> = ({
         );
         return outlineDrawer.portalTarget ? createPortal(drawer, outlineDrawer.portalTarget) : drawer;
       })()}
+
+      {/* 平板横屏：篇目与大纲抽屉，同移动端挂在 knowledge-theme 之外（原因同上） */}
+      {isPadLandscape && (
+        <>
+          <SideDrawer open={isPadCatalogOpen} title="常识篇目" side="left" size="xs" onClose={() => setIsPadCatalogOpen(false)}>
+            <div className="knowledge-drawer-content flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+              {renderL2List(() => setIsPadCatalogOpen(false))}
+            </div>
+          </SideDrawer>
+          <SideDrawer open={isPadOutlineOpen} title={getKnowledgeOutlineTitle(selectedItemId) ?? '大纲'} side="right" size="sm" onClose={() => setIsPadOutlineOpen(false)}>
+            <div className="knowledge-drawer-content flex-1 min-h-0 overflow-y-auto p-3 scrollbar-thin">
+              {getKnowledgeOutlineTitle(selectedItemId)
+                ? renderOutline('bare', () => setIsPadOutlineOpen(false))
+                : <div className="text-sm text-muted-foreground py-6 text-center">当前篇目无大纲</div>}
+            </div>
+          </SideDrawer>
+        </>
+      )}
     </>
   );
 };

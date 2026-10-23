@@ -97,7 +97,8 @@ export default function CaseStudyBaziChart({
     selectedLiuNianYear,
     isMobile = false,
 }: CaseStudyBaziChartProps) {
-    const [isShenshaCollapsed, setIsShenshaCollapsed] = useState(false);
+    // 神煞默认收起：只显示第一位，避免窄栏里把命例卷头挤满
+    const [isShenshaCollapsed, setIsShenshaCollapsed] = useState(true);
 
     const pillars = data?.pillars;
     const daYun = data?.daYun;

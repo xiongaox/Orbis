@@ -41,6 +41,26 @@ export function parseBaziImportData(jsonData: unknown[] | unknown): CreateCaseIn
     for (const item of inputs) {
         if (!item || typeof item !== 'object') continue;
 
+        // 完整备份格式（导出时选了「完整备份」）：键名已是内部字段，
+        // 直接透传并保留 life_events / bazi_data，不再走下面的中文字段映射，
+        // 否则生平时间轴与排盘数据会被丢弃
+        const raw = item as Record<string, unknown>;
+        if (typeof raw.name === 'string' && typeof raw.birth_date === 'string') {
+            validCases.push({
+                name: raw.name,
+                gender: raw.gender === 'female' ? 'female' : 'male',
+                birth_date: raw.birth_date,
+                tags: Array.isArray(raw.tags)
+                    ? (raw.tags.filter((t) => CASE_TAGS.includes(t as CaseTag)) as CaseTag[])
+                    : [],
+                notes: typeof raw.notes === 'string' ? raw.notes : '',
+                bazi_data: raw.bazi_data as CreateCaseInput['bazi_data'],
+                life_events: raw.life_events as CreateCaseInput['life_events'],
+                sort_order: typeof raw.sort_order === 'number' ? raw.sort_order : undefined,
+            });
+            continue;
+        }
+
         const caseInput: CreateCaseInput = {
             name: '',
             gender: 'male',

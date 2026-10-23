@@ -58,11 +58,11 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
     } = props;
 
     // 移动端底栏注册：目录（左抽屉）与 排盘信息/大纲（右抽屉）由底部导航槽位打开。
-    // 文案跟随分类：八字/奇门是排盘类 → 左「案例」右「排盘信息」；
+    // 文案跟随分类：八字/奇门/题库是排盘类 → 左「案例/题库」右「排盘信息」；
     // 常识/断法是阅读类 → 左为分类名（2 字），右为「大纲总览」
-    const isChartCategory = selectedCategory === 'bazi' || selectedCategory === 'qimen';
-    const caseDrawerLabel = isChartCategory
-        ? '案例'
+    const hasChartPanel = selectedCategory === 'bazi' || selectedCategory === 'qimen' || selectedCategory === 'tiku';
+    const caseDrawerLabel = hasChartPanel
+        ? (selectedCategory === 'tiku' ? '题库' : '案例')
         : (CATEGORIES.find((cat) => cat.id === selectedCategory)?.name ?? '常识');
     useRegisterMobileDrawers('xiaoliuren', {
         // 底栏槽位点击：左右抽屉互斥——打开一侧时先关掉另一侧，
@@ -81,7 +81,7 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
         caseLabel: caseDrawerLabel,
         // 底栏第二页据此高亮当前分类槽
         caseCategory: selectedCategory,
-        panelLabel: isChartCategory ? '排盘信息' : '大纲总览',
+        panelLabel: hasChartPanel ? '排盘信息' : '大纲总览',
         // 并排式抽屉状态：打开时滑动改为「关闭」，而不是再开一层
         inlineOpen: isLeftPanelOpen || isChartPanelOpen,
         inlineSide: isLeftPanelOpen ? 'left' : isChartPanelOpen ? 'right' : undefined,
@@ -101,8 +101,9 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
     // 左栏固定 xxs（目录/案例列表）；右栏断法大纲与常识大纲是窄目录用 xxs，八字盘用 sm。
     // 奇门盘用 full：九宫格字段密集，窄栏会把宫格挤到换行、看不清，
     // 这里宁可把主界面整个挤出去也要给盘面足够宽度（抽屉两侧仍各留 8px 内缩）。
-    // 案例正文区自带 p-6 内边距，与八字内容区的 px-2 同属「主内容已有留白」，故不补 extraGap。
-    const panelSize = selectedCategory === 'qimen' ? 'full' : selectedCategory === 'bazi' ? 'sm' : 'xxs';
+    // 排盘类（八字 / 奇门 / 题库）统一取 full：盘面字段密集，窄栏会把内容挤到换行，
+    // 三者同宽便于切换时视觉一致（主界面整体让出，抽屉两侧仍各留 8px）
+    const panelSize = selectedCategory === 'qimen' || selectedCategory === 'bazi' || selectedCategory === 'tiku' ? 'full' : 'xxs';
     const inlineOffset = isLeftPanelOpen
         ? inlineDrawerOffset(INLINE_DRAWER_WIDTH.xxs, 'left')
         : isChartPanelOpen
@@ -259,7 +260,26 @@ export default function CaseStudyMobileLayout(props: CaseStudyLayoutProps) {
 
                 {selectedCategory === 'tiku' ? (
                     <div className="flex-1 flex flex-col overflow-hidden relative">
-                        <TikuPage />
+                        {/* 题库与断法/常识同级：目录与排盘都由底栏插槽打开，状态仍归本布局管，
+                            抽屉经 portalTarget 挂到不平移的宿主节点上 */}
+                        <TikuPage
+                            drawers={{
+                                catalogOpen: isLeftPanelOpen,
+                                chartOpen: isChartPanelOpen,
+                                onCloseCatalog: () => setIsLeftPanelOpen(false),
+                                onCloseChart: () => setIsChartPanelOpen(false),
+                                portalTarget: drawerHost,
+                                chartSize: panelSize,
+                                catalogHeader: (
+                                    <CategoryTabs
+                                        categories={CATEGORIES}
+                                        selectedId={selectedCategory}
+                                        onSelect={(id) => { setSelectedCategory(id); }}
+                                        variant="drawer"
+                                    />
+                                ),
+                            }}
+                        />
                     </div>
                 ) : selectedCategory === 'duanfa' ? (
                     <div className="flex-1 flex flex-col overflow-hidden relative">

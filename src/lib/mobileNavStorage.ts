@@ -36,7 +36,7 @@ export const MOBILE_NAV_CASE_MAX_SLOTS = 3;
  * 必须与 ChartType 分开——`bazi` / `qimen` 在两边同名，但点击语义完全不同：
  * 第二页的「八字案例」是进入案例学习模块并切到八字分类，不是打开八字盘面。
  */
-export type CaseNavSlot = 'changshi' | 'duanfa' | 'bazi' | 'qimen';
+export type CaseNavSlot = 'changshi' | 'duanfa' | 'tiku' | 'bazi' | 'qimen';
 
 /** 第二页默认可换槽位（常识 · 八字案例 · 奇门案例；断法默认不占位，需要时自行换入） */
 export const DEFAULT_MOBILE_NAV_CASE_SLOTS: CaseNavSlot[] = ['changshi', 'bazi', 'qimen'];
@@ -47,10 +47,11 @@ export const DEFAULT_MOBILE_NAV_CASE_SLOTS: CaseNavSlot[] = ['changshi', 'bazi',
  *  只有八字、奇门才是案例库。
  *  断法文案不带门类前缀：目前只有奇门断法（src/data/cases/qimen/duanfa），
  *  之后会扩展其他门类，写死「奇门」会随内容增长失效。
- *  四个文案都取四字，与相邻槽位等宽；门类名仍用 CATEGORIES 的「常识 / 断法 / 八字 / 奇门」 */
+ *  四个文案都取四字，与相邻槽位等宽；门类名仍用 CATEGORIES 的「常识 / 断法 / 题库 / 八字 / 奇门」 */
 const CASE_SLOT_NAMES: Record<CaseNavSlot, string> = {
     changshi: '术数基础',
     duanfa: '断法汇编',
+    tiku: '大赛题库',
     bazi: '八字案例',
     qimen: '奇门案例',
 };

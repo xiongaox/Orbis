@@ -10,7 +10,7 @@ export const LOCKED_CHART_SNAPSHOTS_STORAGE_KEY = 'orbis_locked_chart_snapshots'
 export const LOCKABLE_CHARTS: ChartType[] = ['bazi', 'qimen', 'xiaoliuren'];
 
 /** 可锁定的案例学习分类（与 CATEGORIES 的 id 一致；此处独立列出避免 lib 循环依赖） */
-const CASE_LOCK_CATEGORIES = ['changshi', 'duanfa', 'bazi', 'qimen'];
+const CASE_LOCK_CATEGORIES = ['changshi', 'duanfa', 'tiku', 'bazi', 'qimen'];
 
 /** 案例学习的锁定键：每个分类独立锁定，形如 xiaoliuren:changshi */
 export function caseStudyLockKey(category: string): string {

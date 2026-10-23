@@ -94,6 +94,7 @@ export default function QimenCaseLibraryModal({
                         title="导出奇门案例"
                         options={QIMEN_CATEGORIES.map((cat) => ({ id: cat.id, name: cat.name }))}
                         cases={cases}
+                        fullCases={cases}
                         getCaseFilter={(c) => c.category}
                         formatCase={(c) => {
                             const categoryName = QIMEN_CATEGORIES.find(cat => cat.id === c.category)?.name || c.category;

@@ -13,14 +13,17 @@ interface CaseTagFilterProps {
 
 export default function CaseTagFilter({ selectedTag, onSelectTag, cases }: CaseTagFilterProps) {
     const [isTagMenuOpen, setIsTagMenuOpen] = useState(false);
-    const tagMenuRef = useRef<HTMLDivElement | null>(null);
+    // ref 必须同时包住触发按钮与面板：只包面板时，点按钮的 mousedown 会被判成「外部点击」
+    // 先关掉，紧接着 click 又把 prev 从 false 翻回 true，表现为「只能展开、点不回缩」。
+    // display:contents 让这层包裹不参与布局，面板的 absolute 仍按外层 relative 定位。
+    const containerRef = useRef<HTMLDivElement | null>(null);
     const allLabel = '\u5168\u90e8';
 
     useEffect(() => {
         if (!isTagMenuOpen) return;
 
         const handlePointerDown = (event: MouseEvent) => {
-            if (tagMenuRef.current && !tagMenuRef.current.contains(event.target as Node)) {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
                 setIsTagMenuOpen(false);
             }
         };
@@ -40,7 +43,7 @@ export default function CaseTagFilter({ selectedTag, onSelectTag, cases }: CaseT
     }, [isTagMenuOpen]);
 
     return (
-        <>
+        <div ref={containerRef} className="contents">
             <button
                 type="button"
                 onClick={() => setIsTagMenuOpen((prev) => !prev)}
@@ -56,7 +59,7 @@ export default function CaseTagFilter({ selectedTag, onSelectTag, cases }: CaseT
                 // top-full 必须显式声明（原因同 CategoryFilterDropdown）：
                 // flex 容器内绝对定位元素缺省 static position 会让面板上移、顶部几项被遮住
                 // 标签有 14 项，保留滚动并给出足够高度，避免在手机上被视口裁掉底部
-                <div ref={tagMenuRef} className="absolute right-0 left-0 top-full mt-2 max-h-[60vh] overflow-y-auto scrollbar-none bg-popover border border-border shadow-xl rounded-xl p-2 z-20 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute right-0 left-0 top-full mt-2 max-h-[60vh] overflow-y-auto scrollbar-none bg-popover border border-border shadow-xl rounded-xl p-2 z-20 animate-in fade-in zoom-in-95 duration-100">
                     <button
                         type="button"
                         onClick={() => {
@@ -96,6 +99,6 @@ export default function CaseTagFilter({ selectedTag, onSelectTag, cases }: CaseT
                     </div>
                 </div>
             )}
-        </>
+        </div>
     );
 }

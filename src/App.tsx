@@ -373,6 +373,46 @@ function AppShell() {
           </div>
         ))}
 
+        {/* 桌面 dev 调试用的抽屉触发按钮：桌面窗口里没有触摸手势，划不出并排式侧栏。
+            仅 DEV 构建存在，import.meta.env.DEV 在生产构建时是 false，整块被 tree-shake 掉，
+            打包产物里不会包含。复用底栏槽位的 openCase / openPanel，语义与手机上完全一致。
+            抽屉打开时只剩一个关闭按钮，避免两个按钮压在面板内容上 */}
+        {import.meta.env.DEV && !showMobileProfile && (openCaseDrawer || openPanelDrawer) && (
+          inlineOpen ? (
+            <button
+              type="button"
+              onClick={handleSwipeClose}
+              title="关闭侧栏（仅 dev）"
+              className="absolute left-1/2 -translate-x-1/2 bottom-2 z-50 h-8 px-3 rounded-lg border border-primary/50 bg-card/95 text-[11px] text-primary shadow-sm hover:bg-primary/10 transition-colors"
+            >
+              ✕ 关闭侧栏
+            </button>
+          ) : (
+            <div className="absolute inset-x-2 top-1/2 -translate-y-1/2 z-50 flex justify-between pointer-events-none">
+              {openCaseDrawer ? (
+                <button
+                  type="button"
+                  onClick={handleOpenLeftDrawer}
+                  title={`打开${activeDrawers?.caseLabel ?? '案例'}侧栏（仅 dev）`}
+                  className="pointer-events-auto h-9 px-2 rounded-lg border border-primary/50 bg-card/90 text-[11px] text-primary shadow-sm hover:bg-primary/10 transition-colors"
+                >
+                  ◀ {activeDrawers?.caseLabel ?? '案例'}
+                </button>
+              ) : <span />}
+              {openPanelDrawer && (
+                <button
+                  type="button"
+                  onClick={handleOpenRightDrawer}
+                  title={`打开${activeDrawers?.panelLabel ?? '排盘信息'}侧栏（仅 dev）`}
+                  className="pointer-events-auto h-9 px-2 rounded-lg border border-primary/50 bg-card/90 text-[11px] text-primary shadow-sm hover:bg-primary/10 transition-colors"
+                >
+                  {activeDrawers?.panelLabel ?? '排盘信息'} ▶
+                </button>
+              )}
+            </div>
+          )
+        )}
+
         {/* 移动端个人中心：覆盖内容区，底栏保持可见（L1 主菜单层，个人中心高亮）；
             z-[60] 高于底栏毛玻璃层，保证页内底部弹窗（如设置生日）不被底栏遮挡 */}
         {isMobile && showMobileProfile && (

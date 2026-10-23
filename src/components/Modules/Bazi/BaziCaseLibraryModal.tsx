@@ -85,6 +85,7 @@ export default function BaziCaseLibraryModal({
                         title="导出八字案例"
                         options={CASE_TAGS.map((tag) => ({ id: tag, name: tag }))}
                         cases={cases}
+                        fullCases={cases}
                         getCaseFilter={(c) => c.tags}
                         formatCase={(c) => {
                             const pillars = getBaziPillarsFromDateString(c.birth_date);

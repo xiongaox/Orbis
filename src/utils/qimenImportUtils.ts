@@ -69,6 +69,26 @@ export function parseQimenImportData(jsonData: unknown[] | unknown): CreateQimen
     for (const item of inputs) {
         if (!item || typeof item !== 'object') continue;
 
+        // 完整备份格式（导出时选了「完整备份」）：键名已是内部字段，
+        // 直接透传并保留 dialog_lines / qimen_data / pai_pan_method。
+        // 走下面的中文字段映射会把这些正文与排盘数据丢掉
+        const raw = item as Record<string, unknown>;
+        if (typeof raw.title === 'string' && typeof raw.test_date === 'string') {
+            const category = CATEGORY_NAME_MAP[String(raw.category ?? '')] ?? 'other';
+            validCases.push({
+                title: raw.title,
+                test_date: raw.test_date,
+                category,
+                description: typeof raw.description === 'string' ? raw.description : '',
+                feedback: typeof raw.feedback === 'string' ? raw.feedback : '',
+                analysis: typeof raw.analysis === 'string' ? raw.analysis : '',
+                dialog_lines: raw.dialog_lines as CreateQimenCaseInput['dialog_lines'],
+                qimen_data: raw.qimen_data as CreateQimenCaseInput['qimen_data'],
+                pai_pan_method: raw.pai_pan_method as CreateQimenCaseInput['pai_pan_method'],
+            });
+            continue;
+        }
+
         const caseInput: CreateQimenCaseInput = {
             title: '',
             test_date: '',

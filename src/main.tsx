@@ -9,6 +9,7 @@ import { preloadAiResearchStatuses } from './services/aiTaskStatusService'
 import { preloadAutoBackupState } from './services/remoteBackupService'
 import { preloadTheme } from './services/themeService'
 import { migrateQimenTitlesIntoDescription, migrateQimenTimezoneShift } from './services/qimenCaseService'
+import { seedDemoCases } from './lib/demoCases'
 
 // 启动预热：把 SQLite 里的设置/对话历史/研判状态/备份时间戳载入内存缓存。
 // 必须在首屏渲染前完成，否则各处的同步读（readSetting/getAllSessions 等）只会拿到空默认值。
@@ -25,6 +26,8 @@ async function bootstrap() {
     migrateQimenTitlesIntoDescription(),
     // 存量奇门案例：CSV 迁移批次的时间回正（一次性，幂等）
     migrateQimenTimezoneShift(),
+    // 首次启动投放两条示例案例（一次性，幂等；删掉后不会复活）
+    seedDemoCases(),
   ])
 }
 

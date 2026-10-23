@@ -41,6 +41,12 @@ describe('移动端底栏槽位存储', () => {
         expect(readMobileNavCaseSlots()).toHaveLength(MOBILE_NAV_CASE_MAX_SLOTS);
     });
 
+    it('题库是第二页合法分类槽（与断法/常识同级）', () => {
+        store.clear();
+        writeMobileNavCaseSlots(['tiku', 'duanfa']);
+        expect(readMobileNavCaseSlots()).toEqual(['tiku', 'duanfa']);
+    });
+
     it('第二页非法存储回退默认值', () => {
         store.clear();
         store.set(MOBILE_NAV_CASE_SLOTS_STORAGE_KEY, 'not-an-array');

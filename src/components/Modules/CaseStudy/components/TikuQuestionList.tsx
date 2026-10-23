@@ -5,7 +5,8 @@ function Stem({ stem }: { stem: string }) {
     const [first, ...rest] = stem.split('\n');
     return (
         <>
-            <h3 className="font-serif text-[16px] lg:text-[17px] font-semibold text-foreground leading-relaxed">
+            {/* 题干用主题金，选项用常规前景色：靠色相区分题干与选项，而不是靠透明度 */}
+            <h3 className="font-serif text-[16px] lg:text-[17px] font-semibold text-primary leading-relaxed">
                 {first}
             </h3>
             {rest.length > 0 && (
@@ -100,7 +101,8 @@ function QuestionBlock({
                             >
                                 {opt.key}
                             </span>
-                            <span className="flex-1 text-[15px] leading-relaxed text-foreground">
+                            {/* 选项用 65% 前景色：题干已是主题金，选项再压一档避免整页发白 */}
+                            <span className="flex-1 text-[15px] leading-relaxed text-foreground/65">
                                 {opt.text}
                             </span>
                         </button>

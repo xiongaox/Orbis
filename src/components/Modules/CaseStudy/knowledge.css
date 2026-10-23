@@ -1225,20 +1225,26 @@
   }
   .gua64-row-cards {
     display: grid;
+    /* 每卡固定开销约 130px（竖排卦名条 22 + 内边距 16 + 亲/地支 66 + 世应 18 + 间距 8），
+       爻线列是剩下的 1fr：要 40px 以上才看得出阳爻实线与阴爻断缝，即每列至少 ~170px。
+       正文宽度要再扣掉分类栏与桌面左右内联栏，8 列并排只有在超宽窗口才放得下，
+       其余一律折成 4 列两行（pad 横屏 1180–1366 就落在这里，原先被挤成 ~19px）。 */
     grid-template-columns: repeat(8, 1fr);
     gap: 8px;
     align-items: stretch;
   }
-  @media (max-width: 900px) {
+  /* 4 列档加整块收窄居中：留白在两侧而不是卦卡片之间，每格约 211px，
+     爻线列不会铺成一条长横杠。8 列档不封顶，否则每格只剩 110px。 */
+  @media (max-width: 2200px) {
     .gua64-row-cards {
       grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
+      max-width: 880px;
+      margin-inline: auto;
     }
   }
   @media (max-width: 540px) {
     .gua64-row-cards {
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
     }
   }
   .gua64-single-palace .gua64-seal-card {
@@ -1261,7 +1267,7 @@
   }
   .gua64-single-palace .gua64-line-row {
     height: 15px;
-    grid-template-columns: 66px 1fr 18px;
+    grid-template-columns: 66px 1fr 26px;
   }
   .gua64-single-palace .gua64-role {
     font-size: 14px;
@@ -1445,11 +1451,12 @@
     min-width: 0;
     gap: 0;
   }
-  /* 每行三列严格定宽：信息 62px / 爻线 1fr / 世应 18px。
-     爻长只由 1fr 决定，与「六亲+地支」文字长短、世应有无全部解耦 */
+  /* 每行三列严格定宽：信息 62px / 爻线 1fr / 世应 26px。
+     爻长只由 1fr 决定，与「六亲+地支」文字长短、世应有无全部解耦。
+     世应列 26px 是「(世)」三个字面宽：原先 18px 会被卡片的 overflow:hidden 裁掉右括号 */
   .gua64-line-row {
     display: grid;
-    grid-template-columns: 62px 1fr 18px;
+    grid-template-columns: 62px 1fr 26px;
     align-items: center;
     gap: 4px;
     line-height: 1;
@@ -1508,12 +1515,11 @@
     background: #e4e4e7;
   }
 
-  /* 世应标记 */
+  /* 世应标记：宽度交给 line-row 的 26px 列，本元素只负责右对齐。
+     原先自带 width:18px 小于「(世)」字宽，多出的部分被卡片的 overflow:hidden 裁掉 */
   .gua64-role {
     font-size: 14px;
     font-family: var(--font-serif);
-    flex: 0 0 auto;
-    width: 18px;
     text-align: right;
     line-height: 1;
     font-weight: 700;
@@ -1547,7 +1553,10 @@
     table-layout: fixed;
     border-collapse: separate;
     border-spacing: 5px;
-    min-width: 1040px;
+    /* 每列下限：一格里要装「竖排卦名条 20 + 内边距 16 + 亲/地支 62 + 世应 26 + 间距 8」=132px，
+       爻线列（1fr）还得留 ~40px 才看得出阳爻实线与阴爻断缝，八列加 border-spacing 约 1420px。
+       不够宽时容器横向滚动；≤2000 视口改走下方每宫 2×4 卡片流，不吃这个下限。 */
+    min-width: 1420px;
   }
   .gua64-table thead th {
     background: #e8e4dc;
@@ -3575,15 +3584,14 @@
 
 
   /* ============================================================
-     窄屏（手机）表格 → 卡片流
-     十二长生 / 六十四卦矩阵在桌面是宽表，窄屏只做排版重排：
-     每行一张卡片、单元格不画格线，列名由 data-label 提供。
-     余氏调候表结构不同（行=月令、列=日主），窄屏改由组件按日主
-     渲染独立卡片（见 DiaohouSection 的 .dh-cards），不在此处处理。
+     六十四卦矩阵 → 每宫一张卡片，卡内固定 2×4 格
+     桌面端 8 列宽表要 1420px 以上才留得住阴阳爻（每格固定开销 132px），
+     pad 横屏与手机都放不下。这里不横向滚动，改成每宫一行八格折成两行四列，
+     表头隐藏、世序列名由每格的 data-label 提供。
+     列数只取 8 的因数（4 / 2），最后一行不会出现空位。
      ============================================================ */
-  @media (max-width: 640px) {
-    /* 外壳：不再是横向滚动容器，改为纵向卡片列 */
-    .dh-table-wrap,
+  @media (max-width: 2000px) {
+    /* 外壳摊平：卡片自带表面与边框，不再套一层桌面表框 */
     .gua64-matrix-container {
       overflow-x: visible;
       background: transparent;
@@ -3591,61 +3599,50 @@
       box-shadow: none;
       padding: 0;
     }
-
     .gua64-table {
       min-width: 0;
-      width: 100%;
-      table-layout: auto;
-      border-collapse: separate;
       border-spacing: 0;
+      /* 整表收窄居中：留白在表两侧，卦卡片之间的间距不变、卡片仍填满各自的格。
+         铺满 pad 正文（~1130）时每格 275px，爻线列（1fr）被拉成一条长横杠；
+         收到 880px 后每格约 211px，爻长回到 ~70px 的可读尺度。 */
+      max-width: 880px;
+      margin-inline: auto;
     }
-
-    /* 表头在卡片流里没有意义，列名改由每格 data-label 提供 */
     .gua64-table thead {
       display: none;
     }
-
     .gua64-table tbody {
       display: flex;
       flex-direction: column;
-    }
-    .gua64-table tbody {
       gap: 10px;
     }
-
-    /* 六十四卦：每行一张卡片（十二长生是名册竖排，不用卡片） */
+    /* 每宫一张卡片：八格按世序顺序排 2 行 × 4 列 */
     .gua64-table tbody tr {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
       padding: 10px 12px;
       box-sizing: border-box;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 10px;
     }
-    /* 斑马底与 hover 在卡片流里会让卡片忽明忽暗，统一关掉 */
+    /* hover 底色在卡片里会让格子忽明忽暗，统一关掉 */
     .gua64-table tbody tr:hover td {
       background: transparent;
     }
-
-    /* 单元格：无框、无分隔线，靠留白成组。列名做成极小的顶注 */
     .gua64-table td {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: 3px;
+      width: auto;
       min-width: 0;
-      padding: 8px 2px;
+      padding: 6px 2px;
       border: 0;
       border-radius: 0;
     }
-    /* 六十四卦仍是 flex 卡片流，格位等分 */
-    .gua64-table td {
-      flex: 1 1 0;
-    }
-    /* 十二长生内容格的列名（阶段名）；首列头部另行处理，不吃这条 */
     .gua64-table td::before {
       content: attr(data-label);
       font-family: var(--font-sans);
@@ -3654,6 +3651,31 @@
       letter-spacing: .02em;
       line-height: 1;
       color: var(--muted);
+    }
+  }
+  /* 4 列在窄窗口下每格只剩 ~150px，爻线又会挤没；退到 2 列（仍是 8 的因数） */
+  @media (max-width: 900px) {
+    .gua64-table tbody tr {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  /* ============================================================
+     窄屏（手机）表格 → 卡片流
+     十二长生在桌面是宽表，窄屏只做排版重排：
+     每行一张卡片、单元格不画格线，列名由 data-label 提供。
+     六十四卦的重排见上方 @media (max-width: 2000px) 一段。
+     余氏调候表结构不同（行=月令、列=日主），窄屏改由组件按日主
+     渲染独立卡片（见 DiaohouSection 的 .dh-cards），不在此处处理。
+     ============================================================ */
+  @media (max-width: 640px) {
+    /* 外壳：不再是横向滚动容器，改为纵向卡片列（六十四卦的外壳已在上面的 2000 段摊平） */
+    .dh-table-wrap {
+      overflow-x: visible;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      padding: 0;
     }
 
     /* 十二长生：名册竖排（结构由 ZhangShengSection 渲染，这里只管外观）
@@ -3822,16 +3844,8 @@
       line-height: 1;
     }
 
-    /* 六十四卦：每宫一张卡，八张卦卡两列 */
+    /* 六十四卦：手机走上方 2000/900 段的 2 列卡格，这里只收紧内边距 */
     .gua64-table td {
-      flex: 1 1 calc(50% - 4px);
-      width: auto;
-      min-height: 44px;
       padding: 2px;
-      align-items: stretch;
-    }
-    .gua64-table td::before {
-      text-align: center;
-      padding-bottom: 2px;
     }
   }
