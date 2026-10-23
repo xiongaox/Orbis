@@ -40,6 +40,7 @@ export default function CaseStudyPadLayout(props: CaseStudyLayoutProps) {
         selectedLiuNianYear, setSelectedLiuNianYear,
         qimenResult, qimenMethod, setQimenMethod,
         setIsJuDialogOpen, setIsLearningPanelOpen,
+        onSelectPanelArticle, duanFa,
         contentScrollRef, savedProgress, currentProgress, restoreProgress,
         isLeftPanelOpen, setIsLeftPanelOpen, isChartPanelOpen, setIsChartPanelOpen,
         isPreviewMode, libraryTotal, libraryGroupTotals, previewsPerGroup, openActivation, removeActivation, isRemoving,
@@ -50,7 +51,7 @@ export default function CaseStudyPadLayout(props: CaseStudyLayoutProps) {
             <div className="flex w-full h-full overflow-hidden bg-background relative">
                 <CategoryTabs categories={CATEGORIES} selectedId={selectedCategory} onSelect={setSelectedCategory} />
                 <div className="flex-1 flex overflow-hidden">
-                    <DuanFaPage />
+                    <DuanFaPage duanFa={duanFa} onSelectExternalArticle={onSelectPanelArticle} />
                 </div>
             </div>
         );

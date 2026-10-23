@@ -132,6 +132,23 @@ export default function CaseStudyPage({ categoryIntent, lockedSnapshot, onSnapsh
         return { title: '未知标题', author: '未知作者' };
     }, []);
 
+    // 学习面板跨域路由：最近阅读在断法与案例库之间共享，
+    // 点击时按 id 归属切换分类，避免停留在原分类导致正文空白
+    const handleSelectPanelArticle = useCallback((articleId: string) => {
+        if (DUANFA_FILES.some(f => f.id === articleId)) {
+            setSelectedCategory('duanfa');
+            // 确保断法内部术数分类可用（非奇门时文件列表为空），再落到目标文件
+            duanFa.handleSelectShuShu('qimen');
+            duanFa.handleSelectFile(articleId);
+            return;
+        }
+        const caseItem = ALL_CASES.find(c => c.id === articleId);
+        if (caseItem) {
+            setSelectedCategory(caseItem.category);
+            caseStudyState.handleSelectCase(articleId);
+        }
+    }, [duanFa, caseStudyState, setSelectedCategory]);
+
     const layoutProps: CaseStudyLayoutProps = {
         useDesktopLayout, isPadLandscape, isMobile,
         ...caseStudyState,
@@ -153,6 +170,7 @@ export default function CaseStudyPage({ categoryIntent, lockedSnapshot, onSnapsh
         duanFaRestoreProgress: duanFaProgressProps.restoreProgress,
         changshiItemId,
         setChangshiItemId,
+        onSelectPanelArticle: handleSelectPanelArticle,
     };
 
     return (
@@ -192,7 +210,7 @@ export default function CaseStudyPage({ categoryIntent, lockedSnapshot, onSnapsh
             <LearningPanelModal
                 isOpen={isLearningPanelOpen}
                 onClose={() => setIsLearningPanelOpen(false)}
-                onSelectArticle={caseStudyState.handleSelectCase}
+                onSelectArticle={handleSelectPanelArticle}
                 getArticleInfo={getArticleInfo}
             />
 

@@ -39,6 +39,7 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
         selectedLiuNianYear, setSelectedLiuNianYear,
         qimenResult, qimenMethod, setQimenMethod,
         setIsJuDialogOpen, setIsLearningPanelOpen,
+        onSelectPanelArticle, duanFa,
         contentScrollRef, savedProgress, currentProgress, restoreProgress,
         isPreviewMode, libraryTotal, libraryGroupTotals, previewsPerGroup, openActivation, removeActivation, isRemoving,
     } = props;
@@ -53,7 +54,7 @@ export default function CaseStudyDesktopLayout(props: CaseStudyLayoutProps) {
                     onSelect={setSelectedCategory}
                 />
                 <div className="flex-1 flex overflow-hidden">
-                    <DuanFaPage />
+                    <DuanFaPage duanFa={duanFa} onSelectExternalArticle={onSelectPanelArticle} />
                 </div>
             </div>
         );

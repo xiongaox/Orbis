@@ -94,4 +94,7 @@ export interface CaseStudyLayoutProps {
     // 常识模块状态
     changshiItemId?: string;
     setChangshiItemId?: (id: string) => void;
+
+    /** 学习面板跨域路由：非本模块文章（案例 ↔ 断法）切换分类后选中 */
+    onSelectPanelArticle?: (articleId: string) => void;
 }

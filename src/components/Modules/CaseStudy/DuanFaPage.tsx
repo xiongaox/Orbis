@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { useDuanFa } from './hooks/useDuanFa';
+import type { useDuanFa } from './hooks/useDuanFa';
 import NavSidebar from './components/NavSidebar';
 import DuanFaContent from './components/DuanFaContent';
 import DuanFaOutline from './components/DuanFaOutline';
@@ -17,7 +17,14 @@ import ReadingProgressButton from './components/ReadingProgressButton';
 import { DUANFA_FILES } from '../../../lib/caseStudy/duanfaData';
 import { ALL_CASES } from './hooks/useCaseStudy';
 
-export default function DuanFaPage() {
+interface DuanFaPageProps {
+    /** 断法状态唯一真身（提升到 CaseStudyPage，与锁定快照同源） */
+    duanFa: ReturnType<typeof useDuanFa>;
+    /** 学习面板跨域路由：非断法文章（八字/奇门案例）由案例页切换分类后选中 */
+    onSelectExternalArticle?: (articleId: string) => void;
+}
+
+export default function DuanFaPage({ duanFa, onSelectExternalArticle }: DuanFaPageProps) {
     const isDesktop = useMediaQuery('(min-width: 1024px)');
     const isPadLandscape = useIsPadLandscape();
     const useDesktopLayout = isDesktop && !isPadLandscape;
@@ -32,7 +39,7 @@ export default function DuanFaPage() {
         handleSelectFile,
         handleOutlineClick,
         setOutline,
-    } = useDuanFa();
+    } = duanFa;
 
     // 面板状态
     const fileItems = files.map((f) => ({ id: f.id, label: f.name }));
@@ -72,11 +79,15 @@ export default function DuanFaPage() {
         return { title: '未知文章', author: '未知' };
     }, []);
 
-    // 学习面板 - 选中文章
+    // 学习面板 - 选中文章（断法文件本页处理，案例交由案例页跨域路由）
     const handleSelectPanelArticle = useCallback((articleId: string) => {
-        handleSelectFile(articleId);
+        if (DUANFA_FILES.some(f => f.id === articleId)) {
+            handleSelectFile(articleId);
+        } else {
+            onSelectExternalArticle?.(articleId);
+        }
         setIsLearningPanelOpen(false);
-    }, [handleSelectFile]);
+    }, [handleSelectFile, onSelectExternalArticle]);
 
     const content = (
         <div className="flex-1 flex flex-col overflow-hidden relative">
