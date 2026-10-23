@@ -1257,7 +1257,7 @@
     height: 100%;
   }
   .gua64-single-palace .gua64-strip {
-    width: 22px;
+    width: 30px;
   }
   .gua64-single-palace .gua64-strip-name {
     font-size: 14px;
@@ -1266,7 +1266,7 @@
     font-size: 36px;
   }
   .gua64-single-palace .gua64-line-row {
-    height: 15px;
+    height: 17px;
     grid-template-columns: 66px 1fr 26px;
   }
   .gua64-single-palace .gua64-role {
@@ -1392,7 +1392,9 @@
     display: flex;
     overflow: hidden;
     width: 100%;
-    height: 112px;
+    /* 128 = 六行爻行 6×17 + 上下内边距 14，余量交给 justify-between 摊成行距，
+       112 时行间几乎贴死，六亲与地支读起来发闷 */
+    height: 128px;
     box-sizing: border-box;
     transition: all .15s ease;
   }
@@ -1407,7 +1409,7 @@
   }
   /* 左侧条带 (竖排卦名) */
   .gua64-strip {
-    width: 20px;
+    width: 30px;
     flex-shrink: 0;
     background: #ece8df;
     border-right: 1px solid rgba(0,0,0,0.06);
@@ -1424,7 +1426,7 @@
   }
   .gua64-strip-line {
     width: 1.5px;
-    height: 6px;
+    height: 14px;
     background: rgba(0,0,0,0.25);
   }
   .dark .gua64-strip-line {
@@ -1436,9 +1438,12 @@
     font-weight: 700;
     color: var(--fg);
     writing-mode: vertical-rl;
-    letter-spacing: 0.04em;
+    /* 竖排字的间距走 letter-spacing：0.04em 时三个字几乎连在一起 */
+    letter-spacing: 0.32em;
     line-height: 1;
     text-orientation: upright;
+    /* 竖排的「换列」就是换行：不禁止的话字数多或高度紧时会折成横排两列 */
+    white-space: nowrap;
   }
 
   /* 右侧六爻装卦区 */
@@ -1460,7 +1465,7 @@
     align-items: center;
     gap: 4px;
     line-height: 1;
-    height: 15px;
+    height: 17px;
   }
   .gua64-info {
     font-family: var(--font-mono, monospace);
@@ -1555,7 +1560,7 @@
     border-spacing: 5px;
     /* 每列下限：一格里要装「竖排卦名条 20 + 内边距 16 + 亲/地支 62 + 世应 26 + 间距 8」=132px，
        爻线列（1fr）还得留 ~40px 才看得出阳爻实线与阴爻断缝，八列加 border-spacing 约 1420px。
-       不够宽时容器横向滚动；≤2000 视口改走下方每宫 2×4 卡片流，不吃这个下限。 */
+       不够宽时容器横向滚动；≤1366 视口（pad/手机）改走下方每宫 2×4 卡片流，不吃这个下限。 */
     min-width: 1420px;
   }
   .gua64-table thead th {
@@ -3585,12 +3590,12 @@
 
   /* ============================================================
      六十四卦矩阵 → 每宫一张卡片，卡内固定 2×4 格
-     桌面端 8 列宽表要 1420px 以上才留得住阴阳爻（每格固定开销 132px），
-     pad 横屏与手机都放不下。这里不横向滚动，改成每宫一行八格折成两行四列，
-     表头隐藏、世序列名由每格的 data-label 提供。
-     列数只取 8 的因数（4 / 2），最后一行不会出现空位。
+     桌面端（>1366，与 useIsPadLandscape 的宽度上限一致）保持 8 列宽表，
+     版心不足 1420px 时由容器 overflow-x: auto 兜底滚动；只有 pad 横屏
+     与手机（≤1366）才折叠成卡片流。列数只取 8 的因数（4 / 2），
+     最后一行不会出现空位。
      ============================================================ */
-  @media (max-width: 2000px) {
+  @media (max-width: 1366px) {
     /* 外壳摊平：卡片自带表面与边框，不再套一层桌面表框 */
     .gua64-matrix-container {
       overflow-x: visible;
@@ -3664,12 +3669,12 @@
      窄屏（手机）表格 → 卡片流
      十二长生在桌面是宽表，窄屏只做排版重排：
      每行一张卡片、单元格不画格线，列名由 data-label 提供。
-     六十四卦的重排见上方 @media (max-width: 2000px) 一段。
+     六十四卦的重排见上方 @media (max-width: 1366px) 一段。
      余氏调候表结构不同（行=月令、列=日主），窄屏改由组件按日主
      渲染独立卡片（见 DiaohouSection 的 .dh-cards），不在此处处理。
      ============================================================ */
   @media (max-width: 640px) {
-    /* 外壳：不再是横向滚动容器，改为纵向卡片列（六十四卦的外壳已在上面的 2000 段摊平） */
+    /* 外壳：不再是横向滚动容器，改为纵向卡片列（六十四卦的外壳已在上面的 1366 段摊平） */
     .dh-table-wrap {
       overflow-x: visible;
       background: transparent;
@@ -3844,7 +3849,7 @@
       line-height: 1;
     }
 
-    /* 六十四卦：手机走上方 2000/900 段的 2 列卡格，这里只收紧内边距 */
+    /* 六十四卦：手机走上方 1366/900 段的 2 列卡格，这里只收紧内边距 */
     .gua64-table td {
       padding: 2px;
     }
