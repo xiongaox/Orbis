@@ -18,6 +18,14 @@ export interface AppChangelogEntry {
 
 export const APP_CHANGELOG: AppChangelogEntry[] = [
     {
+        version: 'v2.1.5',
+        date: '2026-10-24',
+        items: [
+            '【新增】学习面板最近阅读支持跨域跳转：从断法或案例的最近阅读可直接跳到对应案例或断法',
+            '【修复】题库内容为空：v2.1.4 正式包未打进题库语料，本版已补齐全部 17 届题库',
+        ],
+    },
+    {
         version: 'v2.1.4',
         date: '2026-10-24',
         items: [
