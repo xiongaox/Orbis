@@ -1121,8 +1121,12 @@ export default function AiChatDrawer({
             </div>
           )}
 
-          {/* 底部输入框 */}
-          <div className="p-3 sm:p-4 border-t border-border bg-card/70 shrink-0 space-y-2">
+          {/* 底部输入框：钉底交互区，壳不再整体避让 iOS home 指示条，这里局部避让
+              （Android 导航栏避让由壳负责，env 在该平台为 0，不会叠加） */}
+          <div
+            className="p-3 sm:p-4 border-t border-border bg-card/70 shrink-0 space-y-2"
+            style={{ paddingBottom: 'calc(1rem + var(--safe-area-inset-bottom-env, 0px))' }}
+          >
             <div className="relative rounded-lg border border-border bg-background focus-within:border-primary focus-within:ring-1 focus-within:ring-primary/40 transition-colors flex flex-col p-2.5 space-y-2">
               <textarea
                 ref={textareaRef}
@@ -1240,7 +1244,9 @@ export default function AiChatDrawer({
       />
       <div
         className={`fixed left-0 right-0 bottom-0 z-[115] bg-popover border-t border-border rounded-t-2xl flex flex-col max-h-[72vh] transition-transform duration-300 ${showHistorySheet ? 'translate-y-0' : 'translate-y-full'}`}
-        style={{ paddingBottom: 'var(--safe-area-inset-bottom, 0px)' }}
+        // 贴屏幕底的 fixed 浮层拿不到壳的安全区留白：Android 取注入的导航栏高度，
+        // iOS 取 home 指示条（env），两者取 max（语义见 index.css）
+        style={{ paddingBottom: 'max(var(--safe-area-inset-bottom), var(--safe-area-inset-bottom-env, 0px))' }}
       >
         <div className="w-9 h-1 rounded-full bg-border mx-auto mt-2.5 shrink-0" />
         <div className="flex-1 min-h-0 overflow-y-auto px-4 pt-2">
@@ -1311,7 +1317,8 @@ export default function AiChatDrawer({
       <div className="fixed inset-0 z-[110] bg-black/55" onClick={() => setPickerSheet(null)} />
       <div
         className="fixed left-0 right-0 bottom-0 z-[115] bg-popover border-t border-border rounded-t-2xl"
-        style={{ paddingBottom: 'calc(10px + var(--safe-area-inset-bottom, 0px))' }}
+        // 贴屏幕底的 fixed 浮层：Android 导航栏 + iOS home 指示条取 max（语义见 index.css）
+        style={{ paddingBottom: 'calc(10px + max(var(--safe-area-inset-bottom), var(--safe-area-inset-bottom-env, 0px)))' }}
       >
         <div className="w-9 h-1 rounded-full bg-border mx-auto mt-2.5" />
         <div className="max-h-[46vh] overflow-y-auto px-2 pt-2 pb-1">
@@ -1378,7 +1385,8 @@ export default function AiChatDrawer({
           onClick={(e) => e.stopPropagation()}
           // 抽屉贴顶贴底，而浮层定位在视口上、拿不到根节点的安全区留白，头部会被安卓
           // 系统栏盖住（见 MainActivity.kt 注入的 --safe-area-inset-*）。面板自带背景色，
-          // 系统栏区域仍铺满，只有内容被顶下来。
+          // 系统栏区域仍铺满，只有内容被顶下来。底部仅 Android 导航栏整体避让，
+          // iOS home 指示条由输入区局部避让（语义见 index.css）。
           style={{
             paddingTop: 'var(--safe-area-inset-top, 0px)',
             paddingBottom: 'var(--safe-area-inset-bottom, 0px)',

@@ -360,10 +360,13 @@ function AppShell() {
   };
 
   return (
-    // 系统栏安全区：--safe-area-inset-* 在 index.css 的 :root 中回退为 env(safe-area-inset-*)。
+    // 系统栏安全区：--safe-area-inset-* 在 index.css 的 :root 中定义。
     // - Android：MainActivity.kt 以行内样式注入同名变量（该平台 WebView 的 env() 恒为 0，
     //   必须原生注入），行内样式优先级高于 :root，故取注入值；
-    // - iOS：WKWebView 原生支持 env()，取系统安全区，顶栏避开状态栏、底栏避开 home 指示条；
+    // - iOS：WKWebView 原生支持 env()，顶部取系统安全区避开状态栏；底部 home 指示条
+    //   是悬浮提示、内容可延伸其下，不做整体避让（:root 中 --safe-area-inset-bottom 恒 0），
+    //   交互控件各自用 --safe-area-inset-bottom-env 局部避让，否则每个页面底部都会空出
+    //   一条背景色（iPad 横竖屏底部安全区恒为 20px）；
     // - 桌面/浏览器：env() 为 0，退化为无 padding，行为与既有实现一致。
     // 根节点自带 bg-background，背景会填满 padding 区域，所以状态栏那条仍是应用底色（随主题），
     // 交互内容则被顶到系统栏下方。

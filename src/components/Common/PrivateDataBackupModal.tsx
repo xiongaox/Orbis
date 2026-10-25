@@ -361,7 +361,8 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
               <div className="fixed inset-0 z-[110] bg-black/55" onClick={() => setFrequencyMenuOpen(false)} />
               <div
                 className="fixed left-0 right-0 bottom-0 z-[115] bg-popover border-t border-border rounded-t-2xl"
-                style={{ paddingBottom: 'calc(10px + var(--safe-area-inset-bottom, 0px))' }}
+                // 贴屏幕底的 fixed 浮层：Android 导航栏 + iOS home 指示条取 max（语义见 index.css）
+                style={{ paddingBottom: 'calc(10px + max(var(--safe-area-inset-bottom), var(--safe-area-inset-bottom-env, 0px)))' }}
               >
                 <div className="w-9 h-1 rounded-full bg-border mx-auto mt-2.5" />
                 <div className="max-h-[46vh] overflow-y-auto px-2 pt-2 pb-1" role="listbox" aria-label="自动备份频率">
@@ -469,9 +470,10 @@ export default function PrivateDataBackupModal({ isOpen, onClose }: PrivateDataB
         aria-modal="true"
         aria-labelledby="private-data-title"
         // 表单很长：居中布局配合内部滚动 + 安全区留白，避免关闭按钮被裁出屏幕。
+        // 底部取 max：Android 导航栏 + iOS home 指示条都要让卡片边缘避开（语义见 index.css）。
         style={{
           paddingTop: 'calc(1rem + var(--safe-area-inset-top, 0px))',
-          paddingBottom: 'calc(1rem + var(--safe-area-inset-bottom, 0px))',
+          paddingBottom: 'calc(1rem + max(var(--safe-area-inset-bottom), var(--safe-area-inset-bottom-env, 0px)))',
         }}
       >
         <div className="flex max-h-full min-h-0 w-full max-w-xl flex-col rounded-xl border border-border bg-popover shadow-2xl">

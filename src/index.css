@@ -5,12 +5,19 @@
 @tailwind utilities;
 
 :root {
-  /* 系统栏安全区。Android 由 MainActivity.kt 原生注入同名变量（该平台 WebView 的
-     env() 恒为 0，必须注入），注入值定义在行内样式上、优先级高于此处，故不受影响；
-     iOS 的 WKWebView 原生支持 env()，此处回退即令顶栏避开状态栏、底栏避开home指示条；
-     桌面端 env() 为 0，行为与改动前一致。 */
+  /* 系统栏安全区分三层语义：
+     - --safe-area-inset-top：必须整体避让的顶部遮挡（状态栏/刘海），iOS 用 env()，
+       Android 由 MainActivity.kt 原生注入同名变量（该平台 WebView 的 env() 恒为 0，
+       必须注入），注入值定义在行内样式上、优先级高于此处；
+     - --safe-area-inset-bottom：仅「必须避让的真实遮挡」。iOS 的 home 指示条是悬浮
+       提示、内容可延伸其下，整体留白会让每个页面底部空出一条，故此处恒为 0，
+       只留 Android 注入值生效；iPad 横竖屏底部安全区恒为 20px，靠它整体避让不划算；
+     - --safe-area-inset-bottom-env：iOS home 指示条高度。供壳内/贴底交互控件
+       （输入条、页脚按钮、底部选择板）局部避让用，桌面与 Android 上 env() 为 0。
+       贴屏幕底的 fixed 浮层拿不到壳的 Android 避让，需取两者 max。 */
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
-  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-bottom: 0px;
+  --safe-area-inset-bottom-env: env(safe-area-inset-bottom, 0px);
   --background: 0 0% 97%;
   --foreground: 0 0% 20%;
   --card: 0 0% 97%;

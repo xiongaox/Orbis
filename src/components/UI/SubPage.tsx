@@ -4,7 +4,8 @@
  *
  * 关键职责：
  * - 提供统一的页头版式：返回键 + 标题（可选图标）+ 右侧操作区
- * - 全屏铺满并避让系统栏：--safe-area-inset-* 由 MainActivity.kt 原生注入
+ * - 全屏铺满并避让系统栏：顶部避让状态栏；底部仅 Android 导航栏整体避让
+ *   （--safe-area-inset-* 语义见 index.css），iOS home 指示条由页脚交互区局部避让
  * - 接入 androidBackButton 返回栈：安卓边缘侧滑/返回键按打开顺序逐层关闭页面
  *
  * 使用约束：
@@ -91,7 +92,14 @@ export default function SubPage({
                 {children}
             </div>
             {footer && (
-                <div className="shrink-0 border-t border-border bg-background px-4 py-3">{footer}</div>
+                <div
+                    className="shrink-0 border-t border-border bg-background px-4 pt-3"
+                    // 壳不再整体避让 iOS home 指示条（内容型区域延伸到底），钉底操作条
+                    // 是交互控件，须自行避开；Android 的导航栏避让由壳的 paddingBottom 负责。
+                    style={{ paddingBottom: 'calc(0.75rem + var(--safe-area-inset-bottom-env, 0px))' }}
+                >
+                    {footer}
+                </div>
             )}
         </div>,
         document.body,

@@ -154,7 +154,8 @@ export default function BaseModal({
                 `}
                 // 全屏弹层铺满屏幕，需自行避开系统栏；背景仍延伸到状态栏下方，
                 // 只把内容顶下来。非全屏弹层居中且留有 p-4，无需处理。
-                // 底部弹层贴底，底部同样需要避让系统手势条。
+                // 底部：--safe-area-inset-bottom 仅在 Android 注入值（真实导航栏）时生效，
+                // iOS home 指示条不做整体避让，由页脚交互区用 --safe-area-inset-bottom-env 局部避让。
                 style={
                     fullScreen
                         ? {
@@ -191,7 +192,11 @@ export default function BaseModal({
 
                 {/* Footer */}
                 {footer && (
-                    <div className="p-4 border-t border-border bg-muted/10 flex justify-end gap-3 shrink-0">
+                    <div
+                        className="px-4 pt-4 border-t border-border bg-muted/10 flex justify-end gap-3 shrink-0"
+                        // 页脚是钉底交互区，iOS home 指示条在此局部避让（Android 由壳避让，不叠加）
+                        style={{ paddingBottom: 'calc(1rem + var(--safe-area-inset-bottom-env, 0px))' }}
+                    >
                         {footer}
                     </div>
                 )}

@@ -314,8 +314,9 @@ export default function LearningPanelModal({
                     flex flex-col overflow-hidden
                     animate-in fade-in lg:zoom-in-95 duration-200
                 "
-                // 移动端全屏贴顶贴底，需自行避开系统栏（见 MainActivity.kt 注入的
-                // --safe-area-inset-*）；桌面端该变量未定义、退化为 0，居中布局不受影响。
+                // 移动端全屏贴顶贴底，需自行避开系统栏：顶部避状态栏，底部仅 Android
+                // 导航栏整体避让（--safe-area-inset-* 语义见 index.css）；iOS home 指示条
+                // 由钉底分页条局部避让。桌面端该变量为 0，居中布局不受影响。
                 style={{
                     paddingTop: 'var(--safe-area-inset-top, 0px)',
                     paddingBottom: 'var(--safe-area-inset-bottom, 0px)',
@@ -376,9 +377,12 @@ export default function LearningPanelModal({
                             {renderBody()}
                         </div>
 
-                        {/* 分页控制 */}
+                        {/* 分页控制：钉底交互区，iOS home 指示条局部避让（Android 由壳避让，不叠加） */}
                         {pagination && (
-                            <div className="flex items-center justify-center border-t border-border px-4 py-3">
+                            <div
+                                className="flex items-center justify-center border-t border-border px-4 pt-3"
+                                style={{ paddingBottom: 'calc(0.75rem + var(--safe-area-inset-bottom-env, 0px))' }}
+                            >
                                 {pagination}
                             </div>
                         )}

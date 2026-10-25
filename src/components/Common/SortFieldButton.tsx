@@ -127,7 +127,8 @@ export default function SortFieldButton({ options, value, onChange, className = 
                     <div className="fixed inset-0 z-[110] bg-black/55" onClick={close} />
                     <div
                         className="fixed left-0 right-0 bottom-0 z-[115] bg-popover border-t border-border rounded-t-2xl"
-                        style={{ paddingBottom: 'calc(10px + var(--safe-area-inset-bottom, 0px))' }}
+                        // 贴屏幕底的 fixed 浮层：Android 导航栏 + iOS home 指示条取 max（语义见 index.css）
+                        style={{ paddingBottom: 'calc(10px + max(var(--safe-area-inset-bottom), var(--safe-area-inset-bottom-env, 0px)))' }}
                     >
                         <div className="w-9 h-1 rounded-full bg-border mx-auto mt-2.5" />
                         <div className="max-h-[46vh] overflow-y-auto px-2 pt-2 pb-1">

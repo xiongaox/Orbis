@@ -91,6 +91,8 @@ export default function SideDrawer({
       // 抽屉贴顶贴底，而浮层定位在视口上、拿不到根节点的安全区留白，
       // 头部会被安卓状态栏盖住（见 MainActivity.kt 的 --safe-area-inset-*）。
       // 面板自带 bg-card，背景仍铺满系统栏区域，只有内容被顶下来。
+      // 底部仅 Android 导航栏整体避让；iOS home 指示条不整体避让，内容延伸到底
+      // （变量语义见 index.css）。
       style={{
         // 并排式直接用 INLINE_DRAWER_WIDTH 原宽，不从宽度里扣留白：
         // 面板一旦变窄，内部多列字段（如奇门「空亡」六列）就会换行。
