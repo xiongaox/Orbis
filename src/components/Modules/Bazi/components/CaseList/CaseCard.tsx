@@ -2,7 +2,7 @@
  * 关键职责：
  * - 渲染侧栏案例卡片：上区为左侧「姓名独占一行 + 性别印章/分类 chip 一行」与右侧四柱
  *   顶对齐；底行横跨整卡宽度，岁数（左）+ 出生日期·时辰（右对齐）
- * - 仅日干保留五行色，其余干支压暗；编辑 / 删除由常驻改为左滑露出，
+ * - 仅日干保留五行色，其余干支压暗；编辑 / 删除由常驻改为右滑露出，
  *   展开后点击卡片以外任意位置经 useSwipeDismiss 全局收起
  *
  * 排版约束（改动前必读）：
@@ -104,7 +104,7 @@ export default function CaseCard({
     const age = getAgeFromBirth(item.birthDate);
     const lifeEventCount = item.lifeEventCount ?? 0;
 
-    // ---- 左滑露出 编辑 / 删除 ----
+    // ---- 右滑露出 编辑 / 删除（与左侧抽屉「向左推回收起」反向，避免收侧栏时误触） ----
     const [swipeX, setSwipeX] = useState(0);
     const [isSwiping, setIsSwiping] = useState(false);
     const gesture = useRef({ x: 0, y: 0, base: 0, lock: null as null | 'x' | 'y', moved: false });
@@ -132,7 +132,7 @@ export default function CaseCard({
             setIsSwiping(true);
         }
         if (g.lock !== 'x') return;
-        const next = Math.max(-REVEAL_PX, Math.min(0, g.base + (event.clientX - g.x)));
+        const next = Math.max(0, Math.min(REVEAL_PX, g.base + (event.clientX - g.x)));
         g.moved = true;
         setSwipeX(next);
     };
@@ -140,7 +140,7 @@ export default function CaseCard({
     const endSwipe = () => {
         const g = gesture.current;
         if (g.lock === 'x' && g.moved) {
-            setSwipeX(swipeX < -OPEN_THRESHOLD ? -REVEAL_PX : 0);
+            setSwipeX(swipeX > OPEN_THRESHOLD ? REVEAL_PX : 0);
             suppressClick.current = true;
         }
         setIsSwiping(false);
@@ -165,17 +165,8 @@ export default function CaseCard({
                 : 'border-border/40 bg-card hover:border-border/60 dark:border-border/30'
                 }`}
         >
-            {/* 左滑露出的操作区：位于卡片底层，靠前景层位移显形 */}
-                <div className="absolute inset-y-0 right-0 z-[1] flex">
-                    <button
-                        type="button"
-                        onClick={(event) => { stop(event); setSwipeX(0); onEdit(item.id); }}
-                        className="flex w-[60px] flex-col items-center justify-center gap-0.5 bg-secondary text-[11px] font-semibold text-primary"
-                        aria-label="编辑案例"
-                    >
-                        <Pencil className="h-3.5 w-3.5" />
-                        编辑
-                    </button>
+            {/* 右滑露出的操作区（按钮在卡片左缘）：位于卡片底层，靠前景层位移显形 */}
+                <div className="absolute inset-y-0 left-0 z-[1] flex">
                     <button
                         type="button"
                         onClick={(event) => { stop(event); setSwipeX(0); onDelete(item.id); }}
@@ -184,6 +175,15 @@ export default function CaseCard({
                     >
                         <Trash2 className="h-3.5 w-3.5" />
                         删除
+                    </button>
+                    <button
+                        type="button"
+                        onClick={(event) => { stop(event); setSwipeX(0); onEdit(item.id); }}
+                        className="flex w-[60px] flex-col items-center justify-center gap-0.5 bg-secondary text-[11px] font-semibold text-primary"
+                        aria-label="编辑案例"
+                    >
+                        <Pencil className="h-3.5 w-3.5" />
+                        编辑
                     </button>
                 </div>
 

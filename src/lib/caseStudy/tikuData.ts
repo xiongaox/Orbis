@@ -1,15 +1,20 @@
 import { parseTikuBank, type TikuBank, type TikuEdition, type TikuVolume } from './tikuParser';
 
-// 题库语料：一届一个 Markdown，目录本身即一个题库
-const rawTikuFiles = import.meta.glob('../../data/cases/tiku/*.md', {
+// 题库语料：一届一个 Markdown，按赛事分子目录（全球算命师大赛/ 铁口箓百群联赛/）
+const rawTikuFiles = import.meta.glob('../../data/cases/tiku/**/*.md', {
     query: '?raw',
     import: 'default',
     eager: true,
 }) as Record<string, string>;
 
+/** 按赛事子目录拆出一组语料文件 */
+const filesOfBank = (dir: string) =>
+    Object.fromEntries(Object.entries(rawTikuFiles).filter(([path]) => path.includes(`/${dir}/`)));
+
 /** 全部题库；后续新增赛事时在这里追加一个目录即可 */
 export const TIKU_BANKS: TikuBank[] = [
-    parseTikuBank('dasai', '全球算命师大赛', rawTikuFiles),
+    parseTikuBank('dasai', '全球算命师大赛', filesOfBank('全球算命师大赛')),
+    parseTikuBank('kadui', '铁口箓百群联赛', filesOfBank('铁口箓百群联赛')),
 ];
 
 export type { TikuBank, TikuEdition, TikuVolume };

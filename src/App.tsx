@@ -23,6 +23,7 @@ import { useInsightContent } from './hooks/useInsightContent';
 import { useGanZhiLiuYi } from './hooks/useGanZhiLiuYi';
 import type { ChartType } from './types';
 import { INSIGHT_BOOKS, DEFAULT_BOOK_ID } from './data/booksConfig';
+import { QIMEN_LIFE_PAN_EVENT, type QimenLifePanIntent } from './data/caseConstants';
 import {
   MOBILE_NAV_HOME_CHART,
   readMobileNavCaseSlots,
@@ -59,6 +60,8 @@ function AppShell() {
   const [showMobileProfile, setShowMobileProfile] = useState(false);
   // 案例学习分类直达意图（个人中心「案例 / 断法」入口）；seq 供重复触发同一分类
   const [caseStudyIntent, setCaseStudyIntent] = useState<{ category: string; seq: number } | null>(null);
+  // 八字 → 奇门「终身局」临时意图：以案例出生时间起局；离开奇门菜单即作废
+  const [lifePanIntent, setLifePanIntent] = useState<QimenLifePanIntent | null>(null);
   const mobileDrawerRegistry = useMobileNavRegistry();
   const activeDrawers = mobileDrawerRegistry[activeChart];
 
@@ -94,10 +97,29 @@ function AppShell() {
     swipeClose,
   });
 
+  // 统一菜单切换入口：离开奇门即丢弃终身局意图（切菜单后临时局消失，回到普通盘）；
+  // 事件监听里的 setActiveChart('qimen') 有意不走这里，避免清掉刚设置的意图
+  const goToChart = useCallback((chart: ChartType) => {
+    if (chart !== 'qimen') setLifePanIntent(null);
+    setActiveChart(chart);
+  }, []);
+
   const handleOpenCaseStudyCategory = useCallback((category?: string) => {
     if (category) setCaseStudyIntent({ category, seq: Date.now() });
     setShowMobileProfile(false);
-    setActiveChart('xiaoliuren');
+    goToChart('xiaoliuren');
+  }, [goToChart]);
+
+  // 八字案例头部「终身局」：切到奇门并以案例出生时间起临时局
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<QimenLifePanIntent>).detail;
+      if (!detail) return;
+      setLifePanIntent(detail);
+      setActiveChart('qimen');
+    };
+    window.addEventListener(QIMEN_LIFE_PAN_EVENT, handler);
+    return () => window.removeEventListener(QIMEN_LIFE_PAN_EVENT, handler);
   }, []);
 
   // 底栏第二页分类槽直达
@@ -262,7 +284,7 @@ function AppShell() {
         created_at: new Date().toISOString(),
       });
     }
-    setActiveChart('bazi');
+    goToChart('bazi');
   };
 
   // 渲染主内容区域
@@ -283,6 +305,7 @@ function AppShell() {
             key={qimenSnapshot?.capturedAt ?? 'unlocked'}
             lockedSnapshot={qimenSnapshot}
             onSnapshotChange={handleQimenSnapshotChange}
+            lifePanIntent={lifePanIntent}
           />
         );
       case 'xiaoliuren':
@@ -356,7 +379,7 @@ function AppShell() {
     >
       <Navbar
         activeChart={activeChart}
-        onChartChange={setActiveChart}
+        onChartChange={goToChart}
         lockedCharts={lockedCharts}
         onToggleChartLock={handleToggleChartLock}
       />
@@ -376,8 +399,9 @@ function AppShell() {
         {/* 桌面 dev 调试用的抽屉触发按钮：桌面窗口里没有触摸手势，划不出并排式侧栏。
             仅 DEV 构建存在，import.meta.env.DEV 在生产构建时是 false，整块被 tree-shake 掉，
             打包产物里不会包含。复用底栏槽位的 openCase / openPanel，语义与手机上完全一致。
-            抽屉打开时只剩一个关闭按钮，避免两个按钮压在面板内容上 */}
-        {import.meta.env.DEV && !showMobileProfile && (openCaseDrawer || openPanelDrawer) && (
+            抽屉打开时只剩一个关闭按钮，避免两个按钮压在面板内容上。
+            demo 模式（dev:demo / tauri:dev:demo）下也不渲染，避免调试按钮出现在演示截图里 */}
+        {import.meta.env.DEV && import.meta.env.VITE_DATA_SCOPE !== 'demo' && !showMobileProfile && (openCaseDrawer || openPanelDrawer) && (
           inlineOpen ? (
             <button
               type="button"
@@ -443,7 +467,7 @@ function AppShell() {
           drawers={activeDrawers}
           onSelectChart={(chart) => {
             setShowMobileProfile(false);
-            setActiveChart(chart);
+            goToChart(chart);
           }}
           onOpenProfile={() => setShowMobileProfile(true)}
           onSelectCaseSlot={handleOpenCaseSlot}

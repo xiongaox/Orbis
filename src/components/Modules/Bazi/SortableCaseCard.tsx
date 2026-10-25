@@ -1,7 +1,7 @@
 /**
  * 关键职责：
  * - 渲染案例库卡片：乾/坤 印章、四列迷你排盘、出生日期时辰、年龄
- * - 左滑露出 编辑 / 删除，展开后点击卡片以外任意位置经 useSwipeDismiss 全局收起
+ * - 右滑露出 编辑 / 删除（操作层在卡片左缘），展开后点击卡片以外任意位置经 useSwipeDismiss 全局收起
  * - 拖拽手动排序已移除：案例顺序一律为数据源的新建顺序（创建时间）
 */
 import { useEffect, useRef, useState } from 'react';
@@ -34,7 +34,7 @@ export default function SortableCaseCard({
 }: SortableCaseCardProps) {
     // 隐藏开关由案例库头部统一控制（跨模块共享），这里只读状态
     const { isPrivacyMode } = useCasePrivacy();
-    // 左滑位移（px，负值向左）
+    // 右滑位移（px，正值向右；与左侧抽屉「向左推回收起」反向，避免收侧栏时误触）
     const [swipeX, setSwipeX] = useState(0);
     const [isSwiping, setIsSwiping] = useState(false);
     // 起手时的手指坐标与卡片已有位移：位移叠加后双向跟手，右滑收回不再瞬移
@@ -92,7 +92,7 @@ export default function SortableCaseCard({
             suppressClick.current = true;
         }
         const delta = dx + s.offset;
-        setSwipeX(Math.max(Math.min(0, delta), -REVEAL_PX));
+        setSwipeX(Math.max(0, Math.min(REVEAL_PX, delta)));
     };
 
     const endSwipe = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -110,7 +110,7 @@ export default function SortableCaseCard({
             return;
         }
         // 松手按中线吸附：过半吸附展开，未过半收回，两侧对称
-        setSwipeX(prev => (prev < -REVEAL_PX / 2 ? -REVEAL_PX : 0));
+        setSwipeX(prev => (prev > REVEAL_PX / 2 ? REVEAL_PX : 0));
     };
 
     const handleCardClick = () => {
@@ -158,18 +158,9 @@ export default function SortableCaseCard({
                 : 'border-border/40'
                 }`}
         >
-            {/* 左滑露出的操作层：仅在拖动中或已展开时挂载，静止时不存在任何可透出的底层 */}
+            {/* 右滑露出的操作层（按钮在卡片左缘）：仅在拖动中或已展开时挂载，静止时不存在任何可透出的底层 */}
             {(isSwiping || swipeX !== 0) && (
-                <div className="absolute inset-y-0 right-0 z-[1] flex">
-                    <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); setSwipeX(0); onEdit(); }}
-                        className="flex w-[70px] flex-col items-center justify-center gap-1 bg-secondary text-xs font-medium text-primary"
-                        aria-label="编辑案例"
-                    >
-                        <Pencil className="h-4 w-4" />
-                        编辑
-                    </button>
+                <div className="absolute inset-y-0 left-0 z-[1] flex">
                     <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setSwipeX(0); onDelete(); }}
@@ -178,6 +169,15 @@ export default function SortableCaseCard({
                     >
                         <Trash2 className="h-4 w-4" />
                         删除
+                    </button>
+                    <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setSwipeX(0); onEdit(); }}
+                        className="flex w-[70px] flex-col items-center justify-center gap-1 bg-secondary text-xs font-medium text-primary"
+                        aria-label="编辑案例"
+                    >
+                        <Pencil className="h-4 w-4" />
+                        编辑
                     </button>
                 </div>
             )}

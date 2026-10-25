@@ -32,15 +32,19 @@ interface QimenNewCaseModalProps {
         analysis?: string;
     }) => void;
     initialData?: QimenCase | null; // Added prop for edit mode
+    /** 新建预填草稿（终身局保存）：名称与求测时间自动带上，initialData（编辑）优先 */
+    initialDraft?: { title: string; date: Date } | null;
     /** 「立即排盘」：用当前表单时间与所选盘式直接排盘。只有奇门主页有排盘上下文，案例库弹窗不传 */
     onPreview?: (date: Date, method: PaiPanMethod) => void;
     /** 当前页面的排盘方式，随案例一起保存（列表「盘式」标签的数据来源） */
     paiPanMethod?: PaiPanMethod;
 }
 
-export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialData, paiPanMethod, onPreview }: QimenNewCaseModalProps) {
-    const [title, setTitle] = useState(initialData?.title || '');
-    const [date, setDate] = useState<Date>(initialData ? new Date(initialData.test_date) : new Date());
+export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialData, initialDraft, paiPanMethod, onPreview }: QimenNewCaseModalProps) {
+    const [title, setTitle] = useState(initialData?.title || initialDraft?.title || '');
+    const [date, setDate] = useState<Date>(initialData
+        ? new Date(initialData.test_date)
+        : initialDraft?.date ?? new Date());
     const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
     const [category, setCategory] = useState<QimenCategory>(initialData?.category || 'work');
@@ -53,14 +57,14 @@ export default function QimenNewCaseModal({ isOpen, onClose, onConfirm, initialD
     // 移动端检测：与全应用统一走 useLayoutMode
     const { isMobile } = useLayoutMode();
 
-    // 编辑目标切换时重建表单（列表页编辑弹窗常驻挂载，仅靠 initialData 变化无法自更新）
+    // 编辑目标/预填草稿切换时重建表单（列表页编辑弹窗常驻挂载，仅靠 initialData 变化无法自更新）
     useEffect(() => {
         if (!isOpen) return;
-        setTitle(initialData?.title || '');
-        setDate(initialData ? new Date(initialData.test_date) : new Date());
+        setTitle(initialData?.title || initialDraft?.title || '');
+        setDate(initialData ? new Date(initialData.test_date) : initialDraft?.date ?? new Date());
         setCategory(initialData?.category || 'work');
         setMethod(initialData?.pai_pan_method ?? paiPanMethod ?? 'zhirun');
-    }, [isOpen, initialData, paiPanMethod]);
+    }, [isOpen, initialData, initialDraft, paiPanMethod]);
 
     if (!isOpen) return null;
 

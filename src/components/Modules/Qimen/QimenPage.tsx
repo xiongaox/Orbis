@@ -7,6 +7,7 @@ import CustomJuModal from './components/CustomJuModal';
 import QimenAiPromptModal from './QimenAiPromptModal';
 import { useQimenState } from './hooks/useQimenState';
 import type { QimenLockedSnapshot } from '../../../lib/lockedChartStorage';
+import type { QimenLifePanIntent } from '../../../data/caseConstants';
 
 import QimenDesktopLayout from './layouts/QimenDesktopLayout';
 import QimenPadLayout from './layouts/QimenPadLayout';
@@ -22,10 +23,12 @@ const METHOD_LABELS: Record<PaiPanMethod, string> = {
 interface QimenPageProps {
     lockedSnapshot?: QimenLockedSnapshot;
     onSnapshotChange?: (snapshot: QimenLockedSnapshot) => void;
+    /** 八字送来的终身局意图：非空时以案例出生时间起临时局，置空即恢复普通盘 */
+    lifePanIntent?: QimenLifePanIntent | null;
 }
 
-export default function QimenPage({ lockedSnapshot, onSnapshotChange }: QimenPageProps) {
-    const qimenState = useQimenState({ lockedSnapshot });
+export default function QimenPage({ lockedSnapshot, onSnapshotChange, lifePanIntent }: QimenPageProps) {
+    const qimenState = useQimenState({ lockedSnapshot, lifePanIntent });
 
     // Destructure needed values for outer modals
     const {
@@ -36,6 +39,7 @@ export default function QimenPage({ lockedSnapshot, onSnapshotChange }: QimenPag
         isCustomJuModalOpen, setIsCustomJuModalOpen, header, handleApplyCustomJu, setCustomJu,
         isAiModalOpen, setIsAiModalOpen, palaces, globalPatterns, selectedPalace, paiPanMethod, setPaiPanMethod, lockSnapshot,
         currentCase,
+        lifePanDraft, setLifePanDraft,
     } = qimenState;
 
     useEffect(() => {
@@ -69,16 +73,19 @@ export default function QimenPage({ lockedSnapshot, onSnapshotChange }: QimenPag
                     key={editingCase ? `edit-${editingCase.id}` : 'new'}
                     isOpen={isNewCaseModalOpen}
                     initialData={editingCase}
+                    initialDraft={lifePanDraft}
                     paiPanMethod={paiPanMethod}
                     onClose={() => {
                         setIsNewCaseModalOpen(false);
                         setEditingCase(null);
+                        setLifePanDraft(null);
                     }}
                     onPreview={(date, method) => {
                         // 「立即排盘」：不落库，只把盘面切到这个时间与所选盘式
                         // 新盘不属于任何案例，局数回到自动（否则会沿用上一个案例的局数）
                         setIsNewCaseModalOpen(false);
                         setEditingCase(null);
+                        setLifePanDraft(null);
                         setCustomJu(0);
                         if (method) setPaiPanMethod(method);
                         calculateQimenByDate(date, 0, method);
@@ -86,6 +93,7 @@ export default function QimenPage({ lockedSnapshot, onSnapshotChange }: QimenPag
                     onConfirm={(data) => {
                         setIsNewCaseModalOpen(false);
                         setEditingCase(null);
+                        setLifePanDraft(null);
                         setCustomJu(0);
                         calculateQimenByDate(data.date, 0);
                         setRefreshTrigger(prev => prev + 1);

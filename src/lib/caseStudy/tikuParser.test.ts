@@ -28,6 +28,47 @@ D 离婚后再婚
 Q2正确答案是：C
 `;
 
+const mdMerged = `# 全球算命师大赛 第17届（2026）
+
+提纲
+- 女命：公历1979年10月05日 戌时
+- 八字：己未 癸酉 乙巳 丙戌
+- 命题提供者：香港-李文渊老师
+
+Q1：1992年壬申年，有何特别事情发生？
+
+A 外国升学
+B 肠胃疾病
+C 失足意外
+D 官非
+
+Q1正确答案是：C
+
+
+Q2：此命在何年毕业，而投身社会工作？
+
+A 1995-乙亥年
+B 1997-丁丑年
+C 1999-己卯年
+D 2002-壬午年
+
+Q2正确答案是：B
+
+---
+
+提纲
+- 男命：公历1955年3月1日 辰时
+- 八字：乙未 戊寅 辛巳 壬辰
+- 命题提供者：香港-李文渊老师
+
+Q3：此命财富如何？
+
+A 温饱
+B 小康
+
+Q3正确答案是：A
+`;
+
 describe('parseTikuEdition', () => {
     it('同一命例的多道题聚成一张卷，命例信息只留一份', () => {
         const ed = parseTikuEdition('全球算命师大赛_第17届_2026.md', md);
@@ -143,5 +184,20 @@ describe('parseTikuBirthPlace / stripBirthPlace', () => {
         const birth = '公历1955年03月25日 寅时';
         expect(parseTikuBirthPlace(birth)).toBe('');
         expect(stripBirthPlace(birth, '')).toBe(birth);
+    });
+});
+
+describe('合并提纲格式（一块多题）', () => {
+    it('同一块内的多道题全部解析，命例只聚成一卷', () => {
+        const ed = parseTikuEdition('全球算命师大赛_第17届_2026.md', mdMerged);
+        expect(ed).not.toBeNull();
+        expect(ed!.volumes).toHaveLength(2);
+        expect(ed!.volumes[0].questions.map((q) => q.no)).toEqual([1, 2]);
+        expect(ed!.volumes[0].questions[1].answer).toBe('B');
+        expect(ed!.volumes[0].questions[1].options).toHaveLength(4);
+        expect(ed!.volumes[0].bazi).toBe('己未 癸酉 乙巳 丙戌');
+        expect(ed!.volumes[1].questions.map((q) => q.no)).toEqual([3]);
+        const ids = ed!.volumes.flatMap((v) => v.questions.map((q) => q.id));
+        expect(new Set(ids).size).toBe(ids.length);
     });
 });

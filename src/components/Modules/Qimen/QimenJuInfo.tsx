@@ -34,13 +34,15 @@ interface QimenJuInfoProps {
     compact?: boolean;
     /** 打开盘面元素说明弹窗（弹窗实例由布局层持有，可携带实时宫位数据） */
     onOpenGuide?: () => void;
+    /** 终身局「保存」：非空时在「说明」旁显示保存按钮 */
+    onSaveLifePan?: () => void;
 }
 
 export default function QimenJuInfo({
     date, header, caseData, isCasePrivacyMode = false, onToggleCasePrivacy, onOpenCaseDialog,
     selectedKongWangKey, selectedMaXingKey, onKongWangKeyChange, onMaXingKeyChange,
     showChangSheng, showShiShen, showPalaceMeta,
-    onToggleChangSheng, onToggleShiShen, onTogglePalaceMeta, compact = false, onOpenGuide
+    onToggleChangSheng, onToggleShiShen, onTogglePalaceMeta, compact = false, onOpenGuide, onSaveLifePan
 }: QimenJuInfoProps) {
     // 局基本信息计算
     const info = useMemo(() => {
@@ -107,6 +109,7 @@ export default function QimenJuInfo({
                 onTogglePalaceMeta={onTogglePalaceMeta}
                 compact={compact}
                 onOpenGuide={onOpenGuide}
+                onSaveLifePan={onSaveLifePan}
             />
 
             <div className="h-2 bg-muted/20 border-t border-b border-border/10 flex-shrink-0" />

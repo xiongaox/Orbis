@@ -15,9 +15,9 @@ export interface TikuQuestion {
     no: number;
     /** 题干；多行题干以 `\n` 连接，首行是问句 */
     stem: string;
-    /** 选项，按 A、B、C… 顺序 */
+    /** 选项，按 A、B、C… 顺序；填空题为空数组 */
     options: Array<{ key: string; text: string }>;
-    /** 正确答案字母 */
+    /** 选择题为正确答案字母（多答案连写如「BH」）；填空题为参考答案文本（如「2008」） */
     answer: string;
     /** 备注（原稿「备注1/备注2」等），供复盘时参考 */
     notes: string[];
@@ -55,11 +55,13 @@ export interface TikuVolume {
     questions: TikuQuestion[];
 }
 
-/** 一届（一个 Markdown 文件） */
+/** 一届（一个 Markdown 文件）；赛事用「届」、百群联赛这类连续赛事用「期」，仅显示名不同 */
 export interface TikuEdition {
     id: string;
-    /** 显示名，如「第17届」 */
+    /** 显示名，如「第17届」「第1517期」 */
     name: string;
+    /** 序号（届号/期号），用于同年内排序 */
+    no: number;
     /** 年份 */
     year: number;
     volumes: TikuVolume[];
@@ -76,6 +78,15 @@ const ZHI_HOUR: Record<string, number> = {
     子: 0, 丑: 2, 寅: 4, 卯: 6, 辰: 8, 巳: 10,
     午: 12, 未: 14, 申: 16, 酉: 18, 戌: 20, 亥: 22,
 };
+
+/**
+ * 作答判定：单选题 answer 是单字母；联赛流年题允许多事项并列（如「BH」），
+ * 单选交互下选到任一正确字母即算对。
+ */
+export function isCorrectTikuPick(answer: string, picked: string | null): boolean {
+    if (!picked) return false;
+    return answer.includes(picked);
+}
 
 /** 提纲行里「- key：value」的解析 */
 function parseOutline(lines: string[]) {
@@ -138,35 +149,67 @@ export function parseTikuBirthTime(birth: string): TikuVolume['birthTime'] {
 }
 
 /** 把一节（一题）的文本解析成题干、选项、答案 */
-function parseBlock(block: string, editionId: string): { question: TikuQuestion; outline: Record<string, string> } | null {
+/**
+ * 解析一个块（`---` 分隔）为一组题。同一命例的多道题共用一份提纲时合并为一块，
+ * 以「Q数字：」行开新题；也兼容旧稿「一题一块」。残缺题（无答案）整题丢弃。
+ */
+function parseBlock(block: string, editionId: string): Array<{ question: TikuQuestion; outline: Record<string, string> }> {
     const lines = block.split(/\r?\n/);
 
-    // 提纲行集中在题目前面
+    // 提纲行集中在第一题之前
     const outlineEnd = lines.findIndex((l) => /^Q\d+[：:]/.test(l.trim()));
-    const outline = parseOutline(outlineEnd >= 0 ? lines.slice(0, outlineEnd) : lines.slice(0, 0));
-    if (outlineEnd < 0) return null;
+    if (outlineEnd < 0) return [];
+    const outline = parseOutline(lines.slice(0, outlineEnd));
 
-    const qLine = lines[outlineEnd].trim();
-    const qMatch = qLine.match(/^Q(\d+)[：:]\s*(.*)$/);
-    if (!qMatch) return null;
-    const no = Number(qMatch[1]);
-    const stemLines = [qMatch[2].trim()];
-
-    const options: Array<{ key: string; text: string }> = [];
+    const results: Array<{ question: TikuQuestion; outline: Record<string, string> }> = [];
+    let no = 0;
+    let stemLines: string[] = [];
+    let options: Array<{ key: string; text: string }> = [];
     let answer = '';
-    const notes: string[] = [];
+    let notes: string[] = [];
 
-    for (let i = outlineEnd + 1; i < lines.length; i++) {
+    const flush = () => {
+        if (no > 0 && answer) {
+            results.push({
+                question: {
+                    id: `${editionId}-q${String(no).padStart(2, '0')}`,
+                    no,
+                    stem: stemLines.filter(Boolean).join('\n'),
+                    options,
+                    // 填空题没有选项，answer 即参考答案文本（如年份）
+                    answer,
+                    notes,
+                },
+                outline,
+            });
+        }
+        no = 0;
+        stemLines = [];
+        options = [];
+        answer = '';
+        notes = [];
+    };
+
+    for (let i = outlineEnd; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
 
-        const answerMatch = line.match(/^Q\d+正确答案是[：:]\s*([A-E])/);
-        if (answerMatch) {
-            answer = answerMatch[1];
+        const qMatch = line.match(/^Q(\d+)[：:]\s*(.*)$/);
+        if (qMatch) {
+            flush();
+            no = Number(qMatch[1]);
+            stemLines = [qMatch[2].trim()];
             continue;
         }
 
-        const optMatch = line.match(/^([A-E])\s+(.+)$/);
+        const answerMatch = line.match(/^Q\d+正确答案是[：:]\s*([A-Z]{1,2}|\d[\d.,、，/\s]*\d)/);
+        if (answerMatch) {
+            answer = answerMatch[1];
+            flush();
+            continue;
+        }
+
+        const optMatch = line.match(/^([A-Z])\s+(.+)$/);
         if (optMatch && !answer) {
             options.push({ key: optMatch[1], text: optMatch[2].trim() });
             continue;
@@ -181,29 +224,18 @@ function parseBlock(block: string, editionId: string): { question: TikuQuestion;
         const noteMatch = line.match(/^-\s*备注\d*[：:]\s*(.+)$/);
         if (noteMatch) notes.push(noteMatch[1].trim());
     }
+    flush();
 
-    if (options.length === 0 || !answer) return null;
-
-    return {
-        question: {
-            id: `${editionId}-q${String(no).padStart(2, '0')}`,
-            no,
-            stem: stemLines.filter(Boolean).join('\n'),
-            options,
-            answer,
-            notes,
-        },
-        outline,
-    };
+    return results;
 }
 
-/** 从文件路径取届次 id、名称与年份，如 `全球算命师大赛_第17届_2026.md` */
-function parseEditionMeta(path: string): { id: string; name: string; year: number } | null {
+/** 从文件路径取届/期 id、名称与年份，如 `全球算命师大赛_第17届_2026.md`、`铁口箓百群联赛_第1517期_2026.md` */
+function parseEditionMeta(path: string): { id: string; name: string; no: number; year: number } | null {
     const file = path.split('/').pop() ?? '';
-    const m = file.match(/第\s*(\d+)\s*届[_-](\d{4})/);
+    const m = file.match(/第\s*(\d+)\s*(届|期)[_-](\d{4})/);
     if (!m) return null;
     const no = Number(m[1]);
-    return { id: `e${String(no).padStart(2, '0')}`, name: `第${no}届`, year: Number(m[2]) };
+    return { id: `e${String(no).padStart(2, '0')}`, name: `第${no}${m[2]}`, no, year: Number(m[3]) };
 }
 
 /**
@@ -269,10 +301,7 @@ export function parseTikuEdition(path: string, content: string): TikuEdition | n
     const keyToVolume = new Map<string, TikuVolume>();
 
     for (const block of content.split(/\n-{3,}\s*\n/)) {
-        const parsed = parseBlock(block, meta.id);
-        if (!parsed) continue;
-
-        const { question, outline } = parsed;
+        for (const { question, outline } of parseBlock(block, meta.id)) {
         // 原稿性别行写法有「男命 / 女命 / 坤造 / 乾造」，缺任一都会被当成信息缺失
         const genderKey = outline['男命'] !== undefined ? '男命'
             : outline['女命'] !== undefined ? '女命'
@@ -329,6 +358,7 @@ export function parseTikuEdition(path: string, content: string): TikuEdition | n
             }
         }
         volume.questions.push(question);
+        }
     }
 
     if (volumes.length === 0) return null;
@@ -340,6 +370,6 @@ export function parseTikuBank(id: string, name: string, files: Record<string, st
     const editions = Object.entries(files)
         .map(([path, content]) => parseTikuEdition(path, content))
         .filter((e): e is TikuEdition => e !== null)
-        .sort((a, b) => a.year - b.year);
+        .sort((a, b) => a.year - b.year || a.no - b.no);
     return { id, name, editions };
 }

@@ -42,6 +42,8 @@ interface PadInfoPanelProps {
     onTogglePalaceMeta?: () => void;
     /** 打开盘面元素说明弹窗（弹窗实例由布局层持有，可携带实时宫位数据） */
     onOpenGuide?: () => void;
+    /** 终身局「保存」：非空时在「说明」旁显示保存按钮 */
+    onSaveLifePan?: () => void;
     caseTitle?: string;
 }
 
@@ -64,6 +66,7 @@ export default function QimenPadInfoPanel({
     onToggleShiShen,
     onTogglePalaceMeta,
     onOpenGuide,
+    onSaveLifePan,
     caseTitle,
 }: PadInfoPanelProps) {
 
@@ -141,6 +144,17 @@ export default function QimenPadInfoPanel({
                     </button>
                 )}
             </div>
+
+            {/* 终身局「保存」：独占一行横向铺满，不挤占开关按钮排 */}
+            {onSaveLifePan && (
+                <button
+                    type="button"
+                    onClick={onSaveLifePan}
+                    className="w-full py-1.5 rounded-lg text-sm font-serif text-center transition-all border bg-secondary/50 text-muted-foreground border-border hover:bg-muted/30 hover:text-foreground"
+                >
+                    保存
+                </button>
+            )}
 
             <div className="h-px bg-border/50" />
 

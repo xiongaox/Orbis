@@ -8,6 +8,11 @@ declare module '*.html?raw' {
   export default content
 }
 
+interface ImportMetaEnv {
+  /** VITE_DATA_SCOPE=demo 时启用隔离演示库（见 localPrivateStore 的库名后缀） */
+  readonly VITE_DATA_SCOPE?: string
+}
+
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }

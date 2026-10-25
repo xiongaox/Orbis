@@ -1,9 +1,9 @@
 
-import { GitBranch, ArrowRightLeft, Sparkles, ChevronUp, ChevronDown } from 'lucide-react';
+import { GitBranch, ArrowRightLeft, Sparkles, ChevronUp, ChevronDown, LayoutGrid } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '../../../lib/utils';
 import { baziCaseService } from '../../../services/baziCaseService';
-import { BAZI_CASES_CHANGED_EVENT } from '../../../data/caseConstants';
+import { BAZI_CASES_CHANGED_EVENT, QIMEN_LIFE_PAN_EVENT } from '../../../data/caseConstants';
 import type { Case } from '../../../types';
 import type { BaziApiResponse } from '../../../types/bazi';
 import GanZhiDiagramModal from './GanZhiDiagramModal';
@@ -15,6 +15,8 @@ import { useCasePrivacy } from '../../../contexts/CasePrivacyContext';
 
 interface BaziCaseInfoProps {
   caseData: Case | null;
+  /** 当前案例选择状态：'temp' 为临时盘（万年历排盘/预览），这类盘不提供终身局 */
+  selectedCaseId?: string | null;
   baziData: BaziApiResponse | null;
   selectedDaYunIndex?: number | null;
   selectedLiuNianYear?: number | null;
@@ -24,6 +26,7 @@ interface BaziCaseInfoProps {
 
 export default function BaziCaseInfo({
   caseData,
+  selectedCaseId,
   baziData,
   selectedDaYunIndex,
   selectedLiuNianYear,
@@ -40,6 +43,8 @@ export default function BaziCaseInfo({
 
   // 使用 API 返回的数据，如果没有则使用 case 数据
   const displayName = caseData?.name || '当前时间';
+  // 终身局只对正式选中的案例开放：临时盘（万年历排盘/新建预览，selectedCaseId='temp'）不提供
+  const isRealCaseSelected = Boolean(caseData) && selectedCaseId !== 'temp';
   const displayGender = baziData?.gender || (caseData?.gender === 'male' ? '乾造' : '坤造');
   const displayLunar = baziData?.lunarDate || caseData?.lunar_date || '-';
   const displaySolar = baziData?.solarDate || caseData?.solar_date || '-';
@@ -57,6 +62,14 @@ export default function BaziCaseInfo({
       Number(minute),
       0
     );
+  };
+
+  // 终身局：以选中案例的出生时间去奇门起临时局（广播给 App 层切换模块）
+  const handleOpenLifePan = () => {
+    if (!caseData?.birth_date) return;
+    window.dispatchEvent(new CustomEvent(QIMEN_LIFE_PAN_EVENT, {
+      detail: { birthDate: caseData.birth_date, caseName: caseData.name, seq: Date.now() },
+    }));
   };
 
   const handleSaveCurrent = async () => {
@@ -174,6 +187,17 @@ export default function BaziCaseInfo({
                     {saving ? '保存中...' : '保存排盘'}
                   </button>
                 )}
+                {isRealCaseSelected && (
+                  <button
+                    type="button"
+                    onClick={handleOpenLifePan}
+                    disabled={!baziData}
+                    className="flex-1 h-8 text-xs rounded-lg border border-border hover:bg-muted flex items-center justify-center gap-1 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    终身局
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowDiagram(true)}
@@ -252,6 +276,17 @@ export default function BaziCaseInfo({
                   className="px-3 py-2 text-sm rounded-lg border border-[hsl(var(--accent-primary)/0.4)] text-[hsl(var(--accent-primary))] hover:bg-[hsl(var(--accent-primary)/0.1)] dark:border-primary/40 dark:text-primary dark:hover:bg-primary/10 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {saving ? '保存中...' : '保存当前排盘'}
+                </button>
+              )}
+              {isRealCaseSelected && (
+                <button
+                  type="button"
+                  onClick={handleOpenLifePan}
+                  disabled={!baziData}
+                  className="px-3 py-2 text-sm rounded-lg border border-border hover:bg-muted flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  终身局
                 </button>
               )}
               <button

@@ -14,6 +14,8 @@ interface QimenDisplaySettingsProps {
     compact?: boolean;
     /** 打开盘面元素说明弹窗；弹窗实例由布局层持有并传入实时宫位数据，不传时回退内置静态示例弹窗 */
     onOpenGuide?: () => void;
+    /** 终身局「保存」：非空时在「说明」旁显示保存按钮（仅八字跳入的临时局存在） */
+    onSaveLifePan?: () => void;
 }
 
 export default function QimenDisplaySettings({
@@ -25,13 +27,14 @@ export default function QimenDisplaySettings({
     onTogglePalaceMeta,
     compact = false,
     onOpenGuide,
+    onSaveLifePan,
 }: QimenDisplaySettingsProps) {
     // 兜底弹窗（无 onOpenGuide 时使用，展示乾宫静态示例）
     const [guideOpen, setGuideOpen] = useState(false);
 
     return (
         <>
-            <div className={`grid grid-cols-4 ${compact ? 'gap-1' : 'gap-2'}`}>
+            <div className={`grid ${onSaveLifePan ? 'grid-cols-5' : 'grid-cols-4'} ${compact ? 'gap-1' : 'gap-2'}`}>
                 {([
                     { label: '长生', active: showChangSheng, onToggle: onToggleChangSheng },
                     { label: '十神', active: showShiShen, onToggle: onToggleShiShen },
@@ -57,6 +60,15 @@ export default function QimenDisplaySettings({
                 >
                     说明
                 </button>
+                {onSaveLifePan && (
+                    <button
+                        type="button"
+                        onClick={onSaveLifePan}
+                        className={`${compact ? 'py-1' : 'py-1.5'} rounded-lg text-sm font-serif text-center transition-all border bg-secondary/50 text-muted-foreground border-border hover:bg-muted/30 hover:text-foreground`}
+                    >
+                        保存
+                    </button>
+                )}
             </div>
             {!onOpenGuide && (
                 <QimenGuideModal open={guideOpen} onClose={() => setGuideOpen(false)} />

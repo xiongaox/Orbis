@@ -100,6 +100,9 @@ export default function TikuPage({ drawers }: { drawers?: TikuPageDrawers }) {
         [volumes],
     );
 
+    // 联赛这类「一期一卷」的届次没有命例层级，命例侧栏直接隐藏
+    const showVolumeSidebar = volumes.length > 1;
+
     const handleSelectVolume = useCallback(
         (id: string) => {
             tiku.handleSelectVolume(id);
@@ -247,18 +250,20 @@ export default function TikuPage({ drawers }: { drawers?: TikuPageDrawers }) {
                     <>
                         <NavSidebar
                             title="届次"
-                            widthClass="w-[120px] min-w-[120px]"
+                            widthClass="w-[150px] min-w-[150px]"
                             items={editionItems}
                             selectedId={tiku.selectedEditionId}
                             onSelect={tiku.handleSelectEdition}
                         />
-                        <NavSidebar
-                            title="命例"
-                            widthClass="w-[150px] min-w-[150px]"
-                            items={volumeItems}
-                            selectedId={tiku.selectedVolumeId}
-                            onSelect={handleSelectVolume}
-                        />
+                        {showVolumeSidebar && (
+                            <NavSidebar
+                                title="命例"
+                                widthClass="w-[150px] min-w-[150px]"
+                                items={volumeItems}
+                                selectedId={tiku.selectedVolumeId}
+                                onSelect={handleSelectVolume}
+                            />
+                        )}
                     </>
                 )}
                 {/* 正文吃剩余宽度；排盘栏与八字案例页等宽：案例页在整页 flex 行里取 w-[25%]，
@@ -334,8 +339,9 @@ export default function TikuPage({ drawers }: { drawers?: TikuPageDrawers }) {
                 {/* 每日一题只抽一道卷，与届次/命例无关：右栏整个不渲染 */}
                 {!isDaily && (
                     <div className="flex-[1.6] min-w-0 h-full overflow-hidden flex flex-col">
-                        {/* 届次：20 届左右，给 4 成高度够滚动查看 */}
-                        <div className="flex-[0.9] min-h-0 overflow-hidden flex flex-col border-b border-border/40">
+                        {/* 届次：大赛 20 届左右、联赛 1500+ 期，给 4 成高度够滚动查看；
+                            联赛一期一卷没有命例层级，届次独占右栏 */}
+                        <div className={showVolumeSidebar ? 'flex-[0.9] min-h-0 overflow-hidden flex flex-col border-b border-border/40' : 'flex-1 min-h-0 overflow-hidden flex flex-col'}>
                             <NavSidebar
                                 title="届次"
                                 widthClass="w-full"
@@ -346,16 +352,18 @@ export default function TikuPage({ drawers }: { drawers?: TikuPageDrawers }) {
                             />
                         </div>
                         {/* 命例：每届最多十几卷，余量都给它 */}
-                        <div className="flex-[1.1] min-h-0 overflow-hidden flex flex-col">
-                            <NavSidebar
-                                title="命例"
-                                widthClass="w-full"
-                                items={volumeItems}
-                                selectedId={tiku.selectedVolumeId}
-                                onSelect={handleSelectVolume}
-                                variant="drawer"
-                            />
-                        </div>
+                        {showVolumeSidebar && (
+                            <div className="flex-[1.1] min-h-0 overflow-hidden flex flex-col">
+                                <NavSidebar
+                                    title="命例"
+                                    widthClass="w-full"
+                                    items={volumeItems}
+                                    selectedId={tiku.selectedVolumeId}
+                                    onSelect={handleSelectVolume}
+                                    variant="drawer"
+                                />
+                            </div>
+                        )}
                     </div>
                 )}
                 </div>

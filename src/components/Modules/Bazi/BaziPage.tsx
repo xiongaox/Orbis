@@ -12,6 +12,7 @@ import { useLayoutMode } from '../../../hooks/useLayoutMode';
 export default function BaziPage() {
     // 使用 Context 获取八字状态，避免 Prop Drilling
     const {
+        selectedCaseId,
         selectedCase,
         baziData,
         loading,
@@ -42,6 +43,7 @@ export default function BaziPage() {
         <>
             <BaziCaseInfo
                 caseData={selectedCase}
+                selectedCaseId={selectedCaseId}
                 baziData={baziData}
                 selectedDaYunIndex={selectedDaYunIndex ?? null}
                 selectedLiuNianYear={selectedLiuNianYear ?? null}

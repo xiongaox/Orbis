@@ -15,6 +15,7 @@ import { getXunKong, ZHI_PALACE_MAP, MA_XING_MAP } from '../utils/qimenInfoUtils
 import { useLayoutMode } from '../../../../hooks/useLayoutMode';
 import { useToast } from '../../../../hooks/useToast';
 import type { QimenLockedSnapshot } from '../../../../lib/lockedChartStorage';
+import type { QimenLifePanIntent } from '../../../../data/caseConstants';
 
 // 默认空的宫位数据
 const EMPTY_PALACES: QimenPalace[] = Array.from({ length: 9 }, (_, i) => ({
@@ -44,9 +45,11 @@ const DEFAULT_HEADER: QimenHeader = {
 
 interface UseQimenStateOptions {
     lockedSnapshot?: QimenLockedSnapshot;
+    /** 八字送来的「终身局」意图：以案例出生时间起临时局，离开奇门菜单即作废 */
+    lifePanIntent?: QimenLifePanIntent | null;
 }
 
-export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
+export function useQimenState({ lockedSnapshot, lifePanIntent }: UseQimenStateOptions = {}) {
     const { isPadLandscape, useDesktopLayout } = useLayoutMode();
     // 删除失败反馈：随返回值下发到侧栏列表（列表壳持有展示位置）
     const { toast, showToast } = useToast();
@@ -89,6 +92,11 @@ export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
 
     // AI 提示词弹窗状态
     const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+
+    // 终身局临时态（仅从八字案例跳入时存在）：caseName 供保存预填，date 为起局时间
+    const [lifePan, setLifePan] = useState<{ caseName: string; date: Date } | null>(null);
+    // 终身局保存预填草稿：点「保存」后弹出的新建案例弹窗自动带上名称与时间
+    const [lifePanDraft, setLifePanDraft] = useState<{ title: string; date: Date } | null>(null);
 
     // 移动端宫位显示设置状态（默认显示长生诀与宫位信息，十神默认关闭）
     const [mobileShowChangSheng, setMobileShowChangSheng] = useState(true);
@@ -145,6 +153,8 @@ export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
         setIsLoading(true);
         setError(null);
         setSelectedDate(date);
+        // 重排盘即离开终身局临时态（翻时辰/选案例/改局数等都会走到这里）
+        setLifePan(null);
 
         // 使用传入的 juOverride 或当前 customJu 状态
         const effectiveJu = juOverride !== undefined ? juOverride : customJu;
@@ -180,6 +190,7 @@ export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
         setSelectedDate(new Date());
         // 重置自定义局数为自动计算
         setCustomJu(0);
+        setLifePan(null);
 
         try {
             const result = await calculateQimenNow(paiPanMethod);
@@ -256,6 +267,41 @@ export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
         await calculateQimenByDate(selectedDate, ju);
     }, [currentCase, selectedDate, calculateQimenByDate, showToast]);
 
+    // 终身局意图：起临时局（无案例归属、自动局）。排盘完成后才标记 lifePan，
+    // 因为 calculateQimenByDate 内部会清空 lifePan（任何重排盘都终止临时态）
+    const startLifePan = useCallback(async (intent: QimenLifePanIntent) => {
+        setSelectedCaseId(null);
+        setCurrentCase(null);
+        setCustomJu(0);
+        await calculateQimenByDate(new Date(intent.birthDate), 0);
+        setLifePan({ caseName: intent.caseName, date: new Date(intent.birthDate) });
+    }, [calculateQimenByDate]);
+
+    const lifePanSeqRef = useRef<number | null>(null);
+    useEffect(() => {
+        if (lifePanIntent) {
+            if (lifePanSeqRef.current === lifePanIntent.seq) return;
+            lifePanSeqRef.current = lifePanIntent.seq;
+            void startLifePan(lifePanIntent);
+            return;
+        }
+        // 意图被清空 = 已离开奇门菜单：临时局消失，回到当前时间盘
+        if (lifePanSeqRef.current !== null) {
+            lifePanSeqRef.current = null;
+            setLifePan(null);
+            setLifePanDraft(null);
+            void calculateNow();
+        }
+    }, [lifePanIntent, startLifePan, calculateNow]);
+
+    // 终身局「保存」：弹出新建案例弹窗并预填名称与起局时间（用户确认后才落库）
+    const handleSaveLifePan = useCallback(() => {
+        if (!lifePan) return;
+        setEditingCase(null);
+        setLifePanDraft({ title: `【终身局】${lifePan.caseName}`, date: lifePan.date });
+        setIsNewCaseModalOpen(true);
+    }, [lifePan]);
+
     // 初始化 WASM 并恢复锁定快照或计算当前时间的盘。
     // 只执行一次：依赖里的 calculateQimenByDate / calculateNow 会随盘式与局数变化重建引用，
     // 若不加守卫，选中案例切换盘式时会重跑初始化，用「当前时间」覆盖掉刚要展示的案例时间。
@@ -266,6 +312,9 @@ export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
         didInitRef.current = true;
         const init = async () => {
             await initCspWasm();
+            // 终身局意图接管首盘（含锁定恢复场景），避免两路排盘并发竞态；
+            // 首盘由上面的 lifePanIntent effect 负责
+            if (lifePanIntent) return;
             if (initialLockedSnapshot) {
                 await calculateQimenByDate(
                     new Date(initialLockedSnapshot.selectedDate),
@@ -277,7 +326,7 @@ export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
             await calculateNow();
         };
         init();
-    }, [calculateNow, calculateQimenByDate, initialLockedSnapshot]);
+    }, [calculateNow, calculateQimenByDate, initialLockedSnapshot, lifePanIntent]);
 
     const lockSnapshot = useMemo((): QimenLockedSnapshot => ({
         version: 1,
@@ -349,6 +398,12 @@ export function useQimenState({ lockedSnapshot }: UseQimenStateOptions = {}) {
         currentCase, setCurrentCase,
         editingCase, setEditingCase,
         refreshTrigger, setRefreshTrigger,
+
+        // 终身局临时态：lifePan 非空时右侧「说明」旁才出现「保存」按钮，
+        // 平铺盘/案例盘传 undefined，按钮不渲染
+        lifePan,
+        onSaveLifePan: lifePan ? handleSaveLifePan : undefined,
+        lifePanDraft, setLifePanDraft,
 
         // Info Modals
         selectedPalace, setSelectedPalace,

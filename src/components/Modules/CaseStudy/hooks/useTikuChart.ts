@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { calculateBazi } from '../../../../services/bazi/baziCalculator';
+import { calculateBazi, calculateBaziFromPillars } from '../../../../services/bazi/baziCalculator';
 import { calculateQimen, type PaiPanMethod, type QimenResult } from '../../../../lib/csp-qimen/qimenService';
 import type { BaziApiResponse } from '../../../../types/bazi';
 import type { TikuVolume } from '../../../../lib/caseStudy/tikuParser';
@@ -9,19 +9,26 @@ export type TikuChartKind = 'bazi' | 'qimen';
 
 /**
  * 命例卷的排盘数据。
- * 八字：按公历出生时间即时排盘，不依赖原稿八字（原稿八字只作校对展示）。
- * 奇门：用同一个出生时间起局，因此命例缺公历时间时两种盘都不可用。
+ * 八字：有公历出生时间按时间即时排盘（不依赖原稿八字，原稿只作校对展示）；
+ *       无公历但四柱齐全的卷（如铁口箓趣味局）走四柱直排，大运/流年不可推、置空。
+ * 奇门：必须用具体时间起局，缺公历的卷不可用。
  */
 export function useTikuChart(volume: TikuVolume | null, kind: TikuChartKind, qimenMethod: PaiPanMethod) {
     const [qimenResult, setQimenResult] = useState<QimenResult | null>(null);
     const [qimenLoading, setQimenLoading] = useState(false);
 
     const baziData = useMemo<BaziApiResponse | null>(() => {
-        if (!volume?.birthTime) return null;
-        const { year, month, day, hour, minute } = volume.birthTime;
+        if (!volume) return null;
         const gender = volume.gender === '女命' ? 'female' : 'male';
         try {
-            return calculateBazi({ year, month, day, hour, minute, gender });
+            if (volume.birthTime) {
+                const { year, month, day, hour, minute } = volume.birthTime;
+                return calculateBazi({ year, month, day, hour, minute, gender });
+            }
+            // 无公历：四柱齐全时走干支直排
+            const ganZhi = volume.bazi.split(/\s+/).filter(Boolean);
+            if (ganZhi.length === 4) return calculateBaziFromPillars(ganZhi, gender);
+            return null;
         } catch {
             return null;
         }

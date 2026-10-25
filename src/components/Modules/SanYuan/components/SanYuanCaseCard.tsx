@@ -3,7 +3,7 @@
  * - 三元案例卡片（侧栏与案例库弹窗共用同一排版），左右两列结构：
  *   · 左列自上而下：标题、标签（阳宅/阴宅）、地点
  *   · 右列自上而下：X山X向、X运X卦、更新日期时间
- * - 编辑 / 删除由常驻改为左滑露出（与奇门/八字卡片同一手势规格），
+ * - 编辑 / 删除由常驻改为右滑露出（与奇门/八字卡片同一手势规格），
  *   展开后点击卡片以外任意位置经 useSwipeDismiss 全局收起
  *
  * 排版约束：
@@ -55,7 +55,7 @@ export default function SanYuanCaseCard({
         ? `${updatedAt.getFullYear()}-${pad(updatedAt.getMonth() + 1)}-${pad(updatedAt.getDate())} ${pad(updatedAt.getHours())}:${pad(updatedAt.getMinutes())}`
         : '';
 
-    // ---- 左滑露出 编辑 / 删除（手势规格与奇门 CaseCard 完全一致）----
+    // ---- 右滑露出 编辑 / 删除（手势规格与奇门 CaseCard 完全一致）----
     const [swipeX, setSwipeX] = useState(0);
     const [isSwiping, setIsSwiping] = useState(false);
     const gesture = useRef({ x: 0, y: 0, base: 0, lock: null as null | 'x' | 'y', moved: false });
@@ -82,7 +82,7 @@ export default function SanYuanCaseCard({
             setIsSwiping(true);
         }
         if (g.lock !== 'x') return;
-        const next = Math.max(-REVEAL_PX, Math.min(0, g.base + (event.clientX - g.x)));
+        const next = Math.max(0, Math.min(REVEAL_PX, g.base + (event.clientX - g.x)));
         g.moved = true;
         setSwipeX(next);
     };
@@ -90,7 +90,7 @@ export default function SanYuanCaseCard({
     const endSwipe = () => {
         const g = gesture.current;
         if (g.lock === 'x' && g.moved) {
-            setSwipeX(swipeX < -OPEN_THRESHOLD ? -REVEAL_PX : 0);
+            setSwipeX(swipeX > OPEN_THRESHOLD ? REVEAL_PX : 0);
             suppressClick.current = true;
         }
         setIsSwiping(false);
@@ -118,17 +118,8 @@ export default function SanYuanCaseCard({
                 : 'border-border/40 bg-card hover:border-border/60 dark:border-border/30'
                 }`}
         >
-            {/* 左滑露出的操作区：位于卡片底层，靠前景层位移显形 */}
-            <div className="absolute inset-y-0 right-0 z-[1] flex">
-                <button
-                    type="button"
-                    onClick={(event) => { stop(event); setSwipeX(0); onEdit(); }}
-                    className="flex w-[60px] flex-col items-center justify-center gap-0.5 bg-secondary text-[11px] font-semibold text-primary"
-                    aria-label="编辑案例"
-                >
-                    <Pencil className="h-3.5 w-3.5" />
-                    编辑
-                </button>
+            {/* 右滑露出的操作区（按钮在卡片左缘）：位于卡片底层，靠前景层位移显形 */}
+            <div className="absolute inset-y-0 left-0 z-[1] flex">
                 <button
                     type="button"
                     onClick={(event) => { stop(event); setSwipeX(0); onDelete(); }}
@@ -137,6 +128,15 @@ export default function SanYuanCaseCard({
                 >
                     <Trash2 className="h-3.5 w-3.5" />
                     删除
+                </button>
+                <button
+                    type="button"
+                    onClick={(event) => { stop(event); setSwipeX(0); onEdit(); }}
+                    className="flex w-[60px] flex-col items-center justify-center gap-0.5 bg-secondary text-[11px] font-semibold text-primary"
+                    aria-label="编辑案例"
+                >
+                    <Pencil className="h-3.5 w-3.5" />
+                    编辑
                 </button>
             </div>
 

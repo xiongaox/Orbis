@@ -1,4 +1,4 @@
-import type { TikuQuestion, TikuVolume } from '../../../../lib/caseStudy/tikuParser';
+import { isCorrectTikuPick, type TikuQuestion, type TikuVolume } from '../../../../lib/caseStudy/tikuParser';
 
 /** 题干：首行是问句，其余行是补充说明 */
 function Stem({ stem }: { stem: string }) {
@@ -51,7 +51,8 @@ function QuestionBlock({
 }) {
     const revealed = !!state?.revealed;
     const picked = state?.picked ?? null;
-    const correct = picked === question.answer;
+    // 多答案题（如「BH」）选到任一正确字母即算对
+    const correct = isCorrectTikuPick(question.answer, picked);
 
     return (
         <div className="py-4 first:pt-4 last:pb-4">
@@ -67,7 +68,7 @@ function QuestionBlock({
             <div className="flex flex-col gap-0.5">
                 {question.options.map((opt) => {
                     const isPicked = picked === opt.key;
-                    const isAnswer = revealed && opt.key === question.answer;
+                    const isAnswer = revealed && question.answer.includes(opt.key);
                     const isWrongPick = revealed && isPicked && !isAnswer;
                     // 未作答就交卷：正确答案也用红色标出，提示这题丢了
                     const unanswered = revealed && !picked;

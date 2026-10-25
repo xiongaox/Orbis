@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:demo": "VITE_DATA_SCOPE=demo vite",
     "build": "tsc -b && vite build",
     "deploy": "node scripts/deploy.mjs",
     "lint": "eslint .",
@@ -20,6 +21,7 @@
     "android:dev": "bash scripts/dev-android.sh",
     "android:icons": "python scripts/build-android-icons.py",
     "tauri:dev": "tauri dev",
+    "tauri:dev:demo": "VITE_DATA_SCOPE=demo tauri dev",
     "tauri:dev:admin": "tauri dev --features admin-signing",
     "cases:reset": "rm -f \"$HOME/Library/Application Support/com.orbis.app/cases_local.sqlite\"*",
     "tauri:build": "tauri build",

@@ -49,6 +49,9 @@ export interface QimenLayoutProps {
     setSelectedPattern: (p: GlobalPattern | null) => void;
     setIsAiModalOpen: (v: boolean) => void;
 
+    /** 终身局「保存」：非空时局信息区「说明」旁显示保存按钮（仅八字跳入的临时局存在） */
+    onSaveLifePan?: () => void;
+
     // 宫位动态马空
     selectedKongWangKey: PillarKey;
     setSelectedKongWangKey: (k: PillarKey) => void;

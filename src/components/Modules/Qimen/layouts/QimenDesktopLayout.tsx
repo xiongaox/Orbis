@@ -22,7 +22,7 @@ export default function QimenDesktopLayout(props: QimenLayoutProps) {
         setIsCustomJuModalOpen, setSelectedPattern, setIsAiModalOpen,
         selectedKongWangKey, setSelectedKongWangKey,
         selectedMaXingKey, setSelectedMaXingKey,
-        dynamicMaKong
+        dynamicMaKong, onSaveLifePan
     } = props;
 
     // 案例正文弹窗（布局层持有）：摘要卡是入口，正文的记录与删除都在弹窗里
@@ -93,6 +93,7 @@ export default function QimenDesktopLayout(props: QimenLayoutProps) {
             onToggleShiShen={toggleShiShen}
             onTogglePalaceMeta={togglePalaceMeta}
             onOpenGuide={openGuide}
+            onSaveLifePan={onSaveLifePan}
         />
     );
 

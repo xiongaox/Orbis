@@ -57,8 +57,9 @@ export default function NavSidebar({
                             {isActive && showActiveBar && (
                                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-r" />
                             )}
-                            {/* 字号与常识篇目（.l2-item-btn）对齐，避免同类侧栏列表忽大忽小 */}
-                            <span className="font-serif text-sm">{item.label}</span>
+                            {/* 字号与常识篇目（.l2-item-btn）对齐，避免同类侧栏列表忽大忽小；
+                                truncate 保证长标签（如「第1120期 2025」）单行显示不换行 */}
+                            <span className="font-serif text-sm truncate min-w-0 flex-1">{item.label}</span>
                         </button>
                     );
                 })}

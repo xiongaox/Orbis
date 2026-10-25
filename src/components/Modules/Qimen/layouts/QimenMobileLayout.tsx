@@ -32,7 +32,8 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
         isCaseListOpen, setIsCaseListOpen,
         isInfoOpen, setIsInfoOpen,
         mobileShowChangSheng, mobileShowShiShen, mobileShowPalaceMeta,
-        handleMobileToggleCS, handleMobileToggleSS, handleMobileTogglePM
+        handleMobileToggleCS, handleMobileToggleSS, handleMobileTogglePM,
+        onSaveLifePan
     } = props;
 
     // 案例正文弹窗（布局层持有）：摘要卡是入口，正文的记录与删除都在弹窗里
@@ -107,6 +108,7 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
             selectedMaXingKey={selectedMaXingKey}
             onKongWangKeyChange={setSelectedKongWangKey}
             onMaXingKeyChange={setSelectedMaXingKey}
+            onSaveLifePan={onSaveLifePan}
         />
     );
 
@@ -213,7 +215,7 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
                         // 移动端按钮行从页面顶栏移到信息卡下方（与信息卡、九宫盘同宽），
                         // 与卡片的间距由 QimenChart 的 mb-2 提供
                         headerBottomSlot={
-                            <div className="grid grid-cols-5 gap-1.5">
+                            <div className={`grid gap-1.5 ${onSaveLifePan ? 'grid-cols-6' : 'grid-cols-5'}`}>
                                 <button
                                     type="button"
                                     onClick={() => setIsAiModalOpen(true)}
@@ -250,6 +252,15 @@ export default function QimenMobileLayout(props: QimenLayoutProps) {
                                 >
                                     说明
                                 </button>
+                                {onSaveLifePan && (
+                                    <button
+                                        type="button"
+                                        onClick={onSaveLifePan}
+                                        className="py-1.5 rounded-lg border border-border bg-card/60 text-xs text-muted-foreground transition-colors"
+                                    >
+                                        保存
+                                    </button>
+                                )}
                             </div>
                         }
                         controlledShowChangSheng={mobileShowChangSheng}

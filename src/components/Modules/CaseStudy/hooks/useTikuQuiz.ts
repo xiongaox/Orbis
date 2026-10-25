@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import type { TikuQuestion } from '../../../../lib/caseStudy/tikuParser';
+import { isCorrectTikuPick, type TikuQuestion } from '../../../../lib/caseStudy/tikuParser';
 
 /** 每道题的作答状态 */
 export interface TikuAnswerState {
@@ -20,7 +20,7 @@ export function tallyTiku(
         if (a?.picked) answered += 1;
         if (a?.revealed) {
             revealed += 1;
-            if (a.picked === q.answer) right += 1;
+            if (isCorrectTikuPick(q.answer, a.picked)) right += 1;
         }
     }
     return { answered, revealed, right, total: questions.length };

@@ -30,12 +30,15 @@ export default function TikuChartPanel({ volume, isMobile = false }: TikuChartPa
     const { baziData, qimenResult, qimenLoading } = useTikuChart(volume, kind, qimenMethod);
 
     const hasTime = !!volume?.birthTime;
+    // 无公历但四柱齐全的卷走干支直排：八字可看，奇门不可起
+    const canBazi = hasTime || !!volume?.bazi;
+    const isDirectPillars = !hasTime && canBazi;
 
-    const body = !hasTime ? (
+    const body = !canBazi ? (
         <div className="h-full flex flex-col items-center justify-center text-muted-foreground px-4 text-center">
             <Compass className="w-12 h-12 mb-2 opacity-20" />
-            <p className="text-sm">该命例原稿缺公历时间</p>
-            <p className="text-xs mt-1 opacity-70">无法排盘，可对照原稿八字研读</p>
+            <p className="text-sm">该命例缺四柱与公历时间</p>
+            <p className="text-xs mt-1 opacity-70">无法排盘</p>
         </div>
     ) : kind === 'bazi' ? (
         baziData ? (
@@ -48,6 +51,11 @@ export default function TikuChartPanel({ volume, isMobile = false }: TikuChartPa
                         isMobile={isMobile}
                     />
                 </div>
+                {isDirectPillars && (
+                    <div className="flex-shrink-0 px-3 py-2 text-xs text-muted-foreground border-t border-border/40">
+                        干支直排：四柱/十神/纳音可断；大运、流年、小运需公历出生时间，无法推出。
+                    </div>
+                )}
                 <div className="flex-1 border-t border-border">
                     <CaseStudyDayunPanel
                         data={baziData}
@@ -75,7 +83,7 @@ export default function TikuChartPanel({ volume, isMobile = false }: TikuChartPa
         />
     ) : (
         <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
-            <p className="text-sm">{qimenLoading ? '排盘计算中…' : '奇门起局失败'}</p>
+            <p className="text-sm">{qimenLoading ? '排盘计算中…' : hasTime ? '奇门起局失败' : '奇门起局需公历出生时间'}</p>
         </div>
     );
 

@@ -109,8 +109,14 @@ export const CLOUD_SYNC_METADATA_RECORD_TYPES = new Set<string>([
 type LegacyPrivateRecord = PrivateRecord & { userId?: string; user_id?: string };
 type LegacySnapshot = { schemaVersion: number; exportedAt: string; records: LegacyPrivateRecord[]; auth?: unknown };
 
-const DB_NAME = 'orbis-private.db';
-const IDB_NAME = 'orbis-private';
+/**
+ * 数据库命名空间：VITE_DATA_SCOPE=demo（dev:demo / tauri:dev:demo）时使用
+ * 隔离的演示库，与日常真实数据完全隔离；空库首启会由 seedDemoCases 自动
+ * 投放示例案例，设置、对话历史、备份与同步配置均为全新状态，适合截图演示。
+ */
+const DATA_SCOPE_SUFFIX = import.meta.env.VITE_DATA_SCOPE === 'demo' ? '-demo' : '';
+const DB_NAME = `orbis-private${DATA_SCOPE_SUFFIX}.db`;
+const IDB_NAME = `orbis-private${DATA_SCOPE_SUFFIX}`;
 const IDB_STORE = 'records';
 /** 云同步版本镜像 / outbox 的独立 IDB store（不混入 records，快照天然不可见） */
 const SYNC_VERSIONS_STORE = 'sync-versions';

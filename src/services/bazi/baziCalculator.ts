@@ -148,8 +148,7 @@ function buildDynamicPillarDetails(label: string, ganZhi: string, dayGan: string
 }
 
 
-export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
-    const { year, month, day, hour, minute = 0, gender } = params;
+export function calculateBazi(params: FetchBaziParams): BaziApiResponse {    const { year, month, day, hour, minute = 0, gender } = params;
     const currentYear = new Date().getFullYear(); // 如果需要也可以作为参数传递
 
     // 1. 创建公历和农历对象
@@ -541,5 +540,87 @@ export function calculateBazi(params: FetchBaziParams): BaziApiResponse {
         extra,
         currentDaYun,
         currentLiuNian,
+    };
+}
+
+/**
+ * 四柱直排：无公历出生时间时（如铁口箓趣味局），由干支四柱 + 性别直接构建命盘。
+ * 四柱、十神、藏干、纳音、空亡、地势、胎元均可由本地映射表推出；
+ * 大运/流年/小运/神煞依赖真实公历与节气，直排卷置空，由调用方提示。
+ */
+export function calculateBaziFromPillars(ganZhiList: string[], gender: 'male' | 'female'): BaziApiResponse {
+    const parts = ganZhiList.flatMap((gz) => gz.replace(/\s+/g, '').match(/^.{2}$/) ? [gz[0], gz[1]] : ['', '']);
+    const [yg, yz, mg, mz, dg, dz, tg, tz] = parts;
+    if (!yg || !mg || !dg || !tg) throw new Error('四柱不完整，无法直排');
+
+    // 伪 host：提供四柱干支与分柱干支；十神/纳音/空亡/地势在 buildPillar 内落回本地映射表。
+    // getYun 仅满足类型（直排无公历，不推大运）。
+    const host: BaziMethodHost = {
+        getDayGan: () => dg,
+        getYearGan: () => yg,
+        getYearZhi: () => yz,
+        getMonthGan: () => mg,
+        getMonthZhi: () => mz,
+        getDayZhi: () => dz,
+        getTimeGan: () => tg,
+        getTimeZhi: () => tz,
+        getYear: () => yg + yz,
+        getMonth: () => mg + mz,
+        getDay: () => dg + dz,
+        getTime: () => tg + tz,
+        getTaiYuan: () => '',
+        getMingGong: () => '',
+        getShenGong: () => '',
+        getYun: () => ({
+            getStartSolar: () => ({ getYear: () => 0, getMonth: () => 0, getDay: () => 0 }),
+            getStartYear: () => 0,
+            getStartMonth: () => 0,
+            getStartDay: () => 0,
+            isForward: () => false,
+            getDaYun: () => [],
+        }),
+    } as BaziMethodHost;
+
+    const pillars = [
+        buildPillar(host, 'year', gender),
+        buildPillar(host, 'month', gender),
+        buildPillar(host, 'day', gender),
+        buildPillar(host, 'time', gender),
+    ];
+
+    // 胎元：月干进一位、月支进三位
+    const ganIdx = TIAN_GAN.indexOf(mg as typeof TIAN_GAN[number]);
+    const zhiIdx = DI_ZHI.indexOf(mz as typeof DI_ZHI[number]);
+    const taiYuan = ganIdx >= 0 && zhiIdx >= 0
+        ? TIAN_GAN[(ganIdx + 1) % 10] + DI_ZHI[(zhiIdx + 3) % 12]
+        : '';
+
+    // 起运方向仍可按年干阴阳与性别判定（阳男阴女顺行）；具体起运岁数无公历不可推
+    const isYangYear = '甲丙戊庚壬'.includes(yg);
+    const yunInfo: YunInfo = {
+        startYear: 0,
+        startMonth: 0,
+        startDay: 0,
+        startSolarDate: '—',
+        isForward: gender === 'male' ? isYangYear : !isYangYear,
+    };
+
+    const ZODIAC: Record<string, string> = {
+        子: '鼠', 丑: '牛', 寅: '虎', 卯: '兔', 辰: '龙', 巳: '蛇',
+        午: '马', 未: '羊', 申: '猴', 酉: '鸡', 戌: '狗', 亥: '猪',
+    };
+
+    return {
+        solarDate: '干支直排（无公历）',
+        lunarDate: '',
+        zodiac: ZODIAC[yz] ?? '',
+        gender: gender === 'male' ? '乾造' : '坤造',
+        pillars,
+        yunInfo,
+        daYun: [],
+        liuNian: [],
+        currentXiaoYun: [],
+        shenSha: { jiShen: [], xiongSha: [] },
+        extra: { taiYuan, mingGong: '', shenGong: '' },
     };
 }

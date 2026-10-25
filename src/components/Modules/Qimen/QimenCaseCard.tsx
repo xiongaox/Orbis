@@ -2,7 +2,7 @@
  * 关键职责：
  * - 奇门案例卡片（侧栏与案例库弹窗共用同一排版）：上区左列「标题 + 事件描述」
  *   与右侧四柱顶对齐，底行左侧为标签（分类/盘式/盘状态，线框样式、常规状态不显示；
- *   手机端只保留分类标签避免挤压换行），底行右侧为求测日期时间；编辑 / 删除由常驻改为左滑露出，
+ *   手机端只保留分类标签避免挤压换行），底行右侧为求测日期时间；编辑 / 删除由常驻改为右滑露出，
  *   展开后点击卡片以外任意位置经 useSwipeDismiss 全局收起
  * - 四柱来自 lunarUtil 的 getEightCharFromDate（与盘面同一来源）；
  *   盘状态（伏吟/反吟/常规）在组件内经 useQimenCasePanStatus 按「排盘方式 +
@@ -28,7 +28,7 @@ import { useQimenCasePanStatus } from './hooks/useQimenCasePanStatus';
 import type { PaiPanMethod } from '../../../lib/csp-qimen/qimenService';
 import { useCasePrivacy } from '../../../contexts/CasePrivacyContext';
 
-/** 左滑露出的操作区宽度，与八字 CaseCard 的 REVEAL_PX 保持同一度量 */
+/** 右滑露出的操作区宽度，与八字 CaseCard 的 REVEAL_PX 保持同一度量 */
 const REVEAL_PX = 120;
 /** 超过该位移即判定为「打开」，否则回弹 */
 const OPEN_THRESHOLD = 34;
@@ -90,7 +90,7 @@ export default function QimenCaseCard({
         ? `${testDate.getFullYear()}-${pad(testDate.getMonth() + 1)}-${pad(testDate.getDate())} ${pad(testDate.getHours())}:${pad(testDate.getMinutes())}`
         : '';
 
-    // ---- 左滑露出 编辑 / 删除 ----
+    // ---- 右滑露出 编辑 / 删除（与左侧抽屉「向左推回收起」反向，避免收侧栏时误触） ----
     const [swipeX, setSwipeX] = useState(0);
     const [isSwiping, setIsSwiping] = useState(false);
     const gesture = useRef({ x: 0, y: 0, base: 0, lock: null as null | 'x' | 'y', moved: false });
@@ -117,7 +117,7 @@ export default function QimenCaseCard({
             setIsSwiping(true);
         }
         if (g.lock !== 'x') return;
-        const next = Math.max(-REVEAL_PX, Math.min(0, g.base + (event.clientX - g.x)));
+        const next = Math.max(0, Math.min(REVEAL_PX, g.base + (event.clientX - g.x)));
         g.moved = true;
         setSwipeX(next);
     };
@@ -125,7 +125,7 @@ export default function QimenCaseCard({
     const endSwipe = () => {
         const g = gesture.current;
         if (g.lock === 'x' && g.moved) {
-            setSwipeX(swipeX < -OPEN_THRESHOLD ? -REVEAL_PX : 0);
+            setSwipeX(swipeX > OPEN_THRESHOLD ? REVEAL_PX : 0);
             suppressClick.current = true;
         }
         setIsSwiping(false);
@@ -153,17 +153,8 @@ export default function QimenCaseCard({
                 : 'border-border/40 bg-card hover:border-border/60 dark:border-border/30'
                 }`}
         >
-            {/* 左滑露出的操作区：位于卡片底层，靠前景层位移显形 */}
-            <div className="absolute inset-y-0 right-0 z-[1] flex">
-                <button
-                    type="button"
-                    onClick={(event) => { stop(event); setSwipeX(0); onEdit(caseItem.id); }}
-                    className="flex w-[60px] flex-col items-center justify-center gap-0.5 bg-secondary text-[11px] font-semibold text-primary"
-                    aria-label="编辑案例"
-                >
-                    <Pencil className="h-3.5 w-3.5" />
-                    编辑
-                </button>
+            {/* 右滑露出的操作区：位于卡片底层（按钮在左缘），靠前景层位移显形 */}
+            <div className="absolute inset-y-0 left-0 z-[1] flex">
                 <button
                     type="button"
                     onClick={(event) => { stop(event); setSwipeX(0); onDelete(caseItem.id); }}
@@ -172,6 +163,15 @@ export default function QimenCaseCard({
                 >
                     <Trash2 className="h-3.5 w-3.5" />
                     删除
+                </button>
+                <button
+                    type="button"
+                    onClick={(event) => { stop(event); setSwipeX(0); onEdit(caseItem.id); }}
+                    className="flex w-[60px] flex-col items-center justify-center gap-0.5 bg-secondary text-[11px] font-semibold text-primary"
+                    aria-label="编辑案例"
+                >
+                    <Pencil className="h-3.5 w-3.5" />
+                    编辑
                 </button>
             </div>
 
