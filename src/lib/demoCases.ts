@@ -194,59 +194,96 @@ export const DEMO_BAZI_CASE: CreateCaseInput = {
     ],
 };
 
-// 奇门示例正文：提问 / 回答 / 断法。
-// 抽成常量是因为三段字段与 dialog_lines 必须完全同源——
-// 两处各抄一份，改一处就会让界面读到的正文和列表卡片对不上。
-const DEMO_QIMEN_QUESTION = '女性，1970 年人，自身条件挺优越，但就是恋情不顺，婚姻大事一直没有定下来，看看什么时间能嫁人？\n\n我说实话，从我长么大，就今年 5 月看上这一个男的，他当时讲他是2000 年离婚的，现在单身。\n可是，6 月见面时他没有看上我，我忘不了他，可是后来跟他联系，他说自己已经定下女朋友了。\n我感觉他在和我认识之前，就和那女的有眉目了，但我感觉他们肯定会分开，那男的要求很高，那女的只是年轻，素质不高，电话中听出来的，很没水平。\n我对婚姻的态度是非常认真的，我没有游戏成分，会是人家来游戏我吗？这男的也是 70 年的（庚戌）。有个工厂。\n\n喜欢上一个人不容易，我就是想和他成，我还是争取一下吧。\n\n反馈：确实成不了了。那个女人就是这男人的老婆，可能没离婚，替他管理着工厂，女人反而几次骂我是“第三者”，破坏人家婚姻的“妖精”。\n\n反馈：09 年找了一位在此年丧偶的男士，年底前正式结婚的。';
+// 奇门示例正文：按「提问 / 回答 / 断法」记录流逐条拆分（2026-10-25 按作者桌面端
+// 已拆好的 13 条记录流复原——此前三条整段在记录流界面里会挤成三个大气泡，被当成合并 bug）。
+// 三段聚合字段（description/feedback/analysis，供列表卡片、导出、备份读）与 dialog_lines
+// 必须同源，这里由记录流直接派生，杜绝两处各抄一份改一处漂移。
+const DEMO_QIMEN_LINES: Array<{ kind: 'q' | 'a' | 'r'; text: string }> = [
+    { kind: 'q', text: '女性，1970 年人，自身条件挺优越，但就是恋情不顺，婚姻大事一直没有定下来，看看什么时间能嫁人？' },
+    { kind: 'a', text: '大伏吟局，定然婚姻不顺。' },
+    { kind: 'q', text: '我说实话，从我长么大，就今年 5 月看上这一个男的，他当时讲他是2000 年离婚的，现在单身。\n可是，6 月见面时他没有看上我，我忘不了他，可是后来跟他联系，他说自己已经定下女朋友了。\n我感觉他在和我认识之前，就和那女的有眉目了，但我感觉他们肯定会分开，那男的要求很高，那女的只是年轻，素质不高，电话中听出来的，很没水平。\n我对婚姻的态度是非常认真的，我没有游戏成分，会是人家来游戏我吗？这男的也是 70 年的（庚戌）。有个工厂。' },
+    { kind: 'a', text: '一是你现在的婚姻中有点“游戏”成分，你处着男朋友吧，这个男朋友很有能力，你很喜欢他，但他现在有婚姻，你们有了矛盾，你为此很烦恼。' },
+    { kind: 'a', text: '和这个人成不了。' },
+    { kind: 'r', text: '- 日干丙下临丙，丙为男朋友，丙+丙，因此可以讲她有男朋友，临太阴主没有公开，宫中暗干见丁，丁壬为隐密之合，也断为有男友。\n- 丙火生辛金，丙辛合，对方有婚姻。\n- 日干宫中暗干见丁，表明自己有第三者的嫌疑。\n- 壬丙相遇是非起，又临死门，表明现在有矛盾，求测人心里不高兴。\n- 临马星，心里不踏实。\n- 六合临景门，主游戏。\n- 又日干丙，时干是甲午辛，时干为所问之事，丙辛合，为辛为恋爱对象。\n- 日干丙火生辛金，很喜欢并追求对方。\n- 辛临开门，天心星，值符，是个有能力的人。\n- 但辛在桃花之地，辛下辛，主这件事有错误，也表示这个人有问题，那问题就在于对方现在有婚姻，与她的恋爱只是“桃花”。' },
+    { kind: 'r', text: '（1）既然对方已经有婚姻，则求测人可以用丁来代\n表，庚为男朋友，乙为男朋友的妻子或女友。现在庚生乙，而庚丁处于对冲之地。这表明对方不会分开，不能与她在一起。\n（2）双方的年命都为庚，庚+庚战格兄弟雷攻，意味着会分手。\n（3）时干辛+辛，伏吟天庭，自刑，主追求这个人是错误的选择，这件事有问题。古语：“反伏门迫恐招殃”，婚事不成，凡惹是非之象。' },
+    { kind: 'q', text: '喜欢上一个人不容易，我就是想和他成，我还是争取一下吧。' },
+    { kind: 'q', text: '反馈：确实成不了了。那个女人就是这男人的老婆，可能没离婚，替他管理着工厂，女人反而几次骂我是“第三者”，破坏人家婚姻的“妖精”。' },
+    { kind: 'a', text: '如何断以后的婚姻状况呢？' },
+    { kind: 'r', text: '- 大局伏吟，婚姻肯定还会推迟。\n- 07 年太岁丁亥，年命庚金落宫冲克太岁落宫主有灾，不能成婚。\n- 08 年戊子，太岁戊临六合与乙奇对冲，又克年命庚金落宫，难成婚。\n- 09 年己丑落艮宫，生年命庚金落宫，庚又主丈夫，又六合生太岁落宫，09 年成婚。' },
+    { kind: 'q', text: '反馈：09 年找了一位在此年丧偶的男士，年底前正式结婚的。' },
+    { kind: 'r', text: '日干在坤宫伏吟，伏吟以冲为应期，丑年冲宫，也应己丑年成婚。' },
+];
 
-const DEMO_QIMEN_ANSWER = '大伏吟局，定然婚姻不顺。\n\n一是你现在的婚姻中有点“游戏”成分，你处着男朋友吧，这个男朋友很有能力，你很喜欢他，但他现在有婚姻，你们有了矛盾，你为此很烦恼。\n\n和这个人成不了。\n\n如何断以后的婚姻状况呢？';
-
-const DEMO_QIMEN_ANALYSIS = '- 日干丙下临丙，丙为男朋友，丙+丙，因此可以讲她有男朋友，临太阴主没有公开，宫中暗干见丁，丁壬为隐密之合，也断为有男友。\n- 丙火生辛金，丙辛合，对方有婚姻。\n- 日干宫中暗干见丁，表明自己有第三者的嫌疑。\n- 壬丙相遇是非起，又临死门，表明现在有矛盾，求测人心里不高兴。\n- 临马星，心里不踏实。\n- 六合临景门，主游戏。\n- 又日干丙，时干是甲午辛，时干为所问之事，丙辛合，为辛为恋爱对象。\n- 日干丙火生辛金，很喜欢并追求对方。\n- 辛临开门，天心星，值符，是个有能力的人。\n- 但辛在桃花之地，辛下辛，主这件事有错误，也表示这个人有问题，那问题就在于对方现在有婚姻，与她的恋爱只是“桃花”。\n\n（1）既然对方已经有婚姻，则求测人可以用丁来代\n表，庚为男朋友，乙为男朋友的妻子或女友。现在庚生乙，而庚丁处于对冲之地。这表明对方不会分开，不能与她在一起。\n（2）双方的年命都为庚，庚+庚战格兄弟雷攻，意味着会分手。\n（3）时干辛+辛，伏吟天庭，自刑，主追求这个人是错误的选择，这件事有问题。古语：“反伏门迫恐招殃”，婚事不成，凡惹是非之象。\n\n- 大局伏吟，婚姻肯定还会推迟。\n- 07 年太岁丁亥，年命庚金落宫冲克太岁落宫主有灾，不能成婚。\n- 08 年戊子，太岁戊临六合与乙奇对冲，又克年命庚金落宫，难成婚。\n- 09 年己丑落艮宫，生年命庚金落宫，庚又主丈夫，又六合生太岁落宫，09 年成婚。\n\n日干在坤宫伏吟，伏吟以冲为应期，丑年冲宫，也应己丑年成婚。';
+const joinDemoLines = (kind: 'q' | 'a' | 'r') =>
+    DEMO_QIMEN_LINES.filter((line) => line.kind === kind).map((line) => line.text).join('\n\n');
 
 /**
  * 奇门示例：1970 女性问婚姻（大伏吟局）。
  *
- * 导出来源是「精简表格」，这里按内部结构还原：中文字段拆回
- * description（提问）/ feedback（回答）/ analysis（断法）。
- * dialog_lines 是界面读的顺序流——没有它，断法挂在哪条回答之后只能靠猜。
+ * 导出来源是「精简表格」，这里按内部结构还原成问答记录流；
+ * 界面打开时 groupLines 会把断法归位到所属回答之后（与作者桌面端现状一致）。
  * 时间同样是 2007-10-19 11:17（本地）对应的 UTC 时刻。
  */
 export const DEMO_QIMEN_CASE: CreateQimenCaseInput = {
     title: '【示例】1970女性问婚姻',
     test_date: '2007-10-19T03:17:00.000Z',
     category: 'love',
-    description: DEMO_QIMEN_QUESTION,
-    feedback: DEMO_QIMEN_ANSWER,
-    analysis: DEMO_QIMEN_ANALYSIS,
-    dialog_lines: [
-        { kind: 'q', text: DEMO_QIMEN_QUESTION },
-        { kind: 'a', text: DEMO_QIMEN_ANSWER },
-        { kind: 'r', text: DEMO_QIMEN_ANALYSIS },
-    ],
+    description: joinDemoLines('q'),
+    feedback: joinDemoLines('a'),
+    analysis: joinDemoLines('r'),
+    dialog_lines: DEMO_QIMEN_LINES,
 };
 
-/** 投放标记：写过一次就不再写，用户删掉示例也不会被塞回来 */
+/** 投放标记：值即已投放的内容版本，用户删掉示例也不会被塞回来 */
 const DEMO_SEEDED_KEY = 'demo_cases_seeded';
 
 /**
+ * 投放内容版本：
+ * - 1（历史 boolean true 视为 1）＝ 初版：奇门示例为三条整段；
+ * - 2 ＝ 奇门示例正文改为问答记录流（13 条）。升级时只覆盖仍是旧三条形态的示例，
+ *   用户已编辑过或已删除的都不碰——那已是明确的用户意图。
+ */
+const DEMO_SEED_VERSION = 2;
+
+/** 旧版奇门示例的形态：dialog_lines 恰为 q/a/r 三条整段 */
+function isLegacyDemoQimen(record: unknown): boolean {
+    const lines = (record as { dialog_lines?: Array<{ kind: string }> } | null | undefined)?.dialog_lines;
+    return Array.isArray(lines) && lines.length === 3;
+}
+
+/**
  * 首次启动投放示例案例。幂等：
- * - 已有标记 → 直接返回，不再碰库（用户删掉示例是明确意图，不能自动复活）
- * - 首次 → 用固定 id 直接写底层存储，绕开 createCase 的随机 id
+ * - 标记版本 ≥ 当前版本 → 直接返回，不再碰库（用户删掉示例是明确意图，不能自动复活）
+ * - 首次（未投放）→ 用固定 id 直接写底层存储，绕开 createCase 的随机 id
+ * - 旧版本 → 只把仍是旧形态的奇门示例升级为记录流，其余不动
  */
 export async function seedDemoCases(): Promise<void> {
-    if (readSetting<boolean>(DEMO_SEEDED_KEY, false)) return;
+    // 旧标记是 boolean true，等价于版本 1；Number(true) = 1 恰好承接这一语义
+    const seededVersion = Number(readSetting(DEMO_SEEDED_KEY, 0));
+    if (seededVersion >= DEMO_SEED_VERSION) return;
 
+    const firstSeed = seededVersion < 1;
     const timestamp = new Date().toISOString();
-    await localPrivateStore.put(
-        'bazi_case',
-        { ...DEMO_BAZI_CASE, created_at: timestamp, updated_at: timestamp },
-        DEMO_BAZI_CASE_ID,
-    );
-    await localPrivateStore.put(
-        'qimen_case',
-        { ...DEMO_QIMEN_CASE, created_at: timestamp, updated_at: timestamp },
-        DEMO_QIMEN_CASE_ID,
-    );
+    if (firstSeed) {
+        await localPrivateStore.put(
+            'bazi_case',
+            { ...DEMO_BAZI_CASE, created_at: timestamp, updated_at: timestamp },
+            DEMO_BAZI_CASE_ID,
+        );
+    }
 
-    writeSetting(DEMO_SEEDED_KEY, true);
+    const existingQimen = await localPrivateStore.get('qimen_case', DEMO_QIMEN_CASE_ID);
+    if (firstSeed || isLegacyDemoQimen(existingQimen?.payload)) {
+        // 覆盖旧三条形态时保留原创建时间：对用户而言还是同一个示例案例
+        const previousCreatedAt = typeof existingQimen?.payload.created_at === 'string'
+            ? existingQimen.payload.created_at
+            : timestamp;
+        await localPrivateStore.put(
+            'qimen_case',
+            { ...DEMO_QIMEN_CASE, created_at: previousCreatedAt, updated_at: timestamp },
+            DEMO_QIMEN_CASE_ID,
+        );
+    }
+
+    writeSetting(DEMO_SEEDED_KEY, DEMO_SEED_VERSION);
 }
