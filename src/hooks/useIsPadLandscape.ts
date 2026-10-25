@@ -6,7 +6,6 @@ import { readSetting } from '../services/appSettingStore';
 
 export function useIsPadLandscape() {
   const isLandscape = useMediaQuery('(orientation: landscape)');
-  const isLandscapeFallback = useMediaQuery('(min-aspect-ratio: 1/1)');
   const isPadWidth = useMediaQuery('(min-width: 768px) and (max-width: 1366px)');
 
   const forced = useMemo(() => {
@@ -29,5 +28,5 @@ export function useIsPadLandscape() {
 
   // DevTools 也能触发：用“横屏 + 典型平板宽度区间”作为默认判定（不依赖 UA）。
   // 真机 iPad 仍可通过 isIPad 分支命中。
-  return forced || ((isLandscape || isLandscapeFallback) && (isIPad || isPadWidth));
+  return forced || (isLandscape && (isIPad || isPadWidth));
 }

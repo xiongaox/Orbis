@@ -1,8 +1,6 @@
 
 export const GONG_NAMES: string[] = ['', '坎', '坤', '震', '巽', '中', '乾', '兑', '艮', '离'];
 
-export const DI_PAN_GAN_SHUN: string[] = ['戊', '己', '庚', '辛', '壬', '癸', '丁', '丙', '乙'];
-
 export const INNER_YANG: number[] = [1, 8, 3, 4];
 
 export const OUTER_YANG: number[] = [9, 2, 7, 6];

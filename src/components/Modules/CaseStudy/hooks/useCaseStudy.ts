@@ -80,6 +80,10 @@ export function useCaseStudy(snapshot?: CaseStudyLockedSnapshot | null) {
 
     // 基础状态
     const [allCases, setAllCases] = useState<CaseItem[]>([]);
+    // allCases 的 ref 镜像：重置 effect 刻意只依赖 allCases.length / selectedCategory
+    // （依赖 allCases 引用会在筛选变化时循环重置搜索词），body 内改读 ref 以通过 exhaustive-deps
+    const allCasesRef = useRef(allCases);
+    allCasesRef.current = allCases;
     const [selectedCategory, setSelectedCategory] = useState<string>(() => {
         const category = initialSnapshot?.selectedCategory;
         return category && CATEGORIES.some((item) => item.id === category) ? category : 'changshi';
@@ -371,6 +375,7 @@ export function useCaseStudy(snapshot?: CaseStudyLockedSnapshot | null) {
         setCurrentPage(1);
         // 保留仍在当前分类中的选中项（试读解锁为完整正文时同一 id 继续可读），否则回落到该分类第一篇
         setSelectedCaseId((previous) => {
+            const allCases = allCasesRef.current;
             const stillVisible = previous && allCases.some((item) => item.id === previous && item.category === selectedCategory);
             if (stillVisible) return previous;
             return allCases.find(c => c.category === selectedCategory)?.id ?? null;

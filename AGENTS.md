@@ -76,10 +76,12 @@ Orbis/
   - 移动端：默认构建 debug 包：
     `npm run android:build:debug`（等价 `npx tauri android build --apk --debug --target aarch64`），
     产物 `app-universal-debug.apk`（包名 `com.orbis.app.debug`），`adb install -r` 覆盖安装、保留数据。
-  - 移动端管理员版 debug：`npm run android:build:debug:admin`（追加 `--features admin-signing` +
-    `--config src-tauri/tauri.android-admin.conf.json`，需本机 `keys/signing_blob.rs`）；
-    包名 `com.orbis.app.debug.admin`、应用名「玄枢录管理端」，**与普通版共存为两个图标**，
-    应用数据互相独立（激活状态不共享）。移动端 release 的管理员版仅在用户明确要求时构建。
+  - **管理员版（安卓/桌面通用铁律）：用户要求构建管理员包时一律构建 release**，
+    安卓命令 `npx tauri android build --apk --target aarch64 --features admin-signing`
+    （需本机 `keys/signing_blob.rs`），包名与普通版 release 相同（`com.orbis.app`），
+    **覆盖安装普通版，不共存**——严禁给管理员版出 debug 包或用
+    `tauri.android-admin.conf.json` 的独立包名后缀（该文件与 `android:build:debug:admin`
+    脚本已废弃，勿再使用）。
   - 移动端 release（`npx tauri android build --target aarch64`，包名 `com.orbis.app`）**仅在用户明确要求
     release / 正式交付时构建**；与手机上已装的 debug 包并存为两个图标，属预期。
     云端 release：Actions 页手动跑 `android-build` 或推 `v*` 标签（正式签名经 GitHub Secrets 注入，

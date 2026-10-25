@@ -1,7 +1,4 @@
 
-import { Solar, Lunar } from 'lunar-typescript';
-import * as DaYunLiuNianMap from '../maps/baziDaYunLiuNianMap';
-import { TIAN_GAN } from '../maps/baziJichuMap';
 
 // ==================== 类型定义 ====================
 
@@ -145,57 +142,3 @@ export function getZhi(ganZhi: string): string {
     return ganZhi.charAt(1);
 }
 
-/**
- * 根据公历年获取流年干支
- */
-export function getLiuNianGanZhi(solarYear: number): string {
-    const lunar = Lunar.fromDate(new Date(solarYear, 0, 15)); // 使用当年中间的日期
-    return lunar.getYearInGanZhi();
-}
-
-/**
- * 获取十二节名称
- */
-export function getShiErJie(index: number): string {
-    return DaYunLiuNianMap.SHI_ER_JIE[index % 12];
-}
-
-/**
- * 获取十二时描述
- */
-export function getShiErShi(index: number): string {
-    return DaYunLiuNianMap.SHI_ER_SHI[index % 12];
-}
-
-/**
- * 获取地支汉代命名
- */
-export function getDiZhiHanMing(index: number): string {
-    return DaYunLiuNianMap.DI_ZHI_HAN_MING[index % 12];
-}
-
-/**
- * 计算起运年龄（根据出生日期和性别）
- * @param solar 公历对象
- * @param sex 性别（1:男 0:女）
- * @returns 起运年龄
- */
-export function calculateQiYunAge(solar: Solar, sex: number): number {
-    const lunar = Lunar.fromSolar(solar);
-    const eightChar = lunar.getEightChar();
-    const yun = eightChar.getYun(sex);
-    return yun.getStartYear();
-}
-
-/**
- * 判断是否顺行大运
- * @param yearGan 年干
- * @param sex 性别（1:男 0:女）
- * @returns 是否顺行
- */
-export function isShunXing(yearGan: string, sex: number): boolean {
-    const ganIndex = TIAN_GAN.indexOf(yearGan as typeof TIAN_GAN[number]);
-    const isYangGan = ganIndex % 2 === 0;
-    // 阳年男命、阴年女命顺行，反之逆行
-    return (isYangGan && sex === 1) || (!isYangGan && sex === 0);
-}

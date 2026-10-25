@@ -418,15 +418,6 @@ export function isTianGanHe(gan1: string, gan2: string): boolean {
 }
 
 /**
- * 快速检查两个天干是否相冲
- */
-export function isTianGanChong(gan1: string, gan2: string): boolean {
-    const key1 = gan1 + gan2;
-    const key2 = gan2 + gan1;
-    return !!(TIAN_GAN_XIANG_CHONG[key1] || TIAN_GAN_XIANG_CHONG[key2]);
-}
-
-/**
  * 快速检查两个地支是否六合
  */
 export function isDiZhiLiuHe(zhi1: string, zhi2: string): boolean {
@@ -444,20 +435,3 @@ export function isDiZhiChong(zhi1: string, zhi2: string): boolean {
     return !!(DI_ZHI_XIANG_CHONG[key1] || DI_ZHI_XIANG_CHONG[key2]);
 }
 
-/**
- * 快速检查两个地支是否相刑
- */
-export function isDiZhiXing(zhi1: string, zhi2: string): boolean {
-    const key1 = zhi1 + zhi2;
-    const key2 = zhi2 + zhi1;
-    return !!(DI_ZHI_XIANG_XING[key1] || DI_ZHI_XIANG_XING[key2]);
-}
-
-/**
- * 快速检查两个地支是否相害
- */
-export function isDiZhiHai(zhi1: string, zhi2: string): boolean {
-    const key1 = zhi1 + zhi2;
-    const key2 = zhi2 + zhi1;
-    return !!(DI_ZHI_XIANG_HAI[key1] || DI_ZHI_XIANG_HAI[key2]);
-}

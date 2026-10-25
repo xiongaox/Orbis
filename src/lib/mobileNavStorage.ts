@@ -23,7 +23,7 @@ export const MOBILE_NAV_HOME_CHART: ChartType = 'wannianli';
 export const MOBILE_NAV_MAX_SLOTS = 2;
 
 /** 默认可换槽位（四柱八字 · 奇门遁甲） */
-export const DEFAULT_MOBILE_NAV_SLOTS: ChartType[] = ['bazi', 'qimen'];
+const DEFAULT_MOBILE_NAV_SLOTS: ChartType[] = ['bazi', 'qimen'];
 
 /** 第二页（案例学习层）槽位存储键 */
 export const MOBILE_NAV_CASE_SLOTS_STORAGE_KEY = 'orbis_mobile_nav_case_slots';
@@ -71,12 +71,12 @@ export const MOBILE_NAV_CANDIDATES: ReadonlyArray<{ id: ChartType; name: string 
 ];
 
 /** 独立固定菜单（非术数）：不占术数槽位，在重选菜单里作为独立格子露出 */
-export const MOBILE_NAV_INDEPENDENT: ReadonlyArray<{ id: ChartType; name: string }> = [
+const MOBILE_NAV_INDEPENDENT: ReadonlyArray<{ id: ChartType; name: string }> = [
     { id: 'xiaoliuren', name: '案例学习' },
 ];
 
 /** 尚未上线的术数（重选菜单中仅展示） */
-export const MOBILE_NAV_UPCOMING: ReadonlyArray<{ id: ChartType; name: string }> = [
+const MOBILE_NAV_UPCOMING: ReadonlyArray<{ id: ChartType; name: string }> = [
     { id: 'daliuren', name: '大六壬' },
     { id: 'meihua', name: '梅花易数' },
     { id: 'ziwei', name: '紫微斗数' },

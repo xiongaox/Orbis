@@ -119,52 +119,6 @@ export function getWuXingStatistics(pillars: { tiangan: string; dizhi: string }[
 }
 
 /**
- * 获取节气信息（前一节气，后一节气，及时间差）
- * @param solarDateStr 公历日期字符串
- */
-export function getSolarTerms(solarDateStr: string) {
-    const dateObj = parseDateString(solarDateStr);
-    if (!dateObj) return { prev: { name: '-', date: '-', diff: '-' }, next: { name: '-', date: '-', diff: '-' } };
-    const solar = Solar.fromDate(dateObj);
-    const lunar = solar.getLunar();
-
-    // 获取当日前后节气
-    const prevJieQi = lunar.getPrevJieQi(true); // true表示包含当天
-    const nextJieQi = lunar.getNextJieQi(true);
-
-    const prevName = prevJieQi.getName();
-    const nextName = nextJieQi.getName();
-
-    const prevDate = prevJieQi.getSolar();
-    const nextDate = nextJieQi.getSolar();
-
-    // 格式化日期时间
-    // 只到分：秒对排盘没有意义，多出来的位数会把手机上的两列撑开换行
-    const formatTime = (s: Solar) => `${s.getYear()}-${String(s.getMonth()).padStart(2, '0')}-${String(s.getDay()).padStart(2, '0')} ${String(s.getHour()).padStart(2, '0')}:${String(s.getMinute()).padStart(2, '0')}`;
-
-    // 计算时间差
-    const calcDiff = (target: Solar, current: Solar) => {
-        // 计算时间差 (Lunar-typescript 没有直接的时间戳获取，转为 Date 计算)
-        // Lunar-typescript 没有直接的时间戳获取，转为 Date 计算
-        const d1 = new Date(target.toYmdHms().replace(/-/g, '/'));
-        const d2 = new Date(current.toYmdHms().replace(/-/g, '/'));
-        const diffMs = Math.abs(d1.getTime() - d2.getTime());
-
-        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-        const secs = Math.floor((diffMs % (1000 * 60)) / 1000);
-
-        return `${days}天${hours}小时${mins}分${secs}秒`;
-    }
-
-    return {
-        prev: { name: prevName, date: formatTime(prevDate), diff: calcDiff(prevDate, solar) },
-        next: { name: nextName, date: formatTime(nextDate), diff: calcDiff(nextDate, solar) }
-    };
-}
-
-/**
  * 获取月相名称
  */
 export function getMoonPhase(solarDateStr: string): string {
@@ -227,41 +181,6 @@ export function getYueJiang(solarDateStr: string): { jiang: string; shen: string
         jiang: yueJiang,
         shen: shenMap[yueJiang] || '未知'
     };
-}
-
-/**
- * 简易格局判断（基于月令）
- */
-export function getPattern(_monthZhi: string, _dayGan: string): string {
-    // 这是一个非常简化的示例，实际格局判断非常复杂
-    // 这里仅作为占位符逻辑，基于月支本气和日干的关系
-    // 参数以下划线前缀标记为有意未使用
-    void _monthZhi; void _dayGan;
-    const _zhiMainQi: Record<string, string> = {
-        '子': '癸', '丑': '己', '寅': '甲', '卯': '乙', '辰': '戊', '巳': '丙',
-        '午': '丁', '未': '己', '申': '庚', '酉': '辛', '戌': '戊', '亥': '壬'
-    };
-    void _zhiMainQi; // 留备用
-
-    // 十神映射简表 (日干 -> 他干 -> 十神)
-    // 需引用完整的十神逻辑，这里简化处理，假设已获取到月支的主气
-    // 实际应复用 metaphysics.ts 中的 SHI_SHEN_MAP
-
-    return "杂气正印格"; // 暂时返回固定示例，待接入完整十神系统
-}
-
-/**
- * 获取喜用神（需要完整的旺衰和格局分析）
- * 注意：真正的喜用神判断需要考虑日主强弱、格局等，"缺什么补什么"是错误的
- * @param _missing 缺失的五行（暂未使用）
- */
-export function getJoyGods(_missing: string): { gods: string; direction: string } {
-    // TODO: 实现完整的喜用神判断逻辑
-    // 1. 计算日主旺衰
-    // 2. 分析格局
-    // 3. 确定用神和喜神
-    void _missing;
-    return { gods: '暂未对接', direction: '暂未对接' };
 }
 
 /**

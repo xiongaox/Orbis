@@ -41,33 +41,3 @@ export const DUANFA_FILES: DuanFaFile[] = Object.entries(rawMdFiles).map(([path,
     return a.name.localeCompare(b.name, 'zh-CN');
 });
 
-// ====== 大纲生成 ======
-
-/**
- * 从 Markdown 内容提取标题生成大纲
- * 注意：跳过第一个 # 标题（因为它会在页面标题单独显示）
- */
-export function generateOutlineFromMd(content: string): DuanFaOutlineItem[] {
-    // 兼容 Windows CRLF 和 Unix LF
-    const lines = content.split(/\r?\n/);
-    const outline: DuanFaOutlineItem[] = [];
-    let counter = 0;
-
-
-    for (const line of lines) {
-        const match = line.match(/^(#{1,3})\s+(.+)$/);
-        if (match) {
-            const level = match[1].length;
-            const title = match[2].trim();
-
-            outline.push({
-                id: `duanfa-heading-${counter}`,
-                title,
-                level,
-            });
-            counter++;
-        }
-    }
-
-    return outline;
-}

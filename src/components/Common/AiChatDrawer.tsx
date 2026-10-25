@@ -16,6 +16,7 @@ import { useState, useMemo, useEffect, useRef, useCallback, useSyncExternalStore
 import { pushBackHandler, popBackHandler } from '../../utils/androidBackButton';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import SubPage from '../UI/SubPage';
+import CustomSelect from '../UI/CustomSelect';
 import {
   Sparkles,
   Bot,
@@ -67,96 +68,6 @@ export interface AiChatDrawerProps {
     gender?: string;
     ganZhi?: string;
   };
-}
-
-interface DropdownOption {
-  value: string;
-  label: string;
-}
-
-function CustomDropdown({
-  label,
-  value,
-  options,
-  onChange,
-  disabled = false,
-  icon,
-}: {
-  label: string;
-  value: string;
-  options: DropdownOption[];
-  onChange: (val: string) => void;
-  disabled?: boolean;
-  icon?: React.ReactNode;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen]);
-
-  const currentOption = options.find((opt) => opt.value === value);
-  const displayLabel = currentOption?.label || value || '请选择';
-
-  return (
-    <div className={`relative inline-block ${isOpen ? 'z-50' : 'z-10'}`} ref={containerRef}>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => setIsOpen((prev) => !prev)}
-        className={`flex items-center gap-1.5 px-3 h-10 text-[13px] rounded-lg border border-border/80 bg-background/90 hover:bg-muted/70 text-foreground transition-all duration-150 cursor-pointer select-none focus:outline-none focus:ring-1 focus:ring-primary ${
-          disabled ? 'opacity-50 cursor-not-allowed' : ''
-        } ${isOpen ? 'border-primary ring-1 ring-primary/40 bg-muted/50' : ''}`}
-      >
-        {icon}
-        <span className="text-muted-foreground">{label}:</span>
-        <span className="font-medium text-foreground max-w-[100px] sm:max-w-[130px] truncate">
-          {displayLabel}
-        </span>
-        <ChevronDown
-          className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 shrink-0 ${
-            isOpen ? 'rotate-180' : ''
-          }`}
-        />
-      </button>
-
-      {isOpen && (
-        <div className="absolute left-0 top-full mt-1.5 z-50 min-w-full w-max max-w-[260px] rounded-xl border border-border/90 bg-popover text-popover-foreground shadow-2xl p-1 text-xs space-y-0.5 max-h-56 overflow-y-auto">
-          {options.map((opt) => {
-            const isSelected = opt.value === value;
-            return (
-              <div
-                key={opt.value}
-                onClick={() => {
-                  onChange(opt.value);
-                  setIsOpen(false);
-                }}
-                className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-xs cursor-pointer transition-colors text-left ${
-                  isSelected
-                    ? 'bg-primary/15 text-primary font-medium'
-                    : 'hover:bg-muted text-foreground'
-                }`}
-              >
-                <span className="truncate">{opt.label}</span>
-                {isSelected && <Check className="w-3.5 h-3.5 text-primary shrink-0" />}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
 }
 
 export default function AiChatDrawer({
@@ -1049,7 +960,8 @@ export default function AiChatDrawer({
             <div ref={clearConfirmRef} className="flex-shrink-0 relative flex items-center gap-2 flex-wrap px-3 sm:px-4 py-2.5 border-t border-border/40 bg-card/50">
               {services.length > 0 ? (
                 <div className="flex items-center gap-2 flex-wrap min-w-0">
-                  <CustomDropdown
+                  <CustomSelect
+                    variant="toolbar"
                     label="服务"
                     value={selectedServiceId}
                     options={serviceOptions}
@@ -1057,7 +969,8 @@ export default function AiChatDrawer({
                     icon={<Bot className="w-3.5 h-3.5 text-primary" />}
                   />
                   {modelOptions.length > 0 && (
-                    <CustomDropdown
+                    <CustomSelect
+                      variant="toolbar"
                       label="模型"
                       value={selectedModel}
                       options={modelOptions}

@@ -1,9 +1,0 @@
-{
-  "$schema": "./config.schema.json",
-  "productName": "玄枢录管理端",
-  "bundle": {
-    "android": {
-      "debugApplicationIdSuffix": ".debug.admin"
-    }
-  }
-}

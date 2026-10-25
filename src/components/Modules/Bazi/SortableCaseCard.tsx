@@ -6,11 +6,9 @@
 */
 import { useEffect, useRef, useState } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
-import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../../utils/lunarUtil';
-import { getElementTextColor } from '../../../lib/xuan-bazi/maps';
 import type { BaziCase, CaseTag } from '../../../services/baziCaseService';
 import { useSwipeDismiss } from '../../../hooks/useSwipeDismiss';
-import { useCasePrivacy } from '../../../contexts/CasePrivacyContext';
+import CaseCardBody from './components/CaseList/CaseCardBody';
 
 const REVEAL_PX = 140;
 
@@ -32,11 +30,12 @@ export default function SortableCaseCard({
     onDelete,
     preferredTag,
 }: SortableCaseCardProps) {
-    // 隐藏开关由案例库头部统一控制（跨模块共享），这里只读状态
-    const { isPrivacyMode } = useCasePrivacy();
     // 右滑位移（px，正值向右；与左侧抽屉「向左推回收起」反向，避免收侧栏时误触）
     const [swipeX, setSwipeX] = useState(0);
     const [isSwiping, setIsSwiping] = useState(false);
+    // 已确认为横向拖动：操作层仅在此时挂载。若在 pointerdown 就挂载，
+    // 普通点击时按压态的半透明卡面（active:bg-secondary/40）会让按钮透出来闪一下
+    const [dragConfirmed, setDragConfirmed] = useState(false);
     // 起手时的手指坐标与卡片已有位移：位移叠加后双向跟手，右滑收回不再瞬移
     const dragStart = useRef({ x: 0, y: 0, offset: 0, locked: false, aborted: false });
     // 真实滑动后浏览器补发的 click 不当作点选（与 demo suppressClick 同思路）
@@ -90,6 +89,7 @@ export default function SortableCaseCard({
             // 已确认为横向拖动：撤销长按守卫，滑动后补发的 click 也不当作点选
             clearLongPress();
             suppressClick.current = true;
+            setDragConfirmed(true);
         }
         const delta = dx + s.offset;
         setSwipeX(Math.max(0, Math.min(REVEAL_PX, delta)));
@@ -99,6 +99,7 @@ export default function SortableCaseCard({
         clearLongPress();
         if (!isSwiping) return;
         setIsSwiping(false);
+        setDragConfirmed(false);
         e.currentTarget.style.transition = '';
         // 被判定为滚动（aborted）或浏览器接管手势（pointercancel）时一律回到起手状态，杜绝滚动误驻留展开
         if (dragStart.current.aborted) {
@@ -127,29 +128,6 @@ export default function SortableCaseCard({
         onSelect();
     };
 
-    // 四柱：年 月 日 时（每柱天干 + 地支）
-    const pillars = getBaziPillarsFromDateString(caseData.birth_date);
-    const pillarPairs = pillars.length === 8
-        ? [0, 2, 4, 6].map(i => [pillars[i], pillars[i + 1]] as const)
-        : [];
-    const age = getAgeFromBirth(caseData.birth_date);
-
-    // 仅日干使用五行色，其余干支统一压暗
-    const dayGan = pillarPairs[2]?.[0] ?? '';
-    const dayGanColor = getElementTextColor(dayGan);
-
-    // 标签：正浏览某分组且案例属于该分组时，优先展示该分组标签
-    const tags = caseData.tags ?? [];
-    const displayTag = preferredTag && tags.includes(preferredTag) ? preferredTag : tags[0];
-
-    const birth = new Date(caseData.birth_date);
-    const hasValidBirth = !Number.isNaN(birth.getTime());
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const displayDate = hasValidBirth
-        ? `${birth.getFullYear()}年${birth.getMonth() + 1}月${birth.getDate()}日`
-        : caseData.birth_date;
-    const displayTime = hasValidBirth ? `${pad(birth.getHours())}:${pad(birth.getMinutes())}` : '';
-
     return (
         <div
             ref={rootRef}
@@ -158,8 +136,8 @@ export default function SortableCaseCard({
                 : 'border-border/40'
                 }`}
         >
-            {/* 右滑露出的操作层（按钮在卡片左缘）：仅在拖动中或已展开时挂载，静止时不存在任何可透出的底层 */}
-            {(isSwiping || swipeX !== 0) && (
+            {/* 右滑露出的操作层（按钮在卡片左缘）：仅在横向拖动确认或已展开时挂载，静止/普通点击时不存在任何可透出的底层 */}
+            {(dragConfirmed || swipeX !== 0) && (
                 <div className="absolute inset-y-0 left-0 z-[1] flex">
                     <button
                         type="button"
@@ -199,53 +177,20 @@ export default function SortableCaseCard({
                 onPointerCancel={endSwipe}
                 onContextMenu={(e) => e.preventDefault()}
                 style={{ transform: `translateX(${swipeX}px)`, transition: isSwiping ? 'none' : 'transform .18s' }}
-                className={`relative z-[2] flex cursor-pointer touch-pan-y items-center gap-3 bg-card px-3.5 py-3 ${swipeX !== 0 ? '' : 'active:bg-secondary/40'}`}
+                className={`relative z-[2] flex cursor-pointer touch-pan-y items-center gap-3 bg-card px-3.5 py-3 ${swipeX !== 0 || dragConfirmed ? '' : 'active:bg-secondary/40'}`}
             >
-                {/* 左侧：姓名 / 性别 / 分类 / 出生日期时辰 */}
-                <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5">
-                        <span className={`truncate text-sm font-medium text-foreground ${isPrivacyMode ? 'select-none blur-[6px]' : ''}`}>{caseData.name}</span>
-                        {/* 印章 / 分类 / 记事条数共用一个 tight 栈：三者间距压到 4px */}
-                        <div className="flex shrink-0 items-center gap-1">
-                            {/* 性别印章：专用性别色实底容器，同分类 chip 一套度量（demo shared.css .seal） */}
-                            <span className={`inline-flex h-[21px] w-5 shrink-0 items-center justify-center rounded-md text-xs leading-none ${caseData.gender === 'male'
-                                ? 'bg-[var(--gender-male-bg)] text-[var(--gender-male)]'
-                                : 'bg-[var(--gender-female-bg)] text-[var(--gender-female)]'
-                                }`}>
-                                {caseData.gender === 'male' ? '乾' : '坤'}
-                            </span>
-                            {tags.length > 0 && (
-                                <span className="inline-flex h-5 shrink-0 items-center rounded-[5px] bg-primary/10 px-1.5 text-[13px] leading-none text-primary">
-                                    {displayTag}
-                                </span>
-                            )}
-                            {/* 生平记事条数：与左侧分类 chip 同一规格（primary/10 透明底 + primary 文字） */}
-                            {(caseData.life_events?.length ?? 0) > 0 && (
-                                <span
-                                    title={`生平记事 ${caseData.life_events!.length} 条`}
-                                    className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-[5px] bg-primary/10 px-1.5 font-mono text-[13px] leading-none text-primary"
-                                >
-                                    {caseData.life_events!.length}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                    <div className="mt-1 flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
-                        <span>{displayDate}</span>
-                        {displayTime && <span className="tabular-nums">{displayTime}</span>}
-                        {age !== null && (<><span className="h-[3px] w-[3px] rounded-full bg-border" /><span>{age}岁</span></>)}
-                    </div>
-                </div>
-
-                {/* 右侧：四列迷你排盘（干上支下），日干保留五行色，其余压暗 */}
-                <div className="flex shrink-0 gap-[3px]">
-                    {pillarPairs.map(([gan, zhi], i) => (
-                        <div key={i} className="flex w-6 flex-col items-center font-serif leading-tight">
-                            <span className={`text-[19px] font-semibold ${i === 2 ? dayGanColor : 'text-foreground/55'}`}>{gan}</span>
-                            <span className="text-[19px] font-semibold text-foreground/55">{zhi}</span>
-                        </div>
-                    ))}
-                </div>
+                {/* 静态展示区（姓名/印章/chip/记事徽标/日期/四柱）由 CaseCardBody 共享渲染 */}
+                <CaseCardBody
+                    variant="library"
+                    name={caseData.name}
+                    isMale={caseData.gender === 'male'}
+                    pillarSource={caseData.birth_date}
+                    birthDate={caseData.birth_date}
+                    dateFallback={caseData.birth_date}
+                    tags={caseData.tags ?? []}
+                    preferredTag={preferredTag}
+                    lifeEventCount={caseData.life_events?.length ?? 0}
+                />
             </div>
         </div>
     );

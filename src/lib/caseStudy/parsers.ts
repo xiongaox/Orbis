@@ -80,30 +80,6 @@ export const filterContentForDisplay = (content: string): string => {
     return filtered.replace(/^\n+/, '');
 };
 
-/**
- * 提取八字摘要用于列表显示
- */
-export const extractBazi = (content: string): string => {
-    const metadata = parseCaseMetadata(content);
-    if (metadata.birthDateTime && metadata.dayMasterElement) {
-        const birth = parseBirthFromMetadata(metadata.birthDateTime);
-        if (birth) {
-            return `${birth.year}/${birth.month}/${birth.day} ${metadata.dayMasterElement}`;
-        }
-    }
-
-    const match = content.match(/[乾坤]造[：:]\s*([^\n(（]+)/);
-    if (match) {
-        const bazi = match[1].replace(/[年月日时，,、\s]+/g, ' ').trim();
-        const pillars = bazi.split(/\s+/);
-        if (pillars.length >= 4) {
-            return pillars.slice(0, 4).join(' ');
-        }
-        return bazi;
-    }
-    return "未知八字";
-};
-
 // ====== 奇门时间解析 ======
 
 /**

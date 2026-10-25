@@ -17,9 +17,6 @@ import {
   saveCloudSyncState,
 } from './cloudSyncStore';
 import {
-  AUTO_SYNC_MAX_FAILURES,
-  CloudSyncHttpError,
-  CONFLICT_COPY_FIELD,
   getStatus,
   syncChatSessionsNow,
   syncNow,
@@ -27,6 +24,12 @@ import {
   testConnection,
 } from './cloudSyncService';
 import { MAX_RETRIES } from './remoteBackupShared';
+
+// AUTO_SYNC_MAX_FAILURES / CONFLICT_COPY_FIELD / CloudSyncHttpError 已转为模块私有，此处内联等价值
+const AUTO_SYNC_MAX_FAILURES = 5;
+const CONFLICT_COPY_FIELD = 'conflict_copy_of';
+const isCloudSyncHttpError = (e: unknown) =>
+  e instanceof Error && e.name === 'CloudSyncHttpError';
 
 const WORKER_URL = 'https://sync.example.com';
 const CONFIG = {
@@ -306,7 +309,7 @@ describe('云同步编排（cloudSyncService，T06）', () => {
 
     const error = await syncNow().catch((e: unknown) => e);
 
-    expect(error).toBeInstanceOf(CloudSyncHttpError);
+    expect(isCloudSyncHttpError(error)).toBe(true);
     expect(error).toMatchObject({ status: 401, code: 'UNAUTHORIZED' });
     expect(error).toHaveProperty('message', '鉴权失败：请检查同步密钥');
     expect(fetchMock).toHaveBeenCalledTimes(1); // 不无限重试

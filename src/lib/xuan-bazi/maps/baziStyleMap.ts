@@ -16,35 +16,11 @@ export const WU_XING_TEXT_COLORS: Record<string, string> = {
     '亥': 'text-[var(--element-water)]', '子': 'text-[var(--element-water)]',
 };
 
-/** 五行背景颜色 (Tailwind Classes using CSS Variables) 
- * 使用自定义属性 bg 支持透明度修改，或者直接使用预定义的 bg 变量
- */
-export const WU_XING_BG_COLORS: Record<string, string> = {
-    '甲': 'bg-[var(--element-wood)]/10', '乙': 'bg-[var(--element-wood)]/10',
-    '丙': 'bg-[var(--element-fire)]/10', '丁': 'bg-[var(--element-fire)]/10',
-    '戊': 'bg-[var(--element-earth)]/10', '己': 'bg-[var(--element-earth)]/10',
-    '庚': 'bg-[var(--element-metal)]/10', '辛': 'bg-[var(--element-metal)]/10',
-    '壬': 'bg-[var(--element-water)]/10', '癸': 'bg-[var(--element-water)]/10',
-
-    '寅': 'bg-[var(--element-wood)]/10', '卯': 'bg-[var(--element-wood)]/10',
-    '巳': 'bg-[var(--element-fire)]/10', '午': 'bg-[var(--element-fire)]/10',
-    '辰': 'bg-[var(--element-earth)]/10', '戌': 'bg-[var(--element-earth)]/10', '丑': 'bg-[var(--element-earth)]/10', '未': 'bg-[var(--element-earth)]/10',
-    '申': 'bg-[var(--element-metal)]/10', '酉': 'bg-[var(--element-metal)]/10',
-    '亥': 'bg-[var(--element-water)]/10', '子': 'bg-[var(--element-water)]/10',
-};
-
 /**
  * 获取字符对应的五行文本颜色
  */
 export function getElementTextColor(char: string): string {
     return WU_XING_TEXT_COLORS[char] || 'text-foreground';
-}
-
-/**
- * 获取字符对应的五行背景颜色
- */
-export function getElementBgColor(char: string): string {
-    return WU_XING_BG_COLORS[char] || 'bg-muted/50';
 }
 
 /** 五行颜色映射 (CSS Variable Strings for style attribute) */

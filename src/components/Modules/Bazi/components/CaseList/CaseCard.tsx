@@ -32,11 +32,8 @@
 import { useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
-import { getBaziPillarsFromDateString, getAgeFromBirth } from '../../../../../utils/lunarUtil';
-import { getElementTextColor } from '../../../../../lib/xuan-bazi/maps';
 import { useSwipeDismiss } from '../../../../../hooks/useSwipeDismiss';
-import { useCasePrivacy } from '../../../../../contexts/CasePrivacyContext';
-import { cn } from '../../../../../lib/utils';
+import CaseCardBody, { type CaseCardAiStatus } from './CaseCardBody';
 
 /** 左滑露出的操作区宽度，与案例库 SortableCaseCard 的 REVEAL_PX 保持同一度量 */
 const REVEAL_PX = 120;
@@ -54,8 +51,8 @@ interface CaseCardDisplayItem {
     lifeEventCount?: number;
 }
 
-/** AI 研判任务状态（见 aiTaskStatusService）：研判中 / 未读研判，展示为姓名后的小状态按钮 */
-export type CaseCardAiStatus = 'running' | 'unread';
+/** AI 研判任务状态（见 aiTaskStatusService）：类型定义移至 CaseCardBody（B6），此处随导出沿用 */
+export type { CaseCardAiStatus } from './CaseCardBody';
 
 interface CaseCardProps {
     item: CaseCardDisplayItem;
@@ -76,34 +73,8 @@ export default function CaseCard({
     onEdit,
     onDelete,
 }: CaseCardProps) {
-    // 隐藏开关由案例库头部统一控制（跨模块共享），这里只读状态
-    const { isPrivacyMode } = useCasePrivacy();
-    // 四柱：年 月 日 时（每柱天干 + 地支）
-    const pillars = getBaziPillarsFromDateString(item.birthDate ?? item.date);
-    const pillarPairs = pillars.length === 8
-        ? [0, 2, 4, 6].map(i => [pillars[i], pillars[i + 1]] as const)
-        : [];
-
-    // 仅日干使用五行色，其余干支统一压暗
-    const dayGan = pillarPairs[2]?.[0] ?? '';
-    const dayGanColor = getElementTextColor(dayGan);
-    const isMale = item.gender === '男';
-
-    // 出生日期与出生时辰拆成两段展示，不展示年龄
-    const birth = new Date(item.birthDate);
-    const hasBirth = !Number.isNaN(birth.getTime());
-    const pad = (n: number) => String(n).padStart(2, '0');
-    // 出生日期用短横线格式（1996-12-31）：中文「年月日」写法在 224px 侧栏里
-    // 与出生时辰同排时会顶满整行（实测 75.6px / 可用 75.6px，零余量），字号无法再放大。
-    // 换成短横线后第二行可放大到 12px 仍不截断。
-    const displayDate = hasBirth
-        ? `${birth.getFullYear()}-${pad(birth.getMonth() + 1)}-${pad(birth.getDate())}`
-        : item.date;
-    const displayTime = hasBirth ? `${pad(birth.getHours())}:${pad(birth.getMinutes())}` : '';
-    // 岁数：复用领域层虚岁算法（当年 - 出生年 + 1），与案例库卡片同一来源
-    const age = getAgeFromBirth(item.birthDate);
-    const lifeEventCount = item.lifeEventCount ?? 0;
-
+    // 四柱/日期/时辰/岁数派生与静态展示渲染全部在 CaseCardBody（variant="sidebar"），
+    // 本组件只保留手势/滑动外壳与卡级数值约束。
     // ---- 右滑露出 编辑 / 删除（与左侧抽屉「向左推回收起」反向，避免收侧栏时误触） ----
     const [swipeX, setSwipeX] = useState(0);
     const [isSwiping, setIsSwiping] = useState(false);
@@ -210,90 +181,22 @@ export default function CaseCard({
                 }}
                 className="relative z-[2] flex cursor-pointer flex-col bg-card px-[4px] py-[8px] text-left @[200px]:px-[8px]"
             >
-                {/* 上区：左「姓名 / 印章+分类」与右侧四柱顶对齐。
-                    姓名完整展示，仅当超出左列宽度时由 CSS truncate 按实际空间省略
-                    （研判状态按钮 shrink-0，不会被长名挤出卡外） */}
-                <div className="flex min-w-0 items-start justify-between gap-[7px] @[206px]:gap-[5px]">
-                    <div className="min-w-0 flex-1">
-                        <div className="flex min-w-0 items-center gap-[4px]">
-                            <span className={`block truncate text-[14px] font-semibold leading-[17px] text-foreground ${isPrivacyMode ? 'select-none blur-[6px]' : ''}`}>
-                                {item.name}
-                            </span>
-                            {aiStatus && onOpenAiResearch && (
-                                <button
-                                    type="button"
-                                    onClick={(event) => { stop(event); onOpenAiResearch(item.id); }}
-                                    title={aiStatus === 'running' ? 'AI 研判进行中，点击查看' : '有未读的 AI 研判结果，点击查看'}
-                                    className={`shrink-0 h-[16px] px-[4px] rounded-[4px] text-[9.5px] leading-none inline-flex items-center transition-colors cursor-pointer ${aiStatus === 'running'
-                                        ? 'border border-primary/40 bg-primary/10 text-primary animate-pulse'
-                                        : 'bg-primary text-primary-foreground hover:bg-primary/90'
-                                        }`}
-                                >
-                                    {aiStatus === 'running' ? '研判中' : '未读研判'}
-                                </button>
-                            )}
-                        </div>
-                        <div className="mt-[4px] flex min-w-0 flex-wrap items-center gap-[4px]">
-                            {/* 性别印章：第二行行首 */}
-                            <span className={`inline-flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-[4px] text-[10.5px] leading-none ${isMale
-                                ? 'bg-[var(--gender-male-bg)] text-[var(--gender-male)]'
-                                : 'bg-[var(--gender-female-bg)] text-[var(--gender-female)]'
-                                }`}>
-                                {isMale ? '乾' : '坤'}
-                            </span>
-                            {/* 标签全量展示，多标签依次排列 */}
-                            {item.tags && item.tags.length > 0 && item.tags.map((tag) => (
-                                <span
-                                    key={tag}
-                                    className="inline-flex h-[17px] shrink-0 items-center rounded-[4px] bg-primary/10 px-[3px] text-[10.5px] leading-none text-primary"
-                                >
-                                    {tag}
-                                </span>
-                            ))}
-                        </div>
-                    </div>
-                    {/* 右侧：四柱迷你排盘（干上支下 4 列）。
-                        紧凑档（内容 <206px）：柱宽 15px、柱间距 3px —— 干支 16px 字形压 15px 列，
-                        224px 侧栏下这是实测扫描出的最优解，再放大柱间距或日期字号都会让日期截断。
-                        宽容器档（≥206px）：柱宽 16px、柱间距 5px，见头注释「四柱在宽容器下放宽呼吸感」。 */}
-                    {pillarPairs.length > 0 && (
-                        <div className="flex shrink-0 gap-[3px] font-serif leading-tight @[206px]:gap-[5px]">
-                            {pillarPairs.map(([gan, zhi], i) => (
-                                <div key={i} className="flex w-[15px] shrink-0 flex-col items-center @[206px]:w-[16px]">
-                                    <span className={`text-[16px] font-semibold ${i === 2 ? dayGanColor : 'text-foreground/55'}`}>{gan}</span>
-                                    <span className="text-[16px] font-semibold text-foreground/55">{zhi}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-                {/* 底行：岁数（左）+ 出生日期·时辰（右对齐）。底行横跨整卡宽度，
-                    最坏内容约 137px vs 可用 181px+（360dp 小屏），日期不受左列宽度约束。
-                    日期仍是唯一可省略项，其余节点 shrink-0。 */}
-                <div className="mt-[4px] flex min-w-0 items-center gap-[4px] text-[12.5px] text-muted-foreground">
-                    {age !== null && <span className="shrink-0 tabular-nums">{age}岁</span>}
-                    {lifeEventCount > 0 && (
-                        <span
-                            title={`生平记事 ${lifeEventCount} 条`}
-                            className={cn(
-                                // 与分类 chip 同一套：primary/10 透明底 + primary 文字，仅字号与高度更小
-                                'inline-flex h-[15px] min-w-[15px] shrink-0 items-center justify-center rounded-[4px] bg-primary/10 px-[4px] font-mono text-[9.5px] leading-none text-primary',
-                                age === null && 'ml-[2px]',
-                            )}
-                        >
-                            {lifeEventCount}
-                        </span>
-                    )}
-                    <div className="ml-auto flex min-w-0 items-center gap-[1px]">
-                        <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">{displayDate}</span>
-                        {displayTime && (
-                            <>
-                                <span className="h-[3px] w-[3px] shrink-0 rounded-full bg-border" />
-                                <span className="shrink-0 tabular-nums">{displayTime}</span>
-                            </>
-                        )}
-                    </div>
-                </div>
+                {/* 静态展示区由 CaseCardBody 共享渲染：姓名/印章/chip/四柱（上区）+ 岁数/记事徽标/日期（底行），
+                    数值规格见本文件头注释「排版约束」，对 sidebar 档依然生效 */}
+                <CaseCardBody
+                    variant="sidebar"
+                    name={item.name}
+                    isMale={item.gender === '男'}
+                    pillarSource={item.birthDate ?? item.date}
+                    birthDate={item.birthDate}
+                    dateFallback={item.date}
+                    tags={item.tags ?? []}
+                    lifeEventCount={item.lifeEventCount ?? 0}
+                    aiStatus={aiStatus}
+                    aiTargetId={item.id}
+                    onOpenAiResearch={onOpenAiResearch}
+                    onAiButtonClick={stop}
+                />
             </div>
         </div>
     );

@@ -112,40 +112,6 @@ export function needsGuideLineForRelation(
 }
 
 /**
- * 计算轨道的累积Y偏移
- */
-export function calculateTrackYPositions(
-    relations: DiagramRelation[],
-    baseY: number,
-    isTop: boolean,
-    getX: (index: number) => number
-): (trackIndex: number) => number {
-    const tracksWithGuide = new Set<number>();
-    relations.forEach((rel) => {
-        if (needsGuideLineForRelation(rel, getX)) {
-            tracksWithGuide.add(rel.trackIndex ?? 0);
-        }
-    });
-
-    const trackPositions: number[] = [];
-    let cumulativeY = baseY;
-    const maxTrack = Math.max(...relations.map((r) => r.trackIndex ?? 0), 0);
-
-    for (let i = 0; i <= maxTrack; i++) {
-        trackPositions[i] = cumulativeY;
-        const hasGuide = tracksWithGuide.has(i);
-        const spacing = DIAGRAM_LAYOUT.TRACK_HEIGHT + (hasGuide ? DIAGRAM_LAYOUT.GUIDE_LINE_EXTRA : 0);
-        if (isTop) {
-            cumulativeY -= spacing;
-        } else {
-            cumulativeY += spacing;
-        }
-    }
-
-    return (trackIndex: number) => trackPositions[trackIndex] || baseY;
-}
-
-/**
  * 计算实际总高度（考虑引导线额外空间）
  */
 export function calculateActualHeight(

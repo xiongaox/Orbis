@@ -87,3 +87,6 @@ notes/sanyuan
 # Local-only design demos and AI tool state (仅本地，不入库)
 /design-demos/
 /.omo/
+
+# 代理工具会话状态
+.zcode/

@@ -2,15 +2,10 @@
 import {
     TIAN_GAN,
     DI_ZHI,
-    TIAN_GAN_WU_XING,
-    DI_ZHI_WU_XING,
-    TIAN_GAN_YIN_YANG,
     DI_ZHI_CANG_GAN,
     NA_YIN,
     KONG_WANG,
     SHI_SHEN,
-    SHI_ER_ZHANG_SHENG,
-    DI_ZHI_SHENG_XIAO,
 } from '../maps';
 
 /**
@@ -42,27 +37,6 @@ export function getDiZhiByIndex(index: number): string {
 }
 
 /**
- * 获取天干的五行
- */
-export function getTianGanWuXing(gan: string): string {
-    return TIAN_GAN_WU_XING[gan] || '';
-}
-
-/**
- * 获取地支的五行
- */
-export function getDiZhiWuXing(zhi: string): string {
-    return DI_ZHI_WU_XING[zhi] || '';
-}
-
-/**
- * 获取天干的阴阳
- */
-export function getTianGanYinYang(gan: string): string {
-    return TIAN_GAN_YIN_YANG[gan] || '';
-}
-
-/**
  * 获取地支的藏干
  */
 export function getDiZhiCangGan(zhi: string): string[] {
@@ -74,21 +48,6 @@ export function getDiZhiCangGan(zhi: string): string[] {
  */
 export function getNaYin(ganZhi: string): string {
     return NA_YIN[ganZhi] || '';
-}
-
-/**
- * 获取干支的纳音五行
- */
-export function getNaYinWuXing(ganZhi: string): string {
-    const naYin = getNaYin(ganZhi);
-    if (!naYin) return '';
-
-    // 纳音最后一个字就是五行
-    const lastChar = naYin[naYin.length - 1];
-    const wuXingMap: Record<string, string> = {
-        '金': '金', '木': '木', '水': '水', '火': '火', '土': '土',
-    };
-    return wuXingMap[lastChar] || '';
 }
 
 /**
@@ -108,22 +67,6 @@ export function getShiShen(dayGan: string, target: string): string {
 }
 
 /**
- * 获取十二长生
- * @param gan 天干
- * @param zhi 地支
- */
-export function getShiErZhangSheng(gan: string, zhi: string): string {
-    return SHI_ER_ZHANG_SHENG[gan + zhi] || '';
-}
-
-/**
- * 获取生肖
- */
-export function getShengXiao(zhi: string): string {
-    return DI_ZHI_SHENG_XIAO[zhi] || '';
-}
-
-/**
  * 解析干支为天干和地支
  */
 export function parseGanZhi(ganZhi: string): { gan: string; zhi: string } | null {
@@ -139,65 +82,6 @@ export function parseGanZhi(ganZhi: string): { gan: string; zhi: string } | null
  */
 export function combineGanZhi(gan: string, zhi: string): string {
     return gan + zhi;
-}
-
-/**
- * 计算两个干支之间的索引差
- */
-export function getGanZhiIndexDiff(ganZhi1: string, ganZhi2: string): number {
-    const parsed1 = parseGanZhi(ganZhi1);
-    const parsed2 = parseGanZhi(ganZhi2);
-    if (!parsed1 || !parsed2) return 0;
-
-    const ganDiff = getTianGanIndex(parsed2.gan) - getTianGanIndex(parsed1.gan);
-    return ((ganDiff % 10) + 10) % 10;
-}
-
-/**
- * 根据干支索引获取下一个干支
- */
-export function getNextGanZhi(ganZhi: string, offset: number = 1): string {
-    const parsed = parseGanZhi(ganZhi);
-    if (!parsed) return '';
-
-    const ganIndex = getTianGanIndex(parsed.gan);
-    const zhiIndex = getDiZhiIndex(parsed.zhi);
-
-    return combineGanZhi(
-        getTianGanByIndex(ganIndex + offset),
-        getDiZhiByIndex(zhiIndex + offset)
-    );
-}
-
-/**
- * 计算干支序号（甲子=0，乙丑=1，...，癸亥=59）
- */
-export function getGanZhiIndex(ganZhi: string): number {
-    const parsed = parseGanZhi(ganZhi);
-    if (!parsed) return -1;
-
-    const ganIndex = getTianGanIndex(parsed.gan);
-    const zhiIndex = getDiZhiIndex(parsed.zhi);
-
-    // 天干地支组合的规律：干支序号 = (天干索引 * 6 + 地支索引) % 60 的逆运算
-    // 实际上需要找到满足 ganIndex = n % 10 且 zhiIndex = n % 12 的 n
-    for (let n = 0; n < 60; n++) {
-        if (n % 10 === ganIndex && n % 12 === zhiIndex) {
-            return n;
-        }
-    }
-    return -1;
-}
-
-/**
- * 根据干支序号获取干支
- */
-export function getGanZhiByIndex(index: number): string {
-    const normalizedIndex = ((index % 60) + 60) % 60;
-    return combineGanZhi(
-        getTianGanByIndex(normalizedIndex),
-        getDiZhiByIndex(normalizedIndex)
-    );
 }
 
 /**

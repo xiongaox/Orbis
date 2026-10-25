@@ -24,10 +24,6 @@ export function findBank(bankId: string): TikuBank | null {
     return TIKU_BANKS.find((b) => b.id === bankId) ?? null;
 }
 
-export function findEdition(bankId: string, editionId: string): TikuEdition | null {
-    return findBank(bankId)?.editions.find((e) => e.id === editionId) ?? null;
-}
-
 /** 届次列表项（侧栏用） */
 export function editionItems(bankId: string): Array<{ id: string; label: string }> {
     const bank = findBank(bankId);
@@ -38,10 +34,3 @@ export function editionItems(bankId: string): Array<{ id: string; label: string 
     }));
 }
 
-/** 题库下的题目总数 */
-export function bankQuestionCount(bank: TikuBank): number {
-    return bank.editions.reduce(
-        (sum, e) => sum + e.volumes.reduce((s, v) => s + v.questions.length, 0),
-        0,
-    );
-}

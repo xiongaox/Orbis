@@ -56,13 +56,13 @@ const AUTO_SYNC_BACKOFF_BASE_MS = 30_000;
 /** 退避上限（毫秒） */
 const AUTO_SYNC_BACKOFF_MAX_MS = 600_000;
 /** 连续失败上限：超过则停止自动重试，仅保留手动「立即同步」 */
-export const AUTO_SYNC_MAX_FAILURES = 5;
+const AUTO_SYNC_MAX_FAILURES = 5;
 
 /** 冲突副本标记字段：案例类冲突时，本机内容另存为新记录并携带此字段指向原记录 */
-export const CONFLICT_COPY_FIELD = 'conflict_copy_of';
+const CONFLICT_COPY_FIELD = 'conflict_copy_of';
 
 /** 同步请求错误：携带 HTTP 状态与 Worker 错误码，retryable 标记是否可安全重试 */
-export class CloudSyncHttpError extends Error {
+class CloudSyncHttpError extends Error {
   readonly status: number;
   readonly code: string;
 

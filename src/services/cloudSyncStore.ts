@@ -9,7 +9,7 @@
  * 安全约束（实施方案 §5）：同步密钥等价于整个工作区的钥匙，
  * 禁止出现在日志、错误提示、ZIP 备份、WebDAV/S3 配置导出与任何 toast 中。
  */
-import { localPrivateStore } from './localPrivateStore';
+import { createId, localPrivateStore } from './localPrivateStore';
 
 export interface CloudSyncConfig {
   /** 总开关 */
@@ -39,12 +39,6 @@ export interface CloudSyncState {
 
 const CONFIG_RECORD_ID = 'cloud_sync_config';
 const STATE_RECORD_ID = 'cloud_sync_state';
-
-function createDeviceId() {
-  return typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-    ? crypto.randomUUID()
-    : `device-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
 
 /** 读取云同步配置；未配置为 null（首次使用需引导填写） */
 export async function loadCloudSyncConfig(): Promise<CloudSyncConfig | null> {
@@ -76,7 +70,7 @@ export async function saveCloudSyncState(state: CloudSyncState): Promise<void> {
 export async function getOrCreateDeviceId(): Promise<string> {
   const state = await loadCloudSyncState();
   if (state?.deviceId) return state.deviceId;
-  const deviceId = createDeviceId();
+  const deviceId = createId();
   await saveCloudSyncState({
     deviceId,
     lastPulledSequence: null,

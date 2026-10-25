@@ -43,7 +43,3 @@ export function writeSetting(key: string, value: unknown): void {
   });
 }
 
-/** 供测试/诊断：当前是否已完成预热。 */
-export function isAppSettingReady(): boolean {
-  return ready;
-}

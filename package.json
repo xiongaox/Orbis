@@ -32,8 +32,7 @@
     "cases:unpack": "tsx scripts/pack-cases.ts --unpack ../orbis-lore/dist/cases_v1.enc",
     "cases:publish": "npm run cases:pack && mkdir -p ../orbis-lore/dist && cp dist-cases/cases_v1.enc dist-cases/report.json ../orbis-lore/dist/ && git -C ../orbis-lore add dist/ && git -C ../orbis-lore commit -m 'dist: 同步最新案例加密包' && git -C ../orbis-lore push",
     "tauri:debug-apps": "bash scripts/build-debug-apps.sh",
-    "android:build:debug": "tauri android build --apk --debug --target aarch64",
-    "android:build:debug:admin": "tauri android build --apk --debug --target aarch64 --features admin-signing --config src-tauri/tauri.android-admin.conf.json"
+    "android:build:debug": "tauri android build --apk --debug --target aarch64"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",

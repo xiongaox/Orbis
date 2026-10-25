@@ -694,21 +694,3 @@ export function getJiJie(monthZhi: string): string {
     return '';
 }
 
-/**
- * 获取日柱所有特殊日类型
- */
-export function getDaySpecialTypes(dayGanZhi: string): string[] {
-    const types: string[] = [];
-
-    if (isShiEDaBai(dayGanZhi)) types.push('十恶大败');
-    if (isYinChaYangCuo(dayGanZhi)) types.push('阴差阳错');
-    if (isGuLuanSha(dayGanZhi)) types.push('孤鸾煞');
-    if (isLiuXiuRi(dayGanZhi)) types.push('六秀日');
-    if (isShiLingRi(dayGanZhi)) types.push('十灵日');
-    if (isKuiGangRi(dayGanZhi)) types.push('魁罡日');
-    if (isBaZhuanRi(dayGanZhi)) types.push('八专日');
-    if (isJiuChouRi(dayGanZhi)) types.push('九丑日');
-    if (isJinShen(dayGanZhi)) types.push('金神');
-
-    return types;
-}

@@ -75,9 +75,3 @@ function getStatusFromDangLing(dangLing: Wuxing): WuxingStatusItem[] {
     return results;
 }
 
-/**
- * 获取月支对应的当令五行
- */
-export function getMonthElement(monthBranch: string): Wuxing | null {
-    return MONTH_ELEMENT_MAP[monthBranch] || null;
-}

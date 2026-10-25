@@ -65,7 +65,7 @@ export PATH="$JAVA_HOME/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-t
 | 桌面构建（普通版） | `npm run tauri:build` |
 | 桌面构建（管理员版） | `npm run tauri:build:admin`（仅作者本机，需 keys/） |
 | 安卓构建（**用户要求「构建」但未点名 release 时用这个**） | 先执行第 0 节 export 块，再 `npm run android:build:debug`（等价 `npx tauri android build --apk --debug --target aarch64`），产物 `app-universal-debug.apk`（包名 `com.orbis.app.debug`），`adb install -r` 覆盖装保留数据 |
-| 安卓构建（管理员版 debug：应用内签发激活码） | 先执行第 0 节 export 块，再 `npm run android:build:debug:admin`（追加 `--features admin-signing`，需本机 `keys/signing_blob.rs`）。包名与普通版相同，**会覆盖安装普通 debug 包**；产物与普通版同路径同名，注意先拷出改名留存 |
+| 安卓构建（**管理员版：铁律，一律 release**） | **用户要求构建管理员包时一律 release，严禁 debug**。先执行第 0 节 export 块，再 `npx tauri android build --apk --target aarch64 --features admin-signing`（需本机 `keys/signing_blob.rs`）。包名与普通版 release 相同（`com.orbis.app`），覆盖安装普通版、不共存。产物与普通 release 同路径同名（`app-universal-release.apk`），注意先拷出改名留存。**勿再使用** `android:build:debug:admin` 脚本与 `src-tauri/tauri.android-admin.conf.json`（独立包名后缀已废弃） |
 | 安卓构建（release：**仅**用户明确要求 release / 正式交付时） | 云端：Actions 页手动跑 `android-build` 或推 `v*` 标签（正式签名经 GitHub Secrets `ANDROID_KEYSTORE_BASE64`/`ANDROID_STORE_PASSWORD`/`ANDROID_KEY_ALIAS`/`ANDROID_KEY_PASSWORD` 注入，产物 artifact `orbis-android`，2026-10-07 起可用）；本地：先执行第 0 节 export 块，再 `npx tauri android build --target aarch64`（release 产物已自动正式签名，包名 `com.orbis.app`，与 debug 包并存两个图标属预期） |
 | Rust 安全层测试 | `cd src-tauri && cargo test`（无需 Java） |
 | 安卓图标重生成 | `npm run android:icons`（tauri icon 之后必须重跑，见根 AGENTS.md） |

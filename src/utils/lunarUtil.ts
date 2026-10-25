@@ -283,29 +283,6 @@ export function getSolarToLunarInfo(date: Date): LunarDateInfo {
 }
 
 /**
- * 获取指定农历年月的天数
- */
-export function getLunarMonthDays(year: number, month: number): number {
-    try {
-        // lunar-typescript 中闰月用负数表示
-        const lunar = Lunar.fromYmd(year, month, 1);
-        // 获取当月天数
-        const lunarMonth = lunar.getMonth();
-        // 通过遍历判断天数
-        let days = 29;
-        try {
-            Lunar.fromYmd(year, lunarMonth, 30);
-            days = 30;
-        } catch {
-            // 29天
-        }
-        return days;
-    } catch {
-        return 30;
-    }
-}
-
-/**
  * 从出生日期计算虚岁
  * 虚岁计算：当前年 - 出生年 + 1
  */

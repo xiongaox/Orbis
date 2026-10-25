@@ -65,13 +65,6 @@ export function getNaYinPair(ganZhi: string): { nayin: string; selfGanZhi: strin
 }
 
 /**
- * 获取三命通会元数据
- */
-export function getSanMingMeta() {
-    return data.meta;
-}
-
-/**
  * 构建三命通会完整内容
  * @param dayGanZhi 日柱干支
  * @returns 格式化的内容
