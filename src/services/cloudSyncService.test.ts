@@ -116,6 +116,10 @@ describe('云同步编排（cloudSyncService，T06）', () => {
     vi.stubGlobal('window', {
       setTimeout: globalThis.setTimeout,
       clearTimeout: globalThis.clearTimeout,
+      // saveCloudSyncConfig 保存后广播配置变更事件，默认桩一个空实现
+      dispatchEvent: () => true,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
     });
     vi.stubGlobal('indexedDB', undefined);
     // 内存存储跨测试残留：每条用例前清空同步配置/状态与 outbox
@@ -1087,6 +1091,10 @@ describe('自动调度门控（syncNowAuto，T08）', () => {
     vi.stubGlobal('window', {
       setTimeout: globalThis.setTimeout,
       clearTimeout: globalThis.clearTimeout,
+      // saveCloudSyncConfig 保存后广播配置变更事件，默认桩一个空实现
+      dispatchEvent: () => true,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
     });
     vi.stubGlobal('indexedDB', undefined);
     await resetEnvironment();

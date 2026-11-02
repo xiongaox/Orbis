@@ -31,7 +31,7 @@
 
 import { useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent } from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, History } from 'lucide-react';
 import { useSwipeDismiss } from '../../../../../hooks/useSwipeDismiss';
 import CaseCardBody, { type CaseCardAiStatus } from './CaseCardBody';
 
@@ -62,6 +62,8 @@ interface CaseCardProps {
     onOpenAiResearch?: (id: string) => void;
     onEdit: (id: string) => void;
     onDelete: (id: string) => void;
+    /** 直接查看生平记事（不经编辑弹窗）；仅在有生平记录时由卡壳展示对应按钮 */
+    onViewLife?: (id: string) => void;
 }
 
 export default function CaseCard({
@@ -72,15 +74,20 @@ export default function CaseCard({
     onSelectCase,
     onEdit,
     onDelete,
+    onViewLife,
 }: CaseCardProps) {
+    // 有生平记录且提供查看回调时，右滑操作区多一个「生平」按钮，露出宽度相应 +60
+    const hasLife = (item.lifeEventCount ?? 0) > 0 && Boolean(onViewLife);
+    const revealWidth = hasLife ? REVEAL_PX + 60 : REVEAL_PX;
     // 四柱/日期/时辰/岁数派生与静态展示渲染全部在 CaseCardBody（variant="sidebar"），
     // 本组件只保留手势/滑动外壳与卡级数值约束。
     // ---- 右滑露出 编辑 / 删除（与左侧抽屉「向左推回收起」反向，避免收侧栏时误触） ----
     const [swipeX, setSwipeX] = useState(0);
     const [isSwiping, setIsSwiping] = useState(false);
     const gesture = useRef({ x: 0, y: 0, base: 0, lock: null as null | 'x' | 'y', moved: false });
-    // 真实滑动后浏览器补发的 click 不应被当作点选（与案例库 SortableCaseCard 同思路）
-    const suppressClick = useRef(false);
+    // 滑动后短时间内的补发 click 不应当作点选。用时间戳而非布尔：大位移滑动时浏览器
+    // 不会补发 click，布尔会滞留并吞掉用户下一次真实点击（表现为点卡片任意位置不回弹）。
+    const tapGuardUntil = useRef(0);
     // 展开态下点击卡片以外任意位置（空白/其他卡片）全局收起
     const rootRef = useRef<HTMLDivElement | null>(null);
     useSwipeDismiss(rootRef, swipeX !== 0, () => setSwipeX(0));
@@ -103,7 +110,7 @@ export default function CaseCard({
             setIsSwiping(true);
         }
         if (g.lock !== 'x') return;
-        const next = Math.max(0, Math.min(REVEAL_PX, g.base + (event.clientX - g.x)));
+        const next = Math.max(0, Math.min(revealWidth, g.base + (event.clientX - g.x)));
         g.moved = true;
         setSwipeX(next);
     };
@@ -111,8 +118,8 @@ export default function CaseCard({
     const endSwipe = () => {
         const g = gesture.current;
         if (g.lock === 'x' && g.moved) {
-            setSwipeX(swipeX > OPEN_THRESHOLD ? REVEAL_PX : 0);
-            suppressClick.current = true;
+            setSwipeX(swipeX > OPEN_THRESHOLD ? revealWidth : 0);
+            tapGuardUntil.current = Date.now() + 350;
         }
         setIsSwiping(false);
         g.lock = null;
@@ -121,8 +128,8 @@ export default function CaseCard({
     const stop = (event: ReactMouseEvent) => event.stopPropagation();
 
     const handleSelect = () => {
-        if (suppressClick.current) { suppressClick.current = false; return; }
-        // 已展开时，点卡片本体先收起而非选中
+        if (Date.now() < tapGuardUntil.current) return;
+        // 已展开时，点卡片本体（任意位置）先收起而非选中
         if (swipeX !== 0) { setSwipeX(0); return; }
         onSelectCase(item.id);
     };
@@ -156,6 +163,17 @@ export default function CaseCard({
                         <Pencil className="h-3.5 w-3.5" />
                         编辑
                     </button>
+                    {hasLife && (
+                        <button
+                            type="button"
+                            onClick={(event) => { stop(event); setSwipeX(0); onViewLife?.(item.id); }}
+                            className="flex w-[60px] flex-col items-center justify-center gap-0.5 bg-primary/10 text-[11px] font-semibold text-primary"
+                            aria-label="查看生平"
+                        >
+                            <History className="h-3.5 w-3.5" />
+                            生平
+                        </button>
+                    )}
                 </div>
 
             {/* 前景层：卡片本体 */}

@@ -58,6 +58,10 @@ export default function BaseModal({
     bottomSheet = false,
 }: BaseModalProps) {
     const onCloseRef = useRef(onClose);
+    // 遮罩点击关闭要求「按下与松开都在遮罩上」：在输入框内拖选文本、鼠标划出弹窗后
+    // 松手时，浏览器派发的 click 目标是 mousedown/mouseup 的共同祖先（即遮罩本身），
+    // 只看 click 会误判成点击遮罩而把弹窗关掉。
+    const backdropDownRef = useRef(false);
 
     useLayoutEffect(() => {
         onCloseRef.current = onClose;
@@ -135,8 +139,12 @@ export default function BaseModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby={title ? "modal-title" : undefined}
+            onMouseDown={(e) => {
+                backdropDownRef.current = e.target === e.currentTarget;
+            }}
             onClick={(e) => {
-                if (e.target === e.currentTarget && closeOnBackdropClick) {
+                if (e.target === e.currentTarget && backdropDownRef.current && closeOnBackdropClick) {
+                    backdropDownRef.current = false;
                     onClose();
                 }
             }}

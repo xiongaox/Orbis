@@ -117,8 +117,8 @@ export default function EditCaseModal({ isOpen, onClose, caseData, onSaved }: Ed
                 <History className="w-4 h-4" />
                 生平记事
                 {formData.life_events.length > 0 && (
-                    // 固定宽高才是正圆（用 px 撑宽会变成椭圆）
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary font-mono text-[11px] text-primary-foreground">
+                    // 圆角矩形计数徽标：短数字靠 min-width 撑住，多位数字自动加宽
+                    <span className="flex h-5 min-w-5 items-center justify-center rounded-[5px] bg-primary px-1.5 font-mono text-[11px] text-primary-foreground">
                         {formData.life_events.length}
                     </span>
                 )}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Loader2, RefreshCw, Wifi } from 'lucide-react';
+import { Loader2, RefreshCw, Wifi, ChevronDown, Check } from 'lucide-react';
 import Toast from './Toast';
 import { useToast } from '../../hooks/useToast';
 import {
@@ -12,9 +12,21 @@ import {
 } from '../../services/cloudSyncService';
 import type { CloudSyncConfig } from '../../services/cloudSyncStore';
 import { localPrivateStore } from '../../services/localPrivateStore';
+import CustomSelect from '../UI/CustomSelect';
+import BaseModal from '../UI/BaseModal';
+import { useLayoutMode } from '../../hooks/useLayoutMode';
 
 /** 同步密钥输入留空时的占位提示：保持已保存的值不变 */
 const KEEP_TOKEN_PLACEHOLDER = '已配置，留空保持不变';
+
+/** 自动同步间隔选项（秒）：默认取最小值 15 秒；>1 分钟的档位不列——应用不会长时间停留，
+ *  进程被系统回收后也不会后台同步，长间隔实际没意义 */
+const SYNC_INTERVAL_OPTIONS: Array<{ label: string; value: number }> = [
+  { label: '15 秒', value: 15 },
+  { label: '30 秒', value: 30 },
+  { label: '1 分钟', value: 60 },
+];
+const DEFAULT_SYNC_INTERVAL_SECONDS = 15;
 
 function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (next: boolean) => void }) {
   return (
@@ -66,6 +78,9 @@ export default function CloudSyncSettingsPanel() {
   const [savedToken, setSavedToken] = useState('');
   const [status, setStatus] = useState<CloudSyncStatus | null>(null);
   const [busy, setBusy] = useState<'test' | 'sync' | null>(null);
+  const [autoSyncIntervalSeconds, setAutoSyncIntervalSeconds] = useState(DEFAULT_SYNC_INTERVAL_SECONDS);
+  const [intervalSheetOpen, setIntervalSheetOpen] = useState(false);
+  const { isMobile } = useLayoutMode();
 
   // 挂载时载入配置与状态：密钥不回显明文（留空表示保持不变）
   useEffect(() => {
@@ -78,6 +93,7 @@ export default function CloudSyncSettingsPanel() {
         setWorkerUrl(config?.workerUrl ?? '');
         setSyncToken('');
         setWorkspaceId(config?.workspaceId ?? '');
+        setAutoSyncIntervalSeconds(config?.autoSyncIntervalSeconds ?? DEFAULT_SYNC_INTERVAL_SECONDS);
         setSavedToken(config?.syncToken ?? '');
         setHasSavedConfig(config !== null);
         setStatus(nextStatus);
@@ -99,7 +115,7 @@ export default function CloudSyncSettingsPanel() {
     if (!workspace) throw new Error('请填写工作区标识（两台设备需填同一标识）');
     const token = syncToken.trim() || savedToken;
     if (!token) throw new Error('请填写同步密钥');
-    const config: CloudSyncConfig = { enabled: nextEnabled, workerUrl: url, syncToken: token, workspaceId: workspace };
+    const config: CloudSyncConfig = { enabled: nextEnabled, workerUrl: url, syncToken: token, workspaceId: workspace, autoSyncIntervalSeconds };
     await saveConfig(config);
     setSavedToken(token);
     setHasSavedConfig(true);
@@ -231,6 +247,49 @@ export default function CloudSyncSettingsPanel() {
         />
         <p className="mt-1 text-[11px] text-muted-foreground">
           首次配置必填、不默认生成；两台设备填写同一个标识才能互相同步
+        </p>
+      </div>
+
+      <div>
+        <label className="block text-xs text-muted-foreground mb-1">自动同步间隔</label>
+        {isMobile ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setIntervalSheetOpen(true)}
+              className="flex w-full items-center justify-between rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus-ring"
+            >
+              <span>{SYNC_INTERVAL_OPTIONS.find((opt) => opt.value === autoSyncIntervalSeconds)?.label ?? `${autoSyncIntervalSeconds} 秒`}</span>
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            </button>
+            <BaseModal
+              isOpen={intervalSheetOpen}
+              onClose={() => setIntervalSheetOpen(false)}
+              title="自动同步间隔"
+              bottomSheet
+              maxWidth="md:max-w-md"
+              bodyClassName="p-2"
+            >
+              <div className="flex flex-col">
+                {SYNC_INTERVAL_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => { setAutoSyncIntervalSeconds(opt.value); setIntervalSheetOpen(false); }}
+                    className={`flex items-center justify-between px-3 py-3 rounded-lg text-sm text-left transition-colors ${opt.value === autoSyncIntervalSeconds ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'}`}
+                  >
+                    <span>{opt.label}</span>
+                    {opt.value === autoSyncIntervalSeconds && <Check className="w-4 h-4" />}
+                  </button>
+                ))}
+              </div>
+            </BaseModal>
+          </>
+        ) : (
+          <CustomSelect options={SYNC_INTERVAL_OPTIONS} value={autoSyncIntervalSeconds} onChange={(value) => setAutoSyncIntervalSeconds(Number(value))} />
+        )}
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          运行期自动同步的频率；改完点「测试连接 / 立即同步」或切换开关即保存生效，最小 15 秒
         </p>
       </div>
 

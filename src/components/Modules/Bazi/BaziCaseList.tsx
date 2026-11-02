@@ -1,9 +1,11 @@
 import { useMemo, useState, useEffect, useCallback, useSyncExternalStore } from 'react';
-import { baziCaseService, type BaziCase, type CaseTag, type CreateCaseInput } from '../../../services/baziCaseService';
+import { baziCaseService, type BaziCase, type CaseTag, type CreateCaseInput, type LifeEvent } from '../../../services/baziCaseService';
 import type { Case } from '../../../types';
 import CreateCaseModal from './CreateCaseModal';
 import { BAZI_CASES_CHANGED_EVENT } from '../../../data/caseConstants';
 import EditCaseModal from './EditCaseModal';
+import LifeTimelineModal, { type DaYunLike, type LiuNianLike } from './LifeTimelineModal';
+import { calculateBazi as calculateFullBazi } from '../../../services/bazi/baziCalculator';
 import CaseCard from './components/CaseList/CaseCard';
 import CaseTagFilter from './components/CaseList/CaseTagFilter';
 import BaseCaseList from '../../Common/BaseCaseList';
@@ -49,6 +51,9 @@ export default function CaseList({
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCase, setEditingCase] = useState<BaziCase | null>(null);
+  // 直接在列表查看生平（不经过编辑弹窗）；关闭时若有改动写回案例
+  const [viewingLifeCase, setViewingLifeCase] = useState<BaziCase | null>(null);
+  const [lifeEventsDraft, setLifeEventsDraft] = useState<LifeEvent[]>([]);
   const [selectedTag, setSelectedTag] = useState<CaseTag | null>(null);
   // 字段排序（年龄/分组/性别）：field 为 null 表示默认
   const [sort, setSort] = useState<SortState>({ field: null, dir: 'desc' });
@@ -168,6 +173,49 @@ export default function CaseList({
     if (target) setEditingCase(target);
   };
 
+  // 打开生平记事（只查看，不进入编辑）：案例只存简化排盘，大运/流年用完整计算器现算，与编辑弹窗同源
+  const handleViewLife = useCallback((id: string) => {
+    const target = cases.find(c => c.id === id);
+    if (!target) return;
+    setViewingLifeCase(target);
+    setLifeEventsDraft(target.life_events ?? []);
+  }, [cases]);
+
+  const lifeTimelineData = useMemo((): { daYun: DaYunLike[]; liuNian: LiuNianLike[] } => {
+    if (!viewingLifeCase?.birth_date) return { daYun: [], liuNian: [] };
+    const date = new Date(viewingLifeCase.birth_date);
+    if (Number.isNaN(date.getTime())) return { daYun: [], liuNian: [] };
+    try {
+      const full = calculateFullBazi({
+        year: date.getFullYear(),
+        month: date.getMonth() + 1,
+        day: date.getDate(),
+        hour: date.getHours(),
+        minute: date.getMinutes(),
+        gender: viewingLifeCase.gender,
+      });
+      return { daYun: full.daYun ?? [], liuNian: full.liuNian ?? [] };
+    } catch {
+      return { daYun: [], liuNian: [] };
+    }
+  }, [viewingLifeCase]);
+
+  // 关闭生平弹窗：内容有变化才写回（一次落库），并广播变更让列表计数刷新
+  const handleCloseLife = useCallback(async () => {
+    const target = viewingLifeCase;
+    if (!target) return;
+    const changed = JSON.stringify(target.life_events ?? []) !== JSON.stringify(lifeEventsDraft);
+    setViewingLifeCase(null);
+    if (!changed) return;
+    try {
+      await baziCaseService.updateCase(target.id, { life_events: lifeEventsDraft });
+      window.dispatchEvent(new CustomEvent(BAZI_CASES_CHANGED_EVENT));
+    } catch (error) {
+      console.error('保存生平记事失败:', error);
+      showToast('保存生平记事失败，请重试', 'error');
+    }
+  }, [viewingLifeCase, lifeEventsDraft, showToast]);
+
   return (
     <BaseCaseList
       variant={variant}
@@ -194,6 +242,15 @@ export default function CaseList({
         <>
           <CreateCaseModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} onCreated={handleCaseCreated} onPreview={onPreviewCase ? handlePreviewCase : undefined} />
           {editingCase && <EditCaseModal isOpen caseData={editingCase} onClose={() => setEditingCase(null)} onSaved={() => setEditingCase(null)} />}
+          {viewingLifeCase && (
+            <LifeTimelineModal
+              onClose={handleCloseLife}
+              daYun={lifeTimelineData.daYun}
+              liuNian={lifeTimelineData.liuNian}
+              events={lifeEventsDraft}
+              onChange={setLifeEventsDraft}
+            />
+          )}
         </>
       }
     >
@@ -210,6 +267,7 @@ export default function CaseList({
           }}
           onEdit={handleEditCase}
           onDelete={handleDeleteCase}
+          onViewLife={handleViewLife}
         />
       ))}
     </BaseCaseList>

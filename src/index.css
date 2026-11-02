@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* 不用 @import 外链 Google Fonts：远程样式会阻塞首屏 CSSOM，国内网络下 TLS 握手失败会白屏；
+   字体走系统栈（--font-sans: Inter→system-ui，--font-serif: Noto Serif SC→Songti SC→serif）。 */
 
 @tailwind base;
 @tailwind components;

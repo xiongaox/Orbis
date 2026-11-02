@@ -7,10 +7,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="玄枢录 - 聚合多种排盘工具" />
   <title>玄枢录</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap"
-    rel="stylesheet">
+  <!-- 不用 Google Fonts 外链：fonts.googleapis/gstatic 在国内 WebView 中 TLS 握手失败或超时，
+       而 <link rel="stylesheet"> 是渲染阻塞资源，会让首帧一直白屏（网络差时可达数十秒）。
+       字体统一回退系统字体栈（见 index.css 的 --font-sans/serif/mono）。 -->
   <script>
     (function () {
       var stored = localStorage.getItem('theme');

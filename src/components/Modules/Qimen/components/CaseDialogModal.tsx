@@ -18,7 +18,7 @@
  * 数据仍然落在 description / feedback / analysis 三个字段，见 caseDialog.ts。
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Pencil, Plus, SquarePen, Trash2 } from 'lucide-react';
+import { Check, Pencil, Plus, SquarePen, Trash2, X } from 'lucide-react';
 import {
     dialogFieldsFromLines,
     dialogLinesFromCase,
@@ -362,18 +362,53 @@ export default function CaseDialogModal({
                             </button>
                         ))}
                     </div>
-                    {mode === 'r' && analysisTargetId && (
-                        <p className="shrink-0 px-4 pt-2 text-[11.5px] text-primary">
-                            断法将挂在：{lines.find((line) => line.id === analysisTargetId)?.text.slice(0, 20) ?? ''}
-                            <button type="button" onClick={() => setAnalysisTargetId(null)} className="ml-2 underline hover:no-underline">取消</button>
-                        </p>
-                    )}
                     {/* 输入区不画分割线：与模式按钮之间只靠留白分开，
                         避免按钮被上下两条线夹住显得局促。
                         输入框独占整行，操作按钮另起一行贴右下，不与输入争宽度。
                         注意别在外面再包一层描边——全局样式会给聚焦的 textarea 画 focus-ring，
                         嵌套会套成双层框。 */}
                     <div className="shrink-0 space-y-2 pt-1">
+                        {mode === 'r' && analysisTargetId && (() => {
+                            // 回顾补断法：输入框升级为带主色描边的「挂载容器」——
+                            // 顶部内嵌挂载条（primary/10 淡底），目标信息贴着输入发生地，
+                            // 不再单独占一行把底部撑碎。容器边框即目标回答的主色标记，
+                            // 与正文里断法的虚框是同一套视觉语言。
+                            const targetIndex = lines.findIndex((line) => line.id === analysisTargetId);
+                            const target = lines[targetIndex];
+                            if (!target) return null;
+                            return (
+                                <div className="overflow-hidden rounded-lg border border-primary/50 bg-muted/30">
+                                    <div className="flex items-center gap-2 border-b border-primary/20 bg-primary/10 px-3 py-1.5 text-[12px] text-primary">
+                                        <span className="h-2 w-2 shrink-0 rounded-full bg-primary/70" />
+                                        <span className="shrink-0">断法挂在</span>
+                                        <span className="shrink-0 font-mono text-[12.5px] font-medium">#{targetIndex + 1}</span>
+                                        <span className="min-w-0 flex-1 truncate text-right text-primary/60">{MODE_LABEL[target.kind]}的回答</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAnalysisTargetId(null)}
+                                            aria-label="取消挂载"
+                                            className="shrink-0 rounded-md p-0.5 text-primary/70 transition-colors hover:bg-primary/15 hover:text-primary focus-ring"
+                                        >
+                                            <X className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                    <textarea
+                                        ref={inputRef}
+                                        value={draft}
+                                        onChange={(e) => setDraft(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault();
+                                                void handleSend();
+                                            }
+                                        }}
+                                        placeholder="写下这一问的断法…"
+                                        className="block max-h-40 min-h-[72px] w-full resize-none overflow-y-auto bg-transparent px-3 py-2 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+                                    />
+                                </div>
+                            );
+                        })()}
+                        {!(mode === 'r' && analysisTargetId && lines.some((line) => line.id === analysisTargetId)) && (
                         <textarea
                             ref={inputRef}
                             value={draft}
@@ -384,9 +419,10 @@ export default function CaseDialogModal({
                                     void handleSend();
                                 }
                             }}
-                            placeholder={mode === 'q' ? '求测人问了什么？' : mode === 'a' ? '你的回答…' : analysisTargetId ? '写下这一问的断法…' : '这一局的断法…'}
+                            placeholder={mode === 'q' ? '求测人问了什么？' : mode === 'a' ? '你的回答…' : '这一局的断法…'}
                             className="max-h-40 min-h-[72px] w-full resize-none overflow-y-auto rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm leading-relaxed text-foreground placeholder:text-muted-foreground/60 focus:border-primary/50"
                         />
+                        )}
                         <div className="flex items-center justify-between gap-3">
                             <span className="min-w-0 truncate text-[11.5px] text-muted-foreground">
                                 共 {turnCount} 轮

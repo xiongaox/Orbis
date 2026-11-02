@@ -12,9 +12,10 @@
  * 同步完成且有数据流动时广播 CLOUD_SYNC_DONE_EVENT（App 层监听提示）；
  * 无变更的同步保持静默。
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { syncNowAuto, CLOUD_SYNC_DONE_EVENT } from '../services/cloudSyncService';
 import { localPrivateStore } from '../services/localPrivateStore';
+import { loadCloudSyncConfig, CLOUD_SYNC_CONFIG_CHANGED_EVENT } from '../services/cloudSyncStore';
 
 /** 运行期低频同步间隔（毫秒）：15 秒（2026-10-16 用户确认调整；原方案
  * 定 30–60 秒取中 45 秒。拉取侧只有轮询一种机制，15 秒是用户体验
@@ -27,6 +28,26 @@ const WRITE_DEBOUNCE_MS = 1_500;
 
 export function useCloudSyncScheduler(): void {
   const debounceTimer = useRef<number | undefined>(undefined);
+  const [intervalMs, setIntervalMs] = useState(AUTO_SYNC_INTERVAL_MS);
+
+  // 自动同步间隔跟随用户配置（保存后经事件即时生效）；未配置时用最小默认 15 秒
+  useEffect(() => {
+    let cancelled = false;
+    const loadInterval = () => {
+      void loadCloudSyncConfig().then((config) => {
+        if (cancelled) return;
+        const sec = config?.autoSyncIntervalSeconds;
+        setIntervalMs(sec && sec > 0 ? sec * 1000 : AUTO_SYNC_INTERVAL_MS);
+      }).catch(() => { /* 读配置失败沿用默认 */ });
+    };
+    loadInterval();
+    const onConfigChanged = () => loadInterval();
+    window.addEventListener(CLOUD_SYNC_CONFIG_CHANGED_EVENT, onConfigChanged);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(CLOUD_SYNC_CONFIG_CHANGED_EVENT, onConfigChanged);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -54,10 +75,10 @@ export function useCloudSyncScheduler(): void {
     // 挂载即同步一次（收敛存量变更）
     triggerSync();
 
-    // 运行期低频同步（以 pull 增量为主）
+    // 运行期低频同步（以 pull 增量为主），频率取用户配置的自动同步间隔
     const interval = window.setInterval(() => {
       if (!cancelled) triggerSync();
-    }, AUTO_SYNC_INTERVAL_MS);
+    }, intervalMs);
 
     // 本地写入检测：轮询待同步计数（本地读取，不产生网络请求）
     const poll = window.setInterval(() => {
@@ -83,5 +104,5 @@ export function useCloudSyncScheduler(): void {
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('online', onOnline);
     };
-  }, []);
+  }, [intervalMs]);
 }

@@ -133,6 +133,10 @@ export default function QimenGuideModal({
         const csNote = (gan: string): GuideNote | null => {
             const info = getGanChangShengNote(gan, p.position);
             if (!info) return null;
+            // 四维宫（乾坤艮巽）含两个地支，会给出两个十二长生状态；
+            // 取用时看时辰地支阴阳：阳时取阳支、阴时取阴支（具体到支与状态一并标出）
+            const yangIdx = info.zhiList.findIndex((z) => '子寅辰午申戌'.includes(z));
+            const yinIdx = info.zhiList.findIndex((z) => '丑卯巳未酉亥'.includes(z));
             return {
                 body: (
                     <>
@@ -142,6 +146,13 @@ export default function QimenGuideModal({
                         </b>
                         ；本宫含 {info.zhiList.join('、')} →{' '}
                         {info.states.map((s, i) => `${s}（${info.zhiList[i]}）`).join(' + ')}
+                        {yangIdx >= 0 && yinIdx >= 0 && (
+                            <>
+                                ；四维宫两状态取用看时辰阴阳：
+                                <b className="font-semibold text-primary">阳时取阳支、阴时取阴支</b>
+                                （阳时取 {info.zhiList[yangIdx]}＝{info.states[yangIdx]}，阴时取 {info.zhiList[yinIdx]}＝{info.states[yinIdx]}）
+                            </>
+                        )}
                     </>
                 ),
             };

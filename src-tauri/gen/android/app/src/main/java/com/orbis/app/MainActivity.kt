@@ -30,6 +30,26 @@ class MainActivity : TauriActivity() {
   companion object {
     private const val TAG = "OrbisMainActivity"
     private const val BRIDGE_NAME = "OrbisNative"
+
+    /**
+     * 主题同步脚本：监听 <html> 的 class 变化（index.html 内联脚本与 React 切主题都会 toggle 'dark'），
+     * 实时把明暗上报原生，用于切换系统状态栏 / 导航栏图标明暗。
+     * Android WebView 的 JS 桥没有属性变化回调，只能靠 MutationObserver 主动上报。
+     */
+    private val THEME_SYNC_JS = """
+      (function () {
+        function sync() {
+          try {
+            var dark = document.documentElement.classList.contains('dark');
+            window.OrbisNative && window.OrbisNative.setDarkMode(dark);
+          } catch (e) {}
+        }
+        if (document.documentElement) {
+          new MutationObserver(sync).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+          sync();
+        }
+      })();
+    """.trimIndent()
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,7 +64,8 @@ class MainActivity : TauriActivity() {
     @Suppress("DEPRECATION")
     window.navigationBarColor = Color.TRANSPARENT
 
-    // 正文为深色底，状态栏/导航栏使用浅色图标
+    // 状态栏/导航栏图标明暗随主题由 WebView 上报（见 ExternalLinkBridge.setDarkMode 与 THEME_SYNC_JS）。
+    // 这里先按默认深色主题置浅色图标，避免首帧闪一下深色图标；主题脚本随后会按实际主题纠正。
     WindowCompat.getInsetsController(window, window.decorView).apply {
       isAppearanceLightStatusBars = false
       isAppearanceLightNavigationBars = false
@@ -67,12 +88,30 @@ class MainActivity : TauriActivity() {
     // 外部链接交给系统浏览器。放在 Kotlin 而不是 Rust 命令里，是因为 Tauri 的安卓插件
     // 接线由 CLI 生成、而本机调试脚本绕过了 CLI；这里是入库的源文件，任何构建路径都生效。
     webView.addJavascriptInterface(ExternalLinkBridge(), BRIDGE_NAME)
+    // 注入主题同步脚本：明亮主题下把状态栏/导航栏图标切成深色，否则白色图标压在浅底上看不清
+    if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+      WebViewCompat.addDocumentStartJavaScript(webView, THEME_SYNC_JS, setOf("*"))
+    }
     // WebView 的创建晚于首个 inset 回调，补发一次以免漏掉
     if (hasInsets) publishSafeArea(lastTopPx, lastBottomPx, force = true)
   }
 
   /** 前端 window.OrbisNative 的宿主对象；只放行 http/https，其余忽略。 */
   private inner class ExternalLinkBridge {
+    /**
+     * 主题同步：深色主题→状态栏/导航栏用浅色图标（isAppearanceLight* = false）；
+     * 浅色主题→用深色图标（true）。由页面内 MutationObserver（THEME_SYNC_JS）在上报。
+     */
+    @JavascriptInterface
+    fun setDarkMode(isDark: Boolean) {
+      runOnUiThread {
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+          isAppearanceLightStatusBars = !isDark
+          isAppearanceLightNavigationBars = !isDark
+        }
+      }
+    }
+
     @JavascriptInterface
     fun openUrl(url: String) {
       if (!url.startsWith("http://") && !url.startsWith("https://")) {

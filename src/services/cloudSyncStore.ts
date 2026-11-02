@@ -20,6 +20,8 @@ export interface CloudSyncConfig {
   syncToken: string;
   /** 工作区标识：两台设备须填同一值（首次配置必填，用户自起） */
   workspaceId: string;
+  /** 自动同步间隔（秒）：运行期低频拉取频率；未设置时按最小默认 15 秒 */
+  autoSyncIntervalSeconds?: number;
 }
 
 export interface CloudSyncState {
@@ -40,6 +42,9 @@ export interface CloudSyncState {
 const CONFIG_RECORD_ID = 'cloud_sync_config';
 const STATE_RECORD_ID = 'cloud_sync_state';
 
+/** 云同步配置保存后广播：调度器据此即时应用新的自动同步间隔 */
+export const CLOUD_SYNC_CONFIG_CHANGED_EVENT = 'orbis-cloud-sync-config-changed';
+
 /** 读取云同步配置；未配置为 null（首次使用需引导填写） */
 export async function loadCloudSyncConfig(): Promise<CloudSyncConfig | null> {
   const record = await localPrivateStore.get('cloud_sync_config', CONFIG_RECORD_ID);
@@ -51,6 +56,9 @@ export async function loadCloudSyncConfig(): Promise<CloudSyncConfig | null> {
 
 export async function saveCloudSyncConfig(config: CloudSyncConfig): Promise<void> {
   await localPrivateStore.put('cloud_sync_config', { ...config }, CONFIG_RECORD_ID);
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(CLOUD_SYNC_CONFIG_CHANGED_EVENT));
+  }
 }
 
 /** 读取云同步状态；未初始化为 null */

@@ -112,6 +112,19 @@ export default function TikuPage({ drawers }: { drawers?: TikuPageDrawers }) {
         [tiku, closeCatalog],
     );
 
+    /** 选届次：一期一卷的联赛没有命例层级，点届次即出题，顺手关掉目录抽屉（否则挡住正文） */
+    const handleSelectEdition = useCallback(
+        (id: string) => {
+            tiku.handleSelectEdition(id);
+            const target = tiku.editions.find((e) => e.id === id);
+            if ((target?.volumes.length ?? 0) <= 1) {
+                closeCatalog();
+                contentScrollRef.current?.scrollTo({ top: 0 });
+            }
+        },
+        [tiku, closeCatalog],
+    );
+
     /** 换一题：顺延候选池，作答随题集变化自动清空，正文回到顶部 */
     const handleDailyNext = useCallback(() => {
         setDailyOffset((n) => n + 1);
@@ -122,13 +135,16 @@ export default function TikuPage({ drawers }: { drawers?: TikuPageDrawers }) {
     const handleSelectBank = useCallback(
         (id: string) => {
             if (id === DAILY_ID) {
+                // 每日一题点开即直接出题，关掉目录抽屉避免遮挡正文
                 setIsDaily(true);
+                closeCatalog();
+                contentScrollRef.current?.scrollTo({ top: 0 });
                 return;
             }
             setIsDaily(false);
             tiku.handleSelectBank(id);
         },
-        [tiku],
+        [tiku, closeCatalog],
     );
 
     const content = (
@@ -253,7 +269,7 @@ export default function TikuPage({ drawers }: { drawers?: TikuPageDrawers }) {
                             widthClass="w-[150px] min-w-[150px]"
                             items={editionItems}
                             selectedId={tiku.selectedEditionId}
-                            onSelect={tiku.handleSelectEdition}
+                            onSelect={handleSelectEdition}
                         />
                         {showVolumeSidebar && (
                             <NavSidebar
@@ -347,7 +363,7 @@ export default function TikuPage({ drawers }: { drawers?: TikuPageDrawers }) {
                                 widthClass="w-full"
                                 items={editionItems}
                                 selectedId={tiku.selectedEditionId}
-                                onSelect={tiku.handleSelectEdition}
+                                onSelect={handleSelectEdition}
                                 variant="drawer"
                             />
                         </div>

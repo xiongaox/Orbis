@@ -98,7 +98,7 @@ export default function PalaceCell({
     const bp = compact ? '@[620px]:' : '2xl:';
     // 圆角：说明大卡 rounded-2xl；紧凑档（案例学习窄侧栏）去直角；其余保持 rounded-lg
     const radiusCls = enlarged ? 'rounded-2xl' : isMobileLayout || compact ? '' : 'rounded-lg';
-    const baseClass = `relative ${radiusCls} border transition-all ${isSelected ? 'border-primary bg-primary/5' : 'border-border/50 hover:border-border hover:bg-muted/30'} ${palace.position === 5 ? 'bg-muted/20' : ''}`;
+    const baseClass = `relative flex flex-col ${radiusCls} border transition-all ${isSelected ? 'border-primary bg-primary/5' : 'border-border/50 hover:border-border hover:bg-muted/30'} ${palace.position === 5 ? 'bg-muted/20' : ''}`;
     // 长生/十神/旺衰状态文字：移动端与紧凑档一律不换行——窄宫位里「衰旺」被挤到第二行会顶乱整格
     const extraInfoClass = isMobileLayout || compact
         ? `${enlarged ? 'text-sm' : `text-[11px] ${bp}text-sm`} text-muted-foreground whitespace-nowrap overflow-hidden`
@@ -132,7 +132,8 @@ export default function PalaceCell({
     const statusRowGap = isMobileLayout ? 'mb-0.5' : '';
     const rowMinH = isMobileLayout ? '' : enlarged ? 'min-h-9' : `min-h-6 ${bp}min-h-7`;
     const statusStemCls = enlarged ? 'w-9 h-9 text-2xl' : `w-6 h-6 ${bp}w-7 ${bp}h-7 text-base ${bp}text-lg`;
-    const metaCls = enlarged ? 'text-sm' : 'text-[11px]';
+    // 底部元数据行字号：说明大卡 text-sm；紧凑档（案例学习窄侧栏）/手机保持 11px 防挤；桌面主盘放大一档到 13px
+    const metaCls = enlarged ? 'text-sm' : compact || isMobileLayout ? 'text-[11px]' : 'text-[13px]';
     const cardPad = enlarged ? 'px-3 py-4' : `p-0.5 ${bp}p-1`;
     const rowGap = enlarged ? 'gap-y-2' : `gap-y-1 ${bp}gap-y-1.5`;
     // 说明弹窗高亮中的状态干：以内层普通字形呈现，避免「描边套状态色块」双层容器
@@ -144,7 +145,7 @@ export default function PalaceCell({
     if (palace.position === 5) {
         return (
             <button type="button" {...gestureProps} className={baseClass}>
-                <div className={`${compact ? '' : 'h-full '}flex flex-col ${cardPad} ${showPalaceMeta ? `justify-between ${rowGap}` : showExtraInfo ? `justify-center gap-y-3 ${bp}gap-y-4` : compact ? 'justify-center gap-y-3' : `justify-evenly gap-y-3 ${bp}gap-y-4`}`}>
+                <div className={`h-full flex flex-col ${cardPad} ${showPalaceMeta ? `${rowGap}` : showExtraInfo ? `justify-center gap-y-3 ${bp}gap-y-4` : compact ? 'justify-center gap-y-3' : `justify-evenly gap-y-3 ${bp}gap-y-4`}`}>
                     {/* 占位行：对齐普通宫位的“门迫提示”，仅在 showPalaceMeta 开启时显示 */}
                     {showPalaceMeta && (
                         <div className={`flex items-center justify-center ${enlarged ? 'gap-3 pb-2' : 'gap-1 pb-0.5'} border-b border-transparent opacity-0 select-none`}>
@@ -155,6 +156,8 @@ export default function PalaceCell({
                             <span className="text-xs font-serif">占位</span>
                         </div>
                     )}
+                    {/* 中间三行合成一块：三行紧凑、整体居中，上下空白随高度伸缩 */}
+                    <div className={showPalaceMeta ? `flex-1 flex flex-col justify-center ${rowGap}` : 'contents'}>
                     {/* 第一行：暗干 - 与普通宫位对齐 */}
                     <div className="grid grid-cols-3 w-full">
                         <div {...guideElProps('anGan')} className={`flex items-center justify-center ${litCls('anGan')}`}><span className={`${ganCls} font-serif text-muted-foreground`}>{palace.anGan}</span></div>
@@ -192,13 +195,14 @@ export default function PalaceCell({
                         {showChangSheng && <span className={extraInfoClass}>&nbsp;</span>}
                     </div>
                     </div>
+                    </div>
                     {/* 底部元数据行：对齐普通宫位的 Meta 行 */}
                     {showPalaceMeta && (
                         palace.palaceMeta ? (
                             <div className={`flex items-center justify-center ${metaGapClass} border-t border-border/40 ${metaRowCls} ${metaCls} text-foreground/40 font-serif`}>
                                 <span {...guideElProps('num')} className={litCls('num')}>{palace.palaceMeta.number}</span>
                                 <span>丨</span>
-                                <span {...guideElProps('wang')} className={litCls('wang')}>{isMobileLayout ? '' : '宫位 '}【 {palace.palaceMeta.wangShuai} 】</span>
+                                <span {...guideElProps('wang')} className={litCls('wang')}>【 {palace.palaceMeta.wangShuai} 】</span>
                                 <span>丨</span>
                                 <span {...guideElProps('panType')} className={litCls('panType')}>{isMobileLayout ? palace.palaceMeta.panType.replace('盘', '') : palace.palaceMeta.panType}</span>
                             </div>
@@ -229,7 +233,7 @@ export default function PalaceCell({
 
     return (
         <button type="button" {...gestureProps} className={baseClass}>
-            <div className={`${compact ? '' : 'h-full '}flex flex-col ${cardPad} ${showPalaceMeta ? `justify-between ${rowGap}` : showExtraInfo ? `justify-center gap-y-3 ${bp}gap-y-4` : compact ? 'justify-center gap-y-3' : `justify-evenly gap-y-3 ${bp}gap-y-4`}`}>
+            <div className={`h-full flex flex-col ${cardPad} ${showPalaceMeta ? `${rowGap}` : showExtraInfo ? `justify-center gap-y-3 ${bp}gap-y-4` : compact ? 'justify-center gap-y-3' : `justify-evenly gap-y-3 ${bp}gap-y-4`}`}>
                 {/* 门迫路径行（顶部）：原宫 → 所在宫 → 后天方位 */}
                 {showPalaceMeta && palace.menPoPath && (
                     <div {...guideElProps('sangua')} className={`flex items-center justify-center ${sanguaRowCls} ${litCls('sangua')}`}>
@@ -241,6 +245,9 @@ export default function PalaceCell({
                     </div>
                 )}
 
+                {/* 中间三行合成一块：三行之间保持紧凑行距，整块在剩余高度内居中；
+                    三卦行/meta 行与中间块之间的空白随高度伸缩（三行本身不被拉开） */}
+                <div className={showPalaceMeta ? `flex-1 flex flex-col justify-center ${rowGap}` : 'contents'}>
                 {/* 第一行：暗干 + 八神 + 马/空 */}
                 <div className="grid grid-cols-3 w-full">
                     <div {...guideElProps('anGan')} className={`flex items-center justify-center ${litCls('anGan')}`}><span className={`${ganCls} font-serif text-muted-foreground`}>{palace.anGan}</span></div>
@@ -313,13 +320,14 @@ export default function PalaceCell({
                         {showChangSheng && <span className={extraInfoClass}>{palace.diPanShiErCS}</span>}
                     </div>
                 </div>
+                </div>
 
                 {/* 底部元数据行：序号 | 宫位【旺衰】| 内外盘 */}
                 {showPalaceMeta && palace.palaceMeta && (
                     <div className={`flex items-center justify-center ${metaGapClass} border-t border-border/40 ${metaRowCls} ${metaCls} text-foreground/40 font-serif`}>
                         <span {...guideElProps('num')} className={litCls('num')}>{palace.palaceMeta.number}</span>
                         <span>丨</span>
-                        <span {...guideElProps('wang')} className={litCls('wang')}>{isMobileLayout ? '' : '宫位 '}【 {palace.palaceMeta.wangShuai} 】</span>
+                        <span {...guideElProps('wang')} className={litCls('wang')}>【 {palace.palaceMeta.wangShuai} 】</span>
                         <span>丨</span>
                         <span {...guideElProps('panType')} className={litCls('panType')}>{isMobileLayout ? palace.palaceMeta.panType.replace('盘', '') : palace.palaceMeta.panType}</span>
                     </div>

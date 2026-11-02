@@ -36,6 +36,9 @@ export default function CaseStudyQimenChart({
     // 长生/十神互斥切换（默认长生开、十神关，与原案例排盘默认一致）
     const [showChangSheng, setShowChangSheng] = useState(true);
     const [showShiShen, setShowShiShen] = useState(false);
+    // 宫位元数据行（序号丨宫位【旺衰】丨内外盘）：案例/题库排盘默认常开，不提供切换
+    //（顶栏长生/十神已占位，再多一个按钮会挤到换行）
+    const showPalaceMeta = true;
 
     const handleToggleChangSheng = () => {
         if (showChangSheng) { setShowChangSheng(false); return; }
@@ -88,6 +91,7 @@ export default function CaseStudyQimenChart({
             roomyStemSpacing
             controlledShowChangSheng={showChangSheng}
             controlledShowShiShen={showShiShen}
+            controlledShowPalaceMeta={showPalaceMeta}
             headerActions={headerActions}
         />
     );
