@@ -34,6 +34,7 @@ import {
     User,
     X,
     ClipboardList,
+    Vibrate,
 } from 'lucide-react';
 import type { ChartType } from '../../types';
 import { openExternalUrl } from '../../utils/browserUtil';
@@ -43,6 +44,8 @@ import { type AppChangelogEntry } from '../../lib/appChangelog';
 import { popBackHandler, pushBackHandler } from '../../utils/androidBackButton';
 import { profileService } from '../../services/profileService';
 import { persistTheme } from '../../services/themeService';
+import { writeSetting } from '../../services/appSettingStore';
+import { HAPTICS_STRENGTH_KEY, getHapticStrength, haptic, type HapticStrength } from '../../utils/haptics';
 import { getUserAvatar } from '../../utils/userUtil';
 import { publicCaseLibraryService } from '../../services/publicCaseLibraryService';
 import { webDavBackupService, WEBDAV_CONFIG_CHANGE_EVENT } from '../../services/webdavBackupService';
@@ -90,17 +93,18 @@ interface MobileProfileCenterProps {
     onGoHome: () => void;
 }
 
-function ToggleSwitch({ checked, disabled, onChange }: {
+function ToggleSwitch({ checked, disabled, onChange, label }: {
     checked: boolean;
     disabled?: boolean;
     onChange: (next: boolean) => void;
+    label?: string;
 }) {
     return (
         <button
             type="button"
             role="switch"
             aria-checked={checked}
-            aria-label={checked ? '已固定' : '未固定'}
+            aria-label={label ?? (checked ? '已固定' : '未固定')}
             disabled={disabled}
             onClick={() => onChange(!checked)}
             className={`relative w-10 h-6 rounded-full shrink-0 transition-colors focus:outline-none focus-ring ${
@@ -113,6 +117,46 @@ function ToggleSwitch({ checked, disabled, onChange }: {
                 }`}
             />
         </button>
+    );
+}
+
+/** 触感强度选项：关 / 低 / 中 / 高 */
+const HAPTIC_STRENGTH_OPTIONS: { id: HapticStrength; label: string }[] = [
+    { id: 'off', label: '关' },
+    { id: 'low', label: '低' },
+    { id: 'medium', label: '中' },
+    { id: 'high', label: '高' },
+];
+const HAPTIC_STRENGTH_LABEL: Record<HapticStrength, string> = {
+    off: '已关闭',
+    low: '低 · 轻微',
+    medium: '中 · 适中',
+    high: '高 · 明显',
+};
+
+/** 触感强度分段选择器（关/低/中/高）：柔和主色胶囊；按钮自身跳过全局轻点，由点击回调统一试听 */
+function HapticStrengthControl({ value, onChange }: {
+    value: HapticStrength;
+    onChange: (next: HapticStrength) => void;
+}) {
+    return (
+        <div className="inline-flex items-center gap-0.5 rounded-lg bg-secondary/50 p-0.5 shrink-0">
+            {HAPTIC_STRENGTH_OPTIONS.map((opt) => {
+                const active = value === opt.id;
+                return (
+                    <button
+                        key={opt.id}
+                        type="button"
+                        data-haptic="off"
+                        aria-pressed={active}
+                        onClick={() => onChange(opt.id)}
+                        className={`h-6 min-w-[30px] rounded-md px-2 text-[12px] transition-colors ${active ? 'bg-primary/15 font-semibold text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                    >
+                        {opt.label}
+                    </button>
+                );
+            })}
+        </div>
     );
 }
 
@@ -156,6 +200,8 @@ export default function MobileProfileCenter({ slots, onSlotsChange, caseSlots, o
     const [backupSummary, setBackupSummary] = useState('正在读取备份配置…');
     const [birthDate, setBirthDate] = useState<Date | undefined>(undefined);
     const [canSign, setCanSign] = useState(false);
+    // 触感强度：与主题一样存 appSettingStore（off/low/medium/high，默认 medium）
+    const [hapticStrength, setHapticStrength] = useState<HapticStrength>(getHapticStrength);
 
     const [showBirthday, setShowBirthday] = useState(false);
     const [showChatHistory, setShowChatHistory] = useState(false);
@@ -261,6 +307,13 @@ export default function MobileProfileCenter({ slots, onSlotsChange, caseSlots, o
             persistTheme(next);
             return next;
         });
+    };
+
+    // 触感强度：写设置后立即按新强度震一下做试听（writeSetting 先同步 cache，haptic 能读到新值）
+    const handleSetHapticStrength = (next: HapticStrength) => {
+        setHapticStrength(next);
+        writeSetting(HAPTICS_STRENGTH_KEY, next);
+        if (next !== 'off') haptic('light');
     };
 
     const handleToggleSlot = (id: ChartType, next: boolean) => {
@@ -380,7 +433,7 @@ export default function MobileProfileCenter({ slots, onSlotsChange, caseSlots, o
                                     <button
                                         type="button"
                                         onClick={() => handleToggleSlot(id, false)}
-                                        className="w-7 h-7 shrink-0 rounded-lg bg-black/25 border border-border text-muted-foreground hover:text-red-500 hover:border-red-500/40 flex items-center justify-center transition-colors focus:outline-none focus-ring"
+                                        className="w-7 h-7 shrink-0 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/10 flex items-center justify-center transition-colors focus:outline-none focus-ring"
                                         aria-label={`移除${mobileNavModuleName(id)}`}
                                     >
                                         <X className="w-[11px] h-[11px]" />
@@ -445,7 +498,7 @@ export default function MobileProfileCenter({ slots, onSlotsChange, caseSlots, o
                                     <button
                                         type="button"
                                         onClick={() => handleToggleCaseSlot(id, false)}
-                                        className="w-7 h-7 shrink-0 rounded-lg bg-black/25 border border-border text-muted-foreground hover:text-red-500 hover:border-red-500/40 flex items-center justify-center transition-colors focus:outline-none focus-ring"
+                                        className="w-7 h-7 shrink-0 rounded-lg border border-border text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/10 flex items-center justify-center transition-colors focus:outline-none focus-ring"
                                         aria-label={`移除${name}`}
                                     >
                                         <X className="w-[11px] h-[11px]" />
@@ -480,6 +533,12 @@ export default function MobileProfileCenter({ slots, onSlotsChange, caseSlots, o
                             sub={isDark ? '当前：深色' : '当前：浅色'}
                             end={<span className="text-xs text-muted-foreground">切换主题</span>}
                             onClick={handleToggleTheme}
+                        />
+                        <SettingsRow
+                            icon={Vibrate}
+                            label="触感强度"
+                            sub={HAPTIC_STRENGTH_LABEL[hapticStrength]}
+                            end={<HapticStrengthControl value={hapticStrength} onChange={handleSetHapticStrength} />}
                         />
                         <SettingsRow icon={CalendarDays} label="设置生日" onClick={() => setShowBirthday(true)} />
                     </div>

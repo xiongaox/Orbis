@@ -33,6 +33,7 @@ import { useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent } from 'react';
 import { Pencil, Trash2, History } from 'lucide-react';
 import { useSwipeDismiss } from '../../../../../hooks/useSwipeDismiss';
+import { haptic } from '../../../../../utils/haptics';
 import CaseCardBody, { type CaseCardAiStatus } from './CaseCardBody';
 
 /** 左滑露出的操作区宽度，与案例库 SortableCaseCard 的 REVEAL_PX 保持同一度量 */
@@ -118,8 +119,10 @@ export default function CaseCard({
     const endSwipe = () => {
         const g = gesture.current;
         if (g.lock === 'x' && g.moved) {
-            setSwipeX(swipeX > OPEN_THRESHOLD ? revealWidth : 0);
+            const open = swipeX > OPEN_THRESHOLD;
+            setSwipeX(open ? revealWidth : 0);
             tapGuardUntil.current = Date.now() + 350;
+            if (open) haptic('light');
         }
         setIsSwiping(false);
         g.lock = null;

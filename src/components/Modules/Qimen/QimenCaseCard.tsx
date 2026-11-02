@@ -23,6 +23,7 @@ import { type QimenCase, QIMEN_CATEGORIES } from '../../../services/qimenCaseSer
 import { getEightCharFromDate } from '../../../utils/lunarUtil';
 import { getElementTextColor } from '../../../lib/xuan-bazi/maps';
 import { useSwipeDismiss } from '../../../hooks/useSwipeDismiss';
+import { haptic } from '../../../utils/haptics';
 import { useLayoutMode } from '../../../hooks/useLayoutMode';
 import { useQimenCasePanStatus } from './hooks/useQimenCasePanStatus';
 import type { PaiPanMethod } from '../../../lib/csp-qimen/qimenService';
@@ -125,8 +126,10 @@ export default function QimenCaseCard({
     const endSwipe = () => {
         const g = gesture.current;
         if (g.lock === 'x' && g.moved) {
-            setSwipeX(swipeX > OPEN_THRESHOLD ? REVEAL_PX : 0);
+            const open = swipeX > OPEN_THRESHOLD;
+            setSwipeX(open ? REVEAL_PX : 0);
             suppressClick.current = true;
+            if (open) haptic('light');
         }
         setIsSwiping(false);
         g.lock = null;

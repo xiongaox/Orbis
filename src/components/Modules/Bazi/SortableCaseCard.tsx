@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import type { BaziCase, CaseTag } from '../../../services/baziCaseService';
 import { useSwipeDismiss } from '../../../hooks/useSwipeDismiss';
+import { haptic } from '../../../utils/haptics';
 import CaseCardBody from './components/CaseList/CaseCardBody';
 
 const REVEAL_PX = 140;
@@ -110,8 +111,10 @@ export default function SortableCaseCard({
             setSwipeX(0);
             return;
         }
-        // 松手按中线吸附：过半吸附展开，未过半收回，两侧对称
-        setSwipeX(prev => (prev > REVEAL_PX / 2 ? REVEAL_PX : 0));
+        // 松手按中线吸附：过半吸附展开，未过半收回，两侧对称；真正展开时震一下
+        const open = swipeX > REVEAL_PX / 2;
+        setSwipeX(open ? REVEAL_PX : 0);
+        if (open) haptic('light');
     };
 
     const handleCardClick = () => {

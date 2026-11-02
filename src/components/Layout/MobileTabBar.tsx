@@ -22,6 +22,7 @@ import {
     type CaseNavSlot,
 } from '../../lib/mobileNavStorage';
 import { caseStudyLockKey } from '../../lib/lockedChartStorage';
+import { haptic } from '../../utils/haptics';
 
 interface MobileTabBarProps {
     activeChart: ChartType;
@@ -273,7 +274,7 @@ export default function MobileTabBar({
                 const slot = gesture.slot;
                 // 横滑即切换锁定：未锁定时滑一下锁上，已锁定时任一方向都解开。
                 // 不再用方向区分锁/解——方向判定在窄高度底栏里容易误判，且记不住
-                if (slot?.lockable) toggleLockRef.current(slot.key);
+                if (slot?.lockable) { toggleLockRef.current(slot.key); haptic('tick'); }
                 setPulling(false);
                 return;
             }
@@ -289,6 +290,7 @@ export default function MobileTabBar({
             if (next !== page) {
                 swallowClickRef.current = true;
                 setPageState(next);
+                haptic('light');
             }
         };
         const end = () => {

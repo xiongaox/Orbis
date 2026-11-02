@@ -20,6 +20,7 @@ import {
     type SanYuanCaseType,
 } from '../../../../services/sanyuanCaseService';
 import { useSwipeDismiss } from '../../../../hooks/useSwipeDismiss';
+import { haptic } from '../../../../utils/haptics';
 import { useCasePrivacy } from '../../../../contexts/CasePrivacyContext';
 
 /** 左滑露出的操作区宽度，与奇门/八字 CaseCard 保持同一度量 */
@@ -90,8 +91,10 @@ export default function SanYuanCaseCard({
     const endSwipe = () => {
         const g = gesture.current;
         if (g.lock === 'x' && g.moved) {
-            setSwipeX(swipeX > OPEN_THRESHOLD ? REVEAL_PX : 0);
+            const open = swipeX > OPEN_THRESHOLD;
+            setSwipeX(open ? REVEAL_PX : 0);
             suppressClick.current = true;
+            if (open) haptic('light');
         }
         setIsSwiping(false);
         g.lock = null;

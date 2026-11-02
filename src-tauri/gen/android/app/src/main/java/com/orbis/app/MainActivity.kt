@@ -1,13 +1,19 @@
 package com.orbis.app
 
 import android.content.ContentValues
+import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.provider.MediaStore
+import android.provider.Settings
 import android.util.Log
+import android.view.HapticFeedbackConstants
 import android.view.View
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
@@ -126,6 +132,67 @@ class MainActivity : TauriActivity() {
           Log.w(TAG, "打开外部链接失败: $url", e)
         }
       }
+    }
+
+    /**
+     * 触感反馈（可调三档强度）。
+     * - strength：low / medium / high（前端设置决定），本方法再按 kind 微调节奏。
+     * - 用 VibrationEffect.createOneShot(duration, amplitude) 直接控制强弱：低/中/高对应不同时长与振幅，
+     *   形成低→高的手感梯度（无振幅控制的老马达上退化为纯时长差异）。
+     * - confirm 用 createWaveform 打两段短震（双击确认）。
+     * - API 24–25 无带振幅的 createOneShot，退回 View.performHapticFeedback 常量（无强度区分）。
+     * - VIBRATE 普通权限；Vibrator 直调不遵守系统「触感反馈」总开关，故先读该开关。
+     */
+    @JavascriptInterface
+    fun haptic(kind: String, strength: String) {
+      val enabled = Settings.System.getInt(
+        contentResolver, Settings.System.HAPTIC_FEEDBACK_ENABLED, 1
+      ) == 1
+      if (!enabled) return
+      runOnUiThread {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+          val vibrator = systemVibrator() ?: return@runOnUiThread
+          val baseDur: Long = when (strength) {
+            "low" -> 10L
+            "high" -> 55L
+            else -> 30L
+          }
+          val amp: Int = when (strength) {
+            "low" -> 45
+            "high" -> 200
+            else -> 140
+          }
+          when (kind) {
+            // 双击确认：两段短震，间隔 ~70ms
+            "confirm" -> vibrator.vibrate(
+              VibrationEffect.createWaveform(
+                longArrayOf(0, baseDur, 70, baseDur),
+                intArrayOf(0, amp, 0, amp),
+                -1
+              )
+            )
+            // 手势落定：比按钮略长一点，更有「落定」感
+            "light" -> vibrator.vibrate(
+              VibrationEffect.createOneShot((baseDur * 1.25).toLong(), amp)
+            )
+            else -> vibrator.vibrate(VibrationEffect.createOneShot(baseDur, amp))
+          }
+        } else {
+          val constant = when (kind) {
+            "light" -> HapticFeedbackConstants.KEYBOARD_TAP
+            "confirm" -> HapticFeedbackConstants.LONG_PRESS
+            else -> HapticFeedbackConstants.VIRTUAL_KEY
+          }
+          webView?.performHapticFeedback(constant)
+        }
+      }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun systemVibrator(): Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+      (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
+    } else {
+      getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
     }
 
     /**

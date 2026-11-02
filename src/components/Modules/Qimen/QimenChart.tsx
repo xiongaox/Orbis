@@ -195,7 +195,7 @@ export default function QimenChart({
                     {/* 九宫格盘式：紧凑档挂 @container，宫位字号改按「格子实际宽度」分档 */}
                     <div className={`flex-1 min-h-0 w-full ${compact ? '@container' : ''}`}>
                         <div className={`w-full h-full ${isMobileLayout ? '' : compact ? 'bg-card border border-border p-1' : 'bg-card rounded-xl border border-border p-2'}`}>
-                            <div className={`grid grid-cols-3 ${isMobileLayout ? 'gap-0' : compact ? 'gap-0.5' : 'gap-1'} ${roundedMobile ? 'h-full overflow-hidden rounded-xl border border-border bg-card' : 'h-full'}`}>
+                            <div className={`grid grid-cols-3 ${isMobileLayout ? 'gap-0' : compact ? 'gap-0.5' : 'gap-1'} ${roundedMobile ? 'h-full overflow-hidden rounded-xl border border-border bg-card [&>button:first-child]:rounded-tl-xl [&>button:nth-child(3)]:rounded-tr-xl [&>button:nth-child(7)]:rounded-bl-xl [&>button:last-child]:rounded-br-xl' : 'h-full'}`}>
                                 {orderedPalaces.map((palace) => (
                                     <PalaceCell
                                         key={palace.position}

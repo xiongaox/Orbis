@@ -19,6 +19,8 @@ import CaseStudyPage from './components/Modules/CaseStudy/CaseStudyPage';
 import BaziCaseLibraryModal from './components/Modules/Bazi/BaziCaseLibraryModal';
 import { useLayoutMode } from './hooks/useLayoutMode';
 import { useMobileDrawerSwipe } from './hooks/useMobileDrawerSwipe';
+import { useHapticClicks } from './hooks/useHapticClicks';
+import { haptic } from './utils/haptics';
 import { useInsightContent } from './hooks/useInsightContent';
 import { useGanZhiLiuYi } from './hooks/useGanZhiLiuYi';
 import type { ChartType } from './types';
@@ -65,6 +67,9 @@ function AppShell() {
   const mobileDrawerRegistry = useMobileNavRegistry();
   const activeDrawers = mobileDrawerRegistry[activeChart];
 
+  // 全站关键点击（button / role=button / a）统一补一个轻点震动，挂一次即可
+  useHapticClicks();
+
   // 移动端内容区左右滑开抽屉：替代每次点底栏槽位。
   // 手指向右滑 → 左抽屉（案例/目录）从左边拉出；手指向左滑 → 右抽屉（排盘信息/大纲总览）从右边拉出。
   // 首页与个人中心没有注册抽屉，enabled 自然为 false
@@ -74,13 +79,17 @@ function AppShell() {
   const inlineOpen = activeDrawers?.inlineOpen ?? false;
   const inlineSide = activeDrawers?.inlineSide;
   const closeInlineDrawer = activeDrawers?.closeInline;
+  // 侧栏滑开/滑关提交时震一下（'light'）；这是手势真正落定的时刻，拖动过程不震，避免嗡嗡吵
   const handleOpenLeftDrawer = useCallback(() => {
+    haptic('light');
     openCaseDrawer?.();
   }, [openCaseDrawer]);
   const handleOpenRightDrawer = useCallback(() => {
+    haptic('light');
     openPanelDrawer?.();
   }, [openPanelDrawer]);
   const handleSwipeClose = useCallback(() => {
+    haptic('light');
     closeInlineDrawer?.();
   }, [closeInlineDrawer]);
   // 只传「当前打开的侧 + 关闭动作」：方向判定交给 hook，避免这里再写一遍左右逻辑
