@@ -18,6 +18,16 @@ export interface AppChangelogEntry {
 
 export const APP_CHANGELOG: AppChangelogEntry[] = [
     {
+        version: 'v2.1.8',
+        date: '2026-11-03',
+        items: [
+            '【新增】移动端触感反馈：左右滑开侧栏、底栏翻页、案例卡片滑出操作时轻震一下，操作更有实感',
+            '【新增】关键按钮点击补轻点震动，删除等确认操作加强提示音感',
+            '【新增】个人中心可调触感强度：关 / 低 / 中 / 高四档，切换即试听',
+            '【优化】奇门移动端九宫盘外四角圆角收边更自然',
+        ],
+    },
+    {
         version: 'v2.1.7',
         date: '2026-11-02',
         items: [
