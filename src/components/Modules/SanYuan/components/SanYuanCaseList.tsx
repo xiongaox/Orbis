@@ -10,7 +10,9 @@ import {
 import BaseCaseList from '../../../Common/BaseCaseList';
 import CategoryFilterDropdown from '../../../Common/CategoryFilterDropdown';
 import SortFieldButton, { type SortState } from '../../../Common/SortFieldButton';
+import ConfirmDeleteModal from '../../../Common/ConfirmDeleteModal';
 import { useToast } from '../../../../hooks/useToast';
+import { useConfirmDelete } from '../../../../hooks/useConfirmDelete';
 import SanYuanCaseLibraryModal from './SanYuanCaseLibraryModal';
 import SanYuanCaseCard from './SanYuanCaseCard';
 import SanYuanCaseModal from './SanYuanCaseModal';
@@ -89,8 +91,8 @@ export default function SanYuanCaseList({
         window.dispatchEvent(new CustomEvent(SANYUAN_CASES_CHANGED_EVENT));
     };
 
-    // 删除案例：左滑即删，无二次确认（与八字/奇门侧栏一致，可批量连删）
-    const handleDeleteCase = async (id: string, title: string) => {
+    // 删除案例：先弹二次确认，确认后再删（防误删）
+    const confirmDelete = useConfirmDelete<{ id: string; name: string }>(async ({ id }) => {
         try {
             await sanyuanCaseService.deleteCase(id);
             if (id === selectedCaseId) {
@@ -98,10 +100,11 @@ export default function SanYuanCaseList({
             }
             window.dispatchEvent(new CustomEvent(SANYUAN_CASES_CHANGED_EVENT));
         } catch (error) {
-            console.error(`删除三元案例失败（${title}）:`, error);
+            console.error('删除三元案例失败:', error);
             showToast('删除失败，请重试', 'error');
+            throw error;
         }
-    };
+    });
 
     const FILTER_TYPES = [{ id: 'all', name: '全部' }, ...SANYUAN_CASE_TYPES] as const;
     const currentTypeName = FILTER_TYPES.find((type) => type.id === selectedType)?.name ?? '全部';
@@ -156,6 +159,13 @@ export default function SanYuanCaseList({
                         }}
                         onClearSelectedCase={onClearSelectedCase}
                     />
+                    <ConfirmDeleteModal
+                        isOpen={confirmDelete.pending !== null}
+                        name={confirmDelete.pending?.name}
+                        loading={confirmDelete.busy}
+                        onCancel={confirmDelete.cancel}
+                        onConfirm={() => void confirmDelete.confirm()}
+                    />
                 </>
             }
         >
@@ -166,7 +176,7 @@ export default function SanYuanCaseList({
                     isSelected={selectedCaseId === caseData.id}
                     onSelect={() => onSelectCase(caseData)}
                     onEdit={() => setEditingCase(caseData)}
-                    onDelete={() => handleDeleteCase(caseData.id, caseData.title)}
+                    onDelete={() => confirmDelete.request({ id: caseData.id, name: caseData.title })}
                 />
             ))}
         </BaseCaseList>

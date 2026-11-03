@@ -287,3 +287,21 @@ export async function seedDemoCases(): Promise<void> {
 
     writeSetting(DEMO_SEEDED_KEY, DEMO_SEED_VERSION);
 }
+
+/**
+ * 手动恢复八字示例（梁湘润）：把内置示例按固定 id 无条件写回。
+ * 供「案例库 → 恢复示例」按钮使用——删除示例属于明确意图、不会被自动复活，
+ * 但用户误删后需要一个主动恢复的入口。保留原创建时间，视作同一条示例。
+ */
+export async function restoreDemoBaziCase(): Promise<void> {
+    const timestamp = new Date().toISOString();
+    const existing = await localPrivateStore.get('bazi_case', DEMO_BAZI_CASE_ID);
+    const previousCreatedAt = typeof existing?.payload.created_at === 'string'
+        ? existing.payload.created_at
+        : timestamp;
+    await localPrivateStore.put(
+        'bazi_case',
+        { ...DEMO_BAZI_CASE, created_at: previousCreatedAt, updated_at: timestamp },
+        DEMO_BAZI_CASE_ID,
+    );
+}

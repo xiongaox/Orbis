@@ -9,6 +9,8 @@ import SortFieldButton, { type SortState } from '../../Common/SortFieldButton';
 import { QIMEN_SORT_OPTIONS, compareQimenCase } from './caseSort';
 import type { PaiPanMethod } from '../../../lib/csp-qimen/qimenService';
 import type { ToastState } from '../../../hooks/useToast';
+import ConfirmDeleteModal from '../../Common/ConfirmDeleteModal';
+import { useConfirmDelete } from '../../../hooks/useConfirmDelete';
 
 interface QimenCaseListProps {
     selectedCaseId: string | null;
@@ -43,6 +45,11 @@ export default function QimenCaseList({
 
     const [cases, setCases] = useState<QimenCase[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+
+    // 删除案例：先弹二次确认，确认后交给页面 hook 执行删除（防误删，尤其内置示例）
+    const confirmDelete = useConfirmDelete<{ id: string; name: string }>(({ id }) => {
+        onDeleteCase?.(id);
+    });
 
     const fetchCases = async () => {
         setIsLoading(true);
@@ -120,6 +127,13 @@ export default function QimenCaseList({
                             if (id && k) onSelectCase(id, k);
                         }}
                     />
+                    <ConfirmDeleteModal
+                        isOpen={confirmDelete.pending !== null}
+                        name={confirmDelete.pending?.name}
+                        loading={confirmDelete.busy}
+                        onCancel={confirmDelete.cancel}
+                        onConfirm={() => void confirmDelete.confirm()}
+                    />
                 </>
             }
         >
@@ -131,7 +145,7 @@ export default function QimenCaseList({
                     paiPanMethod={paiPanMethod}
                     onSelectCase={(id) => onSelectCase(id, caseItem)}
                     onEdit={() => onEditCase?.(caseItem)}
-                    onDelete={(id) => onDeleteCase?.(id)}
+                    onDelete={(id) => confirmDelete.request({ id, name: caseItem.title })}
                 />
             ))}
         </BaseCaseList>

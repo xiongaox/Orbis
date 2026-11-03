@@ -10,7 +10,9 @@ import CaseCard from './components/CaseList/CaseCard';
 import CaseTagFilter from './components/CaseList/CaseTagFilter';
 import BaseCaseList from '../../Common/BaseCaseList';
 import SortFieldButton, { type SortState } from '../../Common/SortFieldButton';
+import ConfirmDeleteModal from '../../Common/ConfirmDeleteModal';
 import { useToast } from '../../../hooks/useToast';
+import { useConfirmDelete } from '../../../hooks/useConfirmDelete';
 import { BAZI_SORT_OPTIONS, compareBaziCase } from './caseSort';
 import {
   OPEN_AI_CHAT_EVENT,
@@ -141,8 +143,8 @@ export default function CaseList({
     });
   }, [cases, search, selectedTag, sort]);
 
-  // 删除案例：左滑即删，无二次确认（可批量连删，跳过确认弹窗以免每次重新定位）
-  const handleDeleteCase = async (id: string) => {
+  // 删除案例：先弹二次确认，确认后再删（防止误删，尤其内置示例）
+  const confirmDelete = useConfirmDelete<{ id: string; name: string }>(async ({ id }) => {
     try {
       await baziCaseService.deleteCase(id);
       if (selectedCaseId === id) {
@@ -152,8 +154,9 @@ export default function CaseList({
     } catch (error) {
       console.error('删除案例失败:', error);
       showToast('删除失败，请重试', 'error');
+      throw error;
     }
-  };
+  });
 
   // AI 研判任务状态：研判中 / 未读研判（跨组件登记，见 aiTaskStatusService）
   const aiStatuses = useSyncExternalStore(
@@ -251,6 +254,13 @@ export default function CaseList({
               onChange={setLifeEventsDraft}
             />
           )}
+          <ConfirmDeleteModal
+            isOpen={confirmDelete.pending !== null}
+            name={confirmDelete.pending?.name}
+            loading={confirmDelete.busy}
+            onCancel={confirmDelete.cancel}
+            onConfirm={() => void confirmDelete.confirm()}
+          />
         </>
       }
     >
@@ -266,7 +276,7 @@ export default function CaseList({
             onDrawerClose?.();
           }}
           onEdit={handleEditCase}
-          onDelete={handleDeleteCase}
+          onDelete={(id) => confirmDelete.request({ id, name: item.name })}
           onViewLife={handleViewLife}
         />
       ))}

@@ -9,6 +9,7 @@ import ImportCaseModal from './ImportCaseModal';
 import EditCaseModal from './EditCaseModal';
 import ExportCaseModal from '../../Common/ExportCaseModal';
 import CaseLibraryModal from '../../Common/CaseLibraryModal';
+import { restoreDemoBaziCase } from '../../../lib/demoCases';
 
 interface BaziCaseLibraryModalProps {
     isOpen: boolean;
@@ -40,6 +41,7 @@ export default function BaziCaseLibraryModal({
             fetchCases={baziCaseService.getCases}
             deleteCase={baziCaseService.deleteCase}
             clearCases={baziCaseService.clearCases}
+            onRestoreDemo={restoreDemoBaziCase}
             refreshEventName={BAZI_CASES_CHANGED_EVENT}
             categories={categories}
             getCategoryCount={(catId, cases) => {

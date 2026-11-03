@@ -19,6 +19,7 @@ vi.mock('../services/localPrivateStore', () => ({
 
 import {
     seedDemoCases,
+    restoreDemoBaziCase,
     DEMO_BAZI_CASE,
     DEMO_BAZI_CASE_ID,
     DEMO_QIMEN_CASE,
@@ -43,6 +44,19 @@ describe('内置示例案例', () => {
         records.clear(); // 模拟用户删光
         await seedDemoCases();
         expect(records.size).toBe(0);
+    });
+
+    it('手动恢复八字示例：误删后可写回', async () => {
+        settings.clear(); records.clear();
+        await seedDemoCases();
+        records.delete(`bazi_case:${DEMO_BAZI_CASE_ID}`); // 模拟误删
+        await seedDemoCases(); // 幂等标记不会自动复活
+        expect(records.has(`bazi_case:${DEMO_BAZI_CASE_ID}`)).toBe(false);
+
+        await restoreDemoBaziCase();
+        const restored = records.get(`bazi_case:${DEMO_BAZI_CASE_ID}`)?.payload;
+        expect(restored?.name).toBe(DEMO_BAZI_CASE.name);
+        expect(typeof restored?.created_at).toBe('string');
     });
 
     it('旧版标记（boolean true）+ 旧三条形态：升级为记录流且保留创建时间', async () => {

@@ -1,12 +1,14 @@
 
 import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
-import { Search, Plus, Trash2, Upload, Library } from 'lucide-react';
+import { Search, Plus, Trash2, Upload, Library, RotateCcw } from 'lucide-react';
 import ConfirmModal from './ConfirmModal';
+import ConfirmDeleteModal from './ConfirmDeleteModal';
 import Toast from './Toast';
 import BaseModal from '../UI/BaseModal';
 import SubPage from '../UI/SubPage';
 import { useLayoutMode } from '../../hooks/useLayoutMode';
 import { useToast } from '../../hooks/useToast';
+import { useConfirmDelete } from '../../hooks/useConfirmDelete';
 
 export interface CategorySpec {
     id: string | null;
@@ -57,6 +59,12 @@ export interface CaseLibraryModalProps<T extends { id: string }> {
      * 不传则不显示「清除数据」按钮——该动作不可撤销，只在模块明确支持时才暴露。
      */
     clearCases?: () => Promise<void>;
+
+    /**
+     * 恢复内置示例案例（各模块传入自己的恢复函数）。
+     * 不传则不显示「恢复示例」按钮——只有内置了示例的模块才需要。
+     */
+    onRestoreDemo?: () => Promise<void>;
 }
 
 export default function CaseLibraryModal<T extends { id: string }>({
@@ -74,6 +82,7 @@ export default function CaseLibraryModal<T extends { id: string }>({
     renderSubModals,
     extraActions,
     clearCases,
+    onRestoreDemo,
 }: CaseLibraryModalProps<T>) {
     const [cases, setCases] = useState<T[]>([]);
     const [loading, setLoading] = useState(false);
@@ -86,7 +95,14 @@ export default function CaseLibraryModal<T extends { id: string }>({
     const [editingCase, setEditingCase] = useState<T | null>(null);
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [clearingCases, setClearingCases] = useState(false);
+    const [restoringDemo, setRestoringDemo] = useState(false);
     const { toast, showToast } = useToast();
+
+    // 卡片名称：八字用 name、奇门用 title，取到哪个用哪个
+    const caseLabel = (item: T): string => {
+        const rec = item as { name?: string; title?: string };
+        return rec.name ?? rec.title ?? '这条案例';
+    };
 
     // 移动端检测：与全应用统一走 useLayoutMode
     const { isMobile } = useLayoutMode();
@@ -125,8 +141,8 @@ export default function CaseLibraryModal<T extends { id: string }>({
         return cases.filter(item => filterFn(item, search, selectedCategory));
     }, [cases, search, selectedCategory, filterFn]);
 
-    // 删除案例：左滑即删，无二次确认（与侧栏列表一致，可批量连删）
-    const executeDelete = async (id: string) => {
+    // 删除案例：先弹二次确认，确认后再删（防止误删，尤其内置示例）
+    const confirmDelete = useConfirmDelete<{ id: string; name: string }>(async ({ id }) => {
         try {
             await deleteCase(id);
             if (selectedCaseId === id) {
@@ -137,6 +153,24 @@ export default function CaseLibraryModal<T extends { id: string }>({
         } catch (error) {
             console.error('删除案例失败:', error);
             showToast('删除失败，请重试', 'error');
+            throw error;
+        }
+    });
+
+    // 恢复内置示例案例：写库后刷新列表并提示
+    const executeRestoreDemo = async () => {
+        if (!onRestoreDemo) return;
+        setRestoringDemo(true);
+        try {
+            await onRestoreDemo();
+            window.dispatchEvent(new CustomEvent(refreshEventName));
+            await loadCases();
+            showToast('已恢复示例案例', 'success');
+        } catch (error) {
+            console.error('恢复示例案例失败:', error);
+            showToast('恢复失败，请重试', 'error');
+        } finally {
+            setRestoringDemo(false);
         }
     };
 
@@ -216,6 +250,18 @@ export default function CaseLibraryModal<T extends { id: string }>({
                             清除数据
                         </button>
                     )}
+                    {onRestoreDemo && (
+                        <button
+                            type="button"
+                            onClick={() => void executeRestoreDemo()}
+                            disabled={restoringDemo}
+                            title="恢复内置示例案例"
+                            className="flex items-center gap-1.5 px-3 py-2 bg-secondary hover:bg-secondary/80 text-foreground hover:text-foreground/90 rounded-lg text-sm font-medium transition-colors border border-border cursor-pointer shadow-sm focus-ring disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            <RotateCcw className={`w-4 h-4 ${restoringDemo ? 'animate-spin' : ''}`} />
+                            {restoringDemo ? '恢复中…' : '恢复示例'}
+                        </button>
+                    )}
                     </div>
                 </div>
 
@@ -271,7 +317,7 @@ export default function CaseLibraryModal<T extends { id: string }>({
                                         if (isMobile) onClose();
                                     },
                                     onEdit: () => setEditingCase(caseData),
-                                    onDelete: () => void executeDelete(caseData.id),
+                                    onDelete: () => confirmDelete.request({ id: caseData.id, name: caseLabel(caseData) }),
                                 }))}
                             </div>
                         )}
@@ -307,6 +353,14 @@ export default function CaseLibraryModal<T extends { id: string }>({
                 confirmText="全部清除"
                 variant="destructive"
                 loading={clearingCases}
+            />
+
+            <ConfirmDeleteModal
+                isOpen={confirmDelete.pending !== null}
+                name={confirmDelete.pending?.name}
+                loading={confirmDelete.busy}
+                onCancel={confirmDelete.cancel}
+                onConfirm={() => void confirmDelete.confirm()}
             />
         </>
     );

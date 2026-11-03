@@ -9,10 +9,12 @@ import {
     type SanYuanCaseType,
 } from '../../../../services/sanyuanCaseService';
 import ConfirmModal from '../../../Common/ConfirmModal';
+import ConfirmDeleteModal from '../../../Common/ConfirmDeleteModal';
 import BaseModal from '../../../UI/BaseModal';
 import CustomSelect from '../../../UI/CustomSelect';
 import Toast from '../../../Common/Toast';
 import { useToast } from '../../../../hooks/useToast';
+import { useConfirmDelete } from '../../../../hooks/useConfirmDelete';
 import SanYuanCaseCard from './SanYuanCaseCard';
 import SanYuanCaseModal from './SanYuanCaseModal';
 
@@ -99,8 +101,8 @@ export default function SanYuanCaseLibraryModal({
         window.dispatchEvent(new CustomEvent(SANYUAN_CASES_CHANGED_EVENT));
     };
 
-    // 删除案例：左滑即删，无二次确认（与侧栏列表一致，可批量连删）
-    const handleDeleteCase = async (id: string) => {
+    // 删除案例：先弹二次确认，确认后再删（防误删）
+    const confirmDelete = useConfirmDelete<{ id: string; name: string }>(async ({ id }) => {
         try {
             await sanyuanCaseService.deleteCase(id);
             if (id === selectedCaseId) {
@@ -110,8 +112,9 @@ export default function SanYuanCaseLibraryModal({
         } catch (error) {
             console.error('删除三元案例失败:', error);
             showToast('删除失败，请重试', 'error');
+            throw error;
         }
-    };
+    });
 
     // 清空三元全部案例：选中项必已不存在，先解除选中再刷新，避免详情区停留在已删案例上
     const executeClear = async () => {
@@ -192,7 +195,7 @@ export default function SanYuanCaseLibraryModal({
                                                 onClose();
                                             }}
                                             onEdit={() => setEditingCase(caseData)}
-                                            onDelete={() => handleDeleteCase(caseData.id)}
+                                            onDelete={() => confirmDelete.request({ id: caseData.id, name: caseData.title })}
                                         />
                                     ))}
                                 </div>
@@ -224,6 +227,14 @@ export default function SanYuanCaseLibraryModal({
                 confirmText="全部清除"
                 variant="destructive"
                 loading={isClearing}
+            />
+
+            <ConfirmDeleteModal
+                isOpen={confirmDelete.pending !== null}
+                name={confirmDelete.pending?.name}
+                loading={confirmDelete.busy}
+                onCancel={confirmDelete.cancel}
+                onConfirm={() => void confirmDelete.confirm()}
             />
         </>
     );

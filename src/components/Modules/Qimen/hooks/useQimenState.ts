@@ -344,7 +344,7 @@ export function useQimenState({ lockedSnapshot, lifePanIntent }: UseQimenStateOp
         customJu,
     ]);
 
-    // 删除案例：左滑即删，无二次确认（与八字/三元侧栏一致，可批量连删）
+    // 删除案例（二次确认在 QimenCaseList 内弹，此处只做落库与状态清理）
     const handleDeleteCase = async (id: string) => {
         try {
             await qimenCaseService.deleteCase(id);
