@@ -187,11 +187,26 @@ export default function DayunLiunianPanel({
     } else {
       setInternalDaYunIndex(newIndex);
     }
-    // 切换大运时清空流年选择
+
+    // 切换大运后，流年落到该大运的第一个流年，流月回到该年的第一个流月；
+    // 取消选中（点同一个大运）时清空，回落到自动大运。
+    let firstYear: number | null = null;
+    if (newIndex !== null) {
+      const years = liuNian.filter(ln => ln.dayunIndex === newIndex);
+      const first = years[0] ?? liuNian.find(ln => ln.dayunIndex === 1);
+      firstYear = first?.year ?? null;
+    }
     if (onSelectLiuNian) {
-      onSelectLiuNian(null);
+      onSelectLiuNian(firstYear);
     } else {
-      setInternalLiuNianYear(null);
+      setInternalLiuNianYear(firstYear);
+    }
+
+    const firstLiuYueIndex = firstYear !== null
+      ? liuNian.find(ln => ln.year === firstYear)?.liuYue?.[0]?.index ?? null
+      : null;
+    if (onSelectLiuYue) {
+      onSelectLiuYue(firstLiuYueIndex);
     }
   };
 
